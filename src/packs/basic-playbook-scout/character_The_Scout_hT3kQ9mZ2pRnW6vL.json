@@ -1,0 +1,48 @@
+{
+	"name": "The Scout",
+	"type": "character",
+	"img": "icons/svg/mystery-man.svg",
+	"effects": [],
+	"items": [],
+	"folder": null,
+	"flags": {},
+	"system": {
+		"details": {
+			"callsign": {
+				"label": "Callsign",
+				"value": ""
+			}
+		},
+		"playbook": {
+			"name": "The Scout",
+			"slug": "the-scout",
+			"uuid": ""
+		},
+		"stats": {},
+		"attributes": {}
+	},
+	"prototypeToken": {
+		"name": "The Scout",
+		"actorLink": true,
+		"disposition": 1,
+		"texture": {
+			"src": "icons/svg/mystery-man.svg"
+		}
+	},
+	"ownership": {
+		"default": 0
+	},
+	"_stats": {
+		"compendiumSource": null,
+		"duplicateSource": null,
+		"coreVersion": "12",
+		"systemId": "pbta",
+		"systemVersion": "1.1.15",
+		"createdTime": null,
+		"modifiedTime": null,
+		"lastModifiedBy": null
+	},
+	"_id": "hT3kQ9mZ2pRnW6vL",
+	"sort": 0,
+	"_key": "!actors!hT3kQ9mZ2pRnW6vL"
+}

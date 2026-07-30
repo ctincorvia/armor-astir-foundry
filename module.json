@@ -19,7 +19,7 @@
 			"name": "basic-playbook-scout",
 			"label": "Basic Playbook - The Scout",
 			"path": "packs/basic-playbook-scout",
-			"type": "Item",
+			"type": "Actor",
 			"system": "pbta",
 			"ownership": {
 				"PLAYER": "OBSERVER",
