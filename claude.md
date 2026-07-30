@@ -6,6 +6,7 @@
 - A module can add content, UI changes, new functionality, or translations.
 - The baseline PBTA Foundry system source is available in a sibling directory and should be used as the reference environment for this module.
 - A similar module for Masks: New Generation is also available in a sibling directory and can be used as a practical example for structure and patterns.
+- A sibling directory, `masks-newgeneration-sheets`, contains that game's character/NPC sheet module (`ActorSheet` subclasses in `module/masks-character-sheet.mjs` / `module/masks-npc-sheet.mjs`, Handlebars templates in `templates/`, styling in `styles/`) and can be referenced for how to implement and register custom character sheets.
 
 ## Minimum structure
 ```text
@@ -89,3 +90,22 @@ Build the smallest possible working module:
 2. Add one script file
 3. Load it with `esmodules` or `scripts`
 4. Confirm it appears in Foundry and logs to the console
+
+## Compendium packs (compiled, not committed)
+Foundry compendium packs are LevelDB directories at runtime, not loose JSON — you can't point `module.json`'s `packs[].path` at a folder of raw JSON files and expect it to load. The convention (matching the sibling Masks module) is:
+- Keep human-readable source under `src/packs/<pack-name>/*.json` (one file per document), committed to git.
+- Compile it with `@foundryvtt/foundryvtt-cli` into a real LevelDB pack under `packs/<pack-name>/` via `npm run pullJSONtoLDB` (uses `compilePack`). This output is gitignored — it's a build artifact, regenerate it, don't hand-edit it.
+- `npm run pushLDBtoJSON` does the reverse (`extractPack`), for pulling edits made in the Foundry UI back into source JSON.
+- Only after compiling does `module.json`'s `packs` array entry actually resolve to something Foundry can load.
+
+## Linking a dev checkout into Foundry's Data/modules on Windows
+To test a working checkout without repackaging on every change, you'd naturally symlink/junction the repo into `Data/modules/<module-id>`. **This does not work if the top-level module folder itself is the link.**
+
+Windows/Node quirk: `fs.readdir(dir, { withFileTypes: true })` reports a junction or symlinked directory as `isSymbolicLink: true` / `isDirectory: false`, even though `fs.stat` (which follows it) correctly resolves it as a directory. Foundry's package scanner enumerates `Data/modules/*` and — like most scanners — filters on `isDirectory()` from that raw listing. A linked top-level module folder is silently skipped: no error, no warning, it just never appears in *Manage Modules*.
+
+The fix is to invert which level gets linked:
+1. Make `Data/modules/<module-id>` a **real** directory (not a reparse point).
+2. Copy the small, rarely-changing manifest files into it directly: `module.json`, `LICENSE`, `README.md`. Re-copy after editing these in the repo.
+3. Inside that real directory, create junctions for the frequently-changing subfolders only — e.g. `scripts/` and `packs/` — pointing at the repo's copies. Nested paths are reached via direct file access (`readFile`/`stat`), which follows reparse points fine; it's only the top-level scan that's affected.
+
+This gives live-reloading dev iteration for code and compiled packs, while still satisfying Foundry's directory scan.

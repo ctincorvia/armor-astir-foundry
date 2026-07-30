@@ -10,8 +10,8 @@
 		}
 	],
 	"compatibility": {
-		"minimum": "14",
-		"verified": "14"
+		"minimum": "12",
+		"verified": "12"
 	},
 	"esmodules": ["scripts/main.js"],
 	"packs": [
@@ -33,7 +33,7 @@
 				"id": "pbta",
 				"type": "system",
 				"compatibility": {
-					"minimum": "1.2.0"
+					"minimum": "1.1.15"
 				}
 			}
 		]
