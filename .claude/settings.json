@@ -1,6 +1,6 @@
 {
   "permissions": {
-    "defaultMode": "dontAsk",
+    "defaultMode": "bypassPermissions",
     "ask": [
       "Bash(rm *)",
       "Bash(rmdir *)",
@@ -53,7 +53,19 @@
       "PowerShell(npm publish*)",
       "PowerShell(docker push*)",
       "PowerShell(terraform apply*)",
-      "PowerShell(terraform destroy*)"
+      "PowerShell(terraform destroy*)",
+      "Bash(npm install*)",
+      "Bash(npm ci*)",
+      "PowerShell(npm install*)",
+      "PowerShell(npm ci*)",
+      "Bash(npm config set*)",
+      "PowerShell(npm config set*)",
+      "Edit(.github/workflows/**)",
+      "Write(.github/workflows/**)",
+      "Edit(.husky/**)",
+      "Write(.husky/**)",
+      "Edit(.npmrc)",
+      "Write(.npmrc)"
     ]
   }
 }

@@ -41,6 +41,9 @@ build/Release
 node_modules/
 jspm_packages/
 
+# Compiled compendium packs (built from src/packs/ via tools/pullJSONtoLDB.mjs)
+packs/*
+
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
 

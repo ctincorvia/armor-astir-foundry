@@ -1,0 +1,44 @@
+{
+	"id": "armor-astir",
+	"title": "Armor Astir",
+	"description": "A Foundry module for the Armor Astir TRPG.",
+	"version": "0.1.0",
+	"authors": [
+		{
+			"name": "Charles Incorvia",
+			"url": "https://github.com/ctincorvia"
+		}
+	],
+	"compatibility": {
+		"minimum": "14",
+		"verified": "14"
+	},
+	"esmodules": ["scripts/main.js"],
+	"packs": [
+		{
+			"name": "basic-playbook-scout",
+			"label": "Basic Playbook - The Scout",
+			"path": "packs/basic-playbook-scout",
+			"type": "Item",
+			"system": "pbta",
+			"ownership": {
+				"PLAYER": "OBSERVER",
+				"ASSISTANT": "OWNER"
+			}
+		}
+	],
+	"relationships": {
+		"systems": [
+			{
+				"id": "pbta",
+				"type": "system",
+				"compatibility": {
+					"minimum": "1.2.0"
+				}
+			}
+		]
+	},
+	"url": "https://github.com/ctincorvia/armor-astir-foundry",
+	"license": "LICENSE",
+	"readme": "README.md"
+}

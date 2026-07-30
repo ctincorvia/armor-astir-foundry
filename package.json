@@ -1,0 +1,32 @@
+{
+	"name": "armor-astir-foundry",
+	"version": "0.1.0",
+	"description": "A Foundry module for the Armor Astir TRPG.",
+	"type": "module",
+	"private": true,
+	"scripts": {
+		"test": "vitest run",
+		"test:watch": "vitest",
+		"test:coverage": "vitest run --coverage",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
+		"prepare": "husky",
+		"pullJSONtoLDB": "node ./tools/pullJSONtoLDB.mjs",
+		"pushLDBtoJSON": "node ./tools/pushLDBtoJSON.mjs"
+	},
+	"devDependencies": {
+		"@eslint/js": "^9.16.0",
+		"@foundryvtt/foundryvtt-cli": "^1.0.3",
+		"@stylistic/eslint-plugin": "^2.11.0",
+		"@vitest/coverage-v8": "^2.1.5",
+		"eslint": "^9.16.0",
+		"globals": "^15.13.0",
+		"happy-dom": "^15.11.6",
+		"husky": "^9.1.7",
+		"lint-staged": "^15.2.10",
+		"vitest": "^2.1.5"
+	},
+	"lint-staged": {
+		"*.{js,cjs,mjs}": "eslint --fix"
+	}
+}
