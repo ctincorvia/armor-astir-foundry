@@ -32,6 +32,12 @@
 			</li>
 			{{/each}}
 		</ol>
+		{{#if overheating.visible}}
+		<label class="overheating-label">
+			<input type="checkbox" class="overheating-checkbox" {{#if overheating.value}}checked{{/if}}/>
+			Overheating
+		</label>
+		{{/if}}
 	</section>
 	<section class="moves">
 		{{#each moveGroups}}

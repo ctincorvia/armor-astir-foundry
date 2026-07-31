@@ -195,6 +195,87 @@ export const BASIC_MOVES = [
 			mixed: "You succeed, but your invocation is twisted in an unexpected and dangerous way.",
 			failure: null
 		}
+	},
+	{
+		key: "cool-off",
+		name: "Cool Off",
+		traits: ["defy", "sense", "clash", "talk", "know", "channel"],
+		description:
+			"<p>When you attempt to vent heat from an Astir, to calm yourself from spiralling emotions, or to " +
+			"otherwise take a few minutes to fix something about your or someone else's situation, you're trying " +
+			"to cool off. When you do so, declare a risk you want to get rid of and roll whatever Trait seems most " +
+			"appropriate;</p>" +
+			"<p>On a 10+, you/they erase a risk or untick 'overheating' from an Astir.</p>" +
+			"<p>On a 7-9, as above, but your moment of safety is interrupted.</p>",
+		results: {
+			success: "You/they erase a risk or untick 'overheating' from an Astir.",
+			mixed: "As above, but your moment of safety is interrupted.",
+			failure: null
+		}
+	},
+	{
+		key: "strike-decisively",
+		name: "Strike Decisively",
+		traits: ["clash", "talk"],
+		description:
+			"<p>When you're lining up the perfect shot against an opponent who can't defend themselves, delivering " +
+			"a scathing dismissal of their character using irrefutable fact, or otherwise engaging someone who is " +
+			"defenceless, you are striking decisively. When you do so, roll +CLASH or +TALK, whichever is more " +
+			"appropriate;</p>" +
+			"<p>On a 10+, you strike true. Director characters are killed, forced to retreat or otherwise removed " +
+			"as a threat as per the fiction. Player characters should bite the dust.</p>" +
+			"<p>On a 7-9, you succeed as above, but choose 1;</p>" +
+			"<ul>" +
+			"<li>You overreach or underestimate—take a risk.</li>" +
+			"<li>You waste ammo or words, losing use a weapon until you can re-arm, or losing the weight of some " +
+			"bargaining chip or piece of leverage.</li>" +
+			"<li>You strike carelessly, causing collateral damage beyond your expectations.</li>" +
+			"</ul>",
+		results: {
+			success: "You strike true. Director characters are killed, forced to retreat or otherwise removed as " +
+				"a threat as per the fiction. Player characters should bite the dust.",
+			mixed: "You succeed as above, but choose 1: you overreach or underestimate—take a risk; you waste " +
+				"ammo or words, losing use a weapon until you can re-arm, or losing the weight of some bargaining " +
+				"chip or piece of leverage; or you strike carelessly, causing collateral damage beyond your " +
+				"expectations.",
+			failure: null
+		}
+	},
+	{
+		key: "bite-the-dust",
+		name: "Bite the Dust",
+		traits: ["defy"],
+		description:
+			"<p>When something dangerous slips through your defences, you're caught off-guard, or someone " +
+			"delivers those perfect words to tear you down, you're at risk of biting the dust. When you do so, " +
+			"roll +DEFY;</p>" +
+			"<p>On a 10+, they miss, hesitate, or you're saved by sheer luck—you rally, and clear a risk if you " +
+			"have one.</p>" +
+			"<p>On a 7-9, retreat from the Sortie safely, or be put in peril.</p>" +
+			"<p>On a fail, that strike sure was decisive. Decide with your Director the consequences of what has " +
+			"happened to you—what was damaged? What have you lost? Who and what is changed by your defeat? If you " +
+			"survive, you are changed by your defeat. As well as the above, choose one;</p>" +
+			"<ul>" +
+			"<li>Deepen all of your Hooks, as you clutch your ideals tighter and tighter.</li>" +
+			"<li>Loosen all of your Hooks, as you lose faith in that which drives you.</li>" +
+			"<li>Take a burden, as you are saddled with some lingering injury, duty or obligation.</li>" +
+			"<li>Choose a new playbook. Keep what moves you and your Director agree are truly part of your " +
+			"character, and discard the others. Replace them with the starting moves for your new playbook. You " +
+			"do not gain its starting equipment.</li>" +
+			"</ul>",
+		results: {
+			success: "They miss, hesitate, or you're saved by sheer luck—you rally, and clear a risk if you have " +
+				"one.",
+			mixed: "Retreat from the Sortie safely, or be put in peril.",
+			failure: "Decide with your Director the consequences of what has happened to you—what was damaged? " +
+				"What have you lost? Who and what is changed by your defeat? If you survive, you are changed by " +
+				"your defeat. As well as the above, choose one: deepen all of your Hooks, as you clutch your " +
+				"ideals tighter and tighter; loosen all of your Hooks, as you lose faith in that which drives " +
+				"you; take a burden, as you are saddled with some lingering injury, duty or obligation; or choose " +
+				"a new playbook, keeping what moves you and your Director agree are truly part of your character " +
+				"and discarding the others, replacing them with the starting moves for your new playbook (you do " +
+				"not gain its starting equipment)."
+		}
 	}
 ];
 

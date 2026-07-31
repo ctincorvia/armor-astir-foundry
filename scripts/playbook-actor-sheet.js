@@ -35,6 +35,13 @@ export class PlaybookActorSheet extends ActorSheet {
 			const stat = this.actor.system.stats?.[key];
 			return { key, label, value: stat?.value ?? 0, disabled: stat?.disabled ?? false };
 		});
+		// Astirs' overheating status lives on the character sheet for now (Astirs aren't their own
+		// documents yet — see Cool Off in moves.js) and only matters once CHANNEL is enabled, same
+		// gating as weave-magic's traits (missing stat entry reads as enabled, not disabled).
+		data.overheating = {
+			visible: !this.actor.system.stats?.channel?.disabled,
+			value: this.actor.system.attributes?.overheating?.value ?? false
+		};
 		// Grouped (rather than a flat list) so playbook-specific moves can join basic moves as
 		// their own group later without restructuring this data.
 		data.moveGroups = [
@@ -77,6 +84,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".playbook-select").on("change", this._onPlaybookChange.bind(this));
 		html.find(".trait-step").on("click", this._onTraitStep.bind(this));
 		html.find(".hold-step").on("click", this._onHoldStep.bind(this));
+		html.find(".overheating-checkbox").on("change", this._onOverheatingToggle.bind(this));
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
 	}
@@ -101,6 +109,10 @@ export class PlaybookActorSheet extends ActorSheet {
 		const next = Math.min(HOLD_MAX, Math.max(HOLD_MIN, current + Number(delta)));
 		if (next === current) return;
 		this.actor.update({ "system.resources.hold.value": next });
+	}
+
+	_onOverheatingToggle(event) {
+		this.actor.update({ "system.attributes.overheating.value": event.currentTarget.checked });
 	}
 
 	async _onMoveRoll(event) {

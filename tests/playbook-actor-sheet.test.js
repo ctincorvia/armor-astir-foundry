@@ -144,6 +144,79 @@ describe("PlaybookActorSheet#getData - traits", () => {
 	});
 });
 
+describe("PlaybookActorSheet#getData - overheating", () => {
+	it("is visible when channel is missing from stats (reads as enabled)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.overheating).toEqual({ visible: true, value: false });
+	});
+
+	it("is visible when channel is explicitly enabled", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 1, disabled: false } } } };
+
+		const data = sheet.getData();
+
+		expect(data.overheating.visible).toBe(true);
+	});
+
+	it("is hidden when channel is disabled", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 0, disabled: true } } } };
+
+		const data = sheet.getData();
+
+		expect(data.overheating.visible).toBe(false);
+	});
+
+	it("reflects the actor's stored overheating value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { overheating: { value: true } } } };
+
+		const data = sheet.getData();
+
+		expect(data.overheating.value).toBe(true);
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - overheating", () => {
+	it("binds a change handler to the overheating checkbox", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".overheating-checkbox");
+		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onOverheatingToggle", () => {
+	it("writes the checkbox's checked state to the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onOverheatingToggle({ currentTarget: { checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.overheating.value": true });
+	});
+
+	it("writes false when the checkbox is unchecked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { overheating: { value: true } } }, update: vi.fn() };
+
+		sheet._onOverheatingToggle({ currentTarget: { checked: false } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.overheating.value": false });
+	});
+});
+
 describe("PlaybookActorSheet#activateListeners - trait steps", () => {
 	it("binds a click handler to the trait step buttons", () => {
 		const sheet = new PlaybookActorSheet();
@@ -279,6 +352,42 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						trackHold: false,
 						hold: 0
+					},
+					{
+						key: "cool-off",
+						name: "Cool Off",
+						traits: [
+							{ key: "defy", label: "DEFY", value: 0 },
+							{ key: "sense", label: "SENSE", value: 0 },
+							{ key: "clash", label: "CLASH", value: 1 },
+							{ key: "talk", label: "TALK", value: -1 },
+							{ key: "know", label: "KNOW", value: 0 },
+							{ key: "channel", label: "CHANNEL", value: 0 }
+						],
+						gated: false,
+						trackHold: false,
+						hold: 0
+					},
+					{
+						key: "strike-decisively",
+						name: "Strike Decisively",
+						traits: [
+							{ key: "clash", label: "CLASH", value: 1 },
+							{ key: "talk", label: "TALK", value: -1 }
+						],
+						gated: false,
+						trackHold: false,
+						hold: 0
+					},
+					{
+						key: "bite-the-dust",
+						name: "Bite the Dust",
+						traits: [
+							{ key: "defy", label: "DEFY", value: 0 }
+						],
+						gated: false,
+						trackHold: false,
+						hold: 0
 					}
 				]
 			}
@@ -342,7 +451,10 @@ describe("PlaybookActorSheet#getData - hold", () => {
 			"read-the-room": true,
 			"dispel-uncertainties": false,
 			"help-or-hinder": false,
-			"weave-magic": false
+			"weave-magic": false,
+			"cool-off": false,
+			"strike-decisively": false,
+			"bite-the-dust": false
 		});
 	});
 
