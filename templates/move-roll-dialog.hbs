@@ -39,8 +39,11 @@
 	</div>
 	<div class="form-group">
 		<label>Effect</label>
-		<select name="effect">
-			{{selectOptions effectStates valueAttr="key" labelAttr="label"}}
+		<select name="effect" {{#if lockedEffect}}disabled{{/if}}>
+			{{selectOptions effectStates selected=lockedEffect valueAttr="key" labelAttr="label"}}
 		</select>
 	</div>
+	{{#if lockedEffect}}
+	<p class="move-roll-locked-note">Locked: Desperation — max Perils</p>
+	{{/if}}
 </form>

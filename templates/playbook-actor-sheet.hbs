@@ -57,44 +57,72 @@
 			{{/each}}
 		</ol>
 	</section>
-	<nav class="sheet-tabs tabs" data-group="primary">
-		<a class="item" data-tab="moves">Moves</a>
-		<a class="item" data-tab="social">Social</a>
-		<a class="item" data-tab="advancement">Advancement</a>
-	</nav>
-	<section class="sheet-body">
-		<div class="tab" data-group="primary" data-tab="moves">
-			<section class="moves">
-				{{#each moveGroups}}
-				<h3>{{label}}</h3>
-				<ol class="move-list">
-					{{#each moves}}
-					<li class="move" data-move="{{key}}">
-						<span class="move-name">{{name}}</span>
-						<div class="move-row-controls">
-							{{#if trackHold}}
-							<div class="hold-control">
-								<button type="button" class="{{#if separateHoldPool}}bplot-hold-step{{else}}hold-step{{/if}} hold-decrement{{#if gated}} disabled{{/if}}" data-delta="-1" {{#if gated}}disabled{{/if}}>-</button>
-								<span class="hold-value">{{hold}}</span>
-								<button type="button" class="{{#if separateHoldPool}}bplot-hold-step{{else}}hold-step{{/if}} hold-increment{{#if gated}} disabled{{/if}}" data-delta="1" {{#if gated}}disabled{{/if}}>+</button>
-							</div>
-							{{/if}}
-							<div class="move-controls">
-								{{#if rollable}}
-								<button type="button" class="move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Roll</button>
-								{{else if activatable}}
-								<button type="button" class="move-activate{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Activate</button>
-								{{/if}}
-								<button type="button" class="move-description{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}}>Description</button>
-							</div>
-						</div>
-					</li>
-					{{/each}}
-				</ol>
+	<section class="sheet-main">
+		<aside class="dangers-column">
+			<h3>Dangers ({{dangers.list.length}}/{{dangers.max}})</h3>
+			{{#if dangers.atMax}}
+			<p class="defenseless-label">DEFENSELESS</p>
+			{{/if}}
+			<ol class="danger-list">
+				{{#each dangers.list}}
+				<li class="danger-item {{#if isPeril}}danger-peril{{else}}danger-risk{{/if}}">
+					<span class="danger-label">{{label}}</span>
+					<button type="button" class="danger-remove" data-danger-id="{{id}}" aria-label="Remove danger">✕</button>
+				</li>
 				{{/each}}
+			</ol>
+			{{#if dangers.canAdd}}
+			<div class="danger-add-controls">
+				<input type="text" class="danger-label-input" placeholder="Describe the danger…"/>
+				<select class="danger-type-select">
+					<option value="risk">Risk</option>
+					<option value="peril">Peril</option>
+				</select>
+				<button type="button" class="danger-add">Add</button>
+			</div>
+			{{/if}}
+		</aside>
+		<div class="sheet-tabs-column">
+			<nav class="sheet-tabs tabs" data-group="primary">
+				<a class="item" data-tab="moves">Moves</a>
+				<a class="item" data-tab="social">Social</a>
+				<a class="item" data-tab="advancement">Advancement</a>
+			</nav>
+			<section class="sheet-body">
+				<div class="tab" data-group="primary" data-tab="moves">
+					<section class="moves">
+						{{#each moveGroups}}
+						<h3>{{label}}</h3>
+						<ol class="move-list">
+							{{#each moves}}
+							<li class="move" data-move="{{key}}">
+								<span class="move-name">{{name}}</span>
+								<div class="move-row-controls">
+									{{#if trackHold}}
+									<div class="hold-control">
+										<button type="button" class="{{#if separateHoldPool}}bplot-hold-step{{else}}hold-step{{/if}} hold-decrement{{#if gated}} disabled{{/if}}" data-delta="-1" {{#if gated}}disabled{{/if}}>-</button>
+										<span class="hold-value">{{hold}}</span>
+										<button type="button" class="{{#if separateHoldPool}}bplot-hold-step{{else}}hold-step{{/if}} hold-increment{{#if gated}} disabled{{/if}}" data-delta="1" {{#if gated}}disabled{{/if}}>+</button>
+									</div>
+									{{/if}}
+									<div class="move-controls">
+										{{#if rollable}}
+										<button type="button" class="move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Roll</button>
+										{{else if activatable}}
+										<button type="button" class="move-activate{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Activate</button>
+										{{/if}}
+										<button type="button" class="move-description{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}}>Description</button>
+									</div>
+								</div>
+							</li>
+							{{/each}}
+						</ol>
+						{{/each}}
+					</section>
+				</div>
+				<div class="tab" data-group="primary" data-tab="social"></div>
+				<div class="tab" data-group="primary" data-tab="advancement"></div>
 			</section>
 		</div>
-		<div class="tab" data-group="primary" data-tab="social"></div>
-		<div class="tab" data-group="primary" data-tab="advancement"></div>
 	</section>
 </form>

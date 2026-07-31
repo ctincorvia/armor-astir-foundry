@@ -28,6 +28,11 @@ const POWER_MAX = 4;
 const SPOTLIGHT_MIN = 0;
 const SPOTLIGHT_MAX = 6;
 
+// Ceiling across every playbook today (see claude.md's Dangers notes) — none currently need the
+// occasionally-mentioned 4, so this stays a flat constant rather than a per-playbook field until
+// one actually does.
+const DANGER_MAX = 3;
+
 // Both groups share one flat list for key lookup (_onMoveRoll/_onMoveDescription) since a move's
 // section (Basic vs Special) is purely a sheet-display grouping, not part of its identity.
 const ALL_MOVES = [...BASIC_MOVES, ...SPECIAL_MOVES];
@@ -40,7 +45,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			classes: ["armor-astir", "sheet", "actor", "playbook"],
 			template: PLAYBOOK_SHEET_TEMPLATE,
-			width: 420,
+			width: 620,
 			height: "auto",
 			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }]
 		});
@@ -81,7 +86,30 @@ export class PlaybookActorSheet extends ActorSheet {
 			{ label: "Basic Moves", moves: this._moveGroupMoves(BASIC_MOVES) },
 			{ label: "Special Moves", moves: this._moveGroupMoves(SPECIAL_MOVES) }
 		];
+		// Dangers sit in their own left column beside the tab area (see the template) rather than
+		// inside a tab, since DEFENSELESS and the Danger list matter regardless of which tab is
+		// open. atMax drives both the DEFENSELESS label and hiding the add-danger controls once
+		// the actor is full.
+		const dangers = this._dangers();
+		data.dangers = {
+			max: DANGER_MAX,
+			list: dangers.map((danger) => ({ ...danger, isPeril: danger.type === "peril" })),
+			atMax: dangers.length >= DANGER_MAX,
+			canAdd: dangers.length < DANGER_MAX
+		};
 		return data;
+	}
+
+	_dangers() {
+		return this.actor.system.attributes?.dangers ?? [];
+	}
+
+	// bite-the-dust's forcesDesperationAtMaxPerils reads this to decide whether the roll dialog's
+	// Effect is locked to Desperation (see _onMoveRoll) — true only when every Danger slot is
+	// full AND every one of those Dangers is a Peril, not just any Peril present.
+	_allDangersArePeril() {
+		const dangers = this._dangers();
+		return dangers.length >= DANGER_MAX && dangers.every((danger) => danger.type === "peril");
 	}
 
 	_moveGroupMoves(moves) {
@@ -153,6 +181,8 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".power-step").on("click", this._onPowerStep.bind(this));
 		html.find(".spotlight-step").on("click", this._onSpotlightStep.bind(this));
 		html.find(".overheating-checkbox").on("change", this._onOverheatingToggle.bind(this));
+		html.find(".danger-add").on("click", this._onDangerAdd.bind(this));
+		html.find(".danger-remove").on("click", this._onDangerRemove.bind(this));
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
 		html.find(".move-activate").on("click", this._onMoveActivate.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
@@ -213,6 +243,30 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({ "system.attributes.spotlight.value": clamped });
 	}
 
+	// Reads the sibling label/type inputs out of the add-danger controls the clicked button lives
+	// in, rather than off the button's own dataset — unlike every other control on this sheet,
+	// there's no single value to encode as a data-* attribute on the button itself.
+	_onDangerAdd(event) {
+		const controls = event.currentTarget.closest(".danger-add-controls");
+		const labelInput = controls.querySelector(".danger-label-input");
+		const typeSelect = controls.querySelector(".danger-type-select");
+		const label = labelInput.value.trim();
+
+		const current = this._dangers();
+		if (!label || current.length >= DANGER_MAX) return;
+
+		this.actor.update({
+			"system.attributes.dangers": [...current, { id: foundry.utils.randomID(), type: typeSelect.value, label }]
+		});
+		labelInput.value = "";
+	}
+
+	_onDangerRemove(event) {
+		const { dangerId } = event.currentTarget.dataset;
+		const current = this._dangers();
+		this.actor.update({ "system.attributes.dangers": current.filter((danger) => danger.id !== dangerId) });
+	}
+
 	async _onMoveRoll(event) {
 		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
 		if (!move) return;
@@ -220,7 +274,11 @@ export class PlaybookActorSheet extends ActorSheet {
 		const traits = this._moveTraits(move);
 		if (!traits.length && !move.conditions) return;
 
-		const config = await configureMoveRoll(move, traits);
+		// Only bite-the-dust declares forcesDesperationAtMaxPerils (see moves.js) — every other
+		// move resolves lockedEffect to null and configureMoveRoll's Effect select behaves exactly
+		// as before.
+		const lockedEffect = move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null;
+		const config = await configureMoveRoll(move, traits, { lockedEffect });
 		if (!config) return;
 
 		await rollMove(this.actor, move, config.trait, config);

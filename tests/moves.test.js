@@ -21,6 +21,7 @@ const READ_THE_ROOM = BASIC_MOVES.find((m) => m.key === "read-the-room");
 const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertainties");
 const HELP_OR_HINDER = BASIC_MOVES.find((m) => m.key === "help-or-hinder");
 const WEAVE_MAGIC = BASIC_MOVES.find((m) => m.key === "weave-magic");
+const BITE_THE_DUST = BASIC_MOVES.find((m) => m.key === "bite-the-dust");
 const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
@@ -182,6 +183,62 @@ describe("configureMoveRoll", () => {
 		dialogOptions.close();
 
 		expect(await promise).toBeNull();
+	});
+});
+
+describe("BASIC_MOVES - bite the dust", () => {
+	it("declares forcesDesperationAtMaxPerils, so PlaybookActorSheet locks Desperation at max Perils", () => {
+		expect(BITE_THE_DUST.forcesDesperationAtMaxPerils).toBe(true);
+	});
+
+	it("is the only basic move that forces Desperation", () => {
+		const forcing = BASIC_MOVES.filter((move) => move.forcesDesperationAtMaxPerils);
+		expect(forcing).toEqual([BITE_THE_DUST]);
+	});
+});
+
+describe("configureMoveRoll - lockedEffect", () => {
+	const clash = { key: "clash", label: "CLASH", value: 1 };
+
+	it("passes a null lockedEffect to the dialog template by default", async () => {
+		const promise = configureMoveRoll(BITE_THE_DUST, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			lockedEffect: null
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("passes the given lockedEffect to the dialog template", async () => {
+		const promise = configureMoveRoll(BITE_THE_DUST, [clash], { lockedEffect: "desperation" });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			lockedEffect: "desperation"
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("forces the resolved effect to lockedEffect regardless of what the (disabled) select reports", async () => {
+		const promise = configureMoveRoll(BITE_THE_DUST, [clash], { lockedEffect: "desperation" });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}));
+
+		expect(await promise).toEqual({ trait: clash, advantage: "none", effect: "desperation" });
 	});
 });
 

@@ -26,7 +26,8 @@ vi.stubGlobal("game", {
 
 vi.stubGlobal("foundry", {
 	utils: {
-		mergeObject: (...objects) => Object.assign({}, ...objects)
+		mergeObject: (...objects) => Object.assign({}, ...objects),
+		randomID: vi.fn(() => "test-id")
 	}
 });
 

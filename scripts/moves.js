@@ -250,6 +250,11 @@ export const BASIC_MOVES = [
 		key: "bite-the-dust",
 		name: "Bite the Dust",
 		traits: ["defy"],
+		// Actor-state-dependent, evaluated in PlaybookActorSheet (mirrors b-plot's
+		// requiresChannelDisabled above) rather than here: once a character is DEFENSELESS (at max
+		// Dangers) and every one of those Dangers is a Peril, this move's Effect is forced to
+		// Desperation and the roll dialog's Effect select is locked so it can't be changed away.
+		forcesDesperationAtMaxPerils: true,
 		description:
 			"<p>When something dangerous slips through your defences, you're caught off-guard, or someone " +
 			"delivers those perfect words to tear you down, you're at risk of biting the dust. When you do so, " +
@@ -375,13 +380,19 @@ export function availableMoveTraits(actor, move) {
 // Confidence/Desperation) and resolves the player's choice, or null if the dialog was
 // dismissed. Always shown — even for a single-trait move — since the dice/effect selection is
 // still needed. Mirrors choosePlaybook in actor-creation.js for the resolve/close shape.
-export async function configureMoveRoll(move, traits) {
+//
+// lockedEffect (e.g. "desperation" for bite-the-dust at max Perils — see
+// PlaybookActorSheet#_onMoveRoll) pre-selects and disables the dialog's Effect select, and is
+// forced into the resolved effect regardless of what the disabled select reports, as a
+// belt-and-suspenders match to the template's disabled attribute.
+export async function configureMoveRoll(move, traits, { lockedEffect = null } = {}) {
 	const content = await renderTemplate(MOVE_ROLL_DIALOG_TEMPLATE, {
 		traits,
 		intents: move.intents,
 		conditions: move.conditions,
 		advantageStates: ADVANTAGE_STATES,
-		effectStates: EFFECT_STATES
+		effectStates: EFFECT_STATES,
+		lockedEffect
 	});
 
 	return new Promise((resolve) => {
@@ -396,7 +407,7 @@ export async function configureMoveRoll(move, traits) {
 					callback: (html) => resolve({
 						trait: traits.find((t) => t.key === html.find("[name='trait']").val()),
 						advantage: html.find("[name='advantage']").val(),
-						effect: html.find("[name='effect']").val(),
+						effect: lockedEffect ?? html.find("[name='effect']").val(),
 						...(move.intents && {
 							intent: move.intents.find((i) => i.key === html.find("[name='intent']").val())
 						}),

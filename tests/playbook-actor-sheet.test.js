@@ -17,6 +17,7 @@ import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postMoveDescription, rol
 import { PlaybookActorSheet, registerPlaybookActorSheet, TRAITS } from "../scripts/playbook-actor-sheet.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
+const BITE_THE_DUST = BASIC_MOVES.find((m) => m.key === "bite-the-dust");
 const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
@@ -41,7 +42,7 @@ describe("PlaybookActorSheet.defaultOptions", () => {
 		expect(options).toEqual({
 			classes: ["armor-astir", "sheet", "actor", "playbook"],
 			template: "modules/armor-astir/templates/playbook-actor-sheet.hbs",
-			width: 420,
+			width: 620,
 			height: "auto",
 			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }]
 		});
@@ -413,6 +414,204 @@ describe("PlaybookActorSheet#_onSpotlightStep", () => {
 		sheet._onSpotlightStep({ currentTarget: { dataset: { step: "7" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#getData - dangers", () => {
+	it("defaults to an empty list, not at max, and able to add when attributes is empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.dangers).toEqual({ max: 3, list: [], atMax: false, canAdd: true });
+	});
+
+	it("marks each danger as a peril or a risk based on its stored type", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					dangers: [
+						{ id: "1", type: "peril", label: "Exposed position" },
+						{ id: "2", type: "risk", label: "Low on ammo" }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.dangers.list).toEqual([
+			{ id: "1", type: "peril", label: "Exposed position", isPeril: true },
+			{ id: "2", type: "risk", label: "Low on ammo", isPeril: false }
+		]);
+	});
+
+	it("reports atMax and hides canAdd once the actor has 3 dangers", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					dangers: [
+						{ id: "1", type: "risk", label: "a" },
+						{ id: "2", type: "risk", label: "b" },
+						{ id: "3", type: "risk", label: "c" }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.dangers.atMax).toBe(true);
+		expect(data.dangers.canAdd).toBe(false);
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - dangers", () => {
+	it("binds click handlers to the danger add and remove buttons", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".danger-add");
+		expect(html.find).toHaveBeenCalledWith(".danger-remove");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+	});
+});
+
+// Fakes the DOM traversal _onDangerAdd uses to read the label/type inputs sitting next to the
+// clicked Add button (closest(".danger-add-controls") -> querySelector(...)), since there's no
+// single value to encode on the button's own dataset the way every other control on this sheet
+// does.
+function fakeDangerAddEvent({ label, type = "risk" }) {
+	const labelInput = { value: label };
+	const typeSelect = { value: type };
+	return {
+		currentTarget: {
+			closest: () => ({
+				querySelector: (selector) => (selector === ".danger-label-input" ? labelInput : typeSelect)
+			})
+		},
+		labelInput
+	};
+}
+
+describe("PlaybookActorSheet#_onDangerAdd", () => {
+	it("appends a new danger with a generated id and clears the label input", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { dangers: [] } }, update: vi.fn() };
+		const { labelInput, ...event } = fakeDangerAddEvent({ label: "Exposed position", type: "peril" });
+
+		sheet._onDangerAdd(event);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.dangers": [{ id: "test-id", type: "peril", label: "Exposed position" }]
+		});
+		expect(labelInput.value).toBe("");
+	});
+
+	it("appends to, rather than replaces, existing dangers", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { dangers: [{ id: "existing", type: "risk", label: "Low on ammo" }] } },
+			update: vi.fn()
+		};
+		const { ...event } = fakeDangerAddEvent({ label: "Losing blood", type: "peril" });
+
+		sheet._onDangerAdd(event);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.dangers": [
+				{ id: "existing", type: "risk", label: "Low on ammo" },
+				{ id: "test-id", type: "peril", label: "Losing blood" }
+			]
+		});
+	});
+
+	it("trims the label and does nothing when it's blank", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { dangers: [] } }, update: vi.fn() };
+		const { ...event } = fakeDangerAddEvent({ label: "   " });
+
+		sheet._onDangerAdd(event);
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing once the actor already has the maximum dangers", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					dangers: [
+						{ id: "1", type: "risk", label: "a" },
+						{ id: "2", type: "risk", label: "b" },
+						{ id: "3", type: "risk", label: "c" }
+					]
+				}
+			},
+			update: vi.fn()
+		};
+		const { ...event } = fakeDangerAddEvent({ label: "One more" });
+
+		sheet._onDangerAdd(event);
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing dangers array as starting empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+		const { ...event } = fakeDangerAddEvent({ label: "First danger", type: "risk" });
+
+		sheet._onDangerAdd(event);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.dangers": [{ id: "test-id", type: "risk", label: "First danger" }]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onDangerRemove", () => {
+	it("removes the danger matching the clicked button's id", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					dangers: [
+						{ id: "1", type: "risk", label: "a" },
+						{ id: "2", type: "peril", label: "b" }
+					]
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onDangerRemove({ currentTarget: { dataset: { dangerId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.dangers": [{ id: "2", type: "peril", label: "b" }]
+		});
+	});
+
+	it("leaves the list untouched when the id doesn't match any danger", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { dangers: [{ id: "1", type: "risk", label: "a" }] } },
+			update: vi.fn()
+		};
+
+		sheet._onDangerRemove({ currentTarget: { dataset: { dangerId: "not-a-real-id" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.dangers": [{ id: "1", type: "risk", label: "a" }]
+		});
 	});
 });
 
@@ -1042,7 +1241,8 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			BASIC_MOVES.find((m) => m.key === "help-or-hinder"),
-			[]
+			[],
+			{ lockedEffect: null }
 		);
 	});
 
@@ -1060,7 +1260,8 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 			[
 				{ key: "clash", label: "CLASH", value: 1 },
 				{ key: "talk", label: "TALK", value: 0 }
-			]
+			],
+			{ lockedEffect: null }
 		);
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, talk, config);
 	});
@@ -1078,7 +1279,8 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "know", label: "KNOW", value: 1 },
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
-			]
+			],
+			{ lockedEffect: null }
 		);
 	});
 
@@ -1100,6 +1302,100 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 
 		expect(configureMoveRoll).not.toHaveBeenCalled();
 		expect(rollMove).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", () => {
+	const defy = { key: "defy", label: "DEFY", value: 0 };
+
+	it("locks Desperation when at max Dangers and every one is a Peril", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { defy: { value: 0 } },
+				attributes: {
+					dangers: [
+						{ id: "1", type: "peril", label: "a" },
+						{ id: "2", type: "peril", label: "b" },
+						{ id: "3", type: "peril", label: "c" }
+					]
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: "desperation" });
+	});
+
+	it("does not lock Desperation when at max Dangers but the types are mixed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { defy: { value: 0 } },
+				attributes: {
+					dangers: [
+						{ id: "1", type: "peril", label: "a" },
+						{ id: "2", type: "peril", label: "b" },
+						{ id: "3", type: "risk", label: "c" }
+					]
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null });
+	});
+
+	it("does not lock Desperation when below max Dangers, even if all are Perils", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { defy: { value: 0 } },
+				attributes: {
+					dangers: [
+						{ id: "1", type: "peril", label: "a" },
+						{ id: "2", type: "peril", label: "b" }
+					]
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null });
+	});
+
+	it("never locks Desperation for a move without forcesDesperationAtMaxPerils, even at max Perils", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					dangers: [
+						{ id: "1", type: "peril", label: "a" },
+						{ id: "2", type: "peril", label: "b" },
+						{ id: "3", type: "peril", label: "c" }
+					]
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			[
+				{ key: "clash", label: "CLASH", value: 0 },
+				{ key: "talk", label: "TALK", value: 0 }
+			],
+			{ lockedEffect: null }
+		);
 	});
 });
 

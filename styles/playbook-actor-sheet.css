@@ -105,6 +105,84 @@
 	border-color: #4a4a8a;
 }
 
+.armor-astir.sheet .sheet-main {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 12px;
+}
+
+.armor-astir.sheet .dangers-column {
+	flex: 0 0 170px;
+	/* Without this, a flex item's automatic minimum width is its content's min-content size —
+	   a long, unbroken danger label would force the column past its 170px basis and drag the
+	   remove button out past the column's right edge with it. */
+	min-width: 0;
+	padding-top: 10px;
+}
+
+.armor-astir.sheet .sheet-tabs-column {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.armor-astir.sheet .defenseless-label {
+	margin: 0 0 6px;
+	font-weight: bold;
+	color: #8b1a1a;
+}
+
+.armor-astir.sheet .danger-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Grid (not flex+space-between) so the remove button always sits in the same fixed-width
+   second column, regardless of how long or short each row's label is — that's what keeps
+   every button aligned in a straight vertical line down the column. minmax(0, 1fr) on the
+   label column is what lets it shrink to fit instead of forcing the row past 170px. */
+.armor-astir.sheet .danger-item {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: 6px;
+	padding: 2px 0;
+}
+
+.armor-astir.sheet .danger-label {
+	overflow-wrap: anywhere;
+}
+
+.armor-astir.sheet .danger-peril .danger-label {
+	font-weight: bold;
+	color: #8b1a1a;
+}
+
+.armor-astir.sheet .danger-risk .danger-label {
+	font-weight: normal;
+	color: inherit;
+}
+
+.armor-astir.sheet .danger-remove {
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	border-radius: 3px;
+	background: transparent;
+	line-height: 1;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .danger-add-controls {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	margin-top: 8px;
+}
+
 .armor-astir.sheet .sheet-tabs {
 	margin: 10px 0;
 	padding: 4px 0;
@@ -351,4 +429,12 @@
 	align-items: center;
 	gap: 4px;
 	white-space: nowrap;
+}
+
+.armor-astir.move-roll-dialog .move-roll-locked-note {
+	margin: 0 0 6px;
+	font-size: 12px;
+	font-weight: bold;
+	color: #8b1a1a;
+	text-align: right;
 }
