@@ -40,9 +40,18 @@
 			{{#each moves}}
 			<li class="move" data-move="{{key}}">
 				<span class="move-name">{{name}}</span>
-				<div class="move-controls">
-					<button type="button" class="move-roll" data-move="{{key}}">Roll</button>
-					<button type="button" class="move-description" data-move="{{key}}">Description</button>
+				<div class="move-row-controls">
+					{{#if trackHold}}
+					<div class="hold-control">
+						<button type="button" class="hold-step hold-decrement" data-delta="-1">-</button>
+						<span class="hold-value">{{hold}}</span>
+						<button type="button" class="hold-step hold-increment" data-delta="1">+</button>
+					</div>
+					{{/if}}
+					<div class="move-controls">
+						<button type="button" class="move-roll" data-move="{{key}}">Roll</button>
+						<button type="button" class="move-description" data-move="{{key}}">Description</button>
+					</div>
 				</div>
 			</li>
 			{{/each}}

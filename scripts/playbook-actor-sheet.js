@@ -9,6 +9,11 @@ export { TRAITS };
 const TRAIT_MIN = -3;
 const TRAIT_MAX = 3;
 
+// Matches the highest per-tier hold any basic move currently grants (read-the-room's 3 on a
+// 10+); revisit if a future move grants more.
+const HOLD_MIN = 0;
+const HOLD_MAX = 3;
+
 // All playbook actors are "character" type (see claude.md, "Domain conventions"). Every
 // playbook shares the same name/callsign/photo header, so one sheet class and template
 // serves all of them; a playbook that needs its own fields can extend this later.
@@ -38,7 +43,12 @@ export class PlaybookActorSheet extends ActorSheet {
 				moves: BASIC_MOVES.map((move) => ({
 					key: move.key,
 					name: move.name,
-					traits: this._moveTraits(move)
+					traits: this._moveTraits(move),
+					// Hold is one shared actor field (pbta's system.resources.hold), not per-move
+					// state — fine while read-the-room is the only source; a second hold-granting
+					// move would need per-move tracking instead.
+					trackHold: Boolean(move.hold),
+					hold: this.actor.system.resources?.hold?.value ?? 0
 				}))
 			}
 		];
@@ -59,6 +69,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		super.activateListeners(html);
 		html.find(".playbook-select").on("change", this._onPlaybookChange.bind(this));
 		html.find(".trait-step").on("click", this._onTraitStep.bind(this));
+		html.find(".hold-step").on("click", this._onHoldStep.bind(this));
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
 	}
@@ -75,6 +86,14 @@ export class PlaybookActorSheet extends ActorSheet {
 		const next = Math.min(TRAIT_MAX, Math.max(TRAIT_MIN, current + Number(delta)));
 		if (next === current) return;
 		this.actor.update({ [`system.stats.${key}.value`]: next });
+	}
+
+	_onHoldStep(event) {
+		const { delta } = event.currentTarget.dataset;
+		const current = this.actor.system.resources?.hold?.value ?? 0;
+		const next = Math.min(HOLD_MAX, Math.max(HOLD_MIN, current + Number(delta)));
+		if (next === current) return;
+		this.actor.update({ "system.resources.hold.value": next });
 	}
 
 	async _onMoveRoll(event) {

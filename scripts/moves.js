@@ -19,9 +19,13 @@ export const MOVE_RESULT_LABELS = {
 	failure: "Failure (6-)"
 };
 
-// On a failure the MC hands the player a point of spotlight, so the chat card carries the
-// prompt — several basic moves have no failure text of their own, and this is easy to forget.
-export const SPOTLIGHT_REMINDER = "Add a point of spotlight";
+// What always happens on a full failure (6-), regardless of the move: the player banks a point
+// of spotlight and the Director takes their turn. The chat card carries these as prompts because
+// several basic moves have no failure text of their own, and both are easy to forget.
+export const FAILURE_REMINDERS = [
+	"Add a point of spotlight",
+	"The Director makes a move"
+];
 
 export function moveResultTier(total) {
 	if (total >= 10) return "success";
@@ -49,6 +53,63 @@ export const BASIC_MOVES = [
 			success: "Either your opponent takes a risk, or you take a risk and put your opponent in peril.",
 			mixed: "Both you and your target are forced to take a risk.",
 			failure: null
+		}
+	},
+	{
+		key: "weather-the-storm",
+		name: "Weather the Storm",
+		traits: ["defy", "know", "sense"],
+		description:
+			"<p>When you attempt to ignore the 'witty' barbs of ambitious politicians, try and walk across a thin " +
+			"wet beam as thunder booms overhead, or otherwise do something under significant pressure, you're " +
+			"attempting to weather the storm.</p>" +
+			"<p>When you do so, roll +DEFY to dodge, tough it out or strong-arm your way through; +KNOW to make " +
+			"it through with quick thinking or the ace up your sleeve; or +SENSE to notice quiet cues, signs of " +
+			"danger or bad vibes before it's too late.</p>" +
+			"<p>On a 10+, you manage to make it to safety.</p>" +
+			"<p>On a 7-9, you succeed but at some cost: it'll keep you occupied longer than you thought, the " +
+			"Director will ask you to make a difficult choice, or you'll burn a point of Spotlight as you take " +
+			"dramatic action.</p>",
+		results: {
+			success: "You manage to make it to safety.",
+			mixed: "You succeed but at some cost: it'll keep you occupied longer than you thought, the Director " +
+				"will ask you to make a difficult choice, or you'll burn a point of Spotlight as you take " +
+				"dramatic action.",
+			failure: null
+		}
+	},
+	{
+		key: "read-the-room",
+		name: "Read the Room",
+		traits: ["sense"],
+		description:
+			"<p>When you're trying to figure out which side a battle is in favour of, whether or not a holding " +
+			"is defend-able, or are otherwise trying to get insight on your situation, you're trying to read the " +
+			"room.</p>" +
+			"<p>When you do so, roll +SENSE;</p>" +
+			"<p>On a 10+, hold 3. On a 7-9, hold 1, and spend it 1-for-1 to ask the Director the following " +
+			"questions; they must answer truthfully. Your hold lasts until you leave the current situation or it " +
+			"changes significantly.</p>" +
+			"<p>On a failure, you may ask one of the above questions immediately, but the answer creates a " +
+			"problem or puts you in danger.</p>" +
+			"<p>Roll with advantage when you act on the answers to what you've asked.</p>",
+		// Success/mixed hold grants a fresh, sheet-tracked point pool (see rollMove); failure's 0
+		// is never written back — a failure grants an immediate question, not stored hold.
+		hold: { success: 3, mixed: 1, failure: 0 },
+		questions: [
+			"Who has the upper hand here?",
+			"What is being overlooked or obscured here?",
+			"Where do my Hooks pull me here?",
+			"How does x really feel?",
+			"What is x's approach?",
+			"How is x at risk or in peril?",
+			"Where can I find x?"
+		],
+		results: {
+			success: "Hold 3.",
+			mixed: "Hold 1. Spend it 1-for-1 to ask the Director a question below; they must answer truthfully.",
+			failure: "Ask one of the questions below immediately — the answer creates a problem or puts you in " +
+				"danger."
 		}
 	}
 ];
@@ -119,15 +180,27 @@ export async function rollMove(actor, move, trait, options = {}) {
 	roll._total = dice.filter((die) => die.kept).reduce((sum, die) => sum + die.result, 0) + value;
 
 	const tier = moveResultTier(roll.total);
+
+	// Hold is a fresh per-situation pool, not a per-roll bonus, so a re-roll overwrites rather
+	// than adds to it (see moves.js BASIC_MOVES comment on read-the-room). A failure's 0 is
+	// never written back — it grants an immediate question, not stored hold, and writing 0 would
+	// wipe hold left over from an earlier successful read.
+	const hold = move.hold ? move.hold[tier] : null;
+	if (move.hold && tier !== "failure") {
+		await actor.update({ "system.resources.hold.value": hold });
+	}
+
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
 		name: move.name,
 		traitLabel: trait.label,
 		tier,
 		tierLabel: MOVE_RESULT_LABELS[tier],
 		resultText: move.results[tier],
-		spotlight: tier === "failure" ? SPOTLIGHT_REMINDER : null,
+		reminders: tier === "failure" ? FAILURE_REMINDERS : null,
 		conditions: rollConditions(advantage, effect),
-		dice
+		dice,
+		hold,
+		questions: move.questions ?? null
 	});
 
 	return roll.toMessage({

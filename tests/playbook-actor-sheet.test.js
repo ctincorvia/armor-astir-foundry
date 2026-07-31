@@ -223,7 +223,29 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						traits: [
 							{ key: "clash", label: "CLASH", value: 1 },
 							{ key: "talk", label: "TALK", value: -1 }
-						]
+						],
+						trackHold: false,
+						hold: 0
+					},
+					{
+						key: "weather-the-storm",
+						name: "Weather the Storm",
+						traits: [
+							{ key: "defy", label: "DEFY", value: 0 },
+							{ key: "know", label: "KNOW", value: 0 },
+							{ key: "sense", label: "SENSE", value: 0 }
+						],
+						trackHold: false,
+						hold: 0
+					},
+					{
+						key: "read-the-room",
+						name: "Read the Room",
+						traits: [
+							{ key: "sense", label: "SENSE", value: 0 }
+						],
+						trackHold: true,
+						hold: 0
 					}
 				]
 			}
@@ -237,6 +259,95 @@ describe("PlaybookActorSheet#getData - moves", () => {
 		const data = sheet.getData();
 
 		expect(data.moveGroups[0].moves[0].traits).toEqual([{ key: "talk", label: "TALK", value: 0 }]);
+	});
+});
+
+describe("PlaybookActorSheet#getData - hold", () => {
+	it("marks trackHold true only for moves that define a hold track", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+		const holdFlags = Object.fromEntries(data.moveGroups[0].moves.map((m) => [m.key, m.trackHold]));
+
+		expect(holdFlags).toEqual({
+			"exchange-blows": false,
+			"weather-the-storm": false,
+			"read-the-room": true
+		});
+	});
+
+	it("reflects the actor's current hold value on every move, defaulting to 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, resources: { hold: { value: 2 } } } };
+
+		const data = sheet.getData();
+
+		for (const move of data.moveGroups[0].moves) {
+			expect(move.hold).toBe(2);
+		}
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - hold step", () => {
+	it("binds a click handler to the hold step buttons", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".hold-step");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onHoldStep", () => {
+	it("increments the hold value and updates the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { resources: { hold: { value: 1 } } }, update: vi.fn() };
+
+		sheet._onHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.resources.hold.value": 2 });
+	});
+
+	it("decrements the hold value and updates the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { resources: { hold: { value: 1 } } }, update: vi.fn() };
+
+		sheet._onHoldStep({ currentTarget: { dataset: { delta: "-1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.resources.hold.value": 0 });
+	});
+
+	it("treats a missing hold value as starting at 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {}, update: vi.fn() };
+
+		sheet._onHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.resources.hold.value": 1 });
+	});
+
+	it("clamps at the maximum and does not update the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { resources: { hold: { value: 3 } } }, update: vi.fn() };
+
+		sheet._onHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at the minimum and does not update the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { resources: { hold: { value: 0 } } }, update: vi.fn() };
+
+		sheet._onHoldStep({ currentTarget: { dataset: { delta: "-1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 });
 

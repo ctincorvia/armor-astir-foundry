@@ -70,6 +70,26 @@
 	border-bottom: 1px solid var(--color-border-light-tertiary, #c9c7b8);
 }
 
+.armor-astir.sheet .move-row-controls {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 8px;
+	flex: 0 0 auto;
+}
+
+.armor-astir.sheet .hold-control {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 4px;
+}
+
+.armor-astir.sheet .hold-value {
+	min-width: 1.5em;
+	text-align: center;
+}
+
 .armor-astir.sheet .move-controls {
 	display: flex;
 	flex-direction: row;
@@ -108,11 +128,33 @@
 	margin: 4px 0 0;
 }
 
-.armor-astir-move-chat .move-spotlight {
+.armor-astir-move-chat .move-hold {
 	margin: 4px 0 0;
-	padding: 2px 6px;
+}
+
+.armor-astir-move-chat .move-hold-count {
+	font-weight: bold;
+}
+
+.armor-astir-move-chat .move-questions {
+	margin: 2px 0 0;
+	padding-left: 18px;
+	font-size: 12px;
+}
+
+.armor-astir-move-chat .move-questions li {
+	margin: 1px 0;
+}
+
+.armor-astir-move-chat .move-reminders {
+	margin: 4px 0 0;
+	padding: 2px 6px 2px 20px;
 	border-left: 3px solid #8b1a1a;
 	font-weight: bold;
+}
+
+.armor-astir-move-chat .move-reminders li {
+	margin: 1px 0;
 }
 
 .armor-astir-move-chat .move-conditions {

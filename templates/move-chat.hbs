@@ -23,8 +23,22 @@
 	{{#if resultText}}
 	<p class="move-result-text">{{resultText}}</p>
 	{{/if}}
-	{{#if spotlight}}
-	<p class="move-spotlight">{{spotlight}}</p>
+	{{#if questions}}
+	<div class="move-hold">
+		{{#if hold}}<span class="move-hold-count">Hold {{hold}}</span>{{/if}}
+		<ul class="move-questions">
+			{{#each questions}}
+			<li>{{this}}</li>
+			{{/each}}
+		</ul>
+	</div>
+	{{/if}}
+	{{#if reminders}}
+	<ul class="move-reminders">
+		{{#each reminders}}
+		<li>{{this}}</li>
+		{{/each}}
+	</ul>
 	{{/if}}
 	{{else}}
 	<div class="move-description">{{{description}}}</div>

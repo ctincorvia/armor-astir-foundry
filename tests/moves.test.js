@@ -4,9 +4,9 @@ import { DIE_FACES } from "../scripts/roll-effects.js";
 import { TRAITS } from "../scripts/traits.js";
 import {
 	BASIC_MOVES,
+	FAILURE_REMINDERS,
 	MOVE_CHAT_TEMPLATE,
 	MOVE_RESULT_LABELS,
-	SPOTLIGHT_REMINDER,
 	availableMoveTraits,
 	configureMoveRoll,
 	moveResultTier,
@@ -15,6 +15,8 @@ import {
 } from "../scripts/moves.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
+const WEATHER_THE_STORM = BASIC_MOVES.find((m) => m.key === "weather-the-storm");
+const READ_THE_ROOM = BASIC_MOVES.find((m) => m.key === "read-the-room");
 
 function fakeRollHtml(values) {
 	return { find: (selector) => ({ val: () => values[selector] }) };
@@ -87,6 +89,18 @@ describe("availableMoveTraits", () => {
 		const traits = availableMoveTraits(actor, EXCHANGE_BLOWS);
 
 		expect(traits).toEqual([TRAITS.find((t) => t.key === "clash"), TRAITS.find((t) => t.key === "talk")]);
+	});
+
+	it("resolves all three traits for weather-the-storm", () => {
+		const actor = { system: { stats: { defy: { value: 1 }, know: { value: 2 }, sense: { value: 3 } } } };
+
+		const traits = availableMoveTraits(actor, WEATHER_THE_STORM);
+
+		expect(traits).toEqual([
+			TRAITS.find((t) => t.key === "defy"),
+			TRAITS.find((t) => t.key === "know"),
+			TRAITS.find((t) => t.key === "sense")
+		]);
 	});
 });
 
@@ -271,7 +285,7 @@ describe("rollMove", () => {
 		}));
 	});
 
-	it("adds the spotlight reminder on a full failure only", async () => {
+	it("adds the failure reminders on a full failure only", async () => {
 		const actor = { system: { stats: { clash: { value: 0 } } } };
 		const clash = TRAITS.find((t) => t.key === "clash");
 		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
@@ -280,21 +294,35 @@ describe("rollMove", () => {
 		await rollMove(actor, EXCHANGE_BLOWS, clash);
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
 			tier: "failure",
-			spotlight: SPOTLIGHT_REMINDER
+			reminders: ["Add a point of spotlight", "The Director makes a move"]
 		}));
 
 		mockRoll({ dice: [4, 4] });
 		await rollMove(actor, EXCHANGE_BLOWS, clash);
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
 			tier: "mixed",
-			spotlight: null
+			reminders: null
 		}));
 
 		mockRoll({ dice: [5, 5] });
 		await rollMove(actor, EXCHANGE_BLOWS, clash);
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
 			tier: "success",
-			spotlight: null
+			reminders: null
+		}));
+	});
+
+	it("adds the failure reminders even for moves with their own failure text", async () => {
+		const actor = { system: { stats: { sense: { value: 0 } }, resources: { hold: { value: 0 } } }, update: vi.fn() };
+		const sense = TRAITS.find((t) => t.key === "sense");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		mockRoll({ dice: [1, 1] });
+		await rollMove(actor, READ_THE_ROOM, sense);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			resultText: READ_THE_ROOM.results.failure,
+			reminders: FAILURE_REMINDERS
 		}));
 	});
 
@@ -337,6 +365,99 @@ describe("rollMove", () => {
 			speaker: { actor: "speaker" },
 			flavor: "<div>flavor</div>"
 		});
+	});
+});
+
+describe("rollMove - hold", () => {
+	it("writes hold 3 to the actor on a 10+", async () => {
+		const actor = { system: { stats: { sense: { value: 0 } } }, update: vi.fn() };
+		const sense = TRAITS.find((t) => t.key === "sense");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [5, 5] });
+
+		await rollMove(actor, READ_THE_ROOM, sense);
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.resources.hold.value": 3 });
+	});
+
+	it("writes hold 1 to the actor on a 7-9", async () => {
+		const actor = { system: { stats: { sense: { value: 0 } } }, update: vi.fn() };
+		const sense = TRAITS.find((t) => t.key === "sense");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [4, 4] });
+
+		await rollMove(actor, READ_THE_ROOM, sense);
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.resources.hold.value": 1 });
+	});
+
+	it("does not update the actor's hold on a failure, so prior hold survives", async () => {
+		const actor = { system: { stats: { sense: { value: 0 } } }, update: vi.fn() };
+		const sense = TRAITS.find((t) => t.key === "sense");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, READ_THE_ROOM, sense);
+
+		expect(actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does not call actor.update for moves with no hold track", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } }, update: vi.fn() };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [5, 5] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+
+		expect(actor.update).not.toHaveBeenCalled();
+	});
+
+	it("passes hold and the question list to the chat template on success and mixed success", async () => {
+		const actor = { system: { stats: { sense: { value: 0 } } }, update: vi.fn() };
+		const sense = TRAITS.find((t) => t.key === "sense");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		mockRoll({ dice: [5, 5] });
+		await rollMove(actor, READ_THE_ROOM, sense);
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			hold: 3,
+			questions: READ_THE_ROOM.questions
+		}));
+
+		mockRoll({ dice: [4, 4] });
+		await rollMove(actor, READ_THE_ROOM, sense);
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			hold: 1,
+			questions: READ_THE_ROOM.questions
+		}));
+	});
+
+	it("passes the question list with hold 0 on a failure", async () => {
+		const actor = { system: { stats: { sense: { value: 0 } } }, update: vi.fn() };
+		const sense = TRAITS.find((t) => t.key === "sense");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, READ_THE_ROOM, sense);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			hold: 0,
+			questions: READ_THE_ROOM.questions
+		}));
+	});
+
+	it("passes a null hold and null questions for moves without a hold track", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			hold: null,
+			questions: null
+		}));
 	});
 });
 
