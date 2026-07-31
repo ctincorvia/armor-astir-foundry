@@ -183,6 +183,92 @@
 	margin-top: 8px;
 }
 
+.armor-astir.sheet .gravity-clock-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .gravity-clock-item {
+	padding: 8px 0;
+	border-bottom: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+}
+
+.armor-astir.sheet .gravity-clock-header {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+}
+
+.armor-astir.sheet .gravity-clock-label-input {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.armor-astir.sheet .gravity-clock-remove {
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	border-radius: 3px;
+	background: transparent;
+	line-height: 1;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .gravity-clock-body {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-top: 6px;
+}
+
+.armor-astir.sheet .gravity-clock-track {
+	display: flex;
+	flex-direction: row;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .gravity-clock-step {
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	border-radius: 3px;
+	background: transparent;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .gravity-clock-step.filled {
+	background: #4a4a8a;
+	border-color: #4a4a8a;
+}
+
+.armor-astir.sheet .gravity-clock-value-control {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 4px;
+	flex: 0 0 auto;
+}
+
+.armor-astir.sheet .gravity-clock-value {
+	min-width: 1.5em;
+	text-align: center;
+}
+
+.armor-astir.sheet .gravity-clock-add {
+	margin-top: 8px;
+}
+
 .armor-astir.sheet .sheet-tabs {
 	margin: 10px 0;
 	padding: 4px 0;

@@ -120,7 +120,38 @@
 						{{/each}}
 					</section>
 				</div>
-				<div class="tab" data-group="primary" data-tab="social"></div>
+				<div class="tab" data-group="primary" data-tab="social">
+					<section class="gravity-clocks">
+						<h3>Gravity Clocks ({{gravityClocks.list.length}}/{{gravityClocks.max}})</h3>
+						<ol class="gravity-clock-list">
+							{{#each gravityClocks.list}}
+							<li class="gravity-clock-item" data-clock-id="{{id}}">
+								<div class="gravity-clock-header">
+									<input type="text" class="gravity-clock-label-input" data-clock-id="{{id}}" value="{{label}}" placeholder="Clock label…"/>
+									<button type="button" class="gravity-clock-remove" data-clock-id="{{id}}" aria-label="Remove gravity clock">✕</button>
+								</div>
+								<div class="gravity-clock-body">
+									<ol class="gravity-clock-track">
+										{{#each progressSteps}}
+										<li class="gravity-clock-step-item">
+											<button type="button" class="gravity-clock-step{{#if filled}} filled{{/if}}" data-clock-id="{{../id}}" data-step="{{step}}" aria-label="Gravity clock step {{step}}"></button>
+										</li>
+										{{/each}}
+									</ol>
+									<div class="gravity-clock-value-control">
+										<button type="button" class="gravity-clock-value-step gravity-clock-value-decrement" data-clock-id="{{id}}" data-delta="-1">-</button>
+										<span class="gravity-clock-value">{{value}}</span>
+										<button type="button" class="gravity-clock-value-step gravity-clock-value-increment" data-clock-id="{{id}}" data-delta="1">+</button>
+									</div>
+								</div>
+							</li>
+							{{/each}}
+						</ol>
+						{{#if gravityClocks.canAdd}}
+						<button type="button" class="gravity-clock-add">Add Gravity Clock</button>
+						{{/if}}
+					</section>
+				</div>
 				<div class="tab" data-group="primary" data-tab="advancement"></div>
 			</section>
 		</div>

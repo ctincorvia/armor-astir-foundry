@@ -33,6 +33,13 @@ const SPOTLIGHT_MAX = 6;
 // one actually does.
 const DANGER_MAX = 3;
 
+const GRAVITY_CLOCK_MAX = 5;
+// Progress track reuses Spotlight's exact length/interaction (see _onGravityClockStep).
+const GRAVITY_CLOCK_PROGRESS_MIN = 0;
+const GRAVITY_CLOCK_PROGRESS_MAX = 6;
+const GRAVITY_CLOCK_VALUE_MIN = 1;
+const GRAVITY_CLOCK_VALUE_MAX = 3;
+
 // Both groups share one flat list for key lookup (_onMoveRoll/_onMoveDescription) since a move's
 // section (Basic vs Special) is purely a sheet-display grouping, not part of its identity.
 const ALL_MOVES = [...BASIC_MOVES, ...SPECIAL_MOVES];
@@ -97,11 +104,31 @@ export class PlaybookActorSheet extends ActorSheet {
 			atMax: dangers.length >= DANGER_MAX,
 			canAdd: dangers.length < DANGER_MAX
 		};
+		// Gravity Clocks live in the Social tab: up to 5 independent progress tracks, each with
+		// its own label, a Spotlight-style fill track, and a separate 1-3 value. Unlike Spotlight
+		// (one actor-wide counter), progress is per-clock, so each list entry gets its own
+		// expanded steps array.
+		const gravityClocks = this._gravityClocks();
+		data.gravityClocks = {
+			max: GRAVITY_CLOCK_MAX,
+			canAdd: gravityClocks.length < GRAVITY_CLOCK_MAX,
+			list: gravityClocks.map((clock) => ({
+				...clock,
+				progressSteps: Array.from({ length: GRAVITY_CLOCK_PROGRESS_MAX }, (_, i) => ({
+					step: i + 1,
+					filled: i + 1 <= (clock.progress ?? 0)
+				}))
+			}))
+		};
 		return data;
 	}
 
 	_dangers() {
 		return this.actor.system.attributes?.dangers ?? [];
+	}
+
+	_gravityClocks() {
+		return this.actor.system.attributes?.gravityClocks ?? [];
 	}
 
 	// bite-the-dust's forcesDesperationAtMaxPerils reads this to decide whether the roll dialog's
@@ -183,6 +210,11 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".overheating-checkbox").on("change", this._onOverheatingToggle.bind(this));
 		html.find(".danger-add").on("click", this._onDangerAdd.bind(this));
 		html.find(".danger-remove").on("click", this._onDangerRemove.bind(this));
+		html.find(".gravity-clock-add").on("click", this._onGravityClockAdd.bind(this));
+		html.find(".gravity-clock-remove").on("click", this._onGravityClockRemove.bind(this));
+		html.find(".gravity-clock-label-input").on("change", this._onGravityClockLabelChange.bind(this));
+		html.find(".gravity-clock-value-step").on("click", this._onGravityClockValueStep.bind(this));
+		html.find(".gravity-clock-step").on("click", this._onGravityClockStep.bind(this));
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
 		html.find(".move-activate").on("click", this._onMoveActivate.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
@@ -265,6 +297,62 @@ export class PlaybookActorSheet extends ActorSheet {
 		const { dangerId } = event.currentTarget.dataset;
 		const current = this._dangers();
 		this.actor.update({ "system.attributes.dangers": current.filter((danger) => danger.id !== dangerId) });
+	}
+
+	_onGravityClockAdd(event) {
+		const current = this._gravityClocks();
+		if (current.length >= GRAVITY_CLOCK_MAX) return;
+		this.actor.update({
+			"system.attributes.gravityClocks": [
+				...current,
+				{ id: foundry.utils.randomID(), label: "", progress: 0, value: GRAVITY_CLOCK_VALUE_MIN }
+			]
+		});
+	}
+
+	_onGravityClockRemove(event) {
+		const { clockId } = event.currentTarget.dataset;
+		const current = this._gravityClocks();
+		this.actor.update({ "system.attributes.gravityClocks": current.filter((clock) => clock.id !== clockId) });
+	}
+
+	_onGravityClockLabelChange(event) {
+		const { clockId } = event.currentTarget.dataset;
+		const label = event.currentTarget.value.trim();
+		const current = this._gravityClocks();
+		this.actor.update({
+			"system.attributes.gravityClocks": current.map((clock) => (clock.id === clockId ? { ...clock, label } : clock))
+		});
+	}
+
+	_onGravityClockValueStep(event) {
+		const { clockId, delta } = event.currentTarget.dataset;
+		const current = this._gravityClocks();
+		const clock = current.find((c) => c.id === clockId);
+		if (!clock) return;
+		const value = clock.value ?? GRAVITY_CLOCK_VALUE_MIN;
+		const next = Math.min(GRAVITY_CLOCK_VALUE_MAX, Math.max(GRAVITY_CLOCK_VALUE_MIN, value + Number(delta)));
+		if (next === value) return;
+		this.actor.update({
+			"system.attributes.gravityClocks": current.map((c) => (c.id === clockId ? { ...c, value: next } : c))
+		});
+	}
+
+	// Same click-to-set / click-top-to-decrement logic as _onSpotlightStep, but scoped to one
+	// clock in the array via clockId instead of one actor-wide field.
+	_onGravityClockStep(event) {
+		const { clockId } = event.currentTarget.dataset;
+		const step = Number(event.currentTarget.dataset.step);
+		const current = this._gravityClocks();
+		const clock = current.find((c) => c.id === clockId);
+		if (!clock) return;
+		const progress = clock.progress ?? 0;
+		const next = step === progress ? step - 1 : step;
+		const clamped = Math.min(GRAVITY_CLOCK_PROGRESS_MAX, Math.max(GRAVITY_CLOCK_PROGRESS_MIN, next));
+		if (clamped === progress) return;
+		this.actor.update({
+			"system.attributes.gravityClocks": current.map((c) => (c.id === clockId ? { ...c, progress: clamped } : c))
+		});
 	}
 
 	async _onMoveRoll(event) {

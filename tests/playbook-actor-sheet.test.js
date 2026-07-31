@@ -615,6 +615,433 @@ describe("PlaybookActorSheet#_onDangerRemove", () => {
 	});
 });
 
+describe("PlaybookActorSheet#getData - gravity clocks", () => {
+	it("defaults to an empty list and able to add when attributes is empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.gravityClocks).toEqual({ max: 5, canAdd: true, list: [] });
+	});
+
+	it("expands each clock's stored progress into a Spotlight-style steps array", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					gravityClocks: [
+						{ id: "1", label: "The Council Turns", progress: 2, value: 1 },
+						{ id: "2", label: "Fuel Runs Out", progress: 0, value: 3 }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.gravityClocks.list).toEqual([
+			{
+				id: "1",
+				label: "The Council Turns",
+				progress: 2,
+				value: 1,
+				progressSteps: [
+					{ step: 1, filled: true },
+					{ step: 2, filled: true },
+					{ step: 3, filled: false },
+					{ step: 4, filled: false },
+					{ step: 5, filled: false },
+					{ step: 6, filled: false }
+				]
+			},
+			{
+				id: "2",
+				label: "Fuel Runs Out",
+				progress: 0,
+				value: 3,
+				progressSteps: [1, 2, 3, 4, 5, 6].map((step) => ({ step, filled: false }))
+			}
+		]);
+	});
+
+	it("treats a clock with no stored progress as starting at 0 when expanding steps", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "New clock", value: 1 }] } }
+		};
+
+		const data = sheet.getData();
+
+		expect(data.gravityClocks.list[0].progressSteps).toEqual([1, 2, 3, 4, 5, 6].map((step) => ({ step, filled: false })));
+	});
+
+	it("hides canAdd once the actor has 5 gravity clocks", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					gravityClocks: Array.from({ length: 5 }, (_, i) => ({ id: `${i}`, label: "", progress: 0, value: 1 }))
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.gravityClocks.canAdd).toBe(false);
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - gravity clocks", () => {
+	it("binds handlers to the add, remove, label, value step, and progress step controls", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".gravity-clock-add");
+		expect(html.find).toHaveBeenCalledWith(".gravity-clock-remove");
+		expect(html.find).toHaveBeenCalledWith(".gravity-clock-label-input");
+		expect(html.find).toHaveBeenCalledWith(".gravity-clock-value-step");
+		expect(html.find).toHaveBeenCalledWith(".gravity-clock-step");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onGravityClockAdd", () => {
+	it("appends a new clock with a generated id and default progress/value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { gravityClocks: [] } }, update: vi.fn() };
+
+		sheet._onGravityClockAdd({});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [{ id: "test-id", label: "", progress: 0, value: 1 }]
+		});
+	});
+
+	it("appends to, rather than replaces, existing clocks", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "existing", label: "Existing", progress: 3, value: 2 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockAdd({});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [
+				{ id: "existing", label: "Existing", progress: 3, value: 2 },
+				{ id: "test-id", label: "", progress: 0, value: 1 }
+			]
+		});
+	});
+
+	it("treats a missing gravityClocks array as starting empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onGravityClockAdd({});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [{ id: "test-id", label: "", progress: 0, value: 1 }]
+		});
+	});
+
+	it("does nothing once the actor already has the maximum gravity clocks", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					gravityClocks: Array.from({ length: 5 }, (_, i) => ({ id: `${i}`, label: "", progress: 0, value: 1 }))
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockAdd({});
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onGravityClockRemove", () => {
+	it("removes the clock matching the clicked button's id", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					gravityClocks: [
+						{ id: "1", label: "a", progress: 0, value: 1 },
+						{ id: "2", label: "b", progress: 0, value: 1 }
+					]
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockRemove({ currentTarget: { dataset: { clockId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [{ id: "2", label: "b", progress: 0, value: 1 }]
+		});
+	});
+
+	it("leaves the list untouched when the id doesn't match any clock", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", progress: 0, value: 1 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockRemove({ currentTarget: { dataset: { clockId: "not-a-real-id" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [{ id: "1", label: "a", progress: 0, value: 1 }]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onGravityClockLabelChange", () => {
+	it("trims and updates only the matching clock's label", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					gravityClocks: [
+						{ id: "1", label: "Old label", progress: 0, value: 1 },
+						{ id: "2", label: "Untouched", progress: 0, value: 1 }
+					]
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockLabelChange({ currentTarget: { dataset: { clockId: "1" }, value: "  New label  " } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [
+				{ id: "1", label: "New label", progress: 0, value: 1 },
+				{ id: "2", label: "Untouched", progress: 0, value: 1 }
+			]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onGravityClockValueStep", () => {
+	it("increments the matching clock's value and updates the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", progress: 0, value: 1 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockValueStep({ currentTarget: { dataset: { clockId: "1", delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [{ id: "1", label: "a", progress: 0, value: 2 }]
+		});
+	});
+
+	it("decrements the matching clock's value and updates the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", progress: 0, value: 2 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockValueStep({ currentTarget: { dataset: { clockId: "1", delta: "-1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [{ id: "1", label: "a", progress: 0, value: 1 }]
+		});
+	});
+
+	it("clamps at the maximum and does not update the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", progress: 0, value: 3 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockValueStep({ currentTarget: { dataset: { clockId: "1", delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at the minimum and does not update the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", progress: 0, value: 1 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockValueStep({ currentTarget: { dataset: { clockId: "1", delta: "-1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the id doesn't match any clock", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", progress: 0, value: 1 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockValueStep({ currentTarget: { dataset: { clockId: "not-a-real-id", delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing value as starting at the minimum", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", progress: 0 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockValueStep({ currentTarget: { dataset: { clockId: "1", delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [{ id: "1", label: "a", progress: 0, value: 2 }]
+		});
+	});
+
+	it("does not affect other clocks in the list", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					gravityClocks: [
+						{ id: "1", label: "a", progress: 0, value: 1 },
+						{ id: "2", label: "b", progress: 0, value: 2 }
+					]
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockValueStep({ currentTarget: { dataset: { clockId: "1", delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [
+				{ id: "1", label: "a", progress: 0, value: 2 },
+				{ id: "2", label: "b", progress: 0, value: 2 }
+			]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onGravityClockStep", () => {
+	it("fills the matching clock's track up to a clicked step above the current progress", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", progress: 1, value: 1 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockStep({ currentTarget: { dataset: { clockId: "1", step: "4" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [{ id: "1", label: "a", progress: 4, value: 1 }]
+		});
+	});
+
+	it("empties the matching clock's track down to a clicked step below the current progress", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", progress: 5, value: 1 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockStep({ currentTarget: { dataset: { clockId: "1", step: "2" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [{ id: "1", label: "a", progress: 2, value: 1 }]
+		});
+	});
+
+	it("decrements by one when clicking the current top (highest filled) step", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", progress: 3, value: 1 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockStep({ currentTarget: { dataset: { clockId: "1", step: "3" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [{ id: "1", label: "a", progress: 2, value: 1 }]
+		});
+	});
+
+	it("clamps a step beyond the track's max and does not update the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", progress: 6, value: 1 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockStep({ currentTarget: { dataset: { clockId: "1", step: "7" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing progress value as starting at 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", value: 1 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockStep({ currentTarget: { dataset: { clockId: "1", step: "2" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [{ id: "1", label: "a", value: 1, progress: 2 }]
+		});
+	});
+
+	it("does not affect other clocks in the list", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					gravityClocks: [
+						{ id: "1", label: "a", progress: 1, value: 1 },
+						{ id: "2", label: "b", progress: 3, value: 2 }
+					]
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockStep({ currentTarget: { dataset: { clockId: "1", step: "4" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [
+				{ id: "1", label: "a", progress: 4, value: 1 },
+				{ id: "2", label: "b", progress: 3, value: 2 }
+			]
+		});
+	});
+
+	it("does nothing when the id doesn't match any clock", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { gravityClocks: [{ id: "1", label: "a", progress: 0, value: 1 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockStep({ currentTarget: { dataset: { clockId: "not-a-real-id", step: "2" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
 describe("PlaybookActorSheet#activateListeners - trait steps", () => {
 	it("binds a click handler to the trait step buttons", () => {
 		const sheet = new PlaybookActorSheet();
