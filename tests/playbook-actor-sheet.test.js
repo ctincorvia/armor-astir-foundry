@@ -14,6 +14,7 @@ vi.mock("../scripts/moves.js", async (importOriginal) => ({
 
 import { PLAYBOOKS, swapActorPlaybook } from "../scripts/actor-creation.js";
 import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postMoveDescription, rollMove } from "../scripts/moves.js";
+import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../scripts/advancements.js";
 import { PlaybookActorSheet, registerPlaybookActorSheet, TRAITS } from "../scripts/playbook-actor-sheet.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
@@ -219,6 +220,164 @@ describe("PlaybookActorSheet#_onOverheatingToggle", () => {
 		sheet._onOverheatingToggle({ currentTarget: { checked: false } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.overheating.value": false });
+	});
+});
+
+describe("PlaybookActorSheet#getData - advancements", () => {
+	it("defaults every top and bottom item to unchecked when attributes are missing", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.advancements.top.every((item) => item.checked === false)).toBe(true);
+		expect(data.advancements.bottom.every((item) => item.checked === false)).toBe(true);
+	});
+
+	it("defaults topCount to 0 and unlocked to false when nothing is checked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.advancements.topCount).toBe(0);
+		expect(data.advancements.unlocked).toBe(false);
+	});
+
+	it("reflects a stored true value on the matching top item only", () => {
+		const key = ADVANCEMENT_TOP[1].key;
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { advancements: { [key]: true } } } };
+
+		const data = sheet.getData();
+
+		expect(data.advancements.top.find((item) => item.key === key).checked).toBe(true);
+		expect(
+			data.advancements.top.filter((item) => item.key !== key).every((item) => item.checked === false)
+		).toBe(true);
+	});
+
+	it("counts exactly the checked top keys", () => {
+		const sheet = new PlaybookActorSheet();
+		const advancements = { [ADVANCEMENT_TOP[0].key]: true, [ADVANCEMENT_TOP[1].key]: true };
+		sheet.actor = { system: { stats: {}, attributes: { advancements } } };
+
+		const data = sheet.getData();
+
+		expect(data.advancements.topCount).toBe(2);
+	});
+
+	it("keeps the bottom group locked when topCount is one below the threshold", () => {
+		const sheet = new PlaybookActorSheet();
+		const advancements = {};
+		ADVANCEMENT_TOP.slice(0, 2).forEach((item) => {
+			advancements[item.key] = true;
+		});
+		sheet.actor = { system: { stats: {}, attributes: { advancements } } };
+
+		const data = sheet.getData();
+
+		expect(data.advancements.topCount).toBe(2);
+		expect(data.advancements.unlocked).toBe(false);
+		expect(data.advancements.bottom.every((item) => item.locked === true)).toBe(true);
+	});
+
+	it("unlocks the bottom group once topCount reaches the threshold", () => {
+		const sheet = new PlaybookActorSheet();
+		const advancements = {};
+		ADVANCEMENT_TOP.slice(0, 3).forEach((item) => {
+			advancements[item.key] = true;
+		});
+		sheet.actor = { system: { stats: {}, attributes: { advancements } } };
+
+		const data = sheet.getData();
+
+		expect(data.advancements.topCount).toBe(3);
+		expect(data.advancements.unlocked).toBe(true);
+		expect(data.advancements.bottom.every((item) => item.locked === false)).toBe(true);
+	});
+
+	it("stays unlocked when every top item is checked", () => {
+		const sheet = new PlaybookActorSheet();
+		const advancements = {};
+		ADVANCEMENT_TOP.forEach((item) => {
+			advancements[item.key] = true;
+		});
+		sheet.actor = { system: { stats: {}, attributes: { advancements } } };
+
+		const data = sheet.getData();
+
+		expect(data.advancements.topCount).toBe(ADVANCEMENT_TOP.length);
+		expect(data.advancements.unlocked).toBe(true);
+	});
+
+	it("keeps a bottom item's stored checked state even while its row is locked", () => {
+		const bottomKey = ADVANCEMENT_BOTTOM[0].key;
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { advancements: { [bottomKey]: true } } } };
+
+		const data = sheet.getData();
+
+		expect(data.advancements.unlocked).toBe(false);
+		const item = data.advancements.bottom.find((entry) => entry.key === bottomKey);
+		expect(item.checked).toBe(true);
+		expect(item.locked).toBe(true);
+	});
+
+	it("exposes the unlock threshold", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.advancements.unlockThreshold).toBe(3);
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - advancements", () => {
+	it("binds a change handler to the advancement checkboxes", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".advancement-checkbox");
+		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onAdvancementToggle", () => {
+	it("writes true to the matching top advancement key when checked", () => {
+		const key = ADVANCEMENT_TOP[0].key;
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onAdvancementToggle({ currentTarget: { checked: true, dataset: { advancementKey: key } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ [`system.attributes.advancements.${key}`]: true });
+	});
+
+	it("writes false to the matching top advancement key when unchecked", () => {
+		const key = ADVANCEMENT_TOP[0].key;
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { advancements: { [key]: true } } }, update: vi.fn() };
+
+		sheet._onAdvancementToggle({ currentTarget: { checked: false, dataset: { advancementKey: key } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ [`system.attributes.advancements.${key}`]: false });
+	});
+
+	it("writes to the matching bottom advancement key", () => {
+		const key = ADVANCEMENT_BOTTOM[0].key;
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onAdvancementToggle({ currentTarget: { checked: true, dataset: { advancementKey: key } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ [`system.attributes.advancements.${key}`]: true });
 	});
 });
 

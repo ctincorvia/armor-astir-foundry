@@ -328,9 +328,33 @@
 .armor-astir.sheet .move-activate.disabled,
 .armor-astir.sheet .move-description.disabled,
 .armor-astir.sheet .hold-step.disabled,
-.armor-astir.sheet .bplot-hold-step.disabled {
+.armor-astir.sheet .bplot-hold-step.disabled,
+.armor-astir.sheet .advancement-item.disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
+}
+
+.armor-astir.sheet .advancement-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .advancement-item {
+	padding: 2px 0;
+}
+
+.armor-astir.sheet .advancement-label {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: 6px;
+}
+
+.armor-astir.sheet .advancement-unlock-hint {
+	margin: 6px 0;
+	font-size: 12px;
+	font-style: italic;
 }
 
 .armor-astir-move-chat .move-name {

@@ -8,6 +8,7 @@ import {
 	rollMove
 } from "./moves.js";
 import { TRAITS } from "./traits.js";
+import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "./advancements.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
 
@@ -39,6 +40,9 @@ const GRAVITY_CLOCK_PROGRESS_MIN = 0;
 const GRAVITY_CLOCK_PROGRESS_MAX = 6;
 const GRAVITY_CLOCK_VALUE_MIN = 1;
 const GRAVITY_CLOCK_VALUE_MAX = 3;
+
+// How many of the six top Advancement checklist items unlock the bottom four (see advancements.js).
+const ADVANCEMENT_UNLOCK_THRESHOLD = 3;
 
 // Both groups share one flat list for key lookup (_onMoveRoll/_onMoveDescription) since a move's
 // section (Basic vs Special) is purely a sheet-display grouping, not part of its identity.
@@ -120,6 +124,25 @@ export class PlaybookActorSheet extends ActorSheet {
 				}))
 			}))
 		};
+		// The bottom four Advancement options unlock once at least ADVANCEMENT_UNLOCK_THRESHOLD of
+		// the top six are checked. `checked` for bottom items is always read from stored data
+		// regardless of `locked` — locking only blocks new checkbox interaction in the template,
+		// it never clears data, so an item checked before a re-lock stays checked.
+		const advancements = this._advancements();
+		const topCount = ADVANCEMENT_TOP.filter(({ key }) => advancements[key]).length;
+		const unlocked = topCount >= ADVANCEMENT_UNLOCK_THRESHOLD;
+		data.advancements = {
+			top: ADVANCEMENT_TOP.map(({ key, label }) => ({ key, label, checked: advancements[key] ?? false })),
+			topCount,
+			unlockThreshold: ADVANCEMENT_UNLOCK_THRESHOLD,
+			unlocked,
+			bottom: ADVANCEMENT_BOTTOM.map(({ key, label }) => ({
+				key,
+				label,
+				checked: advancements[key] ?? false,
+				locked: !unlocked
+			}))
+		};
 		return data;
 	}
 
@@ -129,6 +152,10 @@ export class PlaybookActorSheet extends ActorSheet {
 
 	_gravityClocks() {
 		return this.actor.system.attributes?.gravityClocks ?? [];
+	}
+
+	_advancements() {
+		return this.actor.system.attributes?.advancements ?? {};
 	}
 
 	// bite-the-dust's forcesDesperationAtMaxPerils reads this to decide whether the roll dialog's
@@ -208,6 +235,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".power-step").on("click", this._onPowerStep.bind(this));
 		html.find(".spotlight-step").on("click", this._onSpotlightStep.bind(this));
 		html.find(".overheating-checkbox").on("change", this._onOverheatingToggle.bind(this));
+		html.find(".advancement-checkbox").on("change", this._onAdvancementToggle.bind(this));
 		html.find(".danger-add").on("click", this._onDangerAdd.bind(this));
 		html.find(".danger-remove").on("click", this._onDangerRemove.bind(this));
 		html.find(".gravity-clock-add").on("click", this._onGravityClockAdd.bind(this));
@@ -252,6 +280,16 @@ export class PlaybookActorSheet extends ActorSheet {
 
 	_onOverheatingToggle(event) {
 		this.actor.update({ "system.attributes.overheating.value": event.currentTarget.checked });
+	}
+
+	// Serves both the top and bottom Advancement groups — the key comes from the checkbox's own
+	// dataset, not a hardcoded group. Bottom checkboxes render `disabled` in the template while
+	// locked (see getData's `locked` field), and a disabled checkbox never dispatches `change`, so
+	// this handler only ever fires for a box the player was actually allowed to toggle — no
+	// lock check or revert needed here.
+	_onAdvancementToggle(event) {
+		const { advancementKey: key } = event.currentTarget.dataset;
+		this.actor.update({ [`system.attributes.advancements.${key}`]: event.currentTarget.checked });
 	}
 
 	_onPowerStep(event) {
