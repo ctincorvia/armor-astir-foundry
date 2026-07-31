@@ -499,6 +499,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -514,6 +515,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -527,6 +529,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						descriptionGated: false,
 						trackHold: true,
 						separateHoldPool: false,
 						hold: 0
@@ -540,6 +543,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -551,6 +555,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -566,6 +571,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -584,6 +590,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -598,6 +605,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -611,6 +619,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -631,6 +640,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -642,6 +652,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: false,
 						activatable: false,
+						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -655,6 +666,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: true,
 						rollable: false,
 						activatable: true,
+						descriptionGated: true,
 						trackHold: true,
 						separateHoldPool: true,
 						hold: 0
@@ -741,6 +753,35 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 
 		expect(data.moveGroups[1].moves.find((m) => m.key === "lead-a-sortie").gated).toBe(false);
 		expect(data.moveGroups[1].moves.find((m) => m.key === "subsystems").gated).toBe(false);
+	});
+
+	it("also greys out b-plot's Description button when CHANNEL is enabled", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 1, disabled: false } } } };
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").descriptionGated).toBe(true);
+	});
+
+	it("un-greys b-plot's Description button once CHANNEL is disabled", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 0, disabled: true } } } };
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").descriptionGated).toBe(false);
+	});
+
+	it("never greys out weave magic's Description button, unlike b-plot", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 0, disabled: true } } } };
+
+		const data = sheet.getData();
+
+		const weaveMagic = data.moveGroups[0].moves.find((m) => m.key === "weave-magic");
+		expect(weaveMagic.gated).toBe(true);
+		expect(weaveMagic.descriptionGated).toBe(false);
 	});
 });
 

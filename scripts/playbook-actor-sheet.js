@@ -95,6 +95,10 @@ export class PlaybookActorSheet extends ActorSheet {
 			const hold = move.flatHold
 				? this.actor.system.attributes?.bplotHold?.value ?? 0
 				: this.actor.system.resources?.hold?.value ?? 0;
+			// True only for moves gated off Channel being enabled (b-plot, via
+			// requiresChannelDisabled) — distinct from the traits-empty gating below (Weave
+			// Magic), which never blocks reading a move's own description.
+			const channelGated = Boolean(move.requiresChannelDisabled) && !channelDisabled;
 			return {
 				key: move.key,
 				name: move.name,
@@ -103,9 +107,8 @@ export class PlaybookActorSheet extends ActorSheet {
 				// currently disabled for this actor (e.g. Weave Magic without Channel — a move
 				// with no traits by design, like Help or Hinder, is never gated this way), OR
 				// when the move is explicitly gated the opposite way, off Channel being enabled
-				// (b-plot, via requiresChannelDisabled).
-				gated: (move.traits.length > 0 && traits.length === 0)
-					|| (Boolean(move.requiresChannelDisabled) && !channelDisabled),
+				// (b-plot, via channelGated above).
+				gated: (move.traits.length > 0 && traits.length === 0) || channelGated,
 				// Whether this move rolls anything at all, based on its static definition rather
 				// than the actor-filtered trait list above — a gated move (e.g. Weave Magic with
 				// Channel disabled) still shows a disabled Roll button, but a move with no traits or
@@ -114,6 +117,11 @@ export class PlaybookActorSheet extends ActorSheet {
 				// Moves with a flat hold grant (B-Plot) show an Activate button in place of Roll —
 				// see the template's rollable/activatable branch and _onMoveActivate.
 				activatable: Boolean(move.flatHold),
+				// Weave Magic's description stays readable even while its Roll button is gated —
+				// you can still learn what the move does. B-Plot is different: being "in the
+				// b-plot" isn't something a Channel-enabled character can do at all, so its
+				// Description button greys out too, alongside Roll/Activate and the hold stepper.
+				descriptionGated: channelGated,
 				trackHold: Boolean(move.hold) || Boolean(move.flatHold),
 				// Which stepper/handler the template wires up (_onHoldStep vs
 				// _onBplotHoldStep) — see the hold comment above.

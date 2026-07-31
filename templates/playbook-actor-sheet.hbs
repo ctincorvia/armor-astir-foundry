@@ -85,7 +85,7 @@
 								{{else if activatable}}
 								<button type="button" class="move-activate{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Activate</button>
 								{{/if}}
-								<button type="button" class="move-description" data-move="{{key}}">Description</button>
+								<button type="button" class="move-description{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}}>Description</button>
 							</div>
 						</div>
 					</li>
