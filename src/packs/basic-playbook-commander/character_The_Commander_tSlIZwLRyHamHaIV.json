@@ -1,0 +1,48 @@
+{
+	"name": "The Commander",
+	"type": "character",
+	"img": "icons/svg/mystery-man.svg",
+	"effects": [],
+	"items": [],
+	"folder": null,
+	"flags": {},
+	"system": {
+		"details": {
+			"callsign": {
+				"label": "Callsign",
+				"value": ""
+			}
+		},
+		"playbook": {
+			"name": "The Commander",
+			"slug": "the-commander",
+			"uuid": ""
+		},
+		"stats": {},
+		"attributes": {}
+	},
+	"prototypeToken": {
+		"name": "The Commander",
+		"actorLink": true,
+		"disposition": 1,
+		"texture": {
+			"src": "icons/svg/mystery-man.svg"
+		}
+	},
+	"ownership": {
+		"default": 0
+	},
+	"_stats": {
+		"compendiumSource": null,
+		"duplicateSource": null,
+		"coreVersion": "12",
+		"systemId": "pbta",
+		"systemVersion": "1.1.15",
+		"createdTime": null,
+		"modifiedTime": null,
+		"lastModifiedBy": null
+	},
+	"_id": "tSlIZwLRyHamHaIV",
+	"sort": 0,
+	"_key": "!actors!tSlIZwLRyHamHaIV"
+}

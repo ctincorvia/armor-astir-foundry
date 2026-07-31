@@ -1,0 +1,21 @@
+<form class="{{cssClass}}" autocomplete="off">
+	<header class="sheet-header">
+		<img class="profile-img" src="{{actor.img}}" data-edit="img" alt="{{actor.name}}"/>
+		<div class="flex3">
+			<div class="form-group">
+				<label>Name</label>
+				<input type="text" name="name" value="{{actor.name}}" placeholder="Name"/>
+			</div>
+			<div class="form-group">
+				<label>Callsign</label>
+				<input type="text" name="system.details.callsign.value" value="{{data.system.details.callsign.value}}" placeholder="Callsign"/>
+			</div>
+		</div>
+		<div class="playbook-swap">
+			<label>Playbook</label>
+			<select class="playbook-select" name="playbook">
+				{{selectOptions playbooks selected=currentPlaybookId valueAttr="packId" labelAttr="name"}}
+			</select>
+		</div>
+	</header>
+</form>

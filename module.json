@@ -14,11 +14,23 @@
 		"verified": "12"
 	},
 	"esmodules": ["scripts/main.js"],
+	"styles": ["styles/playbook-actor-sheet.css"],
 	"packs": [
 		{
 			"name": "basic-playbook-scout",
 			"label": "Basic Playbook - The Scout",
 			"path": "packs/basic-playbook-scout",
+			"type": "Actor",
+			"system": "pbta",
+			"ownership": {
+				"PLAYER": "OBSERVER",
+				"ASSISTANT": "OWNER"
+			}
+		},
+		{
+			"name": "basic-playbook-commander",
+			"label": "Basic Playbook - The Commander",
+			"path": "packs/basic-playbook-commander",
 			"type": "Actor",
 			"system": "pbta",
 			"ownership": {

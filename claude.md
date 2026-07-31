@@ -6,7 +6,10 @@
 - A module can add content, UI changes, new functionality, or translations.
 - The baseline PBTA Foundry system source is available in a sibling directory and should be used as the reference environment for this module.
 - A similar module for Masks: New Generation is also available in a sibling directory and can be used as a practical example for structure and patterns.
-- A sibling directory, `masks-newgeneration-sheets`, contains that game's character/NPC sheet module (`ActorSheet` subclasses in `module/masks-character-sheet.mjs` / `module/masks-npc-sheet.mjs`, Handlebars templates in `templates/`, styling in `styles/`) and can be referenced for how to implement and register custom character sheets.
+- A sibling directory, `masks-newgeneration-sheets`, contains that game's character/NPC sheet module (`ActorSheet` subclasses in `module/masks-character-sheet.mjs` / `module/masks-npc-sheet.mjs`, Handlebars templates in `templates/`, styling in `styles/`) and can be referenced for how to implement and register custom character sheets. This one has never been updated for core v12+ (tagged releases and `main` all cap at v11) — it's pattern reference only, not something to version-match, and it doesn't create a mismatch risk since it imports pbta's own `PbtaActorSheet` class rather than hardcoding a Foundry-version-specific base class.
+- **The sibling `pbta` and `masks-newgeneration-unofficial` repos are pinned (detached HEAD) to the exact versions actually installed** — `pbta` at tag `1.1.15.2`, `masks-newgeneration-unofficial` at tag `1.7.6` — both matching the installed Foundry v12.331.0. This makes their code a reliable reference for what's actually running.
+- **If either sibling repo is ever checked out to `main` (or a different tag) again, treat it as running ahead of what's installed** until re-pinned to match. `main` on both tracks newer, unreleased core-version support (e.g. `pbta`'s `main` currently targets core v14 / pbta 1.2.0), and a base-class or namespace reference copied from ahead-of-release source can throw at module-evaluation time — which aborts this module's entire `esmodules` import chain, not just the feature being added (this has happened once already). If in doubt, confirm a reference also appears in the *installed* system bundle (`Data/systems/pbta/module/pbta.js` in the Foundry user data directory) or in Foundry's own unpacked client source (`resources/app/client/...` under the Foundry install directory) — grep both if unsure.
+- Foundry does not hot-reload `esmodules` — after editing script files, the Foundry client needs a full reload (not just saving the file) to pick up the change.
 
 ## Minimum structure
 ```text
@@ -90,6 +93,9 @@ Build the smallest possible working module:
 2. Add one script file
 3. Load it with `esmodules` or `scripts`
 4. Confirm it appears in Foundry and logs to the console
+
+## Domain conventions
+- "Playbooks" are always player-controlled Actors (type `character`), never Items. This differs from the baseline PBTA system, where a playbook is normally an Item of type `playbook` that gets applied to a blank character actor. In this module, dragging a playbook out of a compendium should produce a ready-to-play character actor directly — see `src/packs/basic-playbook-scout/` for the pattern (an Actor document with `system.details.callsign` added so players can also record a callsign alongside the actor's native name/image).
 
 ## Compendium packs (compiled, not committed)
 Foundry compendium packs are LevelDB directories at runtime, not loose JSON — you can't point `module.json`'s `packs[].path` at a folder of raw JSON files and expect it to load. The convention (matching the sibling Masks module) is:
