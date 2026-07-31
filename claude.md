@@ -100,6 +100,12 @@ Build the smallest possible working module:
 ## Domain conventions
 - "Playbooks" are always player-controlled Actors (type `character`), never Items. This differs from the baseline PBTA system, where a playbook is normally an Item of type `playbook` that gets applied to a blank character actor. In this module, dragging a playbook out of a compendium should produce a ready-to-play character actor directly — see `src/packs/basic-playbook-scout/` for the pattern (an Actor document with `system.details.callsign` added so players can also record a callsign alongside the actor's native name/image).
 
+### Basic moves
+- Basic moves are **not** Items or compendium content — they're plain JS objects in the `BASIC_MOVES` array in `scripts/moves.js`, rendered directly by `PlaybookActorSheet` (`scripts/playbook-actor-sheet.js`). Every playbook gets them automatically; there's no per-move pack setup.
+- A move object's fields: `key`, `name`, `traits` (array of `TRAITS` keys it can roll +, empty if the move rolls no stat), `description` (HTML rules text), `results.{success,mixed,failure}` (chat result text, `null` if the move defines none). Optional: `hold` (per-tier hold grant, e.g. Read the Room), `questions`/`questionPrompts` (hold-spend flavor), `conditions` (array of `{key,label}` checkbox modifiers each worth +1, for moves with no base stat, e.g. Help or Hinder), `intents` (array of `{key,label}`, a flavor-only choice with no mechanical effect).
+- Universal roll modifiers (Advantage/Disadvantage, Confidence/Desperation) live in `scripts/roll-effects.js` and apply to every move roll regardless of the move's own fields — they are not part of a move's definition.
+- Trait gating: `system.stats.<key>.disabled` (e.g. `channel` is disabled by default per playbook) hides that trait from a move's rollable options via `availableMoveTraits`/`_moveTraits`, and the move's Roll button itself greys out via each move's `gated` flag in `getData` (`gated` is true only when a move's `traits` is non-empty but every one of those traits is currently disabled for the actor — a move with no `traits` by design, like Help or Hinder, is never gated).
+
 ## Compendium packs (compiled, not committed)
 Foundry compendium packs are LevelDB directories at runtime, not loose JSON — you can't point `module.json`'s `packs[].path` at a folder of raw JSON files and expect it to load. The convention (matching the sibling Masks module) is:
 - Keep human-readable source under `src/packs/<pack-name>/*.json` (one file per document), committed to git.

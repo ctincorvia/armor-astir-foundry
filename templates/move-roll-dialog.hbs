@@ -1,4 +1,5 @@
 <form class="armor-astir-move-roll-dialog">
+	{{#if traits.length}}
 	<div class="form-group">
 		<label>Trait</label>
 		<select name="trait">
@@ -7,6 +8,29 @@
 			{{/each}}
 		</select>
 	</div>
+	{{/if}}
+	{{#if intents}}
+	<div class="form-group">
+		<label>Intent</label>
+		<select name="intent">
+			{{#each intents}}
+			<option value="{{key}}">{{label}}</option>
+			{{/each}}
+		</select>
+	</div>
+	{{/if}}
+	{{#if conditions}}
+	<div class="form-group move-roll-conditions">
+		<label>Conditions</label>
+		<div class="move-roll-conditions-list">
+			{{#each conditions}}
+			<label class="move-roll-condition">
+				<input type="checkbox" name="condition" value="{{key}}"/> {{label}}
+			</label>
+			{{/each}}
+		</div>
+	</div>
+	{{/if}}
 	<div class="form-group">
 		<label>Dice</label>
 		<select name="advantage">

@@ -2,7 +2,8 @@
 	<h3 class="move-name">{{name}}</h3>
 	{{#if tierLabel}}
 	<div class="move-roll-result">
-		<span class="move-trait">+{{traitLabel}}</span>
+		{{#if traitLabel}}<span class="move-trait">+{{traitLabel}}</span>{{/if}}
+		{{#if intentLabel}}<span class="move-intent">{{intentLabel}}</span>{{/if}}
 		<span class="move-tier move-tier-{{tier}}">{{tierLabel}}</span>
 	</div>
 	{{#if conditions}}
@@ -26,6 +27,9 @@
 	{{#if questions}}
 	<div class="move-hold">
 		{{#if hold}}<span class="move-hold-count">Hold {{hold}}</span>{{/if}}
+		{{#if questionPrompt}}
+		<p class="move-hold-prompt">{{questionPrompt}}</p>
+		{{/if}}
 		<ul class="move-questions">
 			{{#each questions}}
 			<li>{{this}}</li>

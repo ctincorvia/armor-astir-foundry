@@ -97,6 +97,11 @@
 	flex: 0 0 auto;
 }
 
+.armor-astir.sheet .move-roll.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
 .armor-astir-move-chat .move-name {
 	margin: 0 0 4px;
 }
@@ -134,6 +139,12 @@
 
 .armor-astir-move-chat .move-hold-count {
 	font-weight: bold;
+}
+
+.armor-astir-move-chat .move-hold-prompt {
+	margin: 2px 0 0;
+	font-size: 12px;
+	font-style: italic;
 }
 
 .armor-astir-move-chat .move-questions {
@@ -188,6 +199,12 @@
 	background: #4a4a8a;
 }
 
+.armor-astir-move-chat .move-condition-downtime,
+.armor-astir-move-chat .move-condition-prior-help,
+.armor-astir-move-chat .move-condition-hook {
+	background: #6b5b1e;
+}
+
 .armor-astir-move-chat .move-dice {
 	display: flex;
 	flex-direction: row;
@@ -232,4 +249,22 @@
 	justify-content: space-between;
 	gap: 8px;
 	margin-bottom: 6px;
+}
+
+.armor-astir.move-roll-dialog .move-roll-conditions {
+	align-items: flex-start;
+}
+
+.armor-astir.move-roll-dialog .move-roll-conditions-list {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.armor-astir.move-roll-dialog .move-roll-condition {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 4px;
+	white-space: nowrap;
 }

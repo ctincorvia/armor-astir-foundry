@@ -224,6 +224,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 							{ key: "clash", label: "CLASH", value: 1 },
 							{ key: "talk", label: "TALK", value: -1 }
 						],
+						gated: false,
 						trackHold: false,
 						hold: 0
 					},
@@ -235,6 +236,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 							{ key: "know", label: "KNOW", value: 0 },
 							{ key: "sense", label: "SENSE", value: 0 }
 						],
+						gated: false,
 						trackHold: false,
 						hold: 0
 					},
@@ -244,7 +246,38 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						traits: [
 							{ key: "sense", label: "SENSE", value: 0 }
 						],
+						gated: false,
 						trackHold: true,
+						hold: 0
+					},
+					{
+						key: "dispel-uncertainties",
+						name: "Dispel Uncertainties",
+						traits: [
+							{ key: "know", label: "KNOW", value: 0 }
+						],
+						gated: false,
+						trackHold: false,
+						hold: 0
+					},
+					{
+						key: "help-or-hinder",
+						name: "Help or Hinder",
+						traits: [],
+						gated: false,
+						trackHold: false,
+						hold: 0
+					},
+					{
+						key: "weave-magic",
+						name: "Weave Magic",
+						// channel isn't in this actor's stats at all — same as any other missing stat,
+						// that reads as enabled rather than gated (see availableMoveTraits).
+						traits: [
+							{ key: "channel", label: "CHANNEL", value: 0 }
+						],
+						gated: false,
+						trackHold: false,
 						hold: 0
 					}
 				]
@@ -262,6 +295,39 @@ describe("PlaybookActorSheet#getData - moves", () => {
 	});
 });
 
+describe("PlaybookActorSheet#getData - gated moves", () => {
+	it("gates weave magic's Roll button when CHANNEL is disabled", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 0, disabled: true } } } };
+
+		const data = sheet.getData();
+
+		const weaveMagic = data.moveGroups[0].moves.find((m) => m.key === "weave-magic");
+		expect(weaveMagic.gated).toBe(true);
+		expect(weaveMagic.traits).toEqual([]);
+	});
+
+	it("un-gates weave magic once CHANNEL is enabled", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 1, disabled: false } } } };
+
+		const data = sheet.getData();
+
+		const weaveMagic = data.moveGroups[0].moves.find((m) => m.key === "weave-magic");
+		expect(weaveMagic.gated).toBe(false);
+		expect(weaveMagic.traits).toEqual([{ key: "channel", label: "CHANNEL", value: 1 }]);
+	});
+
+	it("never gates help or hinder, which has no stat traits by design", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[0].moves.find((m) => m.key === "help-or-hinder").gated).toBe(false);
+	});
+});
+
 describe("PlaybookActorSheet#getData - hold", () => {
 	it("marks trackHold true only for moves that define a hold track", () => {
 		const sheet = new PlaybookActorSheet();
@@ -273,7 +339,10 @@ describe("PlaybookActorSheet#getData - hold", () => {
 		expect(holdFlags).toEqual({
 			"exchange-blows": false,
 			"weather-the-storm": false,
-			"read-the-room": true
+			"read-the-room": true,
+			"dispel-uncertainties": false,
+			"help-or-hinder": false,
+			"weave-magic": false
 		});
 	});
 
@@ -396,6 +465,19 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(rollMove).not.toHaveBeenCalled();
+	});
+
+	it("still opens the roll dialog for help or hinder, which has no stat traits at all", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "help-or-hinder" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			BASIC_MOVES.find((m) => m.key === "help-or-hinder"),
+			[]
+		);
 	});
 
 	it("configures the roll, then rolls the move with the chosen trait and modifiers", async () => {

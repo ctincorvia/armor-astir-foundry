@@ -40,16 +40,23 @@ export class PlaybookActorSheet extends ActorSheet {
 		data.moveGroups = [
 			{
 				label: "Basic Moves",
-				moves: BASIC_MOVES.map((move) => ({
-					key: move.key,
-					name: move.name,
-					traits: this._moveTraits(move),
-					// Hold is one shared actor field (pbta's system.resources.hold), not per-move
-					// state — fine while read-the-room is the only source; a second hold-granting
-					// move would need per-move tracking instead.
-					trackHold: Boolean(move.hold),
-					hold: this.actor.system.resources?.hold?.value ?? 0
-				}))
+				moves: BASIC_MOVES.map((move) => {
+					const traits = this._moveTraits(move);
+					return {
+						key: move.key,
+						name: move.name,
+						traits,
+						// True only when a move normally rolls a stat trait but every one of those
+						// traits is currently disabled for this actor (e.g. Weave Magic without
+						// Channel) — a move with no traits by design (Help or Hinder) is never gated.
+						gated: move.traits.length > 0 && traits.length === 0,
+						// Hold is one shared actor field (pbta's system.resources.hold), not per-move
+						// state — fine while read-the-room is the only source; a second hold-granting
+						// move would need per-move tracking instead.
+						trackHold: Boolean(move.hold),
+						hold: this.actor.system.resources?.hold?.value ?? 0
+					};
+				})
 			}
 		];
 		return data;
@@ -101,7 +108,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		if (!move) return;
 
 		const traits = this._moveTraits(move);
-		if (!traits.length) return;
+		if (!traits.length && !move.conditions) return;
 
 		const config = await configureMoveRoll(move, traits);
 		if (!config) return;

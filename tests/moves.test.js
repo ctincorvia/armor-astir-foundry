@@ -17,9 +17,21 @@ import {
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 const WEATHER_THE_STORM = BASIC_MOVES.find((m) => m.key === "weather-the-storm");
 const READ_THE_ROOM = BASIC_MOVES.find((m) => m.key === "read-the-room");
+const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertainties");
+const HELP_OR_HINDER = BASIC_MOVES.find((m) => m.key === "help-or-hinder");
+const WEAVE_MAGIC = BASIC_MOVES.find((m) => m.key === "weave-magic");
 
-function fakeRollHtml(values) {
-	return { find: (selector) => ({ val: () => values[selector] }) };
+// checkedConditions fakes the jQuery `.find("[name='condition']:checked").map(...).get()` chain
+// configureMoveRoll uses to collect Help or Hinder's checkbox values.
+function fakeRollHtml(values, checkedConditions = []) {
+	return {
+		find: (selector) => {
+			if (selector === "[name='condition']:checked") {
+				return { map: (fn) => ({ get: () => checkedConditions.map((value, index) => fn(index, { value })) }) };
+			}
+			return { val: () => values[selector] };
+		}
+	};
 }
 
 // Seeds the die's raw results (pre-substitution/keep) so rollMove's real, unmocked
@@ -158,6 +170,59 @@ describe("configureMoveRoll", () => {
 		dialogOptions.close();
 
 		expect(await promise).toBeNull();
+	});
+});
+
+describe("configureMoveRoll - intents and conditions", () => {
+	it("passes the move's intents and conditions to the dialog template", async () => {
+		const promise = configureMoveRoll(HELP_OR_HINDER, []);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			traits: [],
+			intents: HELP_OR_HINDER.intents,
+			conditions: HELP_OR_HINDER.conditions
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves the chosen intent and checked conditions when Roll is clicked", async () => {
+		const promise = configureMoveRoll(HELP_OR_HINDER, []);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='intent']": "help",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, ["downtime", "hook"]));
+
+		expect(await promise).toEqual({
+			intent: HELP_OR_HINDER.intents.find((i) => i.key === "help"),
+			conditions: ["downtime", "hook"],
+			advantage: "none",
+			effect: "none"
+		});
+	});
+
+	it("does not add intent or conditions keys for moves that don't define them", async () => {
+		const clash = { key: "clash", label: "CLASH", value: 1 };
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}));
+
+		expect(await promise).toEqual({ trait: clash, advantage: "none", effect: "none" });
 	});
 });
 
@@ -368,6 +433,75 @@ describe("rollMove", () => {
 	});
 });
 
+describe("rollMove - dispel uncertainties and weave magic", () => {
+	it("rolls 2d6 plus the KNOW value for dispel uncertainties", async () => {
+		const actor = { system: { stats: { know: { value: 2 } } } };
+		const know = TRAITS.find((t) => t.key === "know");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, DISPEL_UNCERTAINTIES, know);
+
+		expect(Roll).toHaveBeenCalledWith(`2d${DIE_FACES} + @mod`, { mod: 2 });
+	});
+
+	it("rolls 2d6 plus the CHANNEL value for weave magic", async () => {
+		const actor = { system: { stats: { channel: { value: 1 } } } };
+		const channel = TRAITS.find((t) => t.key === "channel");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, WEAVE_MAGIC, channel);
+
+		expect(Roll).toHaveBeenCalledWith(`2d${DIE_FACES} + @mod`, { mod: 1 });
+	});
+});
+
+describe("rollMove - help or hinder", () => {
+	it("rolls with no base value when no conditions are checked", async () => {
+		const actor = { system: { stats: {} } };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, HELP_OR_HINDER, undefined, {});
+
+		expect(Roll).toHaveBeenCalledWith(`2d${DIE_FACES} + @mod`, { mod: 0 });
+	});
+
+	it("adds +1 per checked condition", async () => {
+		const actor = { system: { stats: {} } };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, HELP_OR_HINDER, undefined, { conditions: ["downtime", "hook"] });
+
+		expect(Roll).toHaveBeenCalledWith(`2d${DIE_FACES} + @mod`, { mod: 2 });
+	});
+
+	it("passes no trait label but the chosen intent's label to the chat template", async () => {
+		const actor = { system: { stats: {} } };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		const help = HELP_OR_HINDER.intents.find((i) => i.key === "help");
+
+		await rollMove(actor, HELP_OR_HINDER, undefined, { intent: help });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			traitLabel: null,
+			intentLabel: "Help"
+		}));
+	});
+
+	it("includes the checked condition labels alongside advantage/effect conditions in the chat template", async () => {
+		const actor = { system: { stats: {} } };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, HELP_OR_HINDER, undefined, { conditions: ["hook"], advantage: "advantage" });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			conditions: [
+				{ key: "advantage", label: "Advantage" },
+				{ key: "hook", label: "They're part of one of your Hooks" }
+			]
+		}));
+	});
+});
+
 describe("rollMove - hold", () => {
 	it("writes hold 3 to the actor on a 10+", async () => {
 		const actor = { system: { stats: { sense: { value: 0 } } }, update: vi.fn() };
@@ -422,6 +556,7 @@ describe("rollMove - hold", () => {
 		await rollMove(actor, READ_THE_ROOM, sense);
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
 			hold: 3,
+			questionPrompt: READ_THE_ROOM.questionPrompts.success,
 			questions: READ_THE_ROOM.questions
 		}));
 
@@ -429,8 +564,15 @@ describe("rollMove - hold", () => {
 		await rollMove(actor, READ_THE_ROOM, sense);
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
 			hold: 1,
+			questionPrompt: READ_THE_ROOM.questionPrompts.mixed,
 			questions: READ_THE_ROOM.questions
 		}));
+	});
+
+	it("tells the player to spend hold on the questions after a hit, and that they have none on a miss", () => {
+		expect(READ_THE_ROOM.questionPrompts.success).toMatch(/spend hold/i);
+		expect(READ_THE_ROOM.questionPrompts.mixed).toMatch(/spend hold/i);
+		expect(READ_THE_ROOM.questionPrompts.failure).not.toMatch(/spend hold/i);
 	});
 
 	it("passes the question list with hold 0 on a failure", async () => {
@@ -443,6 +585,7 @@ describe("rollMove - hold", () => {
 
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
 			hold: 0,
+			questionPrompt: READ_THE_ROOM.questionPrompts.failure,
 			questions: READ_THE_ROOM.questions
 		}));
 	});
@@ -456,6 +599,7 @@ describe("rollMove - hold", () => {
 
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
 			hold: null,
+			questionPrompt: null,
 			questions: null
 		}));
 	});
