@@ -63,6 +63,20 @@
 	font-weight: bold;
 }
 
+.armor-astir.sheet .power-control {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 4px;
+	margin-top: 10px;
+	font-weight: bold;
+}
+
+.armor-astir.sheet .power-value {
+	min-width: 1.5em;
+	text-align: center;
+}
+
 .armor-astir.sheet .move-list {
 	margin: 0;
 	padding: 0;
@@ -140,6 +154,23 @@
 
 .armor-astir-move-chat .move-result-text {
 	margin: 4px 0 0;
+}
+
+.armor-astir-move-chat .move-result-text p {
+	margin: 4px 0 0;
+}
+
+.armor-astir-move-chat .move-result-text p:first-child {
+	margin-top: 0;
+}
+
+.armor-astir-move-chat .move-result-text ul {
+	margin: 4px 0 0;
+	padding-left: 18px;
+}
+
+.armor-astir-move-chat .move-result-text li {
+	margin: 1px 0;
 }
 
 .armor-astir-move-chat .move-hold {

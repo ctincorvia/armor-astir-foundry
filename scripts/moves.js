@@ -109,10 +109,10 @@ export const BASIC_MOVES = [
 			"Who has the upper hand here?",
 			"What is being overlooked or obscured here?",
 			"Where do my Hooks pull me here?",
-			"How does x really feel?",
-			"What is x's approach?",
-			"How is x at risk or in peril?",
-			"Where can I find x?"
+			"How does ________ really feel?",
+			"What is ________'s approach?",
+			"How is ________ at risk or in peril?",
+			"Where can I find ________?"
 		],
 		// success/mixed leave resultText unset: the hold count (bold) and questionPrompt already
 		// say everything there is to say, so a plain-text "Hold 3."/"Hold 1." would just repeat it.
@@ -206,10 +206,12 @@ export const BASIC_MOVES = [
 			"to cool off. When you do so, declare a risk you want to get rid of and roll whatever Trait seems most " +
 			"appropriate;</p>" +
 			"<p>On a 10+, you/they erase a risk or untick 'overheating' from an Astir.</p>" +
-			"<p>On a 7-9, as above, but your moment of safety is interrupted.</p>",
+			"<p>On a 7-9, you/they erase a risk or untick 'overheating' from an Astir, but your moment of " +
+			"safety is interrupted.</p>",
 		results: {
 			success: "You/they erase a risk or untick 'overheating' from an Astir.",
-			mixed: "As above, but your moment of safety is interrupted.",
+			mixed: "You/they erase a risk or untick 'overheating' from an Astir, but your moment of safety is " +
+				"interrupted.",
 			failure: null
 		}
 	},
@@ -234,10 +236,13 @@ export const BASIC_MOVES = [
 		results: {
 			success: "You strike true. Director characters are killed, forced to retreat or otherwise removed as " +
 				"a threat as per the fiction. Player characters should bite the dust.",
-			mixed: "You succeed as above, but choose 1: you overreach or underestimate—take a risk; you waste " +
-				"ammo or words, losing use a weapon until you can re-arm, or losing the weight of some bargaining " +
-				"chip or piece of leverage; or you strike carelessly, causing collateral damage beyond your " +
-				"expectations.",
+			mixed: "<p>You strike true, but choose 1:</p>" +
+				"<ul>" +
+				"<li>You overreach or underestimate—take a risk.</li>" +
+				"<li>You waste ammo or words, losing use a weapon until you can re-arm, or losing the weight " +
+				"of some bargaining chip or piece of leverage.</li>" +
+				"<li>You strike carelessly, causing collateral damage beyond your expectations.</li>" +
+				"</ul>",
 			failure: null
 		}
 	},
@@ -267,15 +272,59 @@ export const BASIC_MOVES = [
 			success: "They miss, hesitate, or you're saved by sheer luck—you rally, and clear a risk if you have " +
 				"one.",
 			mixed: "Retreat from the Sortie safely, or be put in peril.",
-			failure: "Decide with your Director the consequences of what has happened to you—what was damaged? " +
-				"What have you lost? Who and what is changed by your defeat? If you survive, you are changed by " +
-				"your defeat. As well as the above, choose one: deepen all of your Hooks, as you clutch your " +
-				"ideals tighter and tighter; loosen all of your Hooks, as you lose faith in that which drives " +
-				"you; take a burden, as you are saddled with some lingering injury, duty or obligation; or choose " +
-				"a new playbook, keeping what moves you and your Director agree are truly part of your character " +
-				"and discarding the others, replacing them with the starting moves for your new playbook (you do " +
-				"not gain its starting equipment)."
+			failure: "<p>Decide with your Director the consequences of what has happened to you—what was " +
+				"damaged? What have you lost? Who and what is changed by your defeat? If you survive, you are " +
+				"changed by your defeat. As well as the above, choose one:</p>" +
+				"<ul>" +
+				"<li>Deepen all of your Hooks, as you clutch your ideals tighter and tighter.</li>" +
+				"<li>Loosen all of your Hooks, as you lose faith in that which drives you.</li>" +
+				"<li>Take a burden, as you are saddled with some lingering injury, duty or obligation.</li>" +
+				"<li>Choose a new playbook. Keep what moves you and your Director agree are truly part of " +
+				"your character, and discard the others. Replace them with the starting moves for your new " +
+				"playbook. You do not gain its starting equipment.</li>" +
+				"</ul>"
 		}
+	}
+];
+
+// Special moves sit in their own sheet section below Basic Moves (see
+// PlaybookActorSheet#getData) but share the exact same shape/handling — the only structural
+// difference is where they're grouped.
+export const SPECIAL_MOVES = [
+	{
+		key: "lead-a-sortie",
+		name: "Lead a Sortie",
+		traits: ["know", "defy"],
+		// CREW isn't a TRAITS entry — there's no Crew mechanic/UI anywhere in this module yet, so
+		// this is a fixed placeholder value (never read from actor.system.stats) rather than a
+		// gated/steppable stat like the other five. Revisit once Crew has a real home on the sheet.
+		fixedTraits: [{ key: "crew", label: "CREW", value: 0 }],
+		description:
+			"<p>When it's time for action and you lead a Sortie, decide who planned the mission and roll;</p>" +
+			"<ul>" +
+			"<li>+KNOW, if you're leading with wits or following a clever plan.</li>" +
+			"<li>+CREW, if it was someone else aboard.</li>" +
+			"<li>+DEFY, if you're heading into danger blind.</li>" +
+			"</ul>" +
+			"<p>On a 10+, you make it to the action unscathed.</p>" +
+			"<p>On a 7-9, the crew stumbles, misses something important, or is unprepared for what they " +
+			"meet.</p>",
+		results: {
+			success: "You make it to the action unscathed.",
+			mixed: "The crew stumbles, misses something important, or is unprepared for what they meet.",
+			failure: null
+		}
+	},
+	{
+		key: "subsystems",
+		name: "Subsystems",
+		traits: [],
+		// No roll at all — see PlaybookActorSheet's `rollable` flag, which hides the Roll button
+		// for moves with no traits, conditions, or fixedTraits. No `results` either, since
+		// postMoveDescription (the only path that can ever fire for this move) never reads it.
+		description:
+			"<p>When you activate your Astir's subsystems, spend 1 Power to re-activate an expended " +
+			"[Active] Astir part and use it again.</p>"
 	}
 ];
 
@@ -340,7 +389,11 @@ export async function configureMoveRoll(move, traits) {
 // RollTerm#total getter is a pure computed value independent of _evaluated, so recomputing the
 // total ourselves from the (already mutated) dice breakdown avoids the mismatch entirely.
 export async function rollMove(actor, move, trait, options = {}) {
-	const statValue = trait ? (actor.system.stats?.[trait.key]?.value ?? 0) : 0;
+	// A fixed trait (e.g. Lead a Sortie's CREW placeholder — see SPECIAL_MOVES) carries its own
+	// value and is never looked up on the actor, even if actor.system.stats happens to have a
+	// same-keyed entry — TRAITS membership, not presence-on-actor, decides which lookup applies.
+	const isActorTrait = trait && TRAITS.some((t) => t.key === trait.key);
+	const statValue = trait ? (isActorTrait ? (actor.system.stats?.[trait.key]?.value ?? 0) : trait.value) : 0;
 	// Conditional +1s for moves with no base stat to roll, e.g. Help or Hinder — each checked
 	// condition key contributes +1, on top of (never instead of) any trait value.
 	const conditionBonus = (move.conditions ?? [])

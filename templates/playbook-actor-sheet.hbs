@@ -38,6 +38,14 @@
 			Overheating
 		</label>
 		{{/if}}
+		{{#if power.visible}}
+		<div class="power-control">
+			<label class="power-label">Power</label>
+			<button type="button" class="power-step power-decrement" data-delta="-1">-</button>
+			<span class="power-value">{{power.value}}</span>
+			<button type="button" class="power-step power-increment" data-delta="1">+</button>
+		</div>
+		{{/if}}
 	</section>
 	<section class="moves">
 		{{#each moveGroups}}
@@ -55,7 +63,9 @@
 					</div>
 					{{/if}}
 					<div class="move-controls">
+						{{#if rollable}}
 						<button type="button" class="move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Roll</button>
+						{{/if}}
 						<button type="button" class="move-description" data-move="{{key}}">Description</button>
 					</div>
 				</div>

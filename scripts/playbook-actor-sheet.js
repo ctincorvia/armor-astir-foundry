@@ -1,5 +1,12 @@
 import { PLAYBOOKS, swapActorPlaybook } from "./actor-creation.js";
-import { BASIC_MOVES, availableMoveTraits, configureMoveRoll, postMoveDescription, rollMove } from "./moves.js";
+import {
+	BASIC_MOVES,
+	SPECIAL_MOVES,
+	availableMoveTraits,
+	configureMoveRoll,
+	postMoveDescription,
+	rollMove
+} from "./moves.js";
 import { TRAITS } from "./traits.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
@@ -13,6 +20,13 @@ const TRAIT_MAX = 3;
 // 10+); revisit if a future move grants more.
 const HOLD_MIN = 0;
 const HOLD_MAX = 3;
+
+const POWER_MIN = 0;
+const POWER_MAX = 4;
+
+// Both groups share one flat list for key lookup (_onMoveRoll/_onMoveDescription) since a move's
+// section (Basic vs Special) is purely a sheet-display grouping, not part of its identity.
+const ALL_MOVES = [...BASIC_MOVES, ...SPECIAL_MOVES];
 
 // All playbook actors are "character" type (see claude.md, "Domain conventions"). Every
 // playbook shares the same name/callsign/photo header, so one sheet class and template
@@ -42,41 +56,57 @@ export class PlaybookActorSheet extends ActorSheet {
 			visible: !this.actor.system.stats?.channel?.disabled,
 			value: this.actor.system.attributes?.overheating?.value ?? false
 		};
-		// Grouped (rather than a flat list) so playbook-specific moves can join basic moves as
-		// their own group later without restructuring this data.
+		// Power is another Channel/Astir-linked resource (spent by Subsystems to re-activate a
+		// part), so it's gated identically to overheating rather than always shown.
+		data.power = {
+			visible: !this.actor.system.stats?.channel?.disabled,
+			value: this.actor.system.attributes?.power?.value ?? 0
+		};
+		// Grouped (rather than a flat list) so playbook-specific moves can join basic/special
+		// moves as their own group later without restructuring this data.
 		data.moveGroups = [
-			{
-				label: "Basic Moves",
-				moves: BASIC_MOVES.map((move) => {
-					const traits = this._moveTraits(move);
-					return {
-						key: move.key,
-						name: move.name,
-						traits,
-						// True only when a move normally rolls a stat trait but every one of those
-						// traits is currently disabled for this actor (e.g. Weave Magic without
-						// Channel) — a move with no traits by design (Help or Hinder) is never gated.
-						gated: move.traits.length > 0 && traits.length === 0,
-						// Hold is one shared actor field (pbta's system.resources.hold), not per-move
-						// state — fine while read-the-room is the only source; a second hold-granting
-						// move would need per-move tracking instead.
-						trackHold: Boolean(move.hold),
-						hold: this.actor.system.resources?.hold?.value ?? 0
-					};
-				})
-			}
+			{ label: "Basic Moves", moves: this._moveGroupMoves(BASIC_MOVES) },
+			{ label: "Special Moves", moves: this._moveGroupMoves(SPECIAL_MOVES) }
 		];
 		return data;
 	}
 
+	_moveGroupMoves(moves) {
+		return moves.map((move) => {
+			const traits = this._moveTraits(move);
+			return {
+				key: move.key,
+				name: move.name,
+				traits,
+				// True only when a move normally rolls a stat trait but every one of those
+				// traits is currently disabled for this actor (e.g. Weave Magic without
+				// Channel) — a move with no traits by design (Help or Hinder) is never gated.
+				gated: move.traits.length > 0 && traits.length === 0,
+				// Whether this move rolls anything at all, based on its static definition rather
+				// than the actor-filtered trait list above — a gated move (e.g. Weave Magic with
+				// Channel disabled) still shows a disabled Roll button, but a move with no traits or
+				// conditions by design (Subsystems) shows no Roll button at all.
+				rollable: move.traits.length > 0 || Boolean(move.conditions),
+				// Hold is one shared actor field (pbta's system.resources.hold), not per-move
+				// state — fine while read-the-room is the only source; a second hold-granting
+				// move would need per-move tracking instead.
+				trackHold: Boolean(move.hold),
+				hold: this.actor.system.resources?.hold?.value ?? 0
+			};
+		});
+	}
+
 	// Shared by getData (for sheet rendering) and _onMoveRoll (for the roll dialog) so a
-	// trait's current value is only ever read from the actor in one place.
+	// trait's current value is only ever read from the actor in one place. fixedTraits (e.g. Lead
+	// a Sortie's CREW) are appended as-is — never looked up on the actor — since they don't
+	// correspond to any TRAITS entry or system.stats key.
 	_moveTraits(move) {
-		return availableMoveTraits(this.actor, move).map((trait) => ({
+		const actorTraits = availableMoveTraits(this.actor, move).map((trait) => ({
 			key: trait.key,
 			label: trait.label,
 			value: this.actor.system.stats?.[trait.key]?.value ?? 0
 		}));
+		return [...actorTraits, ...(move.fixedTraits ?? [])];
 	}
 
 	activateListeners(html) {
@@ -84,6 +114,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".playbook-select").on("change", this._onPlaybookChange.bind(this));
 		html.find(".trait-step").on("click", this._onTraitStep.bind(this));
 		html.find(".hold-step").on("click", this._onHoldStep.bind(this));
+		html.find(".power-step").on("click", this._onPowerStep.bind(this));
 		html.find(".overheating-checkbox").on("change", this._onOverheatingToggle.bind(this));
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
@@ -115,8 +146,16 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({ "system.attributes.overheating.value": event.currentTarget.checked });
 	}
 
+	_onPowerStep(event) {
+		const { delta } = event.currentTarget.dataset;
+		const current = this.actor.system.attributes?.power?.value ?? 0;
+		const next = Math.min(POWER_MAX, Math.max(POWER_MIN, current + Number(delta)));
+		if (next === current) return;
+		this.actor.update({ "system.attributes.power.value": next });
+	}
+
 	async _onMoveRoll(event) {
-		const move = BASIC_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
+		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
 		if (!move) return;
 
 		const traits = this._moveTraits(move);
@@ -129,7 +168,7 @@ export class PlaybookActorSheet extends ActorSheet {
 	}
 
 	async _onMoveDescription(event) {
-		const move = BASIC_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
+		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
 		if (!move) return;
 
 		await postMoveDescription(this.actor, move);

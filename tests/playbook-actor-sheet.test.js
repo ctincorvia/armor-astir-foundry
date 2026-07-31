@@ -13,10 +13,12 @@ vi.mock("../scripts/moves.js", async (importOriginal) => ({
 }));
 
 import { PLAYBOOKS, swapActorPlaybook } from "../scripts/actor-creation.js";
-import { BASIC_MOVES, configureMoveRoll, postMoveDescription, rollMove } from "../scripts/moves.js";
+import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postMoveDescription, rollMove } from "../scripts/moves.js";
 import { PlaybookActorSheet, registerPlaybookActorSheet, TRAITS } from "../scripts/playbook-actor-sheet.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
+const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
+const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 
 beforeEach(() => {
 	swapActorPlaybook.mockClear();
@@ -217,6 +219,97 @@ describe("PlaybookActorSheet#_onOverheatingToggle", () => {
 	});
 });
 
+describe("PlaybookActorSheet#getData - power", () => {
+	it("is visible when channel is missing from stats (reads as enabled)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.power).toEqual({ visible: true, value: 0 });
+	});
+
+	it("is hidden when channel is disabled", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 0, disabled: true } } } };
+
+		const data = sheet.getData();
+
+		expect(data.power.visible).toBe(false);
+	});
+
+	it("reflects the actor's stored power value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { power: { value: 3 } } } };
+
+		const data = sheet.getData();
+
+		expect(data.power.value).toBe(3);
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - power step", () => {
+	it("binds a click handler to the power step buttons", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".power-step");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onPowerStep", () => {
+	it("increments the power value and updates the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { power: { value: 1 } } }, update: vi.fn() };
+
+		sheet._onPowerStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.power.value": 2 });
+	});
+
+	it("decrements the power value and updates the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { power: { value: 1 } } }, update: vi.fn() };
+
+		sheet._onPowerStep({ currentTarget: { dataset: { delta: "-1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.power.value": 0 });
+	});
+
+	it("treats a missing power value as starting at 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {}, update: vi.fn() };
+
+		sheet._onPowerStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.power.value": 1 });
+	});
+
+	it("clamps at the maximum and does not update the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { power: { value: 4 } } }, update: vi.fn() };
+
+		sheet._onPowerStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at the minimum and does not update the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { power: { value: 0 } } }, update: vi.fn() };
+
+		sheet._onPowerStep({ currentTarget: { dataset: { delta: "-1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
 describe("PlaybookActorSheet#activateListeners - trait steps", () => {
 	it("binds a click handler to the trait step buttons", () => {
 		const sheet = new PlaybookActorSheet();
@@ -298,6 +391,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 							{ key: "talk", label: "TALK", value: -1 }
 						],
 						gated: false,
+						rollable: true,
 						trackHold: false,
 						hold: 0
 					},
@@ -310,6 +404,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 							{ key: "sense", label: "SENSE", value: 0 }
 						],
 						gated: false,
+						rollable: true,
 						trackHold: false,
 						hold: 0
 					},
@@ -320,6 +415,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 							{ key: "sense", label: "SENSE", value: 0 }
 						],
 						gated: false,
+						rollable: true,
 						trackHold: true,
 						hold: 0
 					},
@@ -330,6 +426,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 							{ key: "know", label: "KNOW", value: 0 }
 						],
 						gated: false,
+						rollable: true,
 						trackHold: false,
 						hold: 0
 					},
@@ -338,6 +435,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						name: "Help or Hinder",
 						traits: [],
 						gated: false,
+						rollable: true,
 						trackHold: false,
 						hold: 0
 					},
@@ -350,6 +448,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 							{ key: "channel", label: "CHANNEL", value: 0 }
 						],
 						gated: false,
+						rollable: true,
 						trackHold: false,
 						hold: 0
 					},
@@ -365,6 +464,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 							{ key: "channel", label: "CHANNEL", value: 0 }
 						],
 						gated: false,
+						rollable: true,
 						trackHold: false,
 						hold: 0
 					},
@@ -376,6 +476,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 							{ key: "talk", label: "TALK", value: -1 }
 						],
 						gated: false,
+						rollable: true,
 						trackHold: false,
 						hold: 0
 					},
@@ -386,6 +487,34 @@ describe("PlaybookActorSheet#getData - moves", () => {
 							{ key: "defy", label: "DEFY", value: 0 }
 						],
 						gated: false,
+						rollable: true,
+						trackHold: false,
+						hold: 0
+					}
+				]
+			},
+			{
+				label: "Special Moves",
+				moves: [
+					{
+						key: "lead-a-sortie",
+						name: "Lead a Sortie",
+						traits: [
+							{ key: "know", label: "KNOW", value: 0 },
+							{ key: "defy", label: "DEFY", value: 0 },
+							{ key: "crew", label: "CREW", value: 0 }
+						],
+						gated: false,
+						rollable: true,
+						trackHold: false,
+						hold: 0
+					},
+					{
+						key: "subsystems",
+						name: "Subsystems",
+						traits: [],
+						gated: false,
+						rollable: false,
 						trackHold: false,
 						hold: 0
 					}
@@ -610,6 +739,33 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		);
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, talk, config);
 	});
+
+	it("finds a special move (lead a sortie) by key, same as a basic move", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { know: { value: 1 }, defy: { value: 0 } } } };
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			LEAD_A_SORTIE,
+			[
+				{ key: "know", label: "KNOW", value: 1 },
+				{ key: "defy", label: "DEFY", value: 0 },
+				{ key: "crew", label: "CREW", value: 0 }
+			]
+		);
+	});
+
+	it("does nothing for subsystems, which has no traits, conditions, or fixed traits to roll", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "subsystems" } } });
+
+		expect(configureMoveRoll).not.toHaveBeenCalled();
+		expect(rollMove).not.toHaveBeenCalled();
+	});
 });
 
 describe("PlaybookActorSheet#_onMoveDescription", () => {
@@ -629,5 +785,14 @@ describe("PlaybookActorSheet#_onMoveDescription", () => {
 		await sheet._onMoveDescription({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS);
+	});
+
+	it("finds a special move (subsystems) by key, same as a basic move", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		await sheet._onMoveDescription({ currentTarget: { dataset: { move: "subsystems" } } });
+
+		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, SUBSYSTEMS);
 	});
 });

@@ -2,7 +2,8 @@
 // playbook means adding an entry here plus its own compendium pack; no other code changes.
 export const PLAYBOOKS = [
 	{ packId: "armor-astir.basic-playbook-scout", name: "The Scout" },
-	{ packId: "armor-astir.basic-playbook-commander", name: "The Commander" }
+	{ packId: "armor-astir.basic-playbook-commander", name: "The Commander" },
+	{ packId: "armor-astir.basic-playbook-impostor", name: "The Impostor" }
 ];
 
 async function getPlaybookSourceData(playbook) {

@@ -7,6 +7,7 @@ import {
 	FAILURE_REMINDERS,
 	MOVE_CHAT_TEMPLATE,
 	MOVE_RESULT_LABELS,
+	SPECIAL_MOVES,
 	availableMoveTraits,
 	configureMoveRoll,
 	moveResultTier,
@@ -20,6 +21,8 @@ const READ_THE_ROOM = BASIC_MOVES.find((m) => m.key === "read-the-room");
 const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertainties");
 const HELP_OR_HINDER = BASIC_MOVES.find((m) => m.key === "help-or-hinder");
 const WEAVE_MAGIC = BASIC_MOVES.find((m) => m.key === "weave-magic");
+const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
+const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 
 // checkedConditions fakes the jQuery `.find("[name='condition']:checked").map(...).get()` chain
 // configureMoveRoll uses to collect Help or Hinder's checkbox values.
@@ -455,6 +458,41 @@ describe("rollMove - dispel uncertainties and weave magic", () => {
 	});
 });
 
+describe("rollMove - lead a sortie", () => {
+	it("resolves KNOW and DEFY as normal, actor-backed traits", () => {
+		const actor = { system: { stats: { know: { value: 1 }, defy: { value: 2 } } } };
+
+		const traits = availableMoveTraits(actor, LEAD_A_SORTIE);
+
+		expect(traits).toEqual([TRAITS.find((t) => t.key === "know"), TRAITS.find((t) => t.key === "defy")]);
+	});
+
+	it("rolls 2d6 plus the KNOW or DEFY value like any other trait", async () => {
+		const actor = { system: { stats: { know: { value: 2 }, defy: { value: -1 } } } };
+		const know = TRAITS.find((t) => t.key === "know");
+		const defy = TRAITS.find((t) => t.key === "defy");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, LEAD_A_SORTIE, know);
+		expect(Roll).toHaveBeenLastCalledWith(`2d${DIE_FACES} + @mod`, { mod: 2 });
+
+		await rollMove(actor, LEAD_A_SORTIE, defy);
+		expect(Roll).toHaveBeenLastCalledWith(`2d${DIE_FACES} + @mod`, { mod: -1 });
+	});
+
+	it("rolls the CREW fixed trait's own value rather than any actor stat", async () => {
+		// crew is deliberately set on the actor's stats to prove it's ignored — CREW is a fixed
+		// placeholder (see SPECIAL_MOVES), never looked up on the actor.
+		const actor = { system: { stats: { crew: { value: 99 } } } };
+		const crew = { key: "crew", label: "CREW", value: 0 };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, LEAD_A_SORTIE, crew);
+
+		expect(Roll).toHaveBeenCalledWith(`2d${DIE_FACES} + @mod`, { mod: 0 });
+	});
+});
+
 describe("rollMove - help or hinder", () => {
 	it("rolls with no base value when no conditions are checked", async () => {
 		const actor = { system: { stats: {} } };
@@ -621,6 +659,19 @@ describe("postMoveDescription", () => {
 		expect(ChatMessage.create).toHaveBeenCalledWith({
 			speaker: { actor: "speaker" },
 			content: "<div>description</div>"
+		});
+	});
+
+	it("renders subsystems' description too, despite it having no results/roll", async () => {
+		const actor = { system: { stats: {} } };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		renderTemplate.mockResolvedValue("<div>description</div>");
+
+		await postMoveDescription(actor, SUBSYSTEMS);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, {
+			name: SUBSYSTEMS.name,
+			description: SUBSYSTEMS.description
 		});
 	});
 });
