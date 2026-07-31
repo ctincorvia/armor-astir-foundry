@@ -12,9 +12,17 @@ vi.mock("../scripts/moves.js", async (importOriginal) => ({
 	rollMove: vi.fn()
 }));
 
+// Only the picker dialog is mocked — the pool definitions and resolvePlaybookMoves stay real, so
+// the sheet is exercised against the actual move content.
+vi.mock("../scripts/playbook-moves.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	choosePlaybookMove: vi.fn()
+}));
+
 import { PLAYBOOKS, swapActorPlaybook } from "../scripts/actor-creation.js";
 import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postMoveDescription, rollMove } from "../scripts/moves.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../scripts/advancements.js";
+import { ALL_PLAYBOOK_MOVES, choosePlaybookMove } from "../scripts/playbook-moves.js";
 import { PlaybookActorSheet, registerPlaybookActorSheet, TRAITS } from "../scripts/playbook-actor-sheet.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
@@ -22,12 +30,17 @@ const BITE_THE_DUST = BASIC_MOVES.find((m) => m.key === "bite-the-dust");
 const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
+const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-scout:bullheaded");
+const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
+const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
+const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
 
 beforeEach(() => {
 	swapActorPlaybook.mockClear();
 	configureMoveRoll.mockClear();
 	postMoveDescription.mockClear();
 	rollMove.mockClear();
+	choosePlaybookMove.mockClear();
 });
 
 describe("PlaybookActorSheet", () => {
@@ -1287,7 +1300,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
-						hold: 0
+						hold: 0,
+						uses: []
 					},
 					{
 						key: "weather-the-storm",
@@ -1303,7 +1317,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
-						hold: 0
+						hold: 0,
+						uses: []
 					},
 					{
 						key: "read-the-room",
@@ -1317,7 +1332,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						descriptionGated: false,
 						trackHold: true,
 						separateHoldPool: false,
-						hold: 0
+						hold: 0,
+						uses: []
 					},
 					{
 						key: "dispel-uncertainties",
@@ -1331,7 +1347,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
-						hold: 0
+						hold: 0,
+						uses: []
 					},
 					{
 						key: "help-or-hinder",
@@ -1343,7 +1360,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
-						hold: 0
+						hold: 0,
+						uses: []
 					},
 					{
 						key: "weave-magic",
@@ -1359,7 +1377,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
-						hold: 0
+						hold: 0,
+						uses: []
 					},
 					{
 						key: "cool-off",
@@ -1378,7 +1397,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
-						hold: 0
+						hold: 0,
+						uses: []
 					},
 					{
 						key: "strike-decisively",
@@ -1393,7 +1413,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
-						hold: 0
+						hold: 0,
+						uses: []
 					},
 					{
 						key: "bite-the-dust",
@@ -1407,7 +1428,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
-						hold: 0
+						hold: 0,
+						uses: []
 					}
 				]
 			},
@@ -1428,7 +1450,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
-						hold: 0
+						hold: 0,
+						uses: []
 					},
 					{
 						key: "subsystems",
@@ -1440,7 +1463,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
-						hold: 0
+						hold: 0,
+						uses: []
 					},
 					{
 						key: "b-plot",
@@ -1454,9 +1478,18 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						descriptionGated: true,
 						trackHold: true,
 						separateHoldPool: true,
-						hold: 0
+						hold: 0,
+						uses: []
 					}
 				]
+			},
+			// Empty until the player picks something with the "+" — no playbook starts with any
+			// playbook moves. addable/removable are what render that "+" and each row's ✕.
+			{
+				label: "Playbook Moves",
+				moves: [],
+				addable: true,
+				removable: true
 			}
 		]);
 	});
@@ -1468,6 +1501,310 @@ describe("PlaybookActorSheet#getData - moves", () => {
 		const data = sheet.getData();
 
 		expect(data.moveGroups[0].moves[0].traits).toEqual([{ key: "talk", label: "TALK", value: 0 }]);
+	});
+});
+
+describe("PlaybookActorSheet#getData - playbook moves", () => {
+	function playbookGroup(data) {
+		return data.moveGroups.find((group) => group.label === "Playbook Moves");
+	}
+
+	it("starts empty, since no playbook grants playbook moves by default", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {} };
+
+		expect(playbookGroup(sheet.getData()).moves).toEqual([]);
+	});
+
+	it("marks only the playbook group as addable and removable", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {} };
+
+		const groups = sheet.getData().moveGroups;
+
+		expect(groups.filter((group) => group.addable).map((group) => group.label)).toEqual(["Playbook Moves"]);
+		expect(groups.filter((group) => group.removable).map((group) => group.label)).toEqual(["Playbook Moves"]);
+	});
+
+	it("renders the moves the actor has picked, in the order they were picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 2 } },
+				attributes: { playbookMoves: [DENY.key, BULLHEADED.key] }
+			}
+		};
+
+		expect(playbookGroup(sheet.getData()).moves.map((move) => move.key))
+			.toEqual([DENY.key, BULLHEADED.key]);
+	});
+
+	it("gives a picked move the same shape as a basic move, so it rolls the same way", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { channel: { value: 2 } }, attributes: { playbookMoves: [DENY.key] } }
+		};
+
+		expect(playbookGroup(sheet.getData()).moves[0]).toEqual({
+			key: DENY.key,
+			name: "Deny",
+			traits: [{ key: "channel", label: "CHANNEL", value: 2 }],
+			gated: false,
+			rollable: true,
+			activatable: false,
+			descriptionGated: false,
+			trackHold: false,
+			separateHoldPool: false,
+			hold: 0,
+			uses: []
+		});
+	});
+
+	it("shows no Roll button for a picked move that rolls nothing", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [BULLHEADED.key] } } };
+
+		const [move] = playbookGroup(sheet.getData()).moves;
+
+		expect(move.rollable).toBe(false);
+		expect(move.activatable).toBe(false);
+		expect(move.gated).toBe(false);
+	});
+
+	it("gates a picked move whose only trait is disabled for this playbook", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 0, disabled: true } },
+				attributes: { playbookMoves: [DENY.key] }
+			}
+		};
+
+		expect(playbookGroup(sheet.getData()).moves[0].gated).toBe(true);
+	});
+
+	it("drops a stored key whose move no longer exists rather than breaking the sheet", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: ["the-scout:deleted-move", BULLHEADED.key] } }
+		};
+
+		expect(playbookGroup(sheet.getData()).moves.map((move) => move.key)).toEqual([BULLHEADED.key]);
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - playbook moves", () => {
+	it("binds click handlers to the playbook move add and remove buttons", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {} };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".playbook-move-add");
+		expect(html.find).toHaveBeenCalledWith(".playbook-move-remove");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onPlaybookMoveAdd", () => {
+	it("opens the picker with the actor's playbook and current picks", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { playbook: { name: "The Scout" }, attributes: { playbookMoves: [BULLHEADED.key] } },
+			update: vi.fn()
+		};
+		choosePlaybookMove.mockResolvedValue(null);
+
+		await sheet._onPlaybookMoveAdd();
+
+		expect(choosePlaybookMove).toHaveBeenCalledWith("The Scout", [BULLHEADED.key]);
+	});
+
+	it("appends the chosen move to the actor's picks", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { playbook: { name: "The Scout" }, attributes: { playbookMoves: [BULLHEADED.key] } },
+			update: vi.fn()
+		};
+		choosePlaybookMove.mockResolvedValue(DENY.key);
+
+		await sheet._onPlaybookMoveAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.playbookMoves": [BULLHEADED.key, DENY.key]
+		});
+	});
+
+	it("adds the first move to an actor that has never picked one", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" } }, update: vi.fn() };
+		choosePlaybookMove.mockResolvedValue(BULLHEADED.key);
+
+		await sheet._onPlaybookMoveAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.playbookMoves": [BULLHEADED.key]
+		});
+	});
+
+	it("does nothing when the picker is dismissed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" } }, update: vi.fn() };
+		choosePlaybookMove.mockResolvedValue(null);
+
+		await sheet._onPlaybookMoveAdd();
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	// The picker already filters out what the actor has, so this only guards against a stale
+	// dialog left open across another window's edit — but a duplicate key would render the move
+	// twice with two ✕ buttons that both remove it.
+	it("does not add a move the actor already has", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { playbook: { name: "The Scout" }, attributes: { playbookMoves: [BULLHEADED.key] } },
+			update: vi.fn()
+		};
+		choosePlaybookMove.mockResolvedValue(BULLHEADED.key);
+
+		await sheet._onPlaybookMoveAdd();
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("passes an undefined playbook name through when the actor has no playbook set", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {}, update: vi.fn() };
+		choosePlaybookMove.mockResolvedValue(null);
+
+		await sheet._onPlaybookMoveAdd();
+
+		expect(choosePlaybookMove).toHaveBeenCalledWith(undefined, []);
+	});
+});
+
+describe("PlaybookActorSheet#_onPlaybookMoveRemove", () => {
+	it("removes just the clicked move, leaving the rest in order", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [BULLHEADED.key, DENY.key] } },
+			update: vi.fn()
+		};
+
+		sheet._onPlaybookMoveRemove({ currentTarget: { dataset: { move: BULLHEADED.key } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.playbookMoves": [DENY.key]
+		});
+	});
+
+	it("does nothing for a move the actor doesn't have", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [BULLHEADED.key] } }, update: vi.fn() };
+
+		sheet._onPlaybookMoveRemove({ currentTarget: { dataset: { move: DENY.key } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#getData - move uses", () => {
+	function playbookGroup(data) {
+		return data.moveGroups.find((group) => group.label === "Playbook Moves");
+	}
+
+	it("gives a move with no uses declared an empty uses array", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [BULLHEADED.key] } } };
+
+		expect(playbookGroup(sheet.getData()).moves[0].uses).toEqual([]);
+	});
+
+	it("reads each use entry's label and defaults to unchecked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [SEEK_ALLIES.key] } } };
+
+		expect(playbookGroup(sheet.getData()).moves[0].uses).toEqual([
+			{ key: "sortie", label: "Used this Sortie", checked: false }
+		]);
+	});
+
+	it("reads each use entry's checked state independently, by move key and use key", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [PERSONAL_FAMILIAR.key],
+					moveUses: { [PERSONAL_FAMILIAR.key]: { sortie: true } }
+				}
+			}
+		};
+
+		expect(playbookGroup(sheet.getData()).moves[0].uses).toEqual([
+			{ key: "sortie", label: "Ignored a disadvantage this Sortie", checked: true },
+			{ key: "downtime", label: "Reported back this Downtime", checked: false }
+		]);
+	});
+
+	it("doesn't confuse one move's stored uses with another's", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [SEEK_ALLIES.key],
+					moveUses: { [PERSONAL_FAMILIAR.key]: { sortie: true } }
+				}
+			}
+		};
+
+		expect(playbookGroup(sheet.getData()).moves[0].uses[0].checked).toBe(false);
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - move uses", () => {
+	it("binds a change handler to the uses checkbox", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {} };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".move-use-checkbox");
+		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveUseToggle", () => {
+	it("writes the checked state to the actor, keyed by move and use", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		sheet._onMoveUseToggle({
+			currentTarget: { dataset: { move: SEEK_ALLIES.key, use: "sortie" }, checked: true }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveUses.${SEEK_ALLIES.key}.sortie`]: true
+		});
+	});
+
+	it("writes false when the box is unchecked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		sheet._onMoveUseToggle({
+			currentTarget: { dataset: { move: PERSONAL_FAMILIAR.key, use: "downtime" }, checked: false }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveUses.${PERSONAL_FAMILIAR.key}.downtime`]: false
+		});
 	});
 });
 
@@ -1818,6 +2155,17 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		expect(rollMove).not.toHaveBeenCalled();
 	});
 
+	it("rolls a playbook move by its pool-prefixed key, same as a basic move", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 2 } } } };
+		const config = { trait: { key: "channel", label: "CHANNEL", value: 2 }, advantage: "normal", effect: "none" };
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: DENY.key } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DENY, config.trait, config);
+	});
+
 	it("still opens the roll dialog for help or hinder, which has no stat traits at all", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: {} } };
@@ -2072,6 +2420,15 @@ describe("PlaybookActorSheet#_onMoveDescription", () => {
 		await sheet._onMoveDescription({ currentTarget: { dataset: { move: "subsystems" } } });
 
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, SUBSYSTEMS);
+	});
+
+	it("finds a playbook move by its pool-prefixed key, same as a basic move", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		await sheet._onMoveDescription({ currentTarget: { dataset: { move: BULLHEADED.key } } });
+
+		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, BULLHEADED);
 	});
 
 	it("posts b-plot's description even when it's gated (CHANNEL enabled)", async () => {

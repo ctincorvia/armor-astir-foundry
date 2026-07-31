@@ -1,0 +1,50 @@
+<form class="armor-astir-playbook-move-picker">
+	{{#if sections}}
+	{{#each sections}}
+	<details class="move-picker-section" {{#if open}}open{{/if}}>
+		<summary class="move-picker-section-label">{{label}}</summary>
+		{{#if note}}
+		<p class="move-picker-section-note">{{note}}</p>
+		{{/if}}
+		{{#if sections}}
+		{{#each sections}}
+		<details class="move-picker-section move-picker-subsection" {{#if open}}open{{/if}}>
+			<summary class="move-picker-section-label">{{label}}</summary>
+			<ol class="move-picker-list">
+				{{#each moves}}
+				<li class="move-picker-item">
+					<label class="move-picker-option">
+						<input type="radio" name="playbook-move" value="{{key}}"/>
+						<span class="move-picker-name">{{name}}</span>
+						{{#each traitLabels}}
+						<span class="move-picker-trait">+{{this}}</span>
+						{{/each}}
+					</label>
+					<div class="move-picker-description">{{{description}}}</div>
+				</li>
+				{{/each}}
+			</ol>
+		</details>
+		{{/each}}
+		{{else}}
+		<ol class="move-picker-list">
+			{{#each moves}}
+			<li class="move-picker-item">
+				<label class="move-picker-option">
+					<input type="radio" name="playbook-move" value="{{key}}"/>
+					<span class="move-picker-name">{{name}}</span>
+					{{#each traitLabels}}
+					<span class="move-picker-trait">+{{this}}</span>
+					{{/each}}
+				</label>
+				<div class="move-picker-description">{{{description}}}</div>
+			</li>
+			{{/each}}
+		</ol>
+		{{/if}}
+	</details>
+	{{/each}}
+	{{else}}
+	<p class="move-picker-empty">There are no more playbook moves left to take.</p>
+	{{/if}}
+</form>

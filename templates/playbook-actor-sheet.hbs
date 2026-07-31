@@ -105,6 +105,16 @@
 										<button type="button" class="{{#if separateHoldPool}}bplot-hold-step{{else}}hold-step{{/if}} hold-increment{{#if gated}} disabled{{/if}}" data-delta="1" {{#if gated}}disabled{{/if}}>+</button>
 									</div>
 									{{/if}}
+									{{#if uses.length}}
+									<div class="move-uses-control">
+										{{#each uses}}
+										<label class="move-use">
+											<input type="checkbox" class="move-use-checkbox" data-move="{{../key}}" data-use="{{key}}" {{#if checked}}checked{{/if}}/>
+											{{label}}
+										</label>
+										{{/each}}
+									</div>
+									{{/if}}
 									<div class="move-controls">
 										{{#if rollable}}
 										<button type="button" class="move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Roll</button>
@@ -112,11 +122,17 @@
 										<button type="button" class="move-activate{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Activate</button>
 										{{/if}}
 										<button type="button" class="move-description{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}}>Description</button>
+										{{#if ../removable}}
+										<button type="button" class="playbook-move-remove" data-move="{{key}}" aria-label="Remove playbook move">✕</button>
+										{{/if}}
 									</div>
 								</div>
 							</li>
 							{{/each}}
 						</ol>
+						{{#if addable}}
+						<button type="button" class="playbook-move-add">+ Add a Playbook Move</button>
+						{{/if}}
 						{{/each}}
 					</section>
 				</div>

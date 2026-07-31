@@ -106,6 +106,49 @@ Build the smallest possible working module:
 - Universal roll modifiers (Advantage/Disadvantage, Confidence/Desperation) live in `scripts/roll-effects.js` and apply to every move roll regardless of the move's own fields — they are not part of a move's definition.
 - Trait gating: `system.stats.<key>.disabled` (e.g. `channel` is disabled by default per playbook) hides that trait from a move's rollable options via `availableMoveTraits`/`_moveTraits`, and the move's Roll button itself greys out via each move's `gated` flag in `getData` (`gated` is true only when a move's `traits` is non-empty but every one of those traits is currently disabled for the actor — a move with no `traits` by design, like Help or Hinder, is never gated).
 
+### Playbook moves
+- Playbook moves use the **exact same move-object shape** as basic moves and run through the same `_moveGroupMoves`/`rollMove`/`postMoveDescription` path — the difference is purely *who has them*, not what they are.
+- Unlike basic/special moves, **no playbook starts with any**. They're organized into pools in `MOVE_POOLS` (`scripts/playbook-moves.js`) and picked one at a time via the "+" button on the sheet's Playbook Moves section, so two Scouts can carry different sets.
+- A pool with a `playbookName` (matching a `PLAYBOOKS` entry in `actor-creation.js`) belongs to that playbook; a pool without one is universal (Cantrips, Soldier Moves) and carries a `note` explaining when it applies.
+- **Move keys are prefixed with their pool's key** (`the-scout:bullheaded`) because `PlaybookActorSheet` resolves every move — basic, special and playbook — from one flat `ALL_MOVES` list, and different playbooks will eventually name moves the same thing.
+- The actor stores **only the picked keys**, in `system.attributes.playbookMoves`; definitions stay in code, so edited rules text reaches existing characters. `resolvePlaybookMoves` drops keys that no longer resolve. Since `swapActorPlaybook` replaces `system.attributes` wholesale, switching playbooks clears the picked moves — which matches the rulebook.
+- **Pool restrictions are deliberately not enforced.** The picker shows every pool to every actor. The rules around Soldier Moves ("under specific circumstances") and reaching into another playbook's pool ("in rare circumstances") are loose enough that policing them in code would get in the table's way; the Advancement checklist (`advancements.js`) is where that bookkeeping lives, and it remains a pure tracker that grants nothing.
+- `playbookMoveSections` takes an injectable `pools` argument (like `choosePlaybook(playbooks = PLAYBOOKS)`) so its ordering/nesting/emptiness tests use fixtures — otherwise those assertions would quietly stop covering their cases as real move content fills the currently-sparse pools in.
+- Cantrips (`MOVE_POOLS`'s `cantrips` entry) are the first pool with real, full content — see "Adding move content" below for the shape each Cantrip maps to, including the `uses` checkbox mechanism it introduced.
+
+### Adding move content
+Adding rules text is a pure data change; adding a *mechanic* is not. Classify which one you're doing before planning — the costs are very different (see "What breaks" below).
+
+**Deriving a move's shape from its rules text.** Match on the phrasing, not the flavor:
+
+| Rules text says | Shape |
+|---|---|
+| "roll +X", "roll +X or +Y" | `traits: ["x","y"]` + `results.{success,mixed,failure}` (`null` per tier the move doesn't define) |
+| "+1 if …" bullets with no base stat | `conditions: [{key,label}]`, each worth +1 — e.g. Help or Hinder |
+| "on a 10+ hold 3, on a 7-9 hold 1" | `hold: {success,mixed,failure}` → writes the shared `system.resources.hold` |
+| "hold 3" with no roll behind it | `flatHold: 3` → its own `system.attributes.bplotHold` pool, renders **Activate** instead of Roll |
+| no roll, no tracked resource, pure fiction | `traits: []`, no `results` — description only (Subsystems, Bullheaded). **This is the common case for playbook moves.** |
+| a choice that changes no math | `intents: [{key,label}]` |
+| a stat with no UI in this module | `fixedTraits: [{key,label,value}]` — appended to the roll options as-is, never read from the actor (Lead a Sortie's CREW) |
+| "once per Sortie"/"once per Downtime" | `uses: [{key,label}]` — one checkbox per entry, `checked` read from `system.attributes.moveUses.<moveKey>.<useKey>`. A **manual** tracker only: nothing in this module knows when a Sortie or Downtime starts, so nothing ever unchecks it automatically — the player does, same as the Advancement checklist. Not scoped to playbook moves; works identically for any move source. |
+
+**Anything that depends on actor state goes in the sheet, not the move.** A move definition is static data. When behavior varies per character, put a boolean on the move and evaluate it in `PlaybookActorSheet` — that's exactly what `requiresChannelDisabled` (b-plot) and `forcesDesperationAtMaxPerils` (bite-the-dust) do.
+
+**Systems that do not exist yet.** When move text needs one of these, transcribe it as prose in `description` and leave a code comment flagging it — don't invent machinery mid-content-entry:
+- **weapon tags / profiles** — e.g. a Cantrip granting "Hand-casting II (ranged/area)" or choosing a tag (defensive, decisive, …) to attach to it.
+- **roll-modifier stacking** — e.g. buying extra Advantage at the cost of Desperation. Would touch `roll-effects.js`'s state machine.
+- **move-level prerequisites** — "Requires: \<other move\>". Consistent with pool membership not being enforced, these stay descriptive — the picker never checks whether the prerequisite is picked.
+- **result tiers above 10+** — `moveResultTier` has exactly three tiers (success / mixed / failure); "on a 12+" text has no tier to hook into and stays descriptive.
+
+Usage limits ("once per Sortie/Downtime") are the one exception — see the `uses` row in the shape table above. It's a manual checkbox, not real enforcement (nothing stops a second use, nothing auto-resets it), but it's cheap and removes the need to eyeball a text block during play. Cantrips' Seek Allies / Personal Familiar (`scripts/playbook-moves.js`) are the reference examples.
+
+### Move changes: what breaks
+- **Adding a basic or special move breaks a test; adding a playbook move doesn't.** `tests/playbook-actor-sheet.test.js` asserts the whole `data.moveGroups` array in a single `toEqual` that enumerates every basic and special move, so a new entry has to be added there too. The Playbook Moves group is empty in that test, so pool content never touches it.
+- Tests index move groups **positionally** (`moveGroups[0]` = Basic, `[1]` = Special) — reordering `data.moveGroups` breaks many assertions at once.
+- Both move test files pin specific keys as module constants (`EXCHANGE_BLOWS`, `B_PLOT`, `BULLHEADED`, …), so renaming or deleting one of those moves breaks them at import.
+- **Coverage is a hard gate at 100%**, not just a report (thresholds in `vitest.config.js`). New move *data* costs nothing since it adds no branches — but any new *flag* read in `_moveGroupMoves` does, and needs its own test or the build fails.
+- **`.hbs` templates are never rendered by the test suite** — `renderTemplate` is stubbed globally in `tests/setup.js`. Handlebars syntax errors, and wrong `../` scope inside a nested `{{#each}}`, sail past a fully green suite. Template changes have to be eyeballed in a real Foundry client.
+
 ## Compendium packs (compiled, not committed)
 Foundry compendium packs are LevelDB directories at runtime, not loose JSON — you can't point `module.json`'s `packs[].path` at a folder of raw JSON files and expect it to load. The convention (matching the sibling Masks module) is:
 - Keep human-readable source under `src/packs/<pack-name>/*.json` (one file per document), committed to git.

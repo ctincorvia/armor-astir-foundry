@@ -9,6 +9,7 @@ import {
 } from "./moves.js";
 import { TRAITS } from "./traits.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "./advancements.js";
+import { ALL_PLAYBOOK_MOVES, choosePlaybookMove, resolvePlaybookMoves } from "./playbook-moves.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
 
@@ -44,9 +45,11 @@ const GRAVITY_CLOCK_VALUE_MAX = 3;
 // How many of the six top Advancement checklist items unlock the bottom four (see advancements.js).
 const ADVANCEMENT_UNLOCK_THRESHOLD = 3;
 
-// Both groups share one flat list for key lookup (_onMoveRoll/_onMoveDescription) since a move's
-// section (Basic vs Special) is purely a sheet-display grouping, not part of its identity.
-const ALL_MOVES = [...BASIC_MOVES, ...SPECIAL_MOVES];
+// All three groups share one flat list for key lookup (_onMoveRoll/_onMoveDescription) since a
+// move's section (Basic vs Special vs Playbook) is purely a sheet-display grouping, not part of
+// its identity. Playbook move keys are pool-prefixed (see playbook-moves.js) so this stays
+// collision-free as pools fill in.
+const ALL_MOVES = [...BASIC_MOVES, ...SPECIAL_MOVES, ...ALL_PLAYBOOK_MOVES];
 
 // All playbook actors are "character" type (see claude.md, "Domain conventions"). Every
 // playbook shares the same name/callsign/photo header, so one sheet class and template
@@ -91,11 +94,20 @@ export class PlaybookActorSheet extends ActorSheet {
 			value: spotlightValue,
 			steps: Array.from({ length: SPOTLIGHT_MAX }, (_, i) => ({ step: i + 1, filled: i + 1 <= spotlightValue }))
 		};
-		// Grouped (rather than a flat list) so playbook-specific moves can join basic/special
-		// moves as their own group later without restructuring this data.
+		// Basic and Special moves are the same fixed list for every actor; Playbook Moves is the
+		// per-actor set picked via the "+" button, so it's the only group that renders add/remove
+		// controls (see the template's addable/removable branches). All three run through the same
+		// _moveGroupMoves, so a picked move gets trait filtering, gating, hold tracking and its
+		// Roll/Activate/Description buttons with no extra handling.
 		data.moveGroups = [
 			{ label: "Basic Moves", moves: this._moveGroupMoves(BASIC_MOVES) },
-			{ label: "Special Moves", moves: this._moveGroupMoves(SPECIAL_MOVES) }
+			{ label: "Special Moves", moves: this._moveGroupMoves(SPECIAL_MOVES) },
+			{
+				label: "Playbook Moves",
+				moves: this._moveGroupMoves(resolvePlaybookMoves(this._playbookMoves())),
+				addable: true,
+				removable: true
+			}
 		];
 		// Dangers sit in their own left column beside the tab area (see the template) rather than
 		// inside a tab, since DEFENSELESS and the Danger list matter regardless of which tab is
@@ -158,6 +170,13 @@ export class PlaybookActorSheet extends ActorSheet {
 		return this.actor.system.attributes?.advancements ?? {};
 	}
 
+	// Just the picked keys — the move definitions live in playbook-moves.js, so stored data never
+	// goes stale against edited rules text. resolvePlaybookMoves drops keys that no longer match
+	// a definition.
+	_playbookMoves() {
+		return this.actor.system.attributes?.playbookMoves ?? [];
+	}
+
 	// bite-the-dust's forcesDesperationAtMaxPerils reads this to decide whether the roll dialog's
 	// Effect is locked to Desperation (see _onMoveRoll) — true only when every Danger slot is
 	// full AND every one of those Dangers is a Peril, not just any Peril present.
@@ -208,7 +227,21 @@ export class PlaybookActorSheet extends ActorSheet {
 				// Which stepper/handler the template wires up (_onHoldStep vs
 				// _onBplotHoldStep) — see the hold comment above.
 				separateHoldPool: Boolean(move.flatHold),
-				hold
+				hold,
+				// Generic, per-move-key checkboxes for a "once per Sortie"/"once per Downtime" cap
+				// (e.g. Cantrips' Seek Allies, Personal Familiar — see playbook-moves.js). Not
+				// scoped to playbook moves: any move source can declare `uses` the same way `hold`
+				// or `conditions` already work uniformly across all three. Stored separately from
+				// hold/dangers/etc at system.attributes.moveUses, keyed by the move's own key, so
+				// adding this never touches existing fields. Nothing ever clears these
+				// automatically — there's no "start a new Sortie/Downtime" concept anywhere in this
+				// module, so a checked box stays checked until the player unchecks it themselves,
+				// same manual-tracking model as the Advancement checklist.
+				uses: (move.uses ?? []).map((use) => ({
+					key: use.key,
+					label: use.label,
+					checked: Boolean(this.actor.system.attributes?.moveUses?.[move.key]?.[use.key])
+				}))
 			};
 		});
 	}
@@ -243,6 +276,9 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".gravity-clock-label-input").on("change", this._onGravityClockLabelChange.bind(this));
 		html.find(".gravity-clock-value-step").on("click", this._onGravityClockValueStep.bind(this));
 		html.find(".gravity-clock-step").on("click", this._onGravityClockStep.bind(this));
+		html.find(".playbook-move-add").on("click", this._onPlaybookMoveAdd.bind(this));
+		html.find(".playbook-move-remove").on("click", this._onPlaybookMoveRemove.bind(this));
+		html.find(".move-use-checkbox").on("change", this._onMoveUseToggle.bind(this));
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
 		html.find(".move-activate").on("click", this._onMoveActivate.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
@@ -391,6 +427,33 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({
 			"system.attributes.gravityClocks": current.map((c) => (c.id === clockId ? { ...c, progress: clamped } : c))
 		});
+	}
+
+	// The "+" on the Playbook Moves section. The picker is passed the actor's playbook name (so it
+	// knows which pool is "yours") and its current picks (so an already-taken move isn't offered
+	// again) — see playbookMoveSections. It resolves null on cancel, on close, and when the dialog
+	// was confirmed with nothing selected.
+	async _onPlaybookMoveAdd() {
+		const current = this._playbookMoves();
+		const key = await choosePlaybookMove(this.actor.system.playbook?.name, current);
+		if (!key || current.includes(key)) return;
+
+		await this.actor.update({ "system.attributes.playbookMoves": [...current, key] });
+	}
+
+	_onPlaybookMoveRemove(event) {
+		const { move: key } = event.currentTarget.dataset;
+		const current = this._playbookMoves();
+		if (!current.includes(key)) return;
+
+		this.actor.update({ "system.attributes.playbookMoves": current.filter((k) => k !== key) });
+	}
+
+	// A plain boolean toggle, same shape as _onOverheatingToggle/_onAdvancementToggle — a "uses"
+	// checkbox has no min/max to clamp, unlike Hold or Spotlight's stepped tracks.
+	_onMoveUseToggle(event) {
+		const { move: moveKey, use: useKey } = event.currentTarget.dataset;
+		this.actor.update({ [`system.attributes.moveUses.${moveKey}.${useKey}`]: event.currentTarget.checked });
 	}
 
 	async _onMoveRoll(event) {

@@ -317,6 +317,21 @@
 	text-align: center;
 }
 
+.armor-astir.sheet .move-uses-control {
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+}
+
+.armor-astir.sheet .move-use {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 4px;
+	font-size: 11px;
+	white-space: nowrap;
+}
+
 .armor-astir.sheet .move-controls {
 	display: flex;
 	flex-direction: row;
@@ -332,6 +347,23 @@
 .armor-astir.sheet .advancement-item.disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
+}
+
+.armor-astir.sheet .playbook-move-remove {
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	border-radius: 3px;
+	background: transparent;
+	line-height: 1;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .playbook-move-add {
+	margin-top: 8px;
 }
 
 .armor-astir.sheet .advancement-list {
@@ -547,4 +579,78 @@
 	font-weight: bold;
 	color: #8b1a1a;
 	text-align: right;
+}
+
+/* The picker's accordion is plain <details>/<summary> — the open/closed state is native browser
+   behaviour, so no dialog-side JS is involved in expanding a section. */
+.armor-astir.playbook-move-picker .move-picker-section {
+	margin-bottom: 6px;
+	padding-bottom: 4px;
+	border-bottom: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+}
+
+.armor-astir.playbook-move-picker .move-picker-section-label {
+	padding: 2px 0;
+	font-weight: bold;
+	cursor: pointer;
+}
+
+.armor-astir.playbook-move-picker .move-picker-subsection {
+	margin: 4px 0 0 14px;
+	padding-bottom: 0;
+	border-bottom: none;
+}
+
+.armor-astir.playbook-move-picker .move-picker-section-note {
+	margin: 2px 0 4px;
+	font-size: 12px;
+	font-style: italic;
+	opacity: 0.8;
+}
+
+.armor-astir.playbook-move-picker .move-picker-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.playbook-move-picker .move-picker-item {
+	padding: 4px 0;
+}
+
+.armor-astir.playbook-move-picker .move-picker-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+}
+
+.armor-astir.playbook-move-picker .move-picker-name {
+	font-weight: bold;
+}
+
+.armor-astir.playbook-move-picker .move-picker-trait {
+	padding: 1px 5px;
+	border-radius: 3px;
+	background: #4a4a8a;
+	font-size: 11px;
+	font-weight: bold;
+	color: #fff;
+}
+
+/* Indented to line up under the radio's label text rather than the radio itself, so the
+   description reads as belonging to the move above it. */
+.armor-astir.playbook-move-picker .move-picker-description {
+	margin-left: 22px;
+	font-size: 12px;
+}
+
+.armor-astir.playbook-move-picker .move-picker-description p {
+	margin: 2px 0;
+}
+
+.armor-astir.playbook-move-picker .move-picker-empty {
+	margin: 0;
+	font-style: italic;
 }
