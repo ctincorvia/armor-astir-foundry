@@ -1,0 +1,361 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+import { DIE_FACES } from "../scripts/roll-effects.js";
+import { TRAITS } from "../scripts/traits.js";
+import {
+	BASIC_MOVES,
+	MOVE_CHAT_TEMPLATE,
+	MOVE_RESULT_LABELS,
+	SPOTLIGHT_REMINDER,
+	availableMoveTraits,
+	configureMoveRoll,
+	moveResultTier,
+	postMoveDescription,
+	rollMove
+} from "../scripts/moves.js";
+
+const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
+
+function fakeRollHtml(values) {
+	return { find: (selector) => ({ val: () => values[selector] }) };
+}
+
+// Seeds the die's raw results (pre-substitution/keep) so rollMove's real, unmocked
+// applyRollEffects computes the total exactly as it would in production — there is no `total`
+// to inject directly any more, since rollMove derives it from the dice breakdown + trait value.
+function mockRoll({ dice = [3, 3] } = {}) {
+	Roll.mockImplementation(function (formula, data) {
+		this.formula = formula;
+		this.data = data;
+		this._total = 0;
+		this.terms = [];
+		this.dice = [{ results: dice.map((value) => ({ result: value, active: true })), modifiers: [] }];
+		this.evaluate = vi.fn().mockImplementation(async () => this);
+		this.toMessage = vi.fn().mockResolvedValue(undefined);
+		Object.defineProperty(this, "total", { get: () => this._total, configurable: true });
+	});
+}
+
+beforeEach(() => {
+	vi.resetAllMocks();
+	// resetAllMocks wipes the default Dialog/Roll implementations stubbed in tests/setup.js.
+	Dialog.mockImplementation(function (data) {
+		this.data = data;
+		this.render = vi.fn();
+	});
+	mockRoll();
+	renderTemplate.mockResolvedValue("");
+});
+
+describe("moveResultTier", () => {
+	it("treats 10 and above as a success", () => {
+		expect(moveResultTier(10)).toBe("success");
+		expect(moveResultTier(12)).toBe("success");
+	});
+
+	it("treats 7-9 as a mixed success", () => {
+		expect(moveResultTier(7)).toBe("mixed");
+		expect(moveResultTier(9)).toBe("mixed");
+	});
+
+	it("treats 6 and below as a failure", () => {
+		expect(moveResultTier(6)).toBe("failure");
+		expect(moveResultTier(2)).toBe("failure");
+	});
+});
+
+describe("availableMoveTraits", () => {
+	it("resolves each trait key to its TRAITS entry", () => {
+		const actor = { system: { stats: { clash: { value: 1 }, talk: { value: 2 } } } };
+
+		const traits = availableMoveTraits(actor, EXCHANGE_BLOWS);
+
+		expect(traits).toEqual([TRAITS.find((t) => t.key === "clash"), TRAITS.find((t) => t.key === "talk")]);
+	});
+
+	it("excludes traits disabled on the actor's stats", () => {
+		const actor = { system: { stats: { clash: { value: 1, disabled: true }, talk: { value: 2 } } } };
+
+		const traits = availableMoveTraits(actor, EXCHANGE_BLOWS);
+
+		expect(traits).toEqual([TRAITS.find((t) => t.key === "talk")]);
+	});
+
+	it("excludes traits missing from the actor's stats entirely", () => {
+		const actor = { system: { stats: {} } };
+
+		const traits = availableMoveTraits(actor, EXCHANGE_BLOWS);
+
+		expect(traits).toEqual([TRAITS.find((t) => t.key === "clash"), TRAITS.find((t) => t.key === "talk")]);
+	});
+});
+
+describe("configureMoveRoll", () => {
+	const clash = { key: "clash", label: "CLASH", value: 1 };
+	const talk = { key: "talk", label: "TALK", value: 2 };
+
+	it("renders the roll dialog template with the given traits and modifier states", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			traits: [clash],
+			advantageStates: expect.any(Array),
+			effectStates: expect.any(Array)
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves the selected trait, advantage, and effect when Roll is clicked", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash, talk]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "talk",
+			"[name='advantage']": "advantage",
+			"[name='effect']": "confidence"
+		}));
+
+		expect(await promise).toEqual({ trait: talk, advantage: "advantage", effect: "confidence" });
+	});
+
+	it("resolves null when Cancel is clicked", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.cancel.callback();
+
+		expect(await promise).toBeNull();
+	});
+
+	it("resolves null when the dialog is closed without a selection", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.close();
+
+		expect(await promise).toBeNull();
+	});
+});
+
+describe("rollMove", () => {
+	it("rolls 2d6 plus the chosen trait's value with no modifiers", async () => {
+		const actor = { system: { stats: { clash: { value: 2 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+
+		expect(Roll).toHaveBeenCalledWith(`2d${DIE_FACES} + @mod`, { mod: 2 });
+	});
+
+	it("rolls extra dice for advantage and disadvantage stacks", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { advantage: "advantage" });
+		expect(Roll).toHaveBeenLastCalledWith(`3d${DIE_FACES} + @mod`, { mod: 0 });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { advantage: "advantage2" });
+		expect(Roll).toHaveBeenLastCalledWith(`4d${DIE_FACES} + @mod`, { mod: 0 });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { advantage: "disadvantage2" });
+		expect(Roll).toHaveBeenLastCalledWith(`4d${DIE_FACES} + @mod`, { mod: 0 });
+	});
+
+	it("substitutes faces via Confidence before computing the total", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 4] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { effect: "confidence" });
+
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(rollInstance.dice[0].results[0].result).toBe(DIE_FACES);
+		expect(rollInstance.total).toBe(DIE_FACES + 4);
+	});
+
+	it("computes the final total from the kept dice plus the trait value", async () => {
+		const actor = { system: { stats: { clash: { value: 3 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 6, 4] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { advantage: "advantage" });
+
+		expect(Roll.mock.results.at(-1).value.total).toBe(6 + 4 + 3);
+	});
+
+	it("pushes a keep-highest modifier onto the die term under advantage, keep-lowest under disadvantage", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		mockRoll({ dice: [4, 3, 2] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { advantage: "advantage" });
+		expect(Roll.mock.results.at(-1).value.dice[0].modifiers).toEqual(["kh2"]);
+
+		mockRoll({ dice: [4, 3, 2] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { advantage: "disadvantage" });
+		expect(Roll.mock.results.at(-1).value.dice[0].modifiers).toEqual(["kl2"]);
+	});
+
+	it("leaves the die term's modifiers untouched with no advantage or disadvantage", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+
+		expect(Roll.mock.results.at(-1).value.dice[0].modifiers).toEqual([]);
+	});
+
+	it("passes the per-die breakdown to the chat template", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 6, 4] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { advantage: "advantage", effect: "confidence" });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			dice: [
+				{ original: 1, result: DIE_FACES, changed: true, kept: true },
+				{ original: 6, result: 6, changed: false, kept: true },
+				{ original: 4, result: 4, changed: false, kept: false }
+			]
+		}));
+	});
+
+	it("reports success for a 10+, mixed for 7-9, and failure for 6-, with matching result text", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		mockRoll({ dice: [5, 5] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			name: EXCHANGE_BLOWS.name,
+			traitLabel: clash.label,
+			tier: "success",
+			tierLabel: MOVE_RESULT_LABELS.success,
+			resultText: EXCHANGE_BLOWS.results.success,
+			conditions: []
+		}));
+
+		mockRoll({ dice: [4, 4] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "mixed",
+			tierLabel: MOVE_RESULT_LABELS.mixed,
+			resultText: EXCHANGE_BLOWS.results.mixed
+		}));
+
+		mockRoll({ dice: [1, 1] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "failure",
+			tierLabel: MOVE_RESULT_LABELS.failure,
+			resultText: null
+		}));
+	});
+
+	it("adds the spotlight reminder on a full failure only", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		mockRoll({ dice: [1, 1] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "failure",
+			spotlight: SPOTLIGHT_REMINDER
+		}));
+
+		mockRoll({ dice: [4, 4] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "mixed",
+			spotlight: null
+		}));
+
+		mockRoll({ dice: [5, 5] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			spotlight: null
+		}));
+	});
+
+	it("includes the active conditions in the chat template data", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { advantage: "disadvantage2", effect: "desperation" });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			conditions: [
+				{ key: "disadvantage2", label: "Disadvantage x2" },
+				{ key: "desperation", label: "Desperation" }
+			]
+		}));
+	});
+
+	it("treats a missing stat value as 0", async () => {
+		const actor = { system: { stats: {} } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+
+		expect(Roll).toHaveBeenCalledWith(`2d${DIE_FACES} + @mod`, { mod: 0 });
+	});
+
+	it("posts the rendered flavor to chat with the actor's speaker", async () => {
+		const actor = { system: { stats: { clash: { value: 1 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		renderTemplate.mockResolvedValue("<div>flavor</div>");
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor });
+		expect(rollInstance.toMessage).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			flavor: "<div>flavor</div>"
+		});
+	});
+});
+
+describe("postMoveDescription", () => {
+	it("renders the move's description and posts it to chat", async () => {
+		const actor = { system: { stats: {} } };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		renderTemplate.mockResolvedValue("<div>description</div>");
+
+		await postMoveDescription(actor, EXCHANGE_BLOWS);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, {
+			name: EXCHANGE_BLOWS.name,
+			description: EXCHANGE_BLOWS.description
+		});
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor });
+		expect(ChatMessage.create).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			content: "<div>description</div>"
+		});
+	});
+});

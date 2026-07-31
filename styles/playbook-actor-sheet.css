@@ -15,3 +15,179 @@
 .armor-astir.sheet .sheet-header .playbook-swap label {
 	white-space: nowrap;
 }
+
+.armor-astir.sheet .traits-list {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 10px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .trait {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 2px;
+}
+
+.armor-astir.sheet .trait-label {
+	font-weight: bold;
+	font-size: 12px;
+}
+
+.armor-astir.sheet .trait-control {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 4px;
+}
+
+.armor-astir.sheet .trait-value {
+	min-width: 1.5em;
+	text-align: center;
+}
+
+.armor-astir.sheet .trait.disabled .trait-label,
+.armor-astir.sheet .trait.disabled .trait-value {
+	opacity: 0.5;
+}
+
+.armor-astir.sheet .move-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .move {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding: 4px 0;
+	border-bottom: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+}
+
+.armor-astir.sheet .move-controls {
+	display: flex;
+	flex-direction: row;
+	gap: 4px;
+	flex: 0 0 auto;
+}
+
+.armor-astir-move-chat .move-name {
+	margin: 0 0 4px;
+}
+
+.armor-astir-move-chat .move-roll-result {
+	display: flex;
+	flex-direction: row;
+	align-items: baseline;
+	gap: 8px;
+}
+
+.armor-astir-move-chat .move-tier {
+	font-weight: bold;
+}
+
+.armor-astir-move-chat .move-tier-success {
+	color: #18520b;
+}
+
+.armor-astir-move-chat .move-tier-mixed {
+	color: #8a6d00;
+}
+
+.armor-astir-move-chat .move-tier-failure {
+	color: #8b1a1a;
+}
+
+.armor-astir-move-chat .move-result-text {
+	margin: 4px 0 0;
+}
+
+.armor-astir-move-chat .move-spotlight {
+	margin: 4px 0 0;
+	padding: 2px 6px;
+	border-left: 3px solid #8b1a1a;
+	font-weight: bold;
+}
+
+.armor-astir-move-chat .move-conditions {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 4px;
+}
+
+.armor-astir-move-chat .move-condition {
+	padding: 1px 6px;
+	border-radius: 3px;
+	font-size: 11px;
+	font-weight: bold;
+	color: #fff;
+}
+
+.armor-astir-move-chat .move-condition-advantage,
+.armor-astir-move-chat .move-condition-advantage2 {
+	background: #18520b;
+}
+
+.armor-astir-move-chat .move-condition-disadvantage,
+.armor-astir-move-chat .move-condition-disadvantage2 {
+	background: #8b1a1a;
+}
+
+.armor-astir-move-chat .move-condition-confidence,
+.armor-astir-move-chat .move-condition-desperation {
+	background: #4a4a8a;
+}
+
+.armor-astir-move-chat .move-dice {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin: 4px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir-move-chat .move-die {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 3px;
+	padding: 1px 6px;
+	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	border-radius: 3px;
+	font-size: 12px;
+	font-weight: bold;
+}
+
+.armor-astir-move-chat .move-die-dropped {
+	opacity: 0.5;
+	text-decoration: line-through;
+}
+
+.armor-astir-move-chat .move-die-changed {
+	border-color: #4a4a8a;
+}
+
+.armor-astir-move-chat .move-die-original {
+	opacity: 0.6;
+	text-decoration: line-through;
+	font-weight: normal;
+}
+
+.armor-astir.move-roll-dialog .form-group {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	margin-bottom: 6px;
+}

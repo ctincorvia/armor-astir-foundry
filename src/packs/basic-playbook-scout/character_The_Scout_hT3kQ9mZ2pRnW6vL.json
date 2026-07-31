@@ -18,7 +18,14 @@
 			"slug": "the-scout",
 			"uuid": ""
 		},
-		"stats": {},
+		"stats": {
+			"defy": { "value": 0 },
+			"sense": { "value": 0 },
+			"clash": { "value": 0 },
+			"talk": { "value": 0 },
+			"know": { "value": 0 },
+			"channel": { "value": 0, "disabled": true }
+		},
 		"attributes": {}
 	},
 	"prototypeToken": {

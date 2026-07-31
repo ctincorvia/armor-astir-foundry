@@ -1,5 +1,8 @@
 # Foundry Module Development Notes
 
+## Before declaring a task done
+- Stage the changes (`git add`) and run the pre-commit checks (`npx lint-staged` and `npm run test:coverage`, as defined in `.husky/pre-commit`) before declaring any task done.
+
 ## What a module is
 - A Foundry module is a package folder placed in the user data modules directory.
 - The module folder name must match the manifest `id` exactly.

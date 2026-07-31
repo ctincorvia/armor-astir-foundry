@@ -64,3 +64,25 @@ vi.stubGlobal("ui", {
 		info: vi.fn()
 	}
 });
+
+// total is getter-only in real Foundry (backed by the internal _total field, with no setter),
+// so module code writes roll._total directly rather than roll.total — mirrored here so tests
+// exercise the same shape rather than a plain writable property that would mask a real bug.
+const RollMock = vi.fn().mockImplementation(function (formula, data) {
+	this.formula = formula;
+	this.data = data;
+	this._total = 0;
+	this.terms = [];
+	this.dice = [{ results: [], modifiers: [] }];
+	this.evaluate = vi.fn().mockResolvedValue(this);
+	this.toMessage = vi.fn().mockResolvedValue(undefined);
+	Object.defineProperty(this, "total", { get: () => this._total, configurable: true });
+});
+vi.stubGlobal("Roll", RollMock);
+
+vi.stubGlobal("ChatMessage", {
+	create: vi.fn(),
+	getSpeaker: vi.fn()
+});
+
+vi.stubGlobal("renderTemplate", vi.fn().mockResolvedValue(""));

@@ -18,4 +18,35 @@
 			</select>
 		</div>
 	</header>
+	<section class="traits">
+		<h3>Traits</h3>
+		<ol class="traits-list">
+			{{#each traits}}
+			<li class="trait {{#if disabled}}disabled{{/if}}" data-trait="{{key}}">
+				<label class="trait-label">{{label}}</label>
+				<div class="trait-control">
+					<button type="button" class="trait-step trait-decrement" data-trait="{{key}}" data-delta="-1" {{#if disabled}}disabled{{/if}}>-</button>
+					<span class="trait-value">{{value}}</span>
+					<button type="button" class="trait-step trait-increment" data-trait="{{key}}" data-delta="1" {{#if disabled}}disabled{{/if}}>+</button>
+				</div>
+			</li>
+			{{/each}}
+		</ol>
+	</section>
+	<section class="moves">
+		{{#each moveGroups}}
+		<h3>{{label}}</h3>
+		<ol class="move-list">
+			{{#each moves}}
+			<li class="move" data-move="{{key}}">
+				<span class="move-name">{{name}}</span>
+				<div class="move-controls">
+					<button type="button" class="move-roll" data-move="{{key}}">Roll</button>
+					<button type="button" class="move-description" data-move="{{key}}">Description</button>
+				</div>
+			</li>
+			{{/each}}
+		</ol>
+		{{/each}}
+	</section>
 </form>

@@ -1,0 +1,32 @@
+<div class="armor-astir-move-chat">
+	<h3 class="move-name">{{name}}</h3>
+	{{#if tierLabel}}
+	<div class="move-roll-result">
+		<span class="move-trait">+{{traitLabel}}</span>
+		<span class="move-tier move-tier-{{tier}}">{{tierLabel}}</span>
+	</div>
+	{{#if conditions}}
+	<div class="move-conditions">
+		{{#each conditions}}
+		<span class="move-condition move-condition-{{key}}">{{label}}</span>
+		{{/each}}
+	</div>
+	<ol class="move-dice">
+		{{#each dice}}
+		<li class="move-die{{#unless kept}} move-die-dropped{{/unless}}{{#if changed}} move-die-changed{{/if}}">
+			{{#if changed}}<span class="move-die-original">{{original}}</span>{{/if}}
+			<span class="move-die-face">{{result}}</span>
+		</li>
+		{{/each}}
+	</ol>
+	{{/if}}
+	{{#if resultText}}
+	<p class="move-result-text">{{resultText}}</p>
+	{{/if}}
+	{{#if spotlight}}
+	<p class="move-spotlight">{{spotlight}}</p>
+	{{/if}}
+	{{else}}
+	<div class="move-description">{{{description}}}</div>
+	{{/if}}
+</div>
