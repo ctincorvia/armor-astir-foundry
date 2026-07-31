@@ -498,6 +498,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						],
 						gated: false,
 						rollable: true,
+						activatable: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -512,6 +513,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						],
 						gated: false,
 						rollable: true,
+						activatable: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -524,6 +526,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						],
 						gated: false,
 						rollable: true,
+						activatable: false,
 						trackHold: true,
 						separateHoldPool: false,
 						hold: 0
@@ -536,6 +539,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						],
 						gated: false,
 						rollable: true,
+						activatable: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -546,6 +550,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						traits: [],
 						gated: false,
 						rollable: true,
+						activatable: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -560,6 +565,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						],
 						gated: false,
 						rollable: true,
+						activatable: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -577,6 +583,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						],
 						gated: false,
 						rollable: true,
+						activatable: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -590,6 +597,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						],
 						gated: false,
 						rollable: true,
+						activatable: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -602,6 +610,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						],
 						gated: false,
 						rollable: true,
+						activatable: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -621,6 +630,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						],
 						gated: false,
 						rollable: true,
+						activatable: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -631,6 +641,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						traits: [],
 						gated: false,
 						rollable: false,
+						activatable: false,
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0
@@ -643,6 +654,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						// b-plot is gated here, the mirror image of weave-magic above.
 						gated: true,
 						rollable: false,
+						activatable: true,
 						trackHold: true,
 						separateHoldPool: true,
 						hold: 0
@@ -943,6 +955,7 @@ describe("PlaybookActorSheet#activateListeners - moves", () => {
 		sheet.activateListeners(html);
 
 		expect(html.find).toHaveBeenCalledWith(".move-roll");
+		expect(html.find).toHaveBeenCalledWith(".move-activate");
 		expect(html.find).toHaveBeenCalledWith(".move-description");
 		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
 	});
@@ -1046,6 +1059,67 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 
 		expect(configureMoveRoll).not.toHaveBeenCalled();
 		expect(rollMove).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveActivate", () => {
+	it("does nothing for an unrecognized move key", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "not-a-real-move" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for a move with no flat hold to grant, e.g. lead a sortie", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("adds b-plot's flat hold to the actor's bplotHold pool", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "b-plot" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.bplotHold.value": 3 });
+	});
+
+	it("adds to, rather than replaces, an existing bplotHold value", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { bplotHold: { value: 1 } } }, update: vi.fn() };
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "b-plot" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.bplotHold.value": 3 });
+	});
+
+	it("clamps at the maximum and does not update the actor", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { bplotHold: { value: 3 } } }, update: vi.fn() };
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "b-plot" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does not affect the shared resources.hold field", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: {}, resources: { hold: { value: 5 } } },
+			update: vi.fn()
+		};
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "b-plot" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalledWith(expect.objectContaining({
+			"system.resources.hold.value": expect.anything()
+		}));
 	});
 });
 

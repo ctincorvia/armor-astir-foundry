@@ -111,6 +111,9 @@ export class PlaybookActorSheet extends ActorSheet {
 				// Channel disabled) still shows a disabled Roll button, but a move with no traits or
 				// conditions by design (Subsystems, B-Plot) shows no Roll button at all.
 				rollable: move.traits.length > 0 || Boolean(move.conditions),
+				// Moves with a flat hold grant (B-Plot) show an Activate button in place of Roll —
+				// see the template's rollable/activatable branch and _onMoveActivate.
+				activatable: Boolean(move.flatHold),
 				trackHold: Boolean(move.hold) || Boolean(move.flatHold),
 				// Which stepper/handler the template wires up (_onHoldStep vs
 				// _onBplotHoldStep) — see the hold comment above.
@@ -143,6 +146,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".spotlight-step").on("click", this._onSpotlightStep.bind(this));
 		html.find(".overheating-checkbox").on("change", this._onOverheatingToggle.bind(this));
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
+		html.find(".move-activate").on("click", this._onMoveActivate.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
 	}
 
@@ -212,6 +216,19 @@ export class PlaybookActorSheet extends ActorSheet {
 		if (!config) return;
 
 		await rollMove(this.actor, move, config.trait, config);
+	}
+
+	// Stands in for a roll on moves with a flat hold grant (B-Plot) — there's no dice to roll, so
+	// clicking Activate just adds the move's flatHold to its (separately-tracked) pool, same
+	// field _onBplotHoldStep writes to, clamped the same way.
+	async _onMoveActivate(event) {
+		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
+		if (!move || !move.flatHold) return;
+
+		const current = this.actor.system.attributes?.bplotHold?.value ?? 0;
+		const next = Math.min(HOLD_MAX, Math.max(HOLD_MIN, current + move.flatHold));
+		if (next === current) return;
+		await this.actor.update({ "system.attributes.bplotHold.value": next });
 	}
 
 	async _onMoveDescription(event) {

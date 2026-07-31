@@ -82,6 +82,8 @@
 							<div class="move-controls">
 								{{#if rollable}}
 								<button type="button" class="move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Roll</button>
+								{{else if activatable}}
+								<button type="button" class="move-activate{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Activate</button>
 								{{/if}}
 								<button type="button" class="move-description" data-move="{{key}}">Description</button>
 							</div>

@@ -161,6 +161,7 @@
 }
 
 .armor-astir.sheet .move-roll.disabled,
+.armor-astir.sheet .move-activate.disabled,
 .armor-astir.sheet .hold-step.disabled,
 .armor-astir.sheet .bplot-hold-step.disabled {
 	opacity: 0.5;
