@@ -19,6 +19,7 @@ import { PlaybookActorSheet, registerPlaybookActorSheet, TRAITS } from "../scrip
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
+const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
 
 beforeEach(() => {
 	swapActorPlaybook.mockClear();
@@ -41,7 +42,8 @@ describe("PlaybookActorSheet.defaultOptions", () => {
 			classes: ["armor-astir", "sheet", "actor", "playbook"],
 			template: "modules/armor-astir/templates/playbook-actor-sheet.hbs",
 			width: 420,
-			height: "auto"
+			height: "auto",
+			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }]
 		});
 	});
 });
@@ -310,6 +312,110 @@ describe("PlaybookActorSheet#_onPowerStep", () => {
 	});
 });
 
+describe("PlaybookActorSheet#getData - spotlight", () => {
+	it("defaults to value 0 with every step unfilled when attributes is empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.spotlight).toEqual({
+			value: 0,
+			steps: [1, 2, 3, 4, 5, 6].map((step) => ({ step, filled: false }))
+		});
+	});
+
+	it("reflects the actor's stored spotlight value, filling steps up to it", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { spotlight: { value: 3 } } } };
+
+		const data = sheet.getData();
+
+		expect(data.spotlight).toEqual({
+			value: 3,
+			steps: [
+				{ step: 1, filled: true },
+				{ step: 2, filled: true },
+				{ step: 3, filled: true },
+				{ step: 4, filled: false },
+				{ step: 5, filled: false },
+				{ step: 6, filled: false }
+			]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - spotlight step", () => {
+	it("binds a click handler to the spotlight step buttons", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".spotlight-step");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onSpotlightStep", () => {
+	it("fills the track up to a clicked step above the current value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { spotlight: { value: 1 } } }, update: vi.fn() };
+
+		sheet._onSpotlightStep({ currentTarget: { dataset: { step: "4" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.spotlight.value": 4 });
+	});
+
+	it("empties the track down to a clicked step below the current value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { spotlight: { value: 5 } } }, update: vi.fn() };
+
+		sheet._onSpotlightStep({ currentTarget: { dataset: { step: "2" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.spotlight.value": 2 });
+	});
+
+	it("decrements by one when clicking the current top (highest filled) step", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { spotlight: { value: 3 } } }, update: vi.fn() };
+
+		sheet._onSpotlightStep({ currentTarget: { dataset: { step: "3" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.spotlight.value": 2 });
+	});
+
+	it("clears to 0 when clicking step 1 while it's the only filled step", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { spotlight: { value: 1 } } }, update: vi.fn() };
+
+		sheet._onSpotlightStep({ currentTarget: { dataset: { step: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.spotlight.value": 0 });
+	});
+
+	it("treats a missing spotlight value as starting at 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onSpotlightStep({ currentTarget: { dataset: { step: "2" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.spotlight.value": 2 });
+	});
+
+	it("clamps a step beyond the track's max and does not update the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { spotlight: { value: 6 } } }, update: vi.fn() };
+
+		sheet._onSpotlightStep({ currentTarget: { dataset: { step: "7" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
 describe("PlaybookActorSheet#activateListeners - trait steps", () => {
 	it("binds a click handler to the trait step buttons", () => {
 		const sheet = new PlaybookActorSheet();
@@ -393,6 +499,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						trackHold: false,
+						separateHoldPool: false,
 						hold: 0
 					},
 					{
@@ -406,6 +513,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						trackHold: false,
+						separateHoldPool: false,
 						hold: 0
 					},
 					{
@@ -417,6 +525,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						trackHold: true,
+						separateHoldPool: false,
 						hold: 0
 					},
 					{
@@ -428,6 +537,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						trackHold: false,
+						separateHoldPool: false,
 						hold: 0
 					},
 					{
@@ -437,6 +547,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						trackHold: false,
+						separateHoldPool: false,
 						hold: 0
 					},
 					{
@@ -450,6 +561,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						trackHold: false,
+						separateHoldPool: false,
 						hold: 0
 					},
 					{
@@ -466,6 +578,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						trackHold: false,
+						separateHoldPool: false,
 						hold: 0
 					},
 					{
@@ -478,6 +591,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						trackHold: false,
+						separateHoldPool: false,
 						hold: 0
 					},
 					{
@@ -489,6 +603,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						trackHold: false,
+						separateHoldPool: false,
 						hold: 0
 					}
 				]
@@ -507,6 +622,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						trackHold: false,
+						separateHoldPool: false,
 						hold: 0
 					},
 					{
@@ -516,6 +632,19 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: false,
 						trackHold: false,
+						separateHoldPool: false,
+						hold: 0
+					},
+					{
+						key: "b-plot",
+						name: "B-Plot",
+						traits: [],
+						// channel isn't in this actor's stats at all, which reads as enabled — so
+						// b-plot is gated here, the mirror image of weave-magic above.
+						gated: true,
+						rollable: false,
+						trackHold: true,
+						separateHoldPool: true,
 						hold: 0
 					}
 				]
@@ -564,6 +693,43 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 
 		expect(data.moveGroups[0].moves.find((m) => m.key === "help-or-hinder").gated).toBe(false);
 	});
+
+	it("gates b-plot when CHANNEL is enabled, the mirror image of weave magic", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 1, disabled: false } } } };
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").gated).toBe(true);
+	});
+
+	it("gates b-plot when CHANNEL is missing from stats (reads as enabled)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").gated).toBe(true);
+	});
+
+	it("un-gates b-plot once CHANNEL is disabled", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 0, disabled: true } } } };
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").gated).toBe(false);
+	});
+
+	it("never gates lead a sortie or subsystems off CHANNEL, unlike b-plot", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 1, disabled: false } } } };
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[1].moves.find((m) => m.key === "lead-a-sortie").gated).toBe(false);
+		expect(data.moveGroups[1].moves.find((m) => m.key === "subsystems").gated).toBe(false);
+	});
 });
 
 describe("PlaybookActorSheet#getData - hold", () => {
@@ -596,6 +762,34 @@ describe("PlaybookActorSheet#getData - hold", () => {
 		for (const move of data.moveGroups[0].moves) {
 			expect(move.hold).toBe(2);
 		}
+	});
+});
+
+describe("PlaybookActorSheet#getData - b-plot's separate hold pool", () => {
+	it("reads b-plot's hold from system.attributes.bplotHold, not the shared resources.hold pool", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				resources: { hold: { value: 5 } },
+				attributes: { bplotHold: { value: 2 } }
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").hold).toBe(2);
+		// Read the Room (a basic move) keeps reading the shared pool, unaffected by bplotHold.
+		expect(data.moveGroups[0].moves.find((m) => m.key === "read-the-room").hold).toBe(5);
+	});
+
+	it("defaults b-plot's hold to 0 when bplotHold is missing", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").hold).toBe(0);
 	});
 });
 
@@ -658,6 +852,83 @@ describe("PlaybookActorSheet#_onHoldStep", () => {
 		sheet._onHoldStep({ currentTarget: { dataset: { delta: "-1" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - bplot hold step", () => {
+	it("binds a click handler to the bplot hold step buttons", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".bplot-hold-step");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onBplotHoldStep", () => {
+	it("increments the bplot hold value and updates the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { bplotHold: { value: 1 } } }, update: vi.fn() };
+
+		sheet._onBplotHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.bplotHold.value": 2 });
+	});
+
+	it("decrements the bplot hold value and updates the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { bplotHold: { value: 1 } } }, update: vi.fn() };
+
+		sheet._onBplotHoldStep({ currentTarget: { dataset: { delta: "-1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.bplotHold.value": 0 });
+	});
+
+	it("treats a missing bplot hold value as starting at 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {}, update: vi.fn() };
+
+		sheet._onBplotHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.bplotHold.value": 1 });
+	});
+
+	it("clamps at the maximum and does not update the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { bplotHold: { value: 3 } } }, update: vi.fn() };
+
+		sheet._onBplotHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at the minimum and does not update the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { bplotHold: { value: 0 } } }, update: vi.fn() };
+
+		sheet._onBplotHoldStep({ currentTarget: { dataset: { delta: "-1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does not affect the shared resources.hold field", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { bplotHold: { value: 1 } }, resources: { hold: { value: 5 } } },
+			update: vi.fn()
+		};
+
+		sheet._onBplotHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.bplotHold.value": 2 });
+		expect(sheet.actor.update).not.toHaveBeenCalledWith(expect.objectContaining({
+			"system.resources.hold.value": expect.anything()
+		}));
 	});
 });
 
@@ -766,6 +1037,16 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		expect(configureMoveRoll).not.toHaveBeenCalled();
 		expect(rollMove).not.toHaveBeenCalled();
 	});
+
+	it("does nothing for b-plot, which has no traits, conditions, or fixed traits to roll", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 0, disabled: true } } } };
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "b-plot" } } });
+
+		expect(configureMoveRoll).not.toHaveBeenCalled();
+		expect(rollMove).not.toHaveBeenCalled();
+	});
 });
 
 describe("PlaybookActorSheet#_onMoveDescription", () => {
@@ -794,5 +1075,14 @@ describe("PlaybookActorSheet#_onMoveDescription", () => {
 		await sheet._onMoveDescription({ currentTarget: { dataset: { move: "subsystems" } } });
 
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, SUBSYSTEMS);
+	});
+
+	it("posts b-plot's description even when it's gated (CHANNEL enabled)", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		await sheet._onMoveDescription({ currentTarget: { dataset: { move: "b-plot" } } });
+
+		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, B_PLOT);
 	});
 });

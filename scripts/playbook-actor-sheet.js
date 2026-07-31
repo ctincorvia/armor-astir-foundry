@@ -17,12 +17,16 @@ const TRAIT_MIN = -3;
 const TRAIT_MAX = 3;
 
 // Matches the highest per-tier hold any basic move currently grants (read-the-room's 3 on a
-// 10+); revisit if a future move grants more.
+// 10+); also reused as b-plot's flat hold cap (its own separately-tracked pool — see
+// _moveGroupMoves) since both cap at 3. Revisit if a future move grants more.
 const HOLD_MIN = 0;
 const HOLD_MAX = 3;
 
 const POWER_MIN = 0;
 const POWER_MAX = 4;
+
+const SPOTLIGHT_MIN = 0;
+const SPOTLIGHT_MAX = 6;
 
 // Both groups share one flat list for key lookup (_onMoveRoll/_onMoveDescription) since a move's
 // section (Basic vs Special) is purely a sheet-display grouping, not part of its identity.
@@ -37,7 +41,8 @@ export class PlaybookActorSheet extends ActorSheet {
 			classes: ["armor-astir", "sheet", "actor", "playbook"],
 			template: PLAYBOOK_SHEET_TEMPLATE,
 			width: 420,
-			height: "auto"
+			height: "auto",
+			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }]
 		});
 	}
 
@@ -62,6 +67,14 @@ export class PlaybookActorSheet extends ActorSheet {
 			visible: !this.actor.system.stats?.channel?.disabled,
 			value: this.actor.system.attributes?.power?.value ?? 0
 		};
+		// Spotlight is a single 0-6 counter (system.attributes.spotlight.value) rendered as 6
+		// steps filled from the bottom up — always visible (not Channel-gated) since it tracks
+		// whose turn it is in the fiction, not an Astir/Channel resource.
+		const spotlightValue = this.actor.system.attributes?.spotlight?.value ?? 0;
+		data.spotlight = {
+			value: spotlightValue,
+			steps: Array.from({ length: SPOTLIGHT_MAX }, (_, i) => ({ step: i + 1, filled: i + 1 <= spotlightValue }))
+		};
 		// Grouped (rather than a flat list) so playbook-specific moves can join basic/special
 		// moves as their own group later without restructuring this data.
 		data.moveGroups = [
@@ -72,26 +85,37 @@ export class PlaybookActorSheet extends ActorSheet {
 	}
 
 	_moveGroupMoves(moves) {
+		const channelDisabled = Boolean(this.actor.system.stats?.channel?.disabled);
 		return moves.map((move) => {
 			const traits = this._moveTraits(move);
+			// Read-the-room's roll-tiered hold lives in pbta's shared system.resources.hold
+			// field; b-plot's flat, roll-less hold is tracked separately in
+			// system.attributes.bplotHold (an ObjectField, unlike the strictly-schemed
+			// system.resources) so the two pools can't collide on one actor.
+			const hold = move.flatHold
+				? this.actor.system.attributes?.bplotHold?.value ?? 0
+				: this.actor.system.resources?.hold?.value ?? 0;
 			return {
 				key: move.key,
 				name: move.name,
 				traits,
-				// True only when a move normally rolls a stat trait but every one of those
-				// traits is currently disabled for this actor (e.g. Weave Magic without
-				// Channel) — a move with no traits by design (Help or Hinder) is never gated.
-				gated: move.traits.length > 0 && traits.length === 0,
+				// True when a move normally rolls a stat trait but every one of those traits is
+				// currently disabled for this actor (e.g. Weave Magic without Channel — a move
+				// with no traits by design, like Help or Hinder, is never gated this way), OR
+				// when the move is explicitly gated the opposite way, off Channel being enabled
+				// (b-plot, via requiresChannelDisabled).
+				gated: (move.traits.length > 0 && traits.length === 0)
+					|| (Boolean(move.requiresChannelDisabled) && !channelDisabled),
 				// Whether this move rolls anything at all, based on its static definition rather
 				// than the actor-filtered trait list above — a gated move (e.g. Weave Magic with
 				// Channel disabled) still shows a disabled Roll button, but a move with no traits or
-				// conditions by design (Subsystems) shows no Roll button at all.
+				// conditions by design (Subsystems, B-Plot) shows no Roll button at all.
 				rollable: move.traits.length > 0 || Boolean(move.conditions),
-				// Hold is one shared actor field (pbta's system.resources.hold), not per-move
-				// state — fine while read-the-room is the only source; a second hold-granting
-				// move would need per-move tracking instead.
-				trackHold: Boolean(move.hold),
-				hold: this.actor.system.resources?.hold?.value ?? 0
+				trackHold: Boolean(move.hold) || Boolean(move.flatHold),
+				// Which stepper/handler the template wires up (_onHoldStep vs
+				// _onBplotHoldStep) — see the hold comment above.
+				separateHoldPool: Boolean(move.flatHold),
+				hold
 			};
 		});
 	}
@@ -114,7 +138,9 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".playbook-select").on("change", this._onPlaybookChange.bind(this));
 		html.find(".trait-step").on("click", this._onTraitStep.bind(this));
 		html.find(".hold-step").on("click", this._onHoldStep.bind(this));
+		html.find(".bplot-hold-step").on("click", this._onBplotHoldStep.bind(this));
 		html.find(".power-step").on("click", this._onPowerStep.bind(this));
+		html.find(".spotlight-step").on("click", this._onSpotlightStep.bind(this));
 		html.find(".overheating-checkbox").on("change", this._onOverheatingToggle.bind(this));
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
@@ -142,6 +168,14 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({ "system.resources.hold.value": next });
 	}
 
+	_onBplotHoldStep(event) {
+		const { delta } = event.currentTarget.dataset;
+		const current = this.actor.system.attributes?.bplotHold?.value ?? 0;
+		const next = Math.min(HOLD_MAX, Math.max(HOLD_MIN, current + Number(delta)));
+		if (next === current) return;
+		this.actor.update({ "system.attributes.bplotHold.value": next });
+	}
+
 	_onOverheatingToggle(event) {
 		this.actor.update({ "system.attributes.overheating.value": event.currentTarget.checked });
 	}
@@ -152,6 +186,19 @@ export class PlaybookActorSheet extends ActorSheet {
 		const next = Math.min(POWER_MAX, Math.max(POWER_MIN, current + Number(delta)));
 		if (next === current) return;
 		this.actor.update({ "system.attributes.power.value": next });
+	}
+
+	// Clicking a step sets the value to that step, except clicking the current top (highest
+	// filled) step decrements it by one instead — the only way to reduce the track, since there's
+	// no step 0 to click. Storing a single integer (rather than per-step booleans) is what
+	// guarantees the track can never have a gap.
+	_onSpotlightStep(event) {
+		const step = Number(event.currentTarget.dataset.step);
+		const current = this.actor.system.attributes?.spotlight?.value ?? 0;
+		const next = step === current ? step - 1 : step;
+		const clamped = Math.min(SPOTLIGHT_MAX, Math.max(SPOTLIGHT_MIN, next));
+		if (clamped === current) return;
+		this.actor.update({ "system.attributes.spotlight.value": clamped });
 	}
 
 	async _onMoveRoll(event) {

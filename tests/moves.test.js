@@ -23,6 +23,7 @@ const HELP_OR_HINDER = BASIC_MOVES.find((m) => m.key === "help-or-hinder");
 const WEAVE_MAGIC = BASIC_MOVES.find((m) => m.key === "weave-magic");
 const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
+const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
 
 // checkedConditions fakes the jQuery `.find("[name='condition']:checked").map(...).get()` chain
 // configureMoveRoll uses to collect Help or Hinder's checkbox values.
@@ -116,6 +117,14 @@ describe("availableMoveTraits", () => {
 			TRAITS.find((t) => t.key === "know"),
 			TRAITS.find((t) => t.key === "sense")
 		]);
+	});
+
+	it("resolves no traits for b-plot, which rolls nothing by design", () => {
+		const actor = { system: { stats: {} } };
+
+		const traits = availableMoveTraits(actor, B_PLOT);
+
+		expect(traits).toEqual([]);
 	});
 });
 

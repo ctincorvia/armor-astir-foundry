@@ -77,6 +77,46 @@
 	text-align: center;
 }
 
+.armor-astir.sheet .spotlight {
+	margin-top: 10px;
+}
+
+.armor-astir.sheet .spotlight-track {
+	display: flex;
+	flex-direction: row;
+	gap: 6px;
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .spotlight-step {
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	border-radius: 3px;
+	background: transparent;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .spotlight-step.filled {
+	background: #4a4a8a;
+	border-color: #4a4a8a;
+}
+
+.armor-astir.sheet .sheet-tabs {
+	margin: 10px 0;
+	padding: 4px 0;
+	border-top: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	border-bottom: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+}
+
+.armor-astir.sheet .sheet-tabs .item {
+	cursor: pointer;
+	font-weight: bold;
+}
+
 .armor-astir.sheet .move-list {
 	margin: 0;
 	padding: 0;
@@ -120,7 +160,9 @@
 	flex: 0 0 auto;
 }
 
-.armor-astir.sheet .move-roll.disabled {
+.armor-astir.sheet .move-roll.disabled,
+.armor-astir.sheet .hold-step.disabled,
+.armor-astir.sheet .bplot-hold-step.disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
 }

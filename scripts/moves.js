@@ -288,8 +288,11 @@ export const BASIC_MOVES = [
 ];
 
 // Special moves sit in their own sheet section below Basic Moves (see
-// PlaybookActorSheet#getData) but share the exact same shape/handling — the only structural
-// difference is where they're grouped.
+// PlaybookActorSheet#getData) but share the exact same shape/handling as basic moves — the only
+// structural difference is where they're grouped. Some special moves are additionally
+// conditional on actor state via requiresChannelDisabled (see b-plot below and
+// PlaybookActorSheet's `gated` computation) rather than being available unconditionally like
+// lead-a-sortie and subsystems.
 export const SPECIAL_MOVES = [
 	{
 		key: "lead-a-sortie",
@@ -325,6 +328,38 @@ export const SPECIAL_MOVES = [
 		description:
 			"<p>When you activate your Astir's subsystems, spend 1 Power to re-activate an expended " +
 			"[Active] Astir part and use it again.</p>"
+	},
+	{
+		key: "b-plot",
+		name: "B-Plot",
+		traits: [],
+		// Gates the move for CHANNEL-enabled actors (e.g. The Impostor) — the mirror image of
+		// weave-magic's traits-based gating (disabled when CHANNEL is *disabled*). See
+		// PlaybookActorSheet's `gated` computation, which ORs this in alongside the existing
+		// traits-empty check. The move stays visible and its description readable either way,
+		// same as any other gated move — only its hold stepper is greyed out/disabled.
+		requiresChannelDisabled: true,
+		// No roll — traits is empty and there are no conditions, so `rollable` in
+		// PlaybookActorSheet stays false, same treatment as subsystems.
+		// Hold is granted flat by narration, not by a roll tier (contrast read-the-room's
+		// `hold: {success,mixed,failure}`), and tracked in its own actor field rather than the
+		// shared system.resources.hold pool, since a character could plausibly hold both at
+		// once — see PlaybookActorSheet.
+		flatHold: 3,
+		description:
+			"<p>When you head out for some solitary revenge, leave to take part in negotiations, or " +
+			"otherwise take part in a secondary narrative thread to the players involved in the Sortie, " +
+			"you're in the b-plot.</p>" +
+			"<p>Name one or two Director characters that accompany you and hold 3. During the Sortie, you " +
+			"may spend it 1-for-1 to do the following;</p>" +
+			"<ul>" +
+			"<li>Give another player confidence on their next move, but complicate things for yourself.</li>" +
+			"<li>Deny an actor from appearing during the Sortie—they're busy, possibly with the same thing " +
+			"as you.</li>" +
+			"<li>Spend some time and frame a Downtime Scene.</li>" +
+			"<li>Cut away from the Sortie during a moment when time is precious, giving everyone room to " +
+			"think.</li>" +
+			"</ul>"
 	}
 ];
 
