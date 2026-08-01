@@ -1,0 +1,24 @@
+<form class="armor-astir-weapon-picker">
+	<ol class="weapon-picker-list">
+		<li class="weapon-picker-item">
+			<label class="weapon-picker-option">
+				<input type="radio" name="weapon" value="unarmed" checked/>
+				<span class="weapon-picker-name">Unarmed</span>
+			</label>
+		</li>
+		{{#each options}}
+		<li class="weapon-picker-item">
+			<label class="weapon-picker-option">
+				<input type="radio" name="weapon" value="{{key}}"/>
+				<span class="weapon-picker-name">{{name}}</span>
+				<span class="weapon-picker-value">Value {{value}}</span>
+			</label>
+			{{#if tagLabels.length}}
+			<div class="weapon-picker-tags">
+				{{#each tagLabels}}<span class="weapon-picker-tag">{{this}}</span>{{/each}}
+			</div>
+			{{/if}}
+		</li>
+		{{/each}}
+	</ol>
+</form>

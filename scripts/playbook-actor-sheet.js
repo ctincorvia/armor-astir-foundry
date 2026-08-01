@@ -10,6 +10,18 @@ import {
 import { TRAITS } from "./traits.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "./advancements.js";
 import { ALL_PLAYBOOK_MOVES, choosePlaybookMove, resolvePlaybookMoves } from "./playbook-moves.js";
+import {
+	TIER_MAX,
+	TIER_MIN,
+	UNARMED,
+	WEAPON_SCALES,
+	chooseEquipmentCatalogItem,
+	chooseWeapon,
+	configureEquipment,
+	equipmentValue,
+	findEquipmentTag,
+	resolveEquipmentTags
+} from "./equipment.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
 
@@ -50,6 +62,11 @@ const ADVANCEMENT_UNLOCK_THRESHOLD = 3;
 // its identity. Playbook move keys are pool-prefixed (see playbook-moves.js) so this stays
 // collision-free as pools fill in.
 const ALL_MOVES = [...BASIC_MOVES, ...SPECIAL_MOVES, ...ALL_PLAYBOOK_MOVES];
+
+// Moves that represent attacking with a weapon (see moves.js's usesWeapon). Drives both
+// _onMoveRoll's weapon-choice prompt and the per-weapon quick-roll buttons in the Equipment tab
+// (see _equipmentEntry).
+const WEAPON_MOVES = ALL_MOVES.filter((move) => move.usesWeapon);
 
 // All playbook actors are "character" type (see claude.md, "Domain conventions"). Every
 // playbook shares the same name/callsign/photo header, so one sheet class and template
@@ -109,6 +126,26 @@ export class PlaybookActorSheet extends ActorSheet {
 				removable: true
 			}
 		];
+		// Custom-made equipment (see claude.md, "Domain conventions") — never picked from a list,
+		// so unlike moves there's no shared catalog of equipment itself, only of the Tags that can
+		// be attached to it (see equipment.js). One array partitioned by `kind` into weapons and
+		// gear rather than two separate arrays, since add/edit/remove and tag resolution are
+		// identical either way and only the render needs to tell them apart. Weapons get their own
+		// header per claude.md; tierMin/tierMax feed the tab's Tier stepper bounds.
+		const equipment = this._equipment();
+		// The Equipment tab's per-weapon quick-roll buttons (see _onWeaponMoveRoll) — computed once
+		// and attached to every weapon entry below, rather than living once under data.equipment
+		// and cross-referenced from inside the weapons {{#each}}, which would need a riskier
+		// `../equipment.weaponMoves` template lookup. Reusing _moveGroupMoves (rather than
+		// hand-rolling gating) means these buttons inherit the exact same, already-tested `gated`
+		// semantics as the Moves tab's own Roll buttons for free.
+		const weaponMoves = this._moveGroupMoves(WEAPON_MOVES).map(({ key, name, gated }) => ({ key, name, gated }));
+		data.equipment = {
+			tierMin: TIER_MIN,
+			tierMax: TIER_MAX,
+			weapons: equipment.filter((item) => item.kind === "weapon").map((item) => this._equipmentEntry(item, weaponMoves)),
+			gear: equipment.filter((item) => item.kind !== "weapon").map((item) => this._equipmentEntry(item))
+		};
 		// Dangers sit in their own left column beside the tab area (see the template) rather than
 		// inside a tab, since DEFENSELESS and the Danger list matter regardless of which tab is
 		// open. atMax drives both the DEFENSELESS label and hiding the add-danger controls once
@@ -164,6 +201,83 @@ export class PlaybookActorSheet extends ActorSheet {
 
 	_gravityClocks() {
 		return this.actor.system.attributes?.gravityClocks ?? [];
+	}
+
+	_equipment() {
+		return this.actor.system.attributes?.equipment ?? [];
+	}
+
+	_weapons() {
+		return this._equipment().filter((item) => item.kind === "weapon");
+	}
+
+	// Shared by getData (render shape) and _equipmentSpends (roll dialog offers) so a tag's
+	// current definition is only ever resolved from the catalog in one place. Value is always the
+	// live sum of the entry's current tags (see equipmentValue in equipment.js), never stored, so
+	// it can't drift out of sync after a tag is added or removed. scale/tier/weaponMoves are only
+	// present for weapons — gear never carries them. weaponMoves is precomputed once in getData
+	// and passed in here rather than recomputed per entry — see getData's own comment.
+	_equipmentEntry(entry, weaponMoves = []) {
+		const tags = resolveEquipmentTags(entry.tags ?? []).map((tag) => ({
+			key: tag.key,
+			label: tag.label,
+			value: tag.value,
+			description: tag.description,
+			spendable: Boolean(tag.spend),
+			spent: Boolean(entry.spent?.includes(tag.key))
+		}));
+		return {
+			id: entry.id,
+			kind: entry.kind,
+			name: entry.name,
+			description: entry.description,
+			tags,
+			value: equipmentValue(entry.tags ?? []),
+			...(entry.kind === "weapon" && {
+				scale: entry.scale,
+				scaleLabel: WEAPON_SCALES.find((s) => s.key === entry.scale)?.label ?? entry.scale,
+				tier: entry.tier,
+				weaponMoves
+			})
+		};
+	}
+
+	// The unspent, spendable tags across the actor's equipment, offered as checkboxes in the roll
+	// dialog's Equipment section (see _rollMove/configureMoveRoll). Not filtered by move or trait
+	// otherwise — every unspent spendable tag on an offerable entry is offered, same
+	// non-enforcement stance as move pool membership (see playbook-moves.js). `disabled` is true
+	// whenever the roll already has a locked Effect (bite-the-dust at max Perils): every spend
+	// today only ever sets the Effect axis, so honoring the lock means refusing to let a tag be
+	// spent for nothing, rather than silently consuming it.
+	//
+	// `weapon` is the "which weapon" distinction _rollMove already carries: left `undefined` for a
+	// move that doesn't care (every current move except Exchange Blows/Strike Decisively), every
+	// entry is offered exactly as before. Passed explicitly — an actual weapon entry, or `null` for
+	// Unarmed — every *other* weapon's entries are excluded; gear is never filtered, since a
+	// character can plausibly have more than one relevant piece of gear active at once, just not
+	// more than one weapon in hand.
+	_equipmentSpends(lockedEffect, weapon) {
+		const scoped = weapon !== undefined;
+		const spends = [];
+		for (const entry of this._equipment()) {
+			if (scoped && entry.kind === "weapon" && entry.id !== weapon?.id) continue;
+			const spent = entry.spent ?? [];
+			for (const tagKey of entry.tags ?? []) {
+				if (spent.includes(tagKey)) continue;
+				const tag = findEquipmentTag(tagKey);
+				if (!tag?.spend) continue;
+				spends.push({
+					equipmentId: entry.id,
+					equipmentName: entry.name,
+					tagKey: tag.key,
+					tagLabel: tag.label,
+					description: tag.description,
+					effect: tag.spend.effect,
+					disabled: Boolean(lockedEffect)
+				});
+			}
+		}
+		return spends;
 	}
 
 	_advancements() {
@@ -282,6 +396,13 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
 		html.find(".move-activate").on("click", this._onMoveActivate.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
+		html.find(".equipment-add").on("click", this._onEquipmentAdd.bind(this));
+		html.find(".equipment-catalog-add").on("click", this._onEquipmentCatalogAdd.bind(this));
+		html.find(".equipment-edit").on("click", this._onEquipmentEdit.bind(this));
+		html.find(".equipment-remove").on("click", this._onEquipmentRemove.bind(this));
+		html.find(".equipment-tier-step").on("click", this._onEquipmentTierStep.bind(this));
+		html.find(".equipment-tag-spent-checkbox").on("change", this._onEquipmentTagSpentToggle.bind(this));
+		html.find(".weapon-move-roll").on("click", this._onWeaponMoveRoll.bind(this));
 	}
 
 	_onPlaybookChange(event) {
@@ -429,6 +550,101 @@ export class PlaybookActorSheet extends ActorSheet {
 		});
 	}
 
+	// Opens the create dialog, defaulting Kind to whichever "+ Add" button was clicked (Weapons vs
+	// Gear section — see the template) — still changeable in the dialog itself, since the Kind
+	// select there is the actual source of truth at submit time. Equipment is custom-made every
+	// time (see claude.md, "Domain conventions"), so there's no catalog entry to append, only a
+	// freshly authored one.
+	async _onEquipmentAdd(event) {
+		const { kind } = event.currentTarget.dataset;
+		const result = await configureEquipment({ kind });
+		if (!result) return;
+
+		await this._saveNewEquipment(result);
+	}
+
+	// The "+ Pick ... from Catalog" button. Chains two dialogs: chooseEquipmentCatalogItem picks
+	// which template to start from, then the exact same editor _onEquipmentAdd uses opens
+	// pre-filled with it — the player can still rename it, add/drop tags, or adjust tier before
+	// saving, same as any custom entry. A catalog pick is a snapshot, not a reference (see
+	// claude.md, "Equipment"): nothing about the saved entry records which catalog item it came
+	// from, so it's indistinguishable from hand-authored equipment from this point on.
+	async _onEquipmentCatalogAdd(event) {
+		const { kind } = event.currentTarget.dataset;
+		const template = await chooseEquipmentCatalogItem(kind);
+		if (!template) return;
+
+		const result = await configureEquipment(template);
+		if (!result) return;
+
+		await this._saveNewEquipment(result);
+	}
+
+	// Shared tail of _onEquipmentAdd and _onEquipmentCatalogAdd: appends a resolved
+	// configureEquipment result as a brand-new entry, generating its id and starting spent empty.
+	async _saveNewEquipment(result) {
+		const current = this._equipment();
+		await this.actor.update({
+			"system.attributes.equipment": [...current, { id: foundry.utils.randomID(), spent: [], ...result }]
+		});
+	}
+
+	async _onEquipmentEdit(event) {
+		const { equipmentId } = event.currentTarget.dataset;
+		const current = this._equipment();
+		const entry = current.find((item) => item.id === equipmentId);
+		if (!entry) return;
+
+		const result = await configureEquipment(entry);
+		if (!result) return;
+
+		// Replaces the entry wholesale (keeping only id/spent) rather than merging onto the old
+		// one — editing a weapon down to Gear should drop its stale scale/tier, not leave them
+		// dangling unrendered.
+		await this.actor.update({
+			"system.attributes.equipment": current.map((item) => (
+				item.id === equipmentId ? { id: item.id, spent: item.spent ?? [], ...result } : item
+			))
+		});
+	}
+
+	_onEquipmentRemove(event) {
+		const { equipmentId } = event.currentTarget.dataset;
+		const current = this._equipment();
+		this.actor.update({ "system.attributes.equipment": current.filter((item) => item.id !== equipmentId) });
+	}
+
+	_onEquipmentTierStep(event) {
+		const { equipmentId, delta } = event.currentTarget.dataset;
+		const current = this._equipment();
+		const entry = current.find((item) => item.id === equipmentId);
+		if (!entry) return;
+		const tier = entry.tier ?? TIER_MIN;
+		const next = Math.min(TIER_MAX, Math.max(TIER_MIN, tier + Number(delta)));
+		if (next === tier) return;
+		this.actor.update({
+			"system.attributes.equipment": current.map((item) => (item.id === equipmentId ? { ...item, tier: next } : item))
+		});
+	}
+
+	// The manual "new Scene" reset for a spent tag — same manual-tracking model as
+	// _onMoveUseToggle and the Advancement checklist; nothing in this module knows when a Scene
+	// starts, so a spent tag stays spent until the player unchecks it themselves (here, or by
+	// spending it again through the roll dialog — see _onMoveRoll).
+	_onEquipmentTagSpentToggle(event) {
+		const { equipmentId, tag: tagKey } = event.currentTarget.dataset;
+		const checked = event.currentTarget.checked;
+		const current = this._equipment();
+		this.actor.update({
+			"system.attributes.equipment": current.map((item) => {
+				if (item.id !== equipmentId) return item;
+				const spent = item.spent ?? [];
+				const nextSpent = checked ? [...new Set([...spent, tagKey])] : spent.filter((key) => key !== tagKey);
+				return { ...item, spent: nextSpent };
+			})
+		});
+	}
+
 	// The "+" on the Playbook Moves section. The picker is passed the actor's playbook name (so it
 	// knows which pool is "yours") and its current picks (so an already-taken move isn't offered
 	// again) — see playbookMoveSections. It resolves null on cancel, on close, and when the dialog
@@ -460,6 +676,41 @@ export class PlaybookActorSheet extends ActorSheet {
 		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
 		if (!move) return;
 
+		// usesWeapon (Exchange Blows, Strike Decisively — see moves.js) prompts which weapon (or
+		// Unarmed) before rolling, so _rollMove's equipment spends can be scoped to it. `weapon`
+		// stays undefined for every other move — the same "not applicable" signal
+		// _equipmentSpends already reads. Skipped entirely when the actor has no weapons at all:
+		// there's nothing to choose between, so Unarmed is simply true.
+		let weapon;
+		if (move.usesWeapon) {
+			const weapons = this._weapons();
+			if (weapons.length) {
+				const weaponId = await chooseWeapon(weapons);
+				if (weaponId === null) return;
+				weapon = weaponId === UNARMED ? null : weapons.find((w) => w.id === weaponId) ?? null;
+			} else {
+				weapon = null;
+			}
+		}
+
+		await this._rollMove(move, weapon);
+	}
+
+	// The weapon's own quick-roll buttons in the Equipment tab (see getData's weaponMoves) — same
+	// roll as _onMoveRoll, but the weapon is already known from which button was clicked, so
+	// there's no chooseWeapon prompt.
+	async _onWeaponMoveRoll(event) {
+		const { move: moveKey, equipmentId } = event.currentTarget.dataset;
+		const move = ALL_MOVES.find((m) => m.key === moveKey);
+		const weapon = this._equipment().find((item) => item.id === equipmentId);
+		if (!move || !weapon) return;
+
+		await this._rollMove(move, weapon);
+	}
+
+	// Shared by _onMoveRoll (weapon resolved via chooseWeapon, or left undefined for a move that
+	// isn't usesWeapon) and _onWeaponMoveRoll (weapon already known from the clicked button).
+	async _rollMove(move, weapon) {
 		const traits = this._moveTraits(move);
 		if (!traits.length && !move.conditions) return;
 
@@ -467,10 +718,32 @@ export class PlaybookActorSheet extends ActorSheet {
 		// move resolves lockedEffect to null and configureMoveRoll's Effect select behaves exactly
 		// as before.
 		const lockedEffect = move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null;
-		const config = await configureMoveRoll(move, traits, { lockedEffect });
+		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
+		const config = await configureMoveRoll(move, traits, { lockedEffect, equipmentSpends });
 		if (!config) return;
 
-		await rollMove(this.actor, move, config.trait, config);
+		if (config.spentTags?.length) await this._spendEquipmentTags(config.spentTags);
+
+		// weapon undefined (not a usesWeapon move) leaves rollMove's options untouched, same as
+		// today, for every move except Exchange Blows/Strike Decisively. null (Unarmed) or a real
+		// weapon entry both add a weaponLabel, recorded on the chat card even when nothing was
+		// spent (see rollMove in moves.js).
+		const options = weapon !== undefined ? { ...config, weaponLabel: weapon ? weapon.name : "Unarmed" } : config;
+		await rollMove(this.actor, move, config.trait, options);
+	}
+
+	// Marks each checked equipment spend (see configureMoveRoll's Equipment section) as spent on
+	// its entry, before the roll itself is posted — same write-then-roll order as read-the-room's
+	// hold in rollMove, so the sheet reflects a spend even if the chat render that follows fails.
+	async _spendEquipmentTags(spentTags) {
+		const current = this._equipment();
+		await this.actor.update({
+			"system.attributes.equipment": current.map((item) => {
+				const additions = spentTags.filter((spend) => spend.equipmentId === item.id).map((spend) => spend.tagKey);
+				if (!additions.length) return item;
+				return { ...item, spent: [...new Set([...(item.spent ?? []), ...additions])] };
+			})
+		});
 	}
 
 	// Stands in for a roll on moves with a flat hold grant (B-Plot) — there's no dice to roll, so

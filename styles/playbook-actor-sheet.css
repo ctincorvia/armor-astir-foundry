@@ -344,7 +344,8 @@
 .armor-astir.sheet .move-description.disabled,
 .armor-astir.sheet .hold-step.disabled,
 .armor-astir.sheet .bplot-hold-step.disabled,
-.armor-astir.sheet .advancement-item.disabled {
+.armor-astir.sheet .advancement-item.disabled,
+.armor-astir.sheet .weapon-move-roll.disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
 }
@@ -387,6 +388,125 @@
 	margin: 6px 0;
 	font-size: 12px;
 	font-style: italic;
+}
+
+.armor-astir.sheet .equipment-list {
+	margin: 0 0 8px;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .equipment-item {
+	padding: 6px 0;
+	border-bottom: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+}
+
+.armor-astir.sheet .equipment-header {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px;
+}
+
+.armor-astir.sheet .equipment-name {
+	font-weight: bold;
+}
+
+.armor-astir.sheet .equipment-value {
+	font-size: 12px;
+	opacity: 0.8;
+}
+
+.armor-astir.sheet .equipment-tier-control {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 4px;
+	font-size: 12px;
+}
+
+.armor-astir.sheet .equipment-scale {
+	font-size: 11px;
+	font-style: italic;
+	opacity: 0.8;
+}
+
+.armor-astir.sheet .equipment-item-controls {
+	display: flex;
+	flex-direction: row;
+	gap: 4px;
+	margin-left: auto;
+}
+
+.armor-astir.sheet .equipment-remove {
+	flex: 0 0 auto;
+	width: 18px;
+	height: 18px;
+	padding: 0;
+	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	border-radius: 3px;
+	background: transparent;
+	line-height: 1;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .equipment-description {
+	margin: 4px 0 0;
+	font-size: 12px;
+}
+
+.armor-astir.sheet .equipment-tag-list {
+	margin: 4px 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .equipment-tag {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 6px;
+	font-size: 12px;
+	padding: 1px 0;
+}
+
+.armor-astir.sheet .equipment-tag-label {
+	font-weight: bold;
+}
+
+.armor-astir.sheet .equipment-tag-description {
+	opacity: 0.8;
+}
+
+.armor-astir.sheet .equipment-tag-spent {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 3px;
+	margin-left: auto;
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+.armor-astir.sheet .weapon-move-controls {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-top: 6px;
+}
+
+.armor-astir.sheet .weapon-move-roll {
+	font-size: 11px;
+	padding: 2px 6px;
+}
+
+.armor-astir.sheet .equipment-add,
+.armor-astir.sheet .equipment-catalog-add {
+	margin: 4px 8px 12px 0;
 }
 
 .armor-astir-move-chat .move-name {
@@ -509,6 +629,13 @@
 	background: #6b5b1e;
 }
 
+/* One rule per equipment tag key, same as the Help or Hinder conditions above — a future tag
+   added to EQUIPMENT_TAGS (equipment.js) without its own rule here still renders, just without a
+   background color. */
+.armor-astir-move-chat .move-condition-blitz {
+	background: #1e6b5b;
+}
+
 .armor-astir-move-chat .move-dice {
 	display: flex;
 	flex-direction: row;
@@ -579,6 +706,64 @@
 	font-weight: bold;
 	color: #8b1a1a;
 	text-align: right;
+}
+
+.armor-astir.move-roll-dialog .move-roll-equipment-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.armor-astir.move-roll-dialog .move-roll-equipment-spend {
+	display: flex;
+	flex-direction: column;
+	gap: 1px;
+	font-size: 12px;
+}
+
+.armor-astir.move-roll-dialog .move-roll-equipment-spend.disabled {
+	opacity: 0.5;
+}
+
+.armor-astir.move-roll-dialog .move-roll-equipment-name {
+	font-weight: bold;
+}
+
+.armor-astir.move-roll-dialog .move-roll-equipment-description {
+	margin-left: 18px;
+	font-size: 11px;
+	opacity: 0.8;
+}
+
+.armor-astir.equipment-editor .form-group {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 2px;
+	margin-bottom: 6px;
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-list {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 6px;
+	font-size: 12px;
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-label {
+	font-weight: bold;
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-description {
+	opacity: 0.8;
 }
 
 /* The picker's accordion is plain <details>/<summary> — the open/closed state is native browser
@@ -653,4 +838,80 @@
 .armor-astir.playbook-move-picker .move-picker-empty {
 	margin: 0;
 	font-style: italic;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-item {
+	padding: 4px 0;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-name {
+	font-weight: bold;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-description {
+	margin-left: 22px;
+	font-size: 12px;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-empty {
+	margin: 0;
+	font-style: italic;
+}
+
+.armor-astir.weapon-picker .weapon-picker-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.weapon-picker .weapon-picker-item {
+	padding: 4px 0;
+}
+
+.armor-astir.weapon-picker .weapon-picker-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 6px;
+	cursor: pointer;
+}
+
+.armor-astir.weapon-picker .weapon-picker-name {
+	font-weight: bold;
+}
+
+.armor-astir.weapon-picker .weapon-picker-value {
+	font-size: 12px;
+	opacity: 0.8;
+}
+
+.armor-astir.weapon-picker .weapon-picker-tags {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: 4px;
+	margin-left: 22px;
+}
+
+.armor-astir.weapon-picker .weapon-picker-tag {
+	padding: 1px 5px;
+	border-radius: 3px;
+	background: #4a4a8a;
+	font-size: 11px;
+	font-weight: bold;
+	color: #fff;
 }

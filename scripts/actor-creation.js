@@ -36,15 +36,19 @@ export async function createPlaybookActor(playbook, { folder = null } = {}) {
 
 // Re-targets an existing character actor at a different playbook, replacing its playbook-derived
 // data (system.playbook/stats/attributes and items) while leaving the actor's own name, img, and
-// system.details.callsign untouched (see claude.md, "Domain conventions").
+// system.details.callsign untouched (see claude.md, "Domain conventions"). Equipment is the one
+// exception carved out of the attributes wipe: unlike playbookMoves — which is meant to reset,
+// since Bite the Dust's own text says a new playbook doesn't come with new equipment — a
+// character's gear is theirs, not the playbook's, so it survives the swap.
 export async function swapActorPlaybook(actor, playbook) {
 	const data = await getPlaybookSourceData(playbook);
 	if (!data) return null;
 
+	const equipment = actor.system.attributes?.equipment ?? [];
 	await actor.update({
 		"system.playbook": data.system.playbook,
 		"system.stats": data.system.stats,
-		"system.attributes": data.system.attributes
+		"system.attributes": { ...data.system.attributes, equipment }
 	});
 
 	const oldItemIds = actor.items.map((i) => i.id);

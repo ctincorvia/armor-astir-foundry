@@ -1,0 +1,17 @@
+<form class="armor-astir-equipment-catalog-picker">
+	{{#if items.length}}
+	<ol class="equipment-catalog-picker-list">
+		{{#each items}}
+		<li class="equipment-catalog-picker-item">
+			<label class="equipment-catalog-picker-option">
+				<input type="radio" name="catalog-item" value="{{key}}"/>
+				<span class="equipment-catalog-picker-name">{{name}}</span>
+			</label>
+			<div class="equipment-catalog-picker-description">{{description}}</div>
+		</li>
+		{{/each}}
+	</ol>
+	{{else}}
+	<p class="equipment-catalog-picker-empty">There is nothing in the catalog for this yet.</p>
+	{{/if}}
+</form>

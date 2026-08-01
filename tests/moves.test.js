@@ -26,13 +26,16 @@ const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
 
-// checkedConditions fakes the jQuery `.find("[name='condition']:checked").map(...).get()` chain
-// configureMoveRoll uses to collect Help or Hinder's checkbox values.
-function fakeRollHtml(values, checkedConditions = []) {
+// checkedConditions/checkedEquipmentTags fake the jQuery `.find("[name='...']:checked").map(...).get()`
+// chains configureMoveRoll uses to collect Help or Hinder's checkbox values and equipment spends.
+function fakeRollHtml(values, checkedConditions = [], checkedEquipmentTags = []) {
 	return {
 		find: (selector) => {
 			if (selector === "[name='condition']:checked") {
 				return { map: (fn) => ({ get: () => checkedConditions.map((value, index) => fn(index, { value })) }) };
+			}
+			if (selector === "[name='equipment-tag']:checked") {
+				return { map: (fn) => ({ get: () => checkedEquipmentTags.map((value, index) => fn(index, { value })) }) };
 			}
 			return { val: () => values[selector] };
 		}
@@ -280,6 +283,141 @@ describe("configureMoveRoll - intents and conditions", () => {
 
 	it("does not add intent or conditions keys for moves that don't define them", async () => {
 		const clash = { key: "clash", label: "CLASH", value: 1 };
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}));
+
+		expect(await promise).toEqual({ trait: clash, advantage: "none", effect: "none" });
+	});
+});
+
+describe("configureMoveRoll - equipment spends", () => {
+	const clash = { key: "clash", label: "CLASH", value: 1 };
+	const blitzSpend = {
+		equipmentId: "eq1",
+		equipmentName: "Halberd",
+		tagKey: "blitz",
+		tagLabel: "Blitz",
+		description: "You may spend this tag once per Scene to make a move with confidence.",
+		effect: "confidence",
+		disabled: false
+	};
+
+	it("passes the offered equipment spends to the dialog template", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { equipmentSpends: [blitzSpend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			equipmentSpends: [blitzSpend]
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults equipmentSpends to an empty list", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			equipmentSpends: []
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves checked equipment spends as {equipmentId, tagKey} pairs", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { equipmentSpends: [blitzSpend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], ["eq1::blitz"]));
+
+		expect(await promise).toEqual({
+			trait: clash,
+			advantage: "none",
+			effect: "confidence",
+			spentTags: [{ equipmentId: "eq1", tagKey: "blitz" }]
+		});
+	});
+
+	it("sets the roll's effect from a checked spend, regardless of the Effect select's own value", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { equipmentSpends: [blitzSpend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "desperation"
+		}, [], ["eq1::blitz"]));
+
+		expect((await promise).effect).toBe("confidence");
+	});
+
+	it("lets lockedEffect win over a checked spend", async () => {
+		const promise = configureMoveRoll(BITE_THE_DUST, [clash], { lockedEffect: "desperation", equipmentSpends: [blitzSpend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], ["eq1::blitz"]));
+
+		expect((await promise).effect).toBe("desperation");
+	});
+
+	it("takes the later checked spend's effect on a collision", async () => {
+		const desperationSpend = { ...blitzSpend, equipmentId: "eq2", tagKey: "grimdark", effect: "desperation" };
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { equipmentSpends: [blitzSpend, desperationSpend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], ["eq1::blitz", "eq2::grimdark"]));
+
+		expect((await promise).effect).toBe("desperation");
+	});
+
+	it("resolves an empty spentTags list, and falls back to the Effect select, when spends were offered but none were checked", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { equipmentSpends: [blitzSpend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}));
+
+		expect(await promise).toEqual({ trait: clash, advantage: "none", effect: "none", spentTags: [] });
+	});
+
+	it("does not add a spentTags key when no equipment was offered", async () => {
 		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
 		await Promise.resolve();
 		await Promise.resolve();
@@ -603,6 +741,40 @@ describe("rollMove - help or hinder", () => {
 				{ key: "hook", label: "They're part of one of your Hooks" }
 			]
 		}));
+	});
+});
+
+describe("rollMove - equipment spends", () => {
+	it("includes a spent equipment tag's label alongside advantage/effect conditions in the chat template", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { spentTags: [{ equipmentId: "eq1", tagKey: "blitz" }] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			conditions: [{ key: "blitz", label: "Blitz" }]
+		}));
+	});
+
+	it("drops a spent tag whose key no longer resolves in the catalog", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { spentTags: [{ equipmentId: "eq1", tagKey: "not-a-real-tag" }] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ conditions: [] }));
+	});
+
+	it("renders no equipment conditions when nothing was spent", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, {});
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ conditions: [] }));
 	});
 });
 

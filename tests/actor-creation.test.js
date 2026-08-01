@@ -101,6 +101,7 @@ describe("swapActorPlaybook", () => {
 		game.packs.get.mockReturnValue(pack);
 
 		const actor = {
+			system: { attributes: {} },
 			update: vi.fn().mockResolvedValue(undefined),
 			items: [{ id: "old-item-1" }, { id: "old-item-2" }],
 			deleteEmbeddedDocuments: vi.fn().mockResolvedValue(undefined),
@@ -112,7 +113,7 @@ describe("swapActorPlaybook", () => {
 		expect(actor.update).toHaveBeenCalledWith({
 			"system.playbook": { name: PLAYBOOKS[1].name, slug: "the-commander", uuid: "" },
 			"system.stats": { command: { value: 1 } },
-			"system.attributes": {}
+			"system.attributes": { equipment: [] }
 		});
 		expect(actor.deleteEmbeddedDocuments).toHaveBeenCalledWith("Item", ["old-item-1", "old-item-2"]);
 		expect(actor.createEmbeddedDocuments).toHaveBeenCalledWith("Item", [{ name: "Rally the Troops", type: "move" }]);
@@ -136,6 +137,7 @@ describe("swapActorPlaybook", () => {
 		game.packs.get.mockReturnValue(pack);
 
 		const actor = {
+			system: { attributes: {} },
 			update: vi.fn().mockResolvedValue(undefined),
 			items: [],
 			deleteEmbeddedDocuments: vi.fn(),
@@ -146,6 +148,44 @@ describe("swapActorPlaybook", () => {
 
 		expect(actor.deleteEmbeddedDocuments).not.toHaveBeenCalled();
 		expect(actor.createEmbeddedDocuments).not.toHaveBeenCalled();
+	});
+
+	it("preserves the actor's existing equipment across the swap, unlike playbookMoves", async () => {
+		const scoutSource = {
+			toObject: () => ({
+				_id: "abc123",
+				name: PLAYBOOKS[0].name,
+				type: "character",
+				system: {
+					playbook: { name: PLAYBOOKS[0].name },
+					stats: {},
+					attributes: { playbookMoves: ["the-commander:some-move"] }
+				},
+				items: []
+			})
+		};
+		const pack = {
+			getIndex: vi.fn().mockResolvedValue([{ _id: "abc123", name: PLAYBOOKS[0].name }]),
+			getDocument: vi.fn().mockResolvedValue(scoutSource)
+		};
+		game.packs.get.mockReturnValue(pack);
+
+		const existingEquipment = [{ id: "eq1", kind: "weapon", name: "Halberd", tags: [], spent: [] }];
+		const actor = {
+			system: { attributes: { equipment: existingEquipment, playbookMoves: ["the-scout:bullheaded"] } },
+			update: vi.fn().mockResolvedValue(undefined),
+			items: [],
+			deleteEmbeddedDocuments: vi.fn(),
+			createEmbeddedDocuments: vi.fn()
+		};
+
+		await swapActorPlaybook(actor, PLAYBOOKS[0]);
+
+		expect(actor.update).toHaveBeenCalledWith({
+			"system.playbook": { name: PLAYBOOKS[0].name },
+			"system.stats": {},
+			"system.attributes": { playbookMoves: ["the-commander:some-move"], equipment: existingEquipment }
+		});
 	});
 });
 

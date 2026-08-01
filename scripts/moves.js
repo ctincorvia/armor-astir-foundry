@@ -9,6 +9,7 @@ import {
 	rollConditions
 } from "./roll-effects.js";
 import { TRAITS } from "./traits.js";
+import { findEquipmentTag } from "./equipment.js";
 
 export const MOVE_CHAT_TEMPLATE = "modules/armor-astir/templates/move-chat.hbs";
 export const MOVE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates/move-roll-dialog.hbs";
@@ -42,6 +43,11 @@ export const BASIC_MOVES = [
 		key: "exchange-blows",
 		name: "Exchange Blows",
 		traits: ["clash", "talk"],
+		// Evaluated in PlaybookActorSheet (mirrors requiresChannelDisabled/forcesDesperationAtMaxPerils):
+		// _onMoveRoll prompts the player to choose which weapon (or Unarmed — both this move and Strike
+		// Decisively cover unarmed/verbal conflict too) they're engaging with, and only that weapon's
+		// tags are offered as spends — a two-Blitz-weapons character can't stack both on one swing.
+		usesWeapon: true,
 		description:
 			"<p>When you charge at a foe with your blade, engage someone in debate or try to provoke them, or " +
 			"otherwise act against someone able to defend themselves, you are attempting to exchange blows.</p>" +
@@ -219,6 +225,8 @@ export const BASIC_MOVES = [
 		key: "strike-decisively",
 		name: "Strike Decisively",
 		traits: ["clash", "talk"],
+		// See exchange-blows above — same weapon-choice treatment.
+		usesWeapon: true,
 		description:
 			"<p>When you're lining up the perfect shot against an opponent who can't defend themselves, delivering " +
 			"a scathing dismissal of their character using irrefutable fact, or otherwise engaging someone who is " +
@@ -385,14 +393,21 @@ export function availableMoveTraits(actor, move) {
 // PlaybookActorSheet#_onMoveRoll) pre-selects and disables the dialog's Effect select, and is
 // forced into the resolved effect regardless of what the disabled select reports, as a
 // belt-and-suspenders match to the template's disabled attribute.
-export async function configureMoveRoll(move, traits, { lockedEffect = null } = {}) {
+//
+// equipmentSpends (see PlaybookActorSheet#_equipmentSpends) is the actor's unspent, spendable
+// equipment tags — not part of the move's own definition, unlike intents/conditions, so it's
+// passed in rather than read off `move`. Offering it here, rather than filtering it down before
+// the call, keeps this one place responsible for turning "what's offerable" into "what was
+// checked".
+export async function configureMoveRoll(move, traits, { lockedEffect = null, equipmentSpends = [] } = {}) {
 	const content = await renderTemplate(MOVE_ROLL_DIALOG_TEMPLATE, {
 		traits,
 		intents: move.intents,
 		conditions: move.conditions,
 		advantageStates: ADVANTAGE_STATES,
 		effectStates: EFFECT_STATES,
-		lockedEffect
+		lockedEffect,
+		equipmentSpends
 	});
 
 	return new Promise((resolve) => {
@@ -403,18 +418,44 @@ export async function configureMoveRoll(move, traits, { lockedEffect = null } = 
 				roll: {
 					label: "Roll",
 					// intent/conditions keys are only added for moves that define them (Help or
-					// Hinder), so every other move's resolved shape is untouched.
-					callback: (html) => resolve({
-						trait: traits.find((t) => t.key === html.find("[name='trait']").val()),
-						advantage: html.find("[name='advantage']").val(),
-						effect: lockedEffect ?? html.find("[name='effect']").val(),
-						...(move.intents && {
-							intent: move.intents.find((i) => i.key === html.find("[name='intent']").val())
-						}),
-						...(move.conditions && {
-							conditions: html.find("[name='condition']:checked").map((_, el) => el.value).get()
-						})
-					})
+					// Hinder); spentTags is only added when there was equipment to offer in the
+					// first place — every other roll's resolved shape is untouched.
+					callback: (html) => {
+						const spentTags = equipmentSpends.length
+							? html.find("[name='equipment-tag']:checked").map((_, el) => el.value).get()
+								.map((value) => {
+									const [equipmentId, tagKey] = value.split("::");
+									return { equipmentId, tagKey };
+								})
+							: [];
+						// A checked spend's effect (e.g. Blitz -> confidence) sets the roll's
+						// Effect directly, the same way lockedEffect does — checking the tag IS
+						// the player choosing to act with confidence, so it can't require also
+						// separately matching the Effect select. lockedEffect still wins over a
+						// spend the same way it already wins over the select (bite-the-dust at
+						// max Perils's offered spends render disabled for exactly this reason —
+						// see PlaybookActorSheet#_equipmentSpends). On a spend collision (two
+						// checked tags both setting Effect) the later one wins.
+						const spentEffect = spentTags
+							.map(({ equipmentId, tagKey }) => equipmentSpends.find(
+								(spend) => spend.equipmentId === equipmentId && spend.tagKey === tagKey
+							))
+							.filter(Boolean)
+							.at(-1)?.effect;
+
+						resolve({
+							trait: traits.find((t) => t.key === html.find("[name='trait']").val()),
+							advantage: html.find("[name='advantage']").val(),
+							effect: lockedEffect ?? spentEffect ?? html.find("[name='effect']").val(),
+							...(move.intents && {
+								intent: move.intents.find((i) => i.key === html.find("[name='intent']").val())
+							}),
+							...(move.conditions && {
+								conditions: html.find("[name='condition']:checked").map((_, el) => el.value).get()
+							}),
+							...(equipmentSpends.length && { spentTags })
+						});
+					}
 				},
 				cancel: {
 					label: "Cancel",
@@ -477,15 +518,29 @@ export async function rollMove(actor, move, trait, options = {}) {
 		.filter((condition) => options.conditions?.includes(condition.key))
 		.map(({ key, label }) => ({ key, label }));
 
+	// A spent equipment tag (e.g. Blitz — see equipment.js) is the same kind of "why the total is
+	// what it is" badge, so it rides in the same conditions list rather than getting its own
+	// template section. Resolved from the catalog here (not carried on options.spentTags itself)
+	// so a stale tagKey — the equipment was edited between opening the dialog and rolling —
+	// quietly drops instead of rendering a blank badge.
+	const equipmentConditions = (options.spentTags ?? [])
+		.map(({ tagKey }) => findEquipmentTag(tagKey))
+		.filter(Boolean)
+		.map(({ key, label }) => ({ key, label }));
+
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
 		name: move.name,
 		traitLabel: trait?.label ?? null,
 		intentLabel: options.intent?.label ?? null,
+		// Set by PlaybookActorSheet#_rollMove for a usesWeapon move — the chosen weapon's name, or
+		// the literal string "Unarmed" — regardless of whether any of its tags were spent, so the
+		// chat card always records which weapon (if any) the roll used. null for every other move.
+		weaponLabel: options.weaponLabel ?? null,
 		tier,
 		tierLabel: MOVE_RESULT_LABELS[tier],
 		resultText: move.results[tier],
 		reminders: tier === "failure" ? FAILURE_REMINDERS : null,
-		conditions: [...rollConditions(advantage, effect), ...moveConditions],
+		conditions: [...rollConditions(advantage, effect), ...moveConditions, ...equipmentConditions],
 		dice,
 		hold,
 		questionPrompt: move.questionPrompts?.[tier] ?? null,

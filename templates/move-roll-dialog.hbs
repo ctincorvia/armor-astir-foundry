@@ -31,6 +31,20 @@
 		</div>
 	</div>
 	{{/if}}
+	{{#if equipmentSpends.length}}
+	<div class="form-group move-roll-equipment">
+		<label>Equipment</label>
+		<div class="move-roll-equipment-list">
+			{{#each equipmentSpends}}
+			<label class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
+				<input type="checkbox" name="equipment-tag" value="{{equipmentId}}::{{tagKey}}" {{#if disabled}}disabled{{/if}}/>
+				<span class="move-roll-equipment-name">{{equipmentName}} — {{tagLabel}}</span>
+				<span class="move-roll-equipment-description">{{description}}</span>
+			</label>
+			{{/each}}
+		</div>
+	</div>
+	{{/if}}
 	<div class="form-group">
 		<label>Dice</label>
 		<select name="advantage">
