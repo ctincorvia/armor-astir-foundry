@@ -1,4 +1,5 @@
 import { PLAYBOOKS, swapActorPlaybook } from "./actor-creation.js";
+import { availableApproaches } from "./approaches.js";
 import {
 	BASIC_MOVES,
 	SPECIAL_MOVES,
@@ -31,8 +32,8 @@ const TRAIT_MIN = -3;
 const TRAIT_MAX = 3;
 
 // Matches the highest per-tier hold any basic move currently grants (read-the-room's 3 on a
-// 10+); also reused as b-plot's flat hold cap (its own separately-tracked pool — see
-// _moveGroupMoves) since both cap at 3. Revisit if a future move grants more.
+// 10+); also reused as the cap for every flatHold move's own separately-tracked pool (see
+// _moveGroupMoves) since all of them cap at 3 today. Revisit if a future move grants more.
 const HOLD_MIN = 0;
 const HOLD_MAX = 3;
 
@@ -86,6 +87,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		const data = super.getData(options);
 		data.playbooks = PLAYBOOKS;
 		data.currentPlaybookId = PLAYBOOKS.find((p) => p.name === this.actor.system.playbook?.name)?.packId ?? null;
+		data.approachOptions = availableApproaches(this.actor.system.playbook?.slug);
 		data.traits = TRAITS.map(({ key, label }) => {
 			const stat = this.actor.system.stats?.[key];
 			return { key, label, value: stat?.value ?? 0, disabled: stat?.disabled ?? false };
@@ -304,11 +306,13 @@ export class PlaybookActorSheet extends ActorSheet {
 		return moves.map((move) => {
 			const traits = this._moveTraits(move);
 			// Read-the-room's roll-tiered hold lives in pbta's shared system.resources.hold
-			// field; b-plot's flat, roll-less hold is tracked separately in
-			// system.attributes.bplotHold (an ObjectField, unlike the strictly-schemed
-			// system.resources) so the two pools can't collide on one actor.
+			// field; every flatHold move's roll-less hold is tracked separately, one pool per
+			// move key, at system.attributes.moveHold.<moveKey> (an ObjectField, unlike the
+			// strictly-schemed system.resources) — keyed the same way system.attributes.moveUses
+			// already is, so two different flatHold moves (e.g. b-plot and a Soldier Move) on the
+			// same actor can't collide and overwrite each other's count.
 			const hold = move.flatHold
-				? this.actor.system.attributes?.bplotHold?.value ?? 0
+				? this.actor.system.attributes?.moveHold?.[move.key]?.value ?? 0
 				: this.actor.system.resources?.hold?.value ?? 0;
 			// True only for moves gated off Channel being enabled (b-plot, via
 			// requiresChannelDisabled) — distinct from the traits-empty gating below (Weave
@@ -339,7 +343,7 @@ export class PlaybookActorSheet extends ActorSheet {
 				descriptionGated: channelGated,
 				trackHold: Boolean(move.hold) || Boolean(move.flatHold),
 				// Which stepper/handler the template wires up (_onHoldStep vs
-				// _onBplotHoldStep) — see the hold comment above.
+				// _onFlatHoldStep) — see the hold comment above.
 				separateHoldPool: Boolean(move.flatHold),
 				hold,
 				// Generic, per-move-key checkboxes for a "once per Sortie"/"once per Downtime" cap
@@ -378,7 +382,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".playbook-select").on("change", this._onPlaybookChange.bind(this));
 		html.find(".trait-step").on("click", this._onTraitStep.bind(this));
 		html.find(".hold-step").on("click", this._onHoldStep.bind(this));
-		html.find(".bplot-hold-step").on("click", this._onBplotHoldStep.bind(this));
+		html.find(".flat-hold-step").on("click", this._onFlatHoldStep.bind(this));
 		html.find(".power-step").on("click", this._onPowerStep.bind(this));
 		html.find(".spotlight-step").on("click", this._onSpotlightStep.bind(this));
 		html.find(".overheating-checkbox").on("change", this._onOverheatingToggle.bind(this));
@@ -427,12 +431,12 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({ "system.resources.hold.value": next });
 	}
 
-	_onBplotHoldStep(event) {
-		const { delta } = event.currentTarget.dataset;
-		const current = this.actor.system.attributes?.bplotHold?.value ?? 0;
+	_onFlatHoldStep(event) {
+		const { move: key, delta } = event.currentTarget.dataset;
+		const current = this.actor.system.attributes?.moveHold?.[key]?.value ?? 0;
 		const next = Math.min(HOLD_MAX, Math.max(HOLD_MIN, current + Number(delta)));
 		if (next === current) return;
-		this.actor.update({ "system.attributes.bplotHold.value": next });
+		this.actor.update({ [`system.attributes.moveHold.${key}.value`]: next });
 	}
 
 	_onOverheatingToggle(event) {
@@ -746,17 +750,18 @@ export class PlaybookActorSheet extends ActorSheet {
 		});
 	}
 
-	// Stands in for a roll on moves with a flat hold grant (B-Plot) — there's no dice to roll, so
-	// clicking Activate just adds the move's flatHold to its (separately-tracked) pool, same
-	// field _onBplotHoldStep writes to, clamped the same way.
+	// Stands in for a roll on moves with a flat hold grant (B-Plot, or a flatHold Soldier Move) —
+	// there's no dice to roll, so clicking Activate just adds the move's flatHold to its own
+	// (separately-tracked, per-move-key) pool, the same field _onFlatHoldStep writes to, clamped
+	// the same way.
 	async _onMoveActivate(event) {
 		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
 		if (!move || !move.flatHold) return;
 
-		const current = this.actor.system.attributes?.bplotHold?.value ?? 0;
+		const current = this.actor.system.attributes?.moveHold?.[move.key]?.value ?? 0;
 		const next = Math.min(HOLD_MAX, Math.max(HOLD_MIN, current + move.flatHold));
 		if (next === current) return;
-		await this.actor.update({ "system.attributes.bplotHold.value": next });
+		await this.actor.update({ [`system.attributes.moveHold.${move.key}.value`]: next });
 	}
 
 	async _onMoveDescription(event) {

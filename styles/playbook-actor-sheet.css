@@ -16,6 +16,19 @@
 	white-space: nowrap;
 }
 
+.armor-astir.sheet .sheet-header .approach-swap {
+	display: flex;
+	flex: 0 0 auto;
+	flex-direction: row;
+	align-items: center;
+	align-self: flex-start;
+	gap: 6px;
+}
+
+.armor-astir.sheet .sheet-header .approach-swap label {
+	white-space: nowrap;
+}
+
 .armor-astir.sheet .traits-list {
 	display: flex;
 	flex-wrap: wrap;
@@ -343,7 +356,7 @@
 .armor-astir.sheet .move-activate.disabled,
 .armor-astir.sheet .move-description.disabled,
 .armor-astir.sheet .hold-step.disabled,
-.armor-astir.sheet .bplot-hold-step.disabled,
+.armor-astir.sheet .flat-hold-step.disabled,
 .armor-astir.sheet .advancement-item.disabled,
 .armor-astir.sheet .weapon-move-roll.disabled {
 	opacity: 0.5;
@@ -764,6 +777,22 @@
 
 .armor-astir.equipment-editor .equipment-editor-tag-description {
 	opacity: 0.8;
+}
+
+/* pbta's own CSS (pbta.css) gives every Dialog's .dialog-buttons an unwanted flex-grow inside
+   .window-content's column layout, so when the picker's content is short — every accordion
+   section still collapsed — the Add/Cancel buttons stretch to swallow the leftover vertical
+   space instead of the content area, rendering huge. pbta already hit this for its own dialogs
+   and fixes it with a `.dialog-content:has(.pbta-attribute-dialog, .pbta-choice-dialog) +
+   .dialog-buttons { flex: 0 }` rule — unusable here since our content never carries those marker
+   classes, so this replicates the same fix (buttons pinned to their natural size, the content
+   area free to grow/scroll instead) scoped to this dialog's own classes. */
+.armor-astir.playbook-move-picker .dialog-buttons {
+	flex: 0;
+}
+
+.armor-astir.playbook-move-picker .dialog-content {
+	overflow-y: auto;
 }
 
 /* The picker's accordion is plain <details>/<summary> — the open/closed state is native browser

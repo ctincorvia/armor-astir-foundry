@@ -17,6 +17,12 @@
 				{{selectOptions playbooks selected=currentPlaybookId valueAttr="packId" labelAttr="name"}}
 			</select>
 		</div>
+		<div class="approach-swap">
+			<label>Approach</label>
+			<select name="system.playbook.approach">
+				{{selectOptions approachOptions selected=data.system.playbook.approach valueAttr="key" labelAttr="label" blank="— Choose —"}}
+			</select>
+		</div>
 	</header>
 	<section class="traits">
 		<h3>Traits</h3>
@@ -101,9 +107,9 @@
 								<div class="move-row-controls">
 									{{#if trackHold}}
 									<div class="hold-control">
-										<button type="button" class="{{#if separateHoldPool}}bplot-hold-step{{else}}hold-step{{/if}} hold-decrement{{#if gated}} disabled{{/if}}" data-delta="-1" {{#if gated}}disabled{{/if}}>-</button>
+										<button type="button" class="{{#if separateHoldPool}}flat-hold-step{{else}}hold-step{{/if}} hold-decrement{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-delta="-1" {{#if gated}}disabled{{/if}}>-</button>
 										<span class="hold-value">{{hold}}</span>
-										<button type="button" class="{{#if separateHoldPool}}bplot-hold-step{{else}}hold-step{{/if}} hold-increment{{#if gated}} disabled{{/if}}" data-delta="1" {{#if gated}}disabled{{/if}}>+</button>
+										<button type="button" class="{{#if separateHoldPool}}flat-hold-step{{else}}hold-step{{/if}} hold-increment{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-delta="1" {{#if gated}}disabled{{/if}}>+</button>
 									</div>
 									{{/if}}
 									{{#if uses.length}}

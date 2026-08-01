@@ -16,7 +16,8 @@
 		"playbook": {
 			"name": "The Commander",
 			"slug": "the-commander",
-			"uuid": ""
+			"uuid": "",
+			"approach": "mundane"
 		},
 		"stats": {
 			"defy": { "value": 0 },

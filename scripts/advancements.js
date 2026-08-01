@@ -1,7 +1,8 @@
 // The rulebook's Advancement checklist, rendered on the sheet as a pure tracking checklist — no
-// entry here grants a move/trait mechanically (there's no Cantrips list or Soldier playbook
-// implemented in this module yet); checking a box only records that the player did this in the
-// fiction. The two "Additional Move" lines and the two "Soldier Move" lines are literal verbatim
+// entry here grants a move/trait mechanically, even though the Cantrips and Soldier Moves pools
+// it references now exist (see playbook-moves.js); checking a box only records that the player
+// did this in the fiction, same as picking the actual move is a separate step via the "+" button.
+// The two "Additional Move" lines and the two "Soldier Move" lines are literal verbatim
 // duplicates in the rulebook, each an independent pick, so each gets its own uniquely-keyed entry.
 export const ADVANCEMENT_TOP = [
 	{ key: "additional-move-1", label: "Choose an Additional Move from your playbook or from the Cantrips list." },

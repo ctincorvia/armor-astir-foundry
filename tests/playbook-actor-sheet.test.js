@@ -114,6 +114,15 @@ describe("PlaybookActorSheet#getData", () => {
 
 		expect(data.currentPlaybookId).toBeNull();
 	});
+
+	it("scopes the approach options to the actor's playbook", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { slug: "the-impostor" } } };
+
+		const data = sheet.getData();
+
+		expect(data.approachOptions.map((a) => a.key)).toEqual(["arcane", "elemental"]);
+	});
 });
 
 describe("PlaybookActorSheet#activateListeners", () => {
@@ -2432,31 +2441,52 @@ describe("PlaybookActorSheet#getData - hold", () => {
 	});
 });
 
-describe("PlaybookActorSheet#getData - b-plot's separate hold pool", () => {
-	it("reads b-plot's hold from system.attributes.bplotHold, not the shared resources.hold pool", () => {
+describe("PlaybookActorSheet#getData - flatHold moves' separate hold pools", () => {
+	it("reads b-plot's hold from system.attributes.moveHold, keyed by its own move key, not the shared resources.hold pool", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				stats: {},
 				resources: { hold: { value: 5 } },
-				attributes: { bplotHold: { value: 2 } }
+				attributes: { moveHold: { "b-plot": { value: 2 } } }
 			}
 		};
 
 		const data = sheet.getData();
 
 		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").hold).toBe(2);
-		// Read the Room (a basic move) keeps reading the shared pool, unaffected by bplotHold.
+		// Read the Room (a basic move) keeps reading the shared pool, unaffected by moveHold.
 		expect(data.moveGroups[0].moves.find((m) => m.key === "read-the-room").hold).toBe(5);
 	});
 
-	it("defaults b-plot's hold to 0 when bplotHold is missing", () => {
+	it("defaults b-plot's hold to 0 when moveHold is missing", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: {} } };
 
 		const data = sheet.getData();
 
 		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").hold).toBe(0);
+	});
+
+	it("keeps two different flatHold moves' pools independent, keyed by their own move key", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					moveHold: {
+						"b-plot": { value: 2 },
+						"soldier:get-out-of-my-way": { value: 1 }
+					},
+					playbookMoves: ["soldier:get-out-of-my-way"]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").hold).toBe(2);
+		expect(data.moveGroups[2].moves.find((m) => m.key === "soldier:get-out-of-my-way").hold).toBe(1);
 	});
 });
 
@@ -2522,8 +2552,8 @@ describe("PlaybookActorSheet#_onHoldStep", () => {
 	});
 });
 
-describe("PlaybookActorSheet#activateListeners - bplot hold step", () => {
-	it("binds a click handler to the bplot hold step buttons", () => {
+describe("PlaybookActorSheet#activateListeners - flat hold step", () => {
+	it("binds a click handler to the flat hold step buttons", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
 
@@ -2532,53 +2562,53 @@ describe("PlaybookActorSheet#activateListeners - bplot hold step", () => {
 
 		sheet.activateListeners(html);
 
-		expect(html.find).toHaveBeenCalledWith(".bplot-hold-step");
+		expect(html.find).toHaveBeenCalledWith(".flat-hold-step");
 		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
 	});
 });
 
-describe("PlaybookActorSheet#_onBplotHoldStep", () => {
-	it("increments the bplot hold value and updates the actor", () => {
+describe("PlaybookActorSheet#_onFlatHoldStep", () => {
+	it("increments the move's hold value and updates the actor", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { bplotHold: { value: 1 } } }, update: vi.fn() };
+		sheet.actor = { system: { attributes: { moveHold: { "b-plot": { value: 1 } } } }, update: vi.fn() };
 
-		sheet._onBplotHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+		sheet._onFlatHoldStep({ currentTarget: { dataset: { move: "b-plot", delta: "1" } } });
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.bplotHold.value": 2 });
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.b-plot.value": 2 });
 	});
 
-	it("decrements the bplot hold value and updates the actor", () => {
+	it("decrements the move's hold value and updates the actor", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { bplotHold: { value: 1 } } }, update: vi.fn() };
+		sheet.actor = { system: { attributes: { moveHold: { "b-plot": { value: 1 } } } }, update: vi.fn() };
 
-		sheet._onBplotHoldStep({ currentTarget: { dataset: { delta: "-1" } } });
+		sheet._onFlatHoldStep({ currentTarget: { dataset: { move: "b-plot", delta: "-1" } } });
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.bplotHold.value": 0 });
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.b-plot.value": 0 });
 	});
 
-	it("treats a missing bplot hold value as starting at 0", () => {
+	it("treats a missing hold value as starting at 0", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: {}, update: vi.fn() };
 
-		sheet._onBplotHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+		sheet._onFlatHoldStep({ currentTarget: { dataset: { move: "b-plot", delta: "1" } } });
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.bplotHold.value": 1 });
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.b-plot.value": 1 });
 	});
 
 	it("clamps at the maximum and does not update the actor", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { bplotHold: { value: 3 } } }, update: vi.fn() };
+		sheet.actor = { system: { attributes: { moveHold: { "b-plot": { value: 3 } } } }, update: vi.fn() };
 
-		sheet._onBplotHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+		sheet._onFlatHoldStep({ currentTarget: { dataset: { move: "b-plot", delta: "1" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 
 	it("clamps at the minimum and does not update the actor", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { bplotHold: { value: 0 } } }, update: vi.fn() };
+		sheet.actor = { system: { attributes: { moveHold: { "b-plot": { value: 0 } } } }, update: vi.fn() };
 
-		sheet._onBplotHoldStep({ currentTarget: { dataset: { delta: "-1" } } });
+		sheet._onFlatHoldStep({ currentTarget: { dataset: { move: "b-plot", delta: "-1" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
@@ -2586,16 +2616,34 @@ describe("PlaybookActorSheet#_onBplotHoldStep", () => {
 	it("does not affect the shared resources.hold field", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
-			system: { attributes: { bplotHold: { value: 1 } }, resources: { hold: { value: 5 } } },
+			system: { attributes: { moveHold: { "b-plot": { value: 1 } } }, resources: { hold: { value: 5 } } },
 			update: vi.fn()
 		};
 
-		sheet._onBplotHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+		sheet._onFlatHoldStep({ currentTarget: { dataset: { move: "b-plot", delta: "1" } } });
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.bplotHold.value": 2 });
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.b-plot.value": 2 });
 		expect(sheet.actor.update).not.toHaveBeenCalledWith(expect.objectContaining({
 			"system.resources.hold.value": expect.anything()
 		}));
+	});
+
+	it("keeps a different flatHold move's pool untouched when stepping this one", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					moveHold: { "b-plot": { value: 2 }, "soldier:get-out-of-my-way": { value: 1 } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onFlatHoldStep({ currentTarget: { dataset: { move: "soldier:get-out-of-my-way", delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 2
+		});
 	});
 });
 
@@ -3267,27 +3315,27 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 
-	it("adds b-plot's flat hold to the actor's bplotHold pool", async () => {
+	it("adds b-plot's flat hold to its own moveHold pool", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
 
 		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "b-plot" } } });
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.bplotHold.value": 3 });
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.b-plot.value": 3 });
 	});
 
-	it("adds to, rather than replaces, an existing bplotHold value", async () => {
+	it("adds to, rather than replaces, an existing moveHold value", async () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { bplotHold: { value: 1 } } }, update: vi.fn() };
+		sheet.actor = { system: { attributes: { moveHold: { "b-plot": { value: 1 } } } }, update: vi.fn() };
 
 		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "b-plot" } } });
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.bplotHold.value": 3 });
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.b-plot.value": 3 });
 	});
 
 	it("clamps at the maximum and does not update the actor", async () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { bplotHold: { value: 3 } } }, update: vi.fn() };
+		sheet.actor = { system: { attributes: { moveHold: { "b-plot": { value: 3 } } } }, update: vi.fn() };
 
 		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "b-plot" } } });
 
@@ -3306,6 +3354,20 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 		expect(sheet.actor.update).not.toHaveBeenCalledWith(expect.objectContaining({
 			"system.resources.hold.value": expect.anything()
 		}));
+	});
+
+	it("keeps a different flatHold move's pool untouched when activating this one", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { moveHold: { "b-plot": { value: 2 } } } },
+			update: vi.fn()
+		};
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "soldier:get-out-of-my-way" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 3
+		});
 	});
 });
 

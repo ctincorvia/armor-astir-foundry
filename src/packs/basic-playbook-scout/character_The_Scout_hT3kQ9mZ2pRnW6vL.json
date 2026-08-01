@@ -16,7 +16,8 @@
 		"playbook": {
 			"name": "The Scout",
 			"slug": "the-scout",
-			"uuid": ""
+			"uuid": "",
+			"approach": "mundane"
 		},
 		"stats": {
 			"defy": { "value": 0 },

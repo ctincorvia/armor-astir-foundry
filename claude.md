@@ -126,7 +126,7 @@ Adding rules text is a pure data change; adding a *mechanic* is not. Classify wh
 | "roll +X", "roll +X or +Y" | `traits: ["x","y"]` + `results.{success,mixed,failure}` (`null` per tier the move doesn't define) |
 | "+1 if …" bullets with no base stat | `conditions: [{key,label}]`, each worth +1 — e.g. Help or Hinder |
 | "on a 10+ hold 3, on a 7-9 hold 1" | `hold: {success,mixed,failure}` → writes the shared `system.resources.hold` |
-| "hold 3" with no roll behind it | `flatHold: 3` → its own `system.attributes.bplotHold` pool, renders **Activate** instead of Roll |
+| "hold 3" with no roll behind it | `flatHold: 3` → its own pool at `system.attributes.moveHold.<moveKey>`, keyed like `uses` so multiple flatHold moves on one actor don't collide, renders **Activate** instead of Roll |
 | no roll, no tracked resource, pure fiction | `traits: []`, no `results` — description only (Subsystems, Bullheaded). **This is the common case for playbook moves.** |
 | a choice that changes no math | `intents: [{key,label}]` |
 | a stat with no UI in this module | `fixedTraits: [{key,label,value}]` — appended to the roll options as-is, never read from the actor (Lead a Sortie's CREW) |

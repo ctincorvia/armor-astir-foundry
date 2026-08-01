@@ -16,7 +16,8 @@
 		"playbook": {
 			"name": "The Impostor",
 			"slug": "the-impostor",
-			"uuid": ""
+			"uuid": "",
+			"approach": ""
 		},
 		"stats": {
 			"defy": { "value": 0 },

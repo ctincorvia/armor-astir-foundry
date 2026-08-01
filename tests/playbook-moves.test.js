@@ -15,8 +15,8 @@ const BULLHEADED = "the-scout:bullheaded";
 // Deny is the one real Cantrip with traits/results — plays the same functional role the old
 // placeholder cantrip did (rolls +CHANNEL, disabled by default for The Scout).
 const DENY = "cantrips:deny";
-const PLACEHOLDER_SOLDIER = "soldier:placeholder-soldier-move";
 const CANTRIP_KEYS = MOVE_POOLS.find((pool) => pool.key === "cantrips").moves.map((move) => move.key);
+const SOLDIER_KEYS = MOVE_POOLS.find((pool) => pool.key === "soldier").moves.map((move) => move.key);
 
 // Fakes the jQuery `.find("[name='playbook-move']:checked").val()` chain choosePlaybookMove uses
 // to read the picked radio. `undefined` stands in for "nothing checked", which is what an empty
@@ -317,7 +317,7 @@ describe("choosePlaybookMove", () => {
 	});
 
 	it("hides the moves the actor already has from the picker", async () => {
-		choosePlaybookMove("The Scout", [BULLHEADED, ...CANTRIP_KEYS, PLACEHOLDER_SOLDIER]);
+		choosePlaybookMove("The Scout", [BULLHEADED, ...CANTRIP_KEYS, ...SOLDIER_KEYS]);
 		await Promise.resolve();
 		await Promise.resolve();
 
