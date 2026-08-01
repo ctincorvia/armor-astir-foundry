@@ -63,6 +63,7 @@ import { STARTING_GEAR_POOLS, chooseStartingGear } from "../scripts/starting-gea
 import { GRAVITY_TRIGGERS } from "../scripts/gravity-triggers.js";
 import {
 	ASTIR_CORES,
+	ASTIR_DEFAULT_IMG,
 	ASTIR_MOVE_CATALOG,
 	ASTIR_PART_CATALOG,
 	ASTIR_POWER_BASE,
@@ -557,6 +558,7 @@ describe("PlaybookActorSheet#getData - astir", () => {
 			tierMin: ASTIR_TIER_MIN,
 			tierMax: ASTIR_TIER_MAX,
 			name: "Fallback Name",
+			img: ASTIR_DEFAULT_IMG,
 			core: "",
 			approachOptions: [],
 			approach: "",
@@ -652,6 +654,7 @@ describe("PlaybookActorSheet#_onAstirCreate", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.astir": {
 				id: "test-id",
+				img: ASTIR_DEFAULT_IMG,
 				core: "",
 				approach: "",
 				tier: ASTIR_TIER_MIN,

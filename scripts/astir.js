@@ -32,6 +32,11 @@ export const ASTIR_TIER_MAX = 4;
 export const ASTIR_POWER_MIN = 0;
 export const ASTIR_POWER_BASE = 4;
 
+// Matches the img every compendium playbook actor already ships with (see
+// src/packs/basic-playbook-*/character_*.json) — used both to seed a newly created Astir and as
+// the render-time fallback for an Astir created before this field existed.
+export const ASTIR_DEFAULT_IMG = "icons/svg/mystery-man.svg";
+
 // Astir Parts read as moves (see PlaybookActorSheet's Astir Moves group) — same shape as
 // BASIC_MOVES (traits/description/results), plus powerCost: how much of the Astir's base Power
 // this part permanently spends (see astirMaxPower). A placeholder until real Parts are

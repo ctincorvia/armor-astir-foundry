@@ -532,6 +532,19 @@
 	margin: var(--aa-space-2) 0 var(--aa-space-3);
 }
 
+/* The Astir's own portrait, edited the same way as the actor's own header portrait (core Foundry's
+   img[data-edit] convention — see playbook-actor-sheet.js's getData/astir.js comments). Sized and
+   scoped to itself rather than touching .section-header, since that class is shared by every
+   other section on the sheet. */
+.armor-astir.sheet .astir-portrait {
+	width: 48px;
+	height: 48px;
+	flex: 0 0 auto;
+	object-fit: cover;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+}
+
 .armor-astir.sheet .astir-locked-note,
 .armor-astir.sheet .astir-part-power-cost {
 	font-size: 12px;

@@ -28,6 +28,7 @@ import {
 import { chooseStartingGear, findStartingGearPool } from "./starting-gear.js";
 import {
 	ASTIR_CORES,
+	ASTIR_DEFAULT_IMG,
 	ASTIR_MOVE_CATALOG,
 	ASTIR_PART_CATALOG,
 	ASTIR_POWER_BASE,
@@ -231,6 +232,7 @@ export class PlaybookActorSheet extends ActorSheet {
 				// Always the character's own Callsign (see claude.md, "Domain conventions") — an
 				// Astir has no name of its own to set here, only to display.
 				name: this.actor.system.details?.callsign?.value || this.actor.name,
+				img: astir.img || ASTIR_DEFAULT_IMG,
 				core: astir.core ?? "",
 				approachOptions: astirCoreApproaches(astir.core),
 				approach: astir.approach ?? "",
@@ -622,6 +624,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({
 			"system.attributes.astir": {
 				id: foundry.utils.randomID(),
+				img: ASTIR_DEFAULT_IMG,
 				core: "",
 				approach: "",
 				tier: ASTIR_TIER_MIN,
