@@ -3,6 +3,18 @@ import { APPROACHES } from "./approaches.js";
 export const TAG_VALUE_MIN = -2;
 export const TAG_VALUE_MAX = 2;
 
+// The one group of mutually-exclusive tags this module currently has (Melee/Ranged/Sniper —
+// see EQUIPMENT_TAGS' `exclusiveGroup` doc below). Weapons additionally require one of these
+// specifically; this is a single hardcoded check rather than a generic "required groups" system,
+// since it's the only group that needs one.
+export const WEAPON_RANGE_GROUP = "weapon-range";
+
+// Applies to every equipment entry (weapon or gear), and — like WEAPON_RANGE_GROUP above — never
+// counts a tag's `exclusiveGroup` membership (Melee/Ranged/Sniper) against the cap, since those
+// are a classifier rather than a regular tag pick. Enforced only at Save, same as the blank-name
+// and weapon-range checks in configureEquipment.
+export const MAX_TAGS = 3;
+
 export const TIER_MIN = 1;
 export const TIER_MAX = 5;
 
@@ -48,6 +60,15 @@ export const WEAPON_SCALES = [
 // `reroll` (Decisive, Defensive, Versatile) lists which move key(s) it can reroll a failure on,
 // once per period (see PlaybookActorSheet's reroll chat-button handling). `guided` (Guided) is
 // the "skip rolling, take a 7-9" option, offered for any usesWeapon move.
+//
+// `exclusiveGroup` makes a tag's checkbox behave like a radio button within that group value —
+// configureEquipment's render wiring unchecks every other tag sharing the same `exclusiveGroup`
+// the moment one is checked, resolved off the `tags` array already in scope rather than new
+// template data attributes. WEAPON_RANGE_GROUP (Melee/Ranged/Sniper, all `value: 0` — a pure
+// classifier, not a Value modifier) is the only group so far, and is additionally *required*:
+// configureEquipment's Save blocks (via ui.notifications.warn) when Kind is Weapon and none of
+// that group is checked. That's a single hardcoded weapon-only check, not a generic "required
+// groups" system, since it's the only group that needs one.
 export const EQUIPMENT_TAGS = [
 	// -2: heavy drawbacks that largely restrict an object's usefulness or availability.
 	{
@@ -214,6 +235,29 @@ export const EQUIPMENT_TAGS = [
 		description: "Expensive to acquire, and fairly sought-after. Said to increase an item's appraised " +
 			"value by 2, though this module has no separate economy to reflect that in."
 	},
+	// 0: purely descriptive weapon-range classification, mutually exclusive with one another and
+	// required on every weapon (see WEAPON_RANGE_GROUP and the exclusiveGroup doc above).
+	{
+		key: "melee",
+		label: "Melee",
+		value: 0,
+		description: "This weapon is used up close, in melee range.",
+		exclusiveGroup: WEAPON_RANGE_GROUP
+	},
+	{
+		key: "ranged",
+		label: "Ranged",
+		value: 0,
+		description: "This weapon strikes from a distance, well outside of melee range.",
+		exclusiveGroup: WEAPON_RANGE_GROUP
+	},
+	{
+		key: "sniper",
+		label: "Sniper",
+		value: 0,
+		description: "This weapon excels at very long range, precision attacks over anything closer.",
+		exclusiveGroup: WEAPON_RANGE_GROUP
+	},
 	// +1: strong beneficial effects.
 	{
 		key: "adapted",
@@ -225,7 +269,7 @@ export const EQUIPMENT_TAGS = [
 	},
 	// Arcane/Divine/Elemental/Mundane/Profane mirror APPROACHES (approaches.js) one-for-one, so
 	// their labels can't drift from the sheet's own Approach dropdown. "Changes your approach
-	// while actively using it" isn't auto-applied — system.playbook.approach is a single
+	// while actively using it" isn't auto-applied — system.attributes.approach is a single
 	// persistent field with no "actively equipped" state to hang a temporary override off, so
 	// this stays descriptive.
 	...APPROACHES.map((approach) => ({
@@ -373,7 +417,7 @@ export const EQUIPMENT_CATALOG = [
 		name: "Placeholder Weapon",
 		kind: "weapon",
 		description: "TODO: replace with a real catalog weapon.",
-		tags: [],
+		tags: ["melee"],
 		scale: "foot",
 		tier: TIER_MIN
 	},
@@ -437,6 +481,26 @@ export function resolveEquipmentTags(keys = [], tags = EQUIPMENT_TAGS) {
 // can never drift out of sync with the tags actually on the entry.
 export function equipmentValue(keys = [], tags = EQUIPMENT_TAGS) {
 	return resolveEquipmentTags(keys, tags).reduce((sum, tag) => sum + tag.value, 0);
+}
+
+const TAG_VALUE_GROUPS = [
+	{ value: -2, label: "Heavy Drawbacks (-2)" },
+	{ value: -1, label: "Minor Drawbacks (-1)" },
+	{ value: 0, label: "No Effect (0)" },
+	{ value: 1, label: "Strong Benefits (+1)" },
+	{ value: 2, label: "Rare Benefits (+2)" }
+];
+
+// Groups a tag list (either the raw catalog or configureEquipment's checked-annotated shape) by
+// its own value banding — see EQUIPMENT_TAGS' -2/-1/+1/+2 comment groups above — rather than a
+// second, hand-maintained category scheme, so the editor's groups can never drift out of sync with
+// what a tag is actually worth. A group with nothing in it (e.g. a fixture catalog with no -2
+// entries) is dropped, same "don't render an empty section" treatment playbookMoveSections gives
+// an empty pool (playbook-moves.js).
+export function groupEquipmentTags(tagList) {
+	return TAG_VALUE_GROUPS
+		.map(({ value, label }) => ({ label, tags: tagList.filter((tag) => tag.value === value) }))
+		.filter((group) => group.tags.length > 0);
 }
 
 // Opens the "which weapon" prompt for a usesWeapon move (see moves.js,
@@ -507,13 +571,17 @@ export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, 
 		// Equipment tab already uses to display an entry's Value (playbook-actor-sheet.js), so the
 		// number on open always matches what the sheet would show for `initial` today.
 		tagTotal: equipmentValue(initial?.tags ?? [], tags),
-		tags: tags.map((tag) => ({
+		// Grouped (see groupEquipmentTags above) rather than one flat 40-entry list — the catalog
+		// has grown too long to scan otherwise. Each group starts open only if it already holds one
+		// of `initial`'s current tags, so editing a tagged item lands with the relevant group(s)
+		// visibly expanded; a blank new item starts with every group collapsed.
+		tagGroups: groupEquipmentTags(tags.map((tag) => ({
 			key: tag.key,
 			label: tag.label,
 			value: tag.value,
 			description: tag.description,
 			checked: Boolean(initial?.tags?.includes(tag.key))
-		}))
+		}))).map((group) => ({ ...group, open: group.tags.some((tag) => tag.checked) }))
 	});
 
 	return new Promise((resolve) => {
@@ -530,7 +598,20 @@ export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, 
 					const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
 					html.find(".equipment-editor-tag-total-value").text(equipmentValue(checkedKeys, tags));
 				};
-				html.find("[name='tag']").on("change", updateTotal);
+				// A tag with an `exclusiveGroup` (see EQUIPMENT_TAGS' doc comment) behaves like a radio
+				// button within that group: checking it unchecks every other tag sharing the same group,
+				// looked up off `tags` (already in closure) rather than new template data attributes.
+				html.find("[name='tag']").on("change", (event) => {
+					// The changed checkbox's value is always a real tag key — it was rendered from
+					// `tags` in the first place — so this lookup can never miss.
+					const changed = findEquipmentTag(event.target.value, tags);
+					if (changed.exclusiveGroup && event.target.checked) {
+						for (const other of tags.filter((tag) => tag.exclusiveGroup === changed.exclusiveGroup && tag.key !== changed.key)) {
+							html.find(`[name='tag'][value='${other.key}']`).prop("checked", false);
+						}
+					}
+					updateTotal();
+				});
 			},
 			buttons: {
 				save: {
@@ -542,11 +623,30 @@ export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, 
 							return;
 						}
 						const kind = html.find("[name='kind']").val();
+						const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
+						// Every checked key is a real tag — it was rendered from `tags` in the first
+						// place — so findEquipmentTag can't miss in either check below.
+						const regularTagCount = checkedKeys.filter((key) => !findEquipmentTag(key, tags).exclusiveGroup).length;
+						// Applies to weapons and gear alike, and never counts an exclusiveGroup tag
+						// (Melee/Ranged/Sniper) against the cap — see MAX_TAGS. Feedback rather than a
+						// silent no-op, same reasoning as the weapon-range check below.
+						if (regularTagCount > MAX_TAGS) {
+							ui.notifications.warn(`Equipment can have at most ${MAX_TAGS} tags, not counting Melee/Ranged/Sniper.`);
+							resolve(null);
+							return;
+						}
+						// Weapons specifically must carry one of WEAPON_RANGE_GROUP's tags (Melee/Ranged/
+						// Sniper) — see the exclusiveGroup doc comment above.
+						if (kind === "weapon" && !checkedKeys.some((key) => findEquipmentTag(key, tags).exclusiveGroup === WEAPON_RANGE_GROUP)) {
+							ui.notifications.warn("A weapon needs one of the Melee, Ranged or Sniper tags.");
+							resolve(null);
+							return;
+						}
 						resolve({
 							name,
 							description: html.find("[name='description']").val().trim(),
 							kind,
-							tags: html.find("[name='tag']:checked").map((_, el) => el.value).get(),
+							tags: checkedKeys,
 							...(kind === "weapon" && {
 								scale: html.find("[name='scale']").val(),
 								tier: Math.min(TIER_MAX, Math.max(TIER_MIN, Number(html.find("[name='tier']").val()) || TIER_MIN))

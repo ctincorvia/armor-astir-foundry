@@ -557,7 +557,12 @@ export async function rollMove(actor, move, trait, options = {}) {
 			// carries spentTags/reroll forward: any spend already landed on the failed attempt, and
 			// the tag this reroll itself consumes is marked spent separately (see
 			// PlaybookActorSheet#onRenderMoveChat), not through another roll-dialog spend.
-			options: { advantage: options.advantage, effect: options.effect, weaponLabel: options.weaponLabel }
+			options: {
+				advantage: options.advantage,
+				effect: options.effect,
+				weaponLabel: options.weaponLabel,
+				weaponTags: options.weaponTags
+			}
 		}
 		: null;
 
@@ -569,6 +574,12 @@ export async function rollMove(actor, move, trait, options = {}) {
 		// the literal string "Unarmed" — regardless of whether any of its tags were spent, so the
 		// chat card always records which weapon (if any) the roll used. null for every other move.
 		weaponLabel: options.weaponLabel ?? null,
+		// The chosen weapon's full tag list (e.g. "Melee, Decisive"), as a single comma-joined
+		// string rather than a further conditions-style badge list — this is descriptive info
+		// about the weapon itself, not "why the total is what it is" the way a spent tag or
+		// Advantage/Confidence is (see moveConditions/equipmentConditions above). null for Unarmed
+		// and for every non-usesWeapon move, same as weaponLabel.
+		weaponTags: options.weaponTags ?? null,
 		tier,
 		tierLabel: MOVE_RESULT_LABELS[tier],
 		resultText: move.results[tier],
@@ -603,6 +614,7 @@ export async function postGuidedResult(actor, move, options = {}) {
 		traitLabel: null,
 		intentLabel: null,
 		weaponLabel: options.weaponLabel ?? null,
+		weaponTags: options.weaponTags ?? null,
 		tier,
 		tierLabel: MOVE_RESULT_LABELS[tier],
 		resultText: move.results[tier],

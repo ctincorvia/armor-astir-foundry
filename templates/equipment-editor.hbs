@@ -29,15 +29,22 @@
 	</div>
 	<div class="form-group equipment-editor-tags">
 		<label>Tags</label>
-		<div class="equipment-editor-tag-list">
-			{{#each tags}}
-			<label class="equipment-editor-tag">
-				<input type="checkbox" name="tag" value="{{key}}" {{#if checked}}checked{{/if}}/>
-				<span class="equipment-editor-tag-label">{{label}} ({{value}})</span>
-				{{#if description}}<span class="equipment-editor-tag-description">{{description}}</span>{{/if}}
-			</label>
-			{{/each}}
-		</div>
 		<p class="equipment-editor-tag-total">Total: <span class="equipment-editor-tag-total-value">{{tagTotal}}</span></p>
+		{{#each tagGroups}}
+		<details class="equipment-editor-tag-group" {{#if open}}open{{/if}}>
+			<summary class="equipment-editor-tag-group-label">{{label}}</summary>
+			<div class="equipment-editor-tag-list">
+				{{#each tags}}
+				<div class="equipment-editor-tag">
+					<label class="equipment-editor-tag-option">
+						<input type="checkbox" name="tag" value="{{key}}" {{#if checked}}checked{{/if}}/>
+						<span class="equipment-editor-tag-label">{{label}} ({{value}})</span>
+					</label>
+					{{#if description}}<div class="equipment-editor-tag-description">{{description}}</div>{{/if}}
+				</div>
+				{{/each}}
+			</div>
+		</details>
+		{{/each}}
 	</div>
 </form>

@@ -19,8 +19,8 @@
 		</div>
 		<div class="approach-swap">
 			<label>Approach</label>
-			<select name="system.playbook.approach">
-				{{selectOptions approachOptions selected=data.system.playbook.approach valueAttr="key" labelAttr="label" blank="— Choose —"}}
+			<select name="system.attributes.approach">
+				{{selectOptions approachOptions selected=data.system.attributes.approach valueAttr="key" labelAttr="label" blank="— Choose —"}}
 			</select>
 		</div>
 	</header>
@@ -105,6 +105,7 @@
 				<a class="item" data-tab="equipment">Equipment</a>
 				<a class="item" data-tab="social">Social</a>
 				<a class="item" data-tab="advancement">Advancement</a>
+				<a class="item" data-tab="cosmetic">Cosmetic</a>
 			</nav>
 			<section class="sheet-body">
 				<div class="tab" data-group="primary" data-tab="moves">
@@ -326,6 +327,22 @@
 							</li>
 							{{/each}}
 						</ol>
+					</section>
+				</div>
+				<div class="tab" data-group="primary" data-tab="cosmetic">
+					<section class="cosmetic">
+						<div class="cosmetic-field">
+							<h3>Appearance</h3>
+							{{editor data.system.details.appearance.value target="system.details.appearance.value" button=true owner=owner editable=editable engine="prosemirror" collaborate=false}}
+						</div>
+						<div class="cosmetic-field">
+							<h3>Backstory</h3>
+							{{editor data.system.details.biography.value target="system.details.biography.value" button=true owner=owner editable=editable engine="prosemirror" collaborate=false}}
+						</div>
+						<div class="cosmetic-field">
+							<h3>Notes</h3>
+							{{editor data.system.details.notes.value target="system.details.notes.value" button=true owner=owner editable=editable engine="prosemirror" collaborate=false}}
+						</div>
 					</section>
 				</div>
 			</section>

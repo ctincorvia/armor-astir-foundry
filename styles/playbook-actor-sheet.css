@@ -510,6 +510,17 @@
 	gap: var(--aa-space-3);
 }
 
+/* Without a cap, a tab with a long move/equipment list just grows the sheet past the viewport.
+   Scoping the scroll to .sheet-body (not the whole .sheet-main) keeps .dangers-column and the tab
+   nav always visible while only the active tab's content scrolls. This is the common case; if the
+   player also drags the window itself shorter than that (see PlaybookActorSheet's defaultOptions),
+   core Foundry's own .window-content overflow falls back to scrolling the whole sheet body. */
+.armor-astir.sheet .sheet-body {
+	max-height: 65vh;
+	overflow-y: auto;
+	padding-right: var(--aa-space-2);
+}
+
 .armor-astir.sheet .move-list {
 	margin: 0;
 	padding: 0;
@@ -737,6 +748,18 @@
 	white-space: nowrap;
 }
 
+/* Each field (Appearance/Backstory/Notes) is its own labeled ProseMirror editor rather than one
+   shared textarea, so each can be edited and scanned independently. */
+.armor-astir.sheet .cosmetic {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-3);
+}
+
+.armor-astir.sheet .cosmetic-field .editor-content {
+	min-height: 120px;
+}
+
 .armor-astir.sheet .weapon-move-controls {
 	display: flex;
 	flex-direction: row;
@@ -849,6 +872,7 @@
    of the sheet, so it can't share that rule's `.armor-astir.sheet` scope. */
 .armor-astir-move-chat .move-reroll {
 	margin-top: var(--aa-space-1);
+	padding: var(--aa-space-1) var(--aa-space-2);
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
 	background: var(--aa-primary);
@@ -1031,14 +1055,24 @@
 	display: flex;
 	flex-direction: column;
 	gap: var(--aa-space-1);
+	padding: var(--aa-space-1) 0 var(--aa-space-2);
 }
 
+/* Checkbox + label live in their own row (equipment-editor-tag-option); the description is a
+   block-level sibling underneath, not a flex item that can wrap into the row — the same fix
+   move-picker-description already uses for the identical checkbox/label/description shape
+   (playbook-move-picker.hbs), so a long description always stays indented under its tag instead
+   of bleeding out to the left edge of the list. */
 .armor-astir.equipment-editor .equipment-editor-tag {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-option {
 	display: flex;
 	flex-direction: row;
-	flex-wrap: wrap;
-	align-items: baseline;
+	align-items: center;
 	gap: var(--aa-space-2);
+	cursor: pointer;
 	font-size: 12px;
 }
 
@@ -1048,11 +1082,33 @@
 }
 
 .armor-astir.equipment-editor .equipment-editor-tag-description {
+	margin-left: 22px;
+	font-size: 11px;
 	opacity: 0.8;
 }
 
+/* The Tags accordion is plain <details>/<summary>, same native open/closed behaviour as the
+   playbook-move picker's own accordion (see .move-picker-section above) — no JS needed here
+   either. Grouped by the tags' own value banding (see groupEquipmentTags, equipment.js) since the
+   catalog has grown too long to scan as one flat list. */
+.armor-astir.equipment-editor .equipment-editor-tag-group {
+	margin-bottom: var(--aa-space-2);
+	padding-bottom: var(--aa-space-1);
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-group-label {
+	padding: var(--aa-space-1) 0;
+	font-weight: bold;
+	color: var(--aa-primary-dark);
+	cursor: pointer;
+}
+
+/* Pinned above the (possibly collapsed) groups, rather than after the list, so it stays visible
+   without needing every group expanded — the one number a player designing to a budget actually
+   watches. */
 .armor-astir.equipment-editor .equipment-editor-tag-total {
-	margin: var(--aa-space-2) 0 0;
+	margin: 0 0 var(--aa-space-2);
 	font-weight: bold;
 }
 

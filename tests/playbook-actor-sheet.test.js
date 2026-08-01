@@ -92,7 +92,6 @@ describe("PlaybookActorSheet.defaultOptions", () => {
 			classes: ["armor-astir", "sheet", "actor", "playbook"],
 			template: "modules/armor-astir/templates/playbook-actor-sheet.hbs",
 			width: 720,
-			height: "auto",
 			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }]
 		});
 	});
@@ -3128,7 +3127,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		// exchange-blows is usesWeapon (see moves.js) and the actor has no equipment at all here,
 		// so the weapon-choice step is skipped straight to "Unarmed" — see
 		// "PlaybookActorSheet#_onMoveRoll - weapon choice" for the chooseWeapon-driven paths.
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, talk, { ...config, weaponLabel: "Unarmed" });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, talk, { ...config, weaponLabel: "Unarmed", weaponTags: null });
 	});
 
 	it("finds a special move (lead a sortie) by key, same as a basic move", async () => {
@@ -3553,7 +3552,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 			lockedEffect: null,
 			equipmentSpends: []
 		});
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed" });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
 	});
 
 	it("scopes the roll to the chosen weapon and labels it by name", async () => {
@@ -3573,7 +3572,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 			lockedEffect: null,
 			equipmentSpends: [expect.objectContaining({ equipmentId: armed.id, tagKey: "blitz" })]
 		});
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd" });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz" });
 	});
 
 	it("treats an id chooseWeapon resolved that no longer matches any weapon as Unarmed", async () => {
@@ -3588,7 +3587,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed" });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
 	});
 
 	it("skips chooseWeapon entirely and rolls Unarmed when the actor has no weapons", async () => {
@@ -3603,7 +3602,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "strike-decisively" } } });
 
 		expect(chooseWeapon).not.toHaveBeenCalled();
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, STRIKE_DECISIVELY, config.trait, { ...config, weaponLabel: "Unarmed" });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, STRIKE_DECISIVELY, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
 	});
 });
 
@@ -3626,7 +3625,7 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 			lockedEffect: null,
 			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })]
 		});
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd" });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz" });
 	});
 
 	it("does nothing for an unrecognized move key", async () => {
@@ -3787,6 +3786,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, {
 			...config,
 			weaponLabel: "Rifle",
+			weaponTags: "Defensive",
 			reroll: { equipmentId: "eq1", tagKey: "defensive" }
 		});
 	});
@@ -3803,7 +3803,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle" });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle", weaponTags: "Decisive" });
 	});
 
 	it("does not offer an already-spent reroll tag", async () => {
@@ -3817,7 +3817,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle" });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle", weaponTags: "Defensive" });
 	});
 
 	it("offers Versatile's reroll for strike-decisively as well as exchange-blows", async () => {
@@ -3834,6 +3834,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, STRIKE_DECISIVELY, config.trait, {
 			...config,
 			weaponLabel: "Rifle",
+			weaponTags: "Versatile",
 			reroll: { equipmentId: "eq1", tagKey: "versatile" }
 		});
 	});
@@ -3852,6 +3853,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, {
 			...config,
 			weaponLabel: "Rifle",
+			weaponTags: "Defensive",
 			reroll: { equipmentId: "eq1", tagKey: "defensive" }
 		});
 	});
@@ -3867,7 +3869,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Fists" });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Fists", weaponTags: null });
 	});
 
 	it("never offers a reroll for Unarmed", async () => {
@@ -3880,7 +3882,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed" });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
 	});
 });
 
@@ -3955,7 +3957,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, { weaponLabel: "Rifle" });
+		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, { weaponLabel: "Rifle", weaponTags: "Guided" });
 		expect(rollMove).not.toHaveBeenCalled();
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
@@ -3970,7 +3972,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, { weaponLabel: "Unarmed" });
+		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, { weaponLabel: "Unarmed", weaponTags: null });
 	});
 });
 

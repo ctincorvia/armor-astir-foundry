@@ -16,8 +16,7 @@
 		"playbook": {
 			"name": "The Commander",
 			"slug": "the-commander",
-			"uuid": "",
-			"approach": "mundane"
+			"uuid": ""
 		},
 		"stats": {
 			"defy": { "value": 0 },
@@ -27,7 +26,7 @@
 			"know": { "value": 0 },
 			"channel": { "value": 0, "disabled": true }
 		},
-		"attributes": {}
+		"attributes": { "approach": "mundane" }
 	},
 	"prototypeToken": {
 		"name": "The Commander",

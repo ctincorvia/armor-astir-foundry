@@ -93,7 +93,12 @@ export class PlaybookActorSheet extends ActorSheet {
 			classes: ["armor-astir", "sheet", "actor", "playbook"],
 			template: PLAYBOOK_SHEET_TEMPLATE,
 			width: 720,
-			height: "auto",
+			// Deliberately not "auto": core Application#setPosition special-cases options.height === "auto"
+			// by re-measuring content and resetting el.style.height on every position update, including
+			// every mousemove while dragging the resize handle — so the window could never be dragged
+			// shorter than its content. Falls back to ActorSheet's own default (720, resizable: true);
+			// .sheet-body's internal scroll (see styles/playbook-actor-sheet.css) covers whatever the
+			// fixed height cuts off.
 			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }]
 		});
 	}
@@ -864,6 +869,16 @@ export class PlaybookActorSheet extends ActorSheet {
 		return (weapon.tags ?? []).some((tagKey) => findEquipmentTag(tagKey)?.guided);
 	}
 
+	// The chosen weapon's full tag list, comma-joined for the chat card (see moves.js#rollMove's
+	// weaponTags doc) — unlike _equipmentSpends this isn't limited to spendable tags or gated by
+	// lockedEffect, it's just descriptive: every tag currently on the weapon, spent or not. null
+	// for Unarmed/no weapon and for a weapon with no tags, matching weaponLabel's own null cases.
+	_weaponTagLabels(weapon) {
+		if (!weapon) return null;
+		const labels = resolveEquipmentTags(weapon.tags ?? []).map((tag) => tag.label);
+		return labels.length ? labels.join(", ") : null;
+	}
+
 	// Shared by _onMoveRoll (weapon resolved via chooseWeapon, or left undefined for a move that
 	// isn't usesWeapon) and _onWeaponMoveRoll (weapon already known from the clicked button).
 	async _rollMove(move, weapon) {
@@ -889,7 +904,10 @@ export class PlaybookActorSheet extends ActorSheet {
 		// Guided's "Take 7-9" button resolves with nothing but this flag — no trait, dice, or
 		// equipment spend was ever read, so there's nothing to mark spent and nothing left to roll.
 		if (config.takeSeven) {
-			await postGuidedResult(this.actor, move, { weaponLabel: weapon ? weapon.name : "Unarmed" });
+			await postGuidedResult(this.actor, move, {
+				weaponLabel: weapon ? weapon.name : "Unarmed",
+				weaponTags: this._weaponTagLabels(weapon)
+			});
 			return;
 		}
 
@@ -901,13 +919,18 @@ export class PlaybookActorSheet extends ActorSheet {
 
 		// weapon undefined (not a usesWeapon move) leaves rollMove's options untouched, same as
 		// today, for every move except Exchange Blows/Strike Decisively. null (Unarmed) or a real
-		// weapon entry both add a weaponLabel, recorded on the chat card even when nothing was
-		// spent (see rollMove in moves.js). reroll is only ever attached for a usesWeapon move too
-		// — rollMove itself decides whether to actually offer it, based on whether this attempt
-		// fails (see moves.js).
+		// weapon entry both add a weaponLabel (and that weapon's tags, if any — see
+		// _weaponTagLabels), recorded on the chat card even when nothing was spent (see rollMove in
+		// moves.js). reroll is only ever attached for a usesWeapon move too — rollMove itself
+		// decides whether to actually offer it, based on whether this attempt fails (see moves.js).
 		const reroll = this._availableReroll(move, weapon);
 		const options = weapon !== undefined
-			? { ...config, weaponLabel: weapon ? weapon.name : "Unarmed", ...(reroll && { reroll }) }
+			? {
+				...config,
+				weaponLabel: weapon ? weapon.name : "Unarmed",
+				weaponTags: this._weaponTagLabels(weapon),
+				...(reroll && { reroll })
+			}
 			: config;
 		await rollMove(this.actor, move, config.trait, options);
 	}

@@ -4,7 +4,7 @@
 	<div class="move-roll-result">
 		{{#if traitLabel}}<span class="move-trait">+{{traitLabel}}</span>{{/if}}
 		{{#if intentLabel}}<span class="move-intent">{{intentLabel}}</span>{{/if}}
-		{{#if weaponLabel}}<span class="move-weapon">{{weaponLabel}}</span>{{/if}}
+		{{#if weaponLabel}}<span class="move-weapon">{{weaponLabel}}{{#if weaponTags}} ({{weaponTags}}){{/if}}</span>{{/if}}
 		<span class="move-tier move-tier-{{tier}}">{{tierLabel}}</span>
 	</div>
 	{{#if conditions}}
@@ -13,6 +13,7 @@
 		<span class="move-condition move-condition-{{key}}">{{label}}</span>
 		{{/each}}
 	</div>
+	{{/if}}
 	<ol class="move-dice">
 		{{#each dice}}
 		<li class="move-die{{#unless kept}} move-die-dropped{{/unless}}{{#if changed}} move-die-changed{{/if}}">
@@ -21,7 +22,6 @@
 		</li>
 		{{/each}}
 	</ol>
-	{{/if}}
 	{{#if resultText}}
 	<div class="move-result-text">{{{resultText}}}</div>
 	{{/if}}

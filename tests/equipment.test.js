@@ -4,11 +4,13 @@ import { EFFECT_STATES } from "../scripts/roll-effects.js";
 import {
 	EQUIPMENT_CATALOG,
 	EQUIPMENT_TAGS,
+	MAX_TAGS,
 	TAG_VALUE_MAX,
 	TAG_VALUE_MIN,
 	TIER_MAX,
 	TIER_MIN,
 	UNARMED,
+	WEAPON_RANGE_GROUP,
 	WEAPON_SCALES,
 	chooseEquipmentCatalogItem,
 	chooseWeapon,
@@ -16,6 +18,7 @@ import {
 	equipmentValue,
 	findCatalogEquipment,
 	findEquipmentTag,
+	groupEquipmentTags,
 	resolveEquipmentTags
 } from "../scripts/equipment.js";
 
@@ -46,6 +49,23 @@ const FIXTURE_TAGS = [
 	{ key: "fixture-spendable", label: "Fixture Spendable", value: 1, description: "c", spend: { period: "Scene", effect: "confidence" } }
 ];
 
+// Isolated to the exclusiveGroup mechanism's own tests, rather than adding value: 0 entries into
+// FIXTURE_TAGS above and perturbing every other test that asserts FIXTURE_TAGS' exact grouped
+// shape (see the groupEquipmentTags and configureEquipment describe blocks below).
+const FIXTURE_EXCLUSIVE_TAGS = [
+	{ key: "fixture-solo", label: "Fixture Solo", value: 1, description: "a" },
+	{ key: "fixture-exclusive-a", label: "Fixture Exclusive A", value: 0, description: "b", exclusiveGroup: "fixture-group" },
+	{ key: "fixture-exclusive-b", label: "Fixture Exclusive B", value: 0, description: "c", exclusiveGroup: "fixture-group" }
+];
+
+// configureEquipment's Save validation checks a checked tag's exclusiveGroup against the real
+// WEAPON_RANGE_GROUP constant, not an injectable one, so a "kind: weapon" Save test needs an
+// actual WEAPON_RANGE_GROUP-tagged fixture to succeed — added ad hoc to FIXTURE_TAGS below rather
+// than into FIXTURE_TAGS itself, for the same reason FIXTURE_EXCLUSIVE_TAGS stays separate.
+const FIXTURE_WEAPON_RANGE_TAG = {
+	key: "fixture-melee", label: "Fixture Melee", value: 0, description: "d", exclusiveGroup: WEAPON_RANGE_GROUP
+};
+
 // Fakes the jQuery `.find(selector)` chain configureEquipment uses: plain fields resolve via
 // `.val()`, and the checked-tag checkboxes resolve via `.map(...).get()`, mirroring fakeRollHtml
 // in tests/moves.test.js and fakePickerHtml in tests/playbook-moves.test.js.
@@ -61,12 +81,15 @@ function fakeEquipmentHtml(values, checkedTags = []) {
 }
 
 // Fakes the jQuery chain configureEquipment's `render` callback uses to wire up the live tag
-// total: `.find("[name='tag']").on("change", handler)` to capture the handler, `.find("[name='tag']:checked")`
-// to report whichever keys the test sets on `.checkedTags` at call time (so a test can change what's
-// "checked" between renders and re-invoking the handler, same as a real toggle), and
-// `.find(".equipment-editor-tag-total-value").text(...)` to capture what was written.
+// total and exclusiveGroup behavior: `.find("[name='tag']").on("change", handler)` to capture the
+// handler (invoked with a `{ target: { value, checked } }` event, mirroring a real DOM change
+// event), `.find("[name='tag']:checked")` to report whichever keys the test sets on `.checkedTags`
+// at call time (so a test can change what's "checked" between renders and re-invoking the
+// handler, same as a real toggle), `.find(".equipment-editor-tag-total-value").text(...)` to
+// capture what was written, and `.find("[name='tag'][value='<key>']").prop("checked", false)` to
+// record which sibling(s) the exclusiveGroup logic force-unchecked, in `uncheckedKeys`.
 function fakeEquipmentRenderHtml() {
-	const state = { handlers: {}, total: undefined, checkedTags: [] };
+	const state = { handlers: {}, total: undefined, checkedTags: [], uncheckedKeys: [] };
 	state.html = {
 		find: (selector) => {
 			if (selector === "[name='tag']") return { on: (event, handler) => { state.handlers[event] = handler; } };
@@ -74,6 +97,11 @@ function fakeEquipmentRenderHtml() {
 				return { map: (fn) => ({ get: () => state.checkedTags.map((value, index) => fn(index, { value })) }) };
 			}
 			if (selector === ".equipment-editor-tag-total-value") return { text: (value) => { state.total = value; } };
+			const tagCheckboxMatch = selector.match(/^\[name='tag'\]\[value='(.+)'\]$/);
+			if (tagCheckboxMatch) {
+				const key = tagCheckboxMatch[1];
+				return { prop: (name, value) => { if (name === "checked" && value === false) state.uncheckedKeys.push(key); } };
+			}
 			return {};
 		}
 	};
@@ -141,6 +169,14 @@ describe("EQUIPMENT_TAGS", () => {
 			spend: { period: "Scene", effect: "confidence" }
 		});
 	});
+
+	it("gives Melee, Ranged and Sniper a value of 0 and WEAPON_RANGE_GROUP as their exclusiveGroup", () => {
+		expect(EQUIPMENT_TAGS.filter((tag) => tag.exclusiveGroup === WEAPON_RANGE_GROUP).map((tag) => tag.key))
+			.toEqual(["melee", "ranged", "sniper"]);
+		for (const key of ["melee", "ranged", "sniper"]) {
+			expect(findEquipmentTag(key).value).toBe(0);
+		}
+	});
 });
 
 describe("WEAPON_SCALES", () => {
@@ -198,6 +234,40 @@ describe("equipmentValue", () => {
 	});
 });
 
+describe("groupEquipmentTags", () => {
+	it("groups tags into the fixed -2/-1/+1/+2 order regardless of input order", () => {
+		const shuffled = [FIXTURE_TAGS[2], FIXTURE_TAGS[0], FIXTURE_TAGS[1]];
+
+		expect(groupEquipmentTags(shuffled)).toEqual([
+			{ label: "Minor Drawbacks (-1)", tags: [FIXTURE_TAGS[1]] },
+			{ label: "Strong Benefits (+1)", tags: [FIXTURE_TAGS[2]] },
+			{ label: "Rare Benefits (+2)", tags: [FIXTURE_TAGS[0]] }
+		]);
+	});
+
+	it("preserves each group's tags in their original relative order", () => {
+		const twoNegatives = [
+			{ key: "fixture-negative-a", value: -1 },
+			{ key: "fixture-negative-b", value: -1 }
+		];
+
+		expect(groupEquipmentTags(twoNegatives)[0].tags).toEqual(twoNegatives);
+	});
+
+	it("drops a group with no matching tags", () => {
+		// FIXTURE_TAGS has no -2 entry, so that group is absent entirely rather than rendered empty.
+		expect(groupEquipmentTags(FIXTURE_TAGS).map((group) => group.label)).toEqual([
+			"Minor Drawbacks (-1)",
+			"Strong Benefits (+1)",
+			"Rare Benefits (+2)"
+		]);
+	});
+
+	it("returns an empty list for an empty input", () => {
+		expect(groupEquipmentTags([])).toEqual([]);
+	});
+});
+
 describe("configureEquipment", () => {
 	it("renders the editor template blank, titled to Add, when creating", async () => {
 		const promise = configureEquipment(null, FIXTURE_TAGS);
@@ -212,10 +282,25 @@ describe("configureEquipment", () => {
 			tier: TIER_MIN,
 			tierMin: TIER_MIN,
 			tierMax: TIER_MAX,
-			tags: [
-				{ key: "fixture-positive", label: "Fixture Positive", value: 2, description: "a", checked: false },
-				{ key: "fixture-negative", label: "Fixture Negative", value: -1, description: "b", checked: false },
-				{ key: "fixture-spendable", label: "Fixture Spendable", value: 1, description: "c", checked: false }
+			// Grouped by value (see the groupEquipmentTags describe block below for the grouping
+			// rules themselves) — FIXTURE_TAGS has no -2 entry, so only three groups render, and
+			// every tag starts unchecked/every group starts closed since nothing is being edited.
+			tagGroups: [
+				{
+					label: "Minor Drawbacks (-1)",
+					tags: [{ key: "fixture-negative", label: "Fixture Negative", value: -1, description: "b", checked: false }],
+					open: false
+				},
+				{
+					label: "Strong Benefits (+1)",
+					tags: [{ key: "fixture-spendable", label: "Fixture Spendable", value: 1, description: "c", checked: false }],
+					open: false
+				},
+				{
+					label: "Rare Benefits (+2)",
+					tags: [{ key: "fixture-positive", label: "Fixture Positive", value: 2, description: "a", checked: false }],
+					open: false
+				}
 			]
 		}));
 		expect(Dialog.mock.calls.at(-1)[0].title).toBe("Add Equipment");
@@ -244,10 +329,25 @@ describe("configureEquipment", () => {
 			isWeapon: true,
 			scale: "astir",
 			tier: 3,
-			tags: expect.arrayContaining([
-				expect.objectContaining({ key: "fixture-negative", checked: true }),
-				expect.objectContaining({ key: "fixture-positive", checked: false })
-			])
+			// The group holding fixture-negative (already on the entry) opens; the groups holding
+			// only fixture-spendable/fixture-positive (not on the entry) stay closed.
+			tagGroups: [
+				expect.objectContaining({
+					label: "Minor Drawbacks (-1)",
+					tags: [expect.objectContaining({ key: "fixture-negative", checked: true })],
+					open: true
+				}),
+				expect.objectContaining({
+					label: "Strong Benefits (+1)",
+					tags: [expect.objectContaining({ key: "fixture-spendable", checked: false })],
+					open: false
+				}),
+				expect.objectContaining({
+					label: "Rare Benefits (+2)",
+					tags: [expect.objectContaining({ key: "fixture-positive", checked: false })],
+					open: false
+				})
+			]
 		}));
 		expect(Dialog.mock.calls.at(-1)[0].title).toBe("Edit Equipment");
 
@@ -270,7 +370,7 @@ describe("configureEquipment", () => {
 	});
 
 	it("resolves a weapon's name, description, kind, tags, scale and tier when Save is clicked", async () => {
-		const promise = configureEquipment(null, FIXTURE_TAGS);
+		const promise = configureEquipment(null, [...FIXTURE_TAGS, FIXTURE_WEAPON_RANGE_TAG]);
 		await Promise.resolve();
 		await Promise.resolve();
 
@@ -281,13 +381,13 @@ describe("configureEquipment", () => {
 			"[name='description']": "  A long blade.  ",
 			"[name='scale']": "astir",
 			"[name='tier']": "3"
-		}, ["fixture-positive", "fixture-negative"]));
+		}, ["fixture-positive", "fixture-negative", "fixture-melee"]));
 
 		expect(await promise).toEqual({
 			name: "Halberd",
 			description: "A long blade.",
 			kind: "weapon",
-			tags: ["fixture-positive", "fixture-negative"],
+			tags: ["fixture-positive", "fixture-negative", "fixture-melee"],
 			scale: "astir",
 			tier: 3
 		});
@@ -309,7 +409,7 @@ describe("configureEquipment", () => {
 	});
 
 	it("clamps tier to the 1-5 range", async () => {
-		const promise = configureEquipment(null, FIXTURE_TAGS);
+		const promise = configureEquipment(null, [...FIXTURE_TAGS, FIXTURE_WEAPON_RANGE_TAG]);
 		await Promise.resolve();
 		await Promise.resolve();
 
@@ -320,13 +420,13 @@ describe("configureEquipment", () => {
 			"[name='description']": "",
 			"[name='scale']": "foot",
 			"[name='tier']": "99"
-		}));
+		}, ["fixture-melee"]));
 
 		expect((await promise).tier).toBe(TIER_MAX);
 	});
 
 	it("defaults a non-numeric tier to the minimum", async () => {
-		const promise = configureEquipment(null, FIXTURE_TAGS);
+		const promise = configureEquipment(null, [...FIXTURE_TAGS, FIXTURE_WEAPON_RANGE_TAG]);
 		await Promise.resolve();
 		await Promise.resolve();
 
@@ -337,7 +437,7 @@ describe("configureEquipment", () => {
 			"[name='description']": "",
 			"[name='scale']": "foot",
 			"[name='tier']": ""
-		}));
+		}, ["fixture-melee"]));
 
 		expect((await promise).tier).toBe(TIER_MIN);
 	});
@@ -440,15 +540,168 @@ describe("configureEquipment", () => {
 		expect(state.handlers.change).toEqual(expect.any(Function));
 
 		state.checkedTags = ["fixture-positive", "fixture-spendable"];
-		state.handlers.change();
+		state.handlers.change({ target: { value: "fixture-spendable", checked: true } });
 		expect(state.total).toBe(3);
 
 		state.checkedTags = ["fixture-negative"];
-		state.handlers.change();
+		state.handlers.change({ target: { value: "fixture-positive", checked: false } });
 		expect(state.total).toBe(-1);
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
+	});
+
+	it("unchecks a tag's exclusiveGroup sibling(s) when it's checked", async () => {
+		const promise = configureEquipment(null, FIXTURE_EXCLUSIVE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedTags = ["fixture-exclusive-a", "fixture-exclusive-b"];
+		state.handlers.change({ target: { value: "fixture-exclusive-b", checked: true } });
+
+		expect(state.uncheckedKeys).toEqual(["fixture-exclusive-a"]);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("doesn't uncheck an exclusiveGroup sibling when the changed tag is unchecked, not checked", async () => {
+		const promise = configureEquipment(null, FIXTURE_EXCLUSIVE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedTags = [];
+		state.handlers.change({ target: { value: "fixture-exclusive-a", checked: false } });
+
+		expect(state.uncheckedKeys).toEqual([]);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("leaves a non-exclusive tag checked when an exclusiveGroup tag changes", async () => {
+		const promise = configureEquipment(null, FIXTURE_EXCLUSIVE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedTags = ["fixture-solo", "fixture-exclusive-a"];
+		state.handlers.change({ target: { value: "fixture-exclusive-a", checked: true } });
+
+		// fixture-solo isn't in the group, so it's never targeted; fixture-exclusive-b is the group
+		// sibling and gets a (harmless, idempotent-in-a-real-DOM) uncheck regardless of whether it
+		// was actually checked.
+		expect(state.uncheckedKeys).toEqual(["fixture-exclusive-b"]);
+		expect(state.uncheckedKeys).not.toContain("fixture-solo");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves null and warns when a weapon is saved with none of Melee/Ranged/Sniper checked", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Cannon",
+			"[name='kind']": "weapon",
+			"[name='description']": "",
+			"[name='scale']": "foot",
+			"[name='tier']": "1"
+		}, ["blitz"]));
+
+		expect(await promise).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalled();
+	});
+
+	it("saves a weapon once one of Melee/Ranged/Sniper is checked", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Cannon",
+			"[name='kind']": "weapon",
+			"[name='description']": "",
+			"[name='scale']": "foot",
+			"[name='tier']": "1"
+		}, ["sniper"]));
+
+		expect(await promise).toEqual(expect.objectContaining({ tags: ["sniper"] }));
+	});
+
+	it("doesn't require Melee/Ranged/Sniper for Gear", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Rations",
+			"[name='kind']": "gear",
+			"[name='description']": ""
+		}, ["blitz"]));
+
+		expect(await promise).toEqual(expect.objectContaining({ tags: ["blitz"] }));
+	});
+
+	it(`resolves null and warns when more than ${MAX_TAGS} regular tags are checked`, async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Rations",
+			"[name='kind']": "gear",
+			"[name='description']": ""
+		}, ["blitz", "concealable", "impact", "infinite"]));
+
+		expect(await promise).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalled();
+	});
+
+	it(`allows exactly ${MAX_TAGS} regular tags`, async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Rations",
+			"[name='kind']": "gear",
+			"[name='description']": ""
+		}, ["blitz", "concealable", "impact"]));
+
+		expect(await promise).toEqual(expect.objectContaining({ tags: ["blitz", "concealable", "impact"] }));
+	});
+
+	it("never counts a Melee/Ranged/Sniper tag against the MAX_TAGS cap", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Cannon",
+			"[name='kind']": "weapon",
+			"[name='description']": "",
+			"[name='scale']": "foot",
+			"[name='tier']": "1"
+		}, ["blitz", "concealable", "impact", "sniper"]));
+
+		expect(await promise).toEqual(expect.objectContaining({ tags: ["blitz", "concealable", "impact", "sniper"] }));
 	});
 });
 
@@ -481,6 +734,14 @@ describe("EQUIPMENT_CATALOG", () => {
 		for (const item of EQUIPMENT_CATALOG) {
 			for (const tagKey of item.tags) {
 				expect(findEquipmentTag(tagKey)).not.toBeNull();
+			}
+		}
+	});
+
+	it("gives every weapon one of the WEAPON_RANGE_GROUP tags, so a picked-and-saved-unmodified item already satisfies configureEquipment's Save rule", () => {
+		for (const item of EQUIPMENT_CATALOG) {
+			if (item.kind === "weapon") {
+				expect(item.tags.some((tagKey) => findEquipmentTag(tagKey).exclusiveGroup === WEAPON_RANGE_GROUP)).toBe(true);
 			}
 		}
 	});
