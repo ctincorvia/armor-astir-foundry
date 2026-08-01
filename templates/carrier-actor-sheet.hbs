@@ -1,0 +1,41 @@
+<form class="{{cssClass}}" autocomplete="off">
+	<header class="sheet-header">
+		<img class="profile-img" src="{{actor.img}}" data-edit="img" alt="{{actor.name}}"/>
+		<div class="form-group">
+			<label>Name</label>
+			<input type="text" name="name" value="{{actor.name}}" placeholder="Name"/>
+		</div>
+	</header>
+	<section class="crew">
+		<h3>Crew</h3>
+		<div class="trait-control">
+			<button type="button" class="crew-step crew-decrement" data-delta="-1">-</button>
+			<span class="trait-value">{{crew}}</span>
+			<button type="button" class="crew-step crew-increment" data-delta="1">+</button>
+		</div>
+	</section>
+	<section class="description">
+		<h3>Description</h3>
+		<textarea name="system.details.description.value" placeholder="Describe the Carrier…">{{description}}</textarea>
+	</section>
+	<section class="crew-members">
+		<div class="section-header">
+			<h3>Crew Members ({{crewMembers.length}})</h3>
+			<div class="section-header-actions">
+				<button type="button" class="entry-list-add icon-add-button" data-list="crewMembers" title="Add Crew Member" aria-label="Add Crew Member">+</button>
+			</div>
+		</div>
+		<ol class="entry-list crew-member-list">
+			{{#each crewMembers}}
+			<li class="entry-list-item" data-entry-id="{{id}}">
+				<div class="entry-list-row">
+					<input type="text" class="entry-list-field crew-member-name" data-list="crewMembers" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Name"/>
+					<input type="text" class="entry-list-field crew-member-position" data-list="crewMembers" data-entry-id="{{id}}" data-field="position" value="{{position}}" placeholder="Position"/>
+					<button type="button" class="entry-list-remove" data-list="crewMembers" data-entry-id="{{id}}" aria-label="Remove crew member">✕</button>
+				</div>
+				<textarea class="entry-list-field crew-member-description" data-list="crewMembers" data-entry-id="{{id}}" data-field="description" placeholder="Brief description…">{{description}}</textarea>
+			</li>
+			{{/each}}
+		</ol>
+	</section>
+</form>

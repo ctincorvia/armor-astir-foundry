@@ -36,19 +36,31 @@ export async function createPlaybookActor(playbook, { folder = null } = {}) {
 
 // Re-targets an existing character actor at a different playbook, replacing its playbook-derived
 // data (system.playbook/stats/attributes and items) while leaving the actor's own name, img, and
-// system.details.callsign untouched (see claude.md, "Domain conventions"). Equipment is the one
+// system.details.callsign untouched (see claude.md, "Domain conventions"). Equipment is one
 // exception carved out of the attributes wipe: unlike playbookMoves — which is meant to reset,
 // since Bite the Dust's own text says a new playbook doesn't come with new equipment — a
 // character's gear is theirs, not the playbook's, so it survives the swap.
+//
+// The Astir (see astir.js/PlaybookActorSheet) is the character's too, but only when the new
+// playbook still grants CHANNEL — an Astir the new playbook's own tab would immediately grey out
+// as unavailable is dropped instead, along with any astir: true equipment entries it owns (same
+// cleanup _onAstirDelete does), so nothing orphaned lingers in the equipment array.
 export async function swapActorPlaybook(actor, playbook) {
 	const data = await getPlaybookSourceData(playbook);
 	if (!data) return null;
 
-	const equipment = actor.system.attributes?.equipment ?? [];
+	const channelEnabled = !data.system.stats?.channel?.disabled;
+	const currentEquipment = actor.system.attributes?.equipment ?? [];
+	const equipment = channelEnabled ? currentEquipment : currentEquipment.filter((item) => !item.astir);
+	const astir = actor.system.attributes?.astir;
 	await actor.update({
 		"system.playbook": data.system.playbook,
 		"system.stats": data.system.stats,
-		"system.attributes": { ...data.system.attributes, equipment }
+		"system.attributes": {
+			...data.system.attributes,
+			equipment,
+			...(channelEnabled && astir && { astir })
+		}
 	});
 
 	const oldItemIds = actor.items.map((i) => i.id);
@@ -82,15 +94,106 @@ export function choosePlaybook(playbooks = PLAYBOOKS) {
 	});
 }
 
+// One blank id-keyed entry, shared by every world actor kind's seeded lists below (Authority's
+// fixed Pillars/Divisions slots today; any freeform list starts empty instead, since add/remove
+// generates its own entries at claim-time via entry-list.js's addEntry).
+function blankEntry(extra = {}) {
+	return { id: foundry.utils.randomID(), name: "", description: "", ...extra };
+}
+
+// The non-playbook actor kinds a table can create (see claude.md, "World actors"). Unlike
+// PLAYBOOKS, these aren't compendium-backed — buildSystem returns each kind's starting
+// system data directly, freshly per call so array/object fields are never shared between
+// actors created from the same kind entry.
+export const WORLD_ACTOR_KINDS = [
+	{
+		key: "carrier",
+		type: "armor-astir.carrier",
+		name: "Carrier",
+		buildSystem: () => ({
+			stats: { crew: { value: 0 } },
+			details: { description: { value: "" } },
+			attributes: { crewMembers: [] }
+		})
+	},
+	{
+		key: "authority",
+		type: "armor-astir.authority",
+		name: "Authority",
+		// Pillars and Divisions are always exactly three slots (see authority-actor-sheet.js) —
+		// seeded blank here rather than left empty, since that sheet has no add/remove control
+		// for either list. Divisions additionally seed Strength (0-5, starting at 5/4/4) and
+		// Disfavor (0-10, always starting at 0).
+		buildSystem: () => ({
+			attributes: {
+				stability: { value: 10 },
+				pillars: [blankEntry(), blankEntry(), blankEntry()],
+				divisions: [
+					blankEntry({ strength: 5, disfavor: 0 }),
+					blankEntry({ strength: 4, disfavor: 0 }),
+					blankEntry({ strength: 4, disfavor: 0 })
+				],
+				assets: [],
+				notableActors: []
+			}
+		})
+	},
+	{
+		key: "cause",
+		type: "armor-astir.cause",
+		name: "Cause",
+		buildSystem: () => ({ attributes: { factions: [] } })
+	}
+];
+
+export async function createWorldActor(kind, { folder = null } = {}) {
+	return Actor.create(
+		{ name: kind.name, type: kind.type, folder, system: kind.buildSystem() },
+		{ renderSheet: true }
+	);
+}
+
+// Fronts choosePlaybook/createWorldActor with which kind of actor to create at all. Resolves
+// "playbook", a WORLD_ACTOR_KINDS key, or null (dialog closed without a choice) — same
+// close-resolves-null contract as choosePlaybook. `worldActorKinds` is injectable for testing,
+// same reasoning as choosePlaybook's own `playbooks` parameter.
+export function chooseActorKind(worldActorKinds = WORLD_ACTOR_KINDS) {
+	return new Promise((resolve) => {
+		const buttons = {
+			playbook: { label: "Playbook", callback: () => resolve("playbook") }
+		};
+		for (const kind of worldActorKinds) {
+			buttons[kind.key] = { label: kind.name, callback: () => resolve(kind.key) };
+		}
+
+		new Dialog({
+			title: "Create Actor",
+			content: "<p>What kind of actor do you want to create?</p>",
+			buttons,
+			close: () => resolve(null)
+		}).render(true);
+	});
+}
+
 async function onCreateEntryClick(event) {
 	event.preventDefault();
 	event.stopPropagation();
 	const folder = event.currentTarget.closest(".directory-item")?.dataset.folderId ?? null;
 
-	const playbook = await choosePlaybook();
-	if (!playbook) return;
+	const kindKey = await chooseActorKind();
+	if (!kindKey) return;
 
-	createPlaybookActor(playbook, { folder });
+	if (kindKey === "playbook") {
+		const playbook = await choosePlaybook();
+		if (!playbook) return;
+		createPlaybookActor(playbook, { folder });
+		return;
+	}
+
+	// kindKey is always either "playbook" (handled above) or one of WORLD_ACTOR_KINDS' own keys —
+	// chooseActorKind's buttons are built from this exact list, so the lookup below can't miss.
+	const worldKind = WORLD_ACTOR_KINDS.find((k) => k.key === kindKey);
+	createWorldActor(worldKind, { folder });
 }
 
 export function registerPlaybookActorCreation() {

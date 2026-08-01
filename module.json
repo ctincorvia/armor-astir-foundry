@@ -14,7 +14,14 @@
 		"verified": "12"
 	},
 	"esmodules": ["scripts/main.js"],
-	"styles": ["styles/playbook-actor-sheet.css"],
+	"styles": ["styles/playbook-actor-sheet.css", "styles/world-actor-sheet.css"],
+	"documentTypes": {
+		"Actor": {
+			"carrier": {},
+			"authority": {},
+			"cause": {}
+		}
+	},
 	"packs": [
 		{
 			"name": "basic-playbook-scout",

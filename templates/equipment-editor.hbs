@@ -6,6 +6,7 @@
 		<label>Name</label>
 		<input type="text" name="name" value="{{name}}"/>
 	</div>
+	{{#unless astirWeapon}}
 	<div class="form-group">
 		<label>Kind</label>
 		<select name="kind">
@@ -23,6 +24,7 @@
 		<label>Tier</label>
 		<input type="number" name="tier" value="{{tier}}" min="{{tierMin}}" max="{{tierMax}}"/>
 	</div>
+	{{/unless}}
 	<div class="form-group">
 		<label>Description</label>
 		<textarea name="description">{{description}}</textarea>

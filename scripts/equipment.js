@@ -556,12 +556,18 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 // `note` is optional, purely informational text rendered as a single line above the form (e.g.
 // starting-gear.js's per-playbook custom weapon budget guidance) — never validated or enforced,
 // same non-blocking treatment as every other soft guidance in this module.
-export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, { note } = {}) {
+//
+// `astirWeapon` (see astir.js/PlaybookActorSheet) hides the Kind select and the Scale/Tier fields
+// entirely: an Astir weapon is always a weapon, and always inherits its Astir's own tier and the
+// "astir" WEAPON_SCALES entry rather than storing either — everything else (tags, MAX_TAGS, the
+// required weapon-range group, the live Value readout) applies exactly as it does for any weapon.
+export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, { note, astirWeapon = false } = {}) {
 	const content = await renderTemplate(EQUIPMENT_EDITOR_TEMPLATE, {
 		note,
+		astirWeapon,
 		name: initial?.name ?? "",
 		description: initial?.description ?? "",
-		isWeapon: (initial?.kind ?? "weapon") === "weapon",
+		isWeapon: astirWeapon || (initial?.kind ?? "weapon") === "weapon",
 		scale: initial?.scale ?? WEAPON_SCALES[0].key,
 		scales: WEAPON_SCALES,
 		tier: initial?.tier ?? TIER_MIN,
@@ -622,7 +628,9 @@ export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, 
 							resolve(null);
 							return;
 						}
-						const kind = html.find("[name='kind']").val();
+						// An Astir weapon dialog never renders the Kind select at all (see the template) —
+						// it's always a weapon, so there's nothing to read from the DOM here.
+						const kind = astirWeapon ? "weapon" : html.find("[name='kind']").val();
 						const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
 						// Every checked key is a real tag — it was rendered from `tags` in the first
 						// place — so findEquipmentTag can't miss in either check below.
@@ -647,7 +655,9 @@ export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, 
 							description: html.find("[name='description']").val().trim(),
 							kind,
 							tags: checkedKeys,
-							...(kind === "weapon" && {
+							// scale/tier are never resolved for an Astir weapon — both are inherited from
+							// the Astir itself (see PlaybookActorSheet#_equipmentEntry) rather than stored.
+							...(kind === "weapon" && !astirWeapon && {
 								scale: html.find("[name='scale']").val(),
 								tier: Math.min(TIER_MAX, Math.max(TIER_MIN, Number(html.find("[name='tier']").val()) || TIER_MIN))
 							})

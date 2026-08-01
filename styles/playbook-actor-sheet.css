@@ -178,11 +178,9 @@
 	opacity: 0.5;
 }
 
-/* Overheating and Power are each only a few characters wide, so they sit side by side rather than
-   stacking. Deliberately no margin/padding of its own: when a playbook shows neither, Handlebars
-   still leaves whitespace inside this div, and whitespace-only text never becomes a flex item —
-   so an empty .trait-meters collapses to zero height instead of leaving a gap. The children keep
-   their own margin-top, which is what spaces the row off the traits list above. */
+/* Overheating and Power (now on the Astir tab's identity section — see playbook-actor-sheet.hbs)
+   are each only a few characters wide, so they sit side by side rather than stacking. The
+   children's own margin-top is what spaces this row off whatever sits above it. */
 .armor-astir.sheet .trait-meters {
 	display: flex;
 	flex-direction: row;
@@ -365,11 +363,15 @@
 }
 
 /* Every small square icon-button that removes a list entry — Danger, Gravity Clock, Playbook
-   Move, Equipment — was four byte-identical rules; one consolidated rule instead. */
+   Move, Equipment, Astir Part/Move, the Astir itself — was four byte-identical rules; one
+   consolidated rule instead. */
 .armor-astir.sheet .danger-remove,
 .armor-astir.sheet .gravity-clock-remove,
 .armor-astir.sheet .playbook-move-remove,
-.armor-astir.sheet .equipment-remove {
+.armor-astir.sheet .equipment-remove,
+.armor-astir.sheet .astir-part-remove,
+.armor-astir.sheet .astir-move-remove,
+.armor-astir.sheet .astir-delete {
 	flex: 0 0 auto;
 	width: 20px;
 	height: 20px;
@@ -385,7 +387,10 @@
 .armor-astir.sheet .danger-remove:hover,
 .armor-astir.sheet .gravity-clock-remove:hover,
 .armor-astir.sheet .playbook-move-remove:hover,
-.armor-astir.sheet .equipment-remove:hover {
+.armor-astir.sheet .equipment-remove:hover,
+.armor-astir.sheet .astir-part-remove:hover,
+.armor-astir.sheet .astir-move-remove:hover,
+.armor-astir.sheet .astir-delete:hover {
 	border-color: var(--aa-danger);
 	color: var(--aa-danger);
 }
@@ -508,6 +513,38 @@
 	color: var(--aa-primary-dark);
 }
 
+/* The Astir tab nav item while CHANNEL is disabled — still clickable (that's how a player finds
+   the locked note explaining why, see .astir-locked below) so this dims rather than disabling the
+   click the way a real disabled control would. */
+.armor-astir.sheet .sheet-tabs .item.disabled {
+	opacity: 0.5;
+}
+
+/* Core/Approach/Tier sit in one row on the Astir tab's identity section — each select keeps its
+   own label above it via .form-group (pbta's own styling, same as the header's Name/Callsign
+   fields), this just lays the three fields out side by side. */
+.armor-astir.sheet .astir-identity-fields {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--aa-space-4);
+	margin: var(--aa-space-2) 0 var(--aa-space-3);
+}
+
+.armor-astir.sheet .astir-locked-note,
+.armor-astir.sheet .astir-part-power-cost {
+	font-size: 12px;
+	font-style: italic;
+	opacity: 0.8;
+}
+
+.armor-astir.sheet .astir-empty {
+	display: flex;
+	justify-content: center;
+	padding: var(--aa-space-4) 0;
+}
+
 /* Foundry's core CSS hides an inactive tab with `.tab[data-tab]:not(.active) { display: none }`;
    scoping this to .active (rather than plain .tab) keeps this rule mutually exclusive with core's
    selector so there's no specificity fight over which one wins. */
@@ -611,7 +648,8 @@
 .armor-astir.sheet .move-roll,
 .armor-astir.sheet .move-activate,
 .armor-astir.sheet .icon-add-button,
-.armor-astir.sheet .danger-add {
+.armor-astir.sheet .danger-add,
+.armor-astir.sheet .astir-create {
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
 	background: var(--aa-primary);
@@ -623,7 +661,8 @@
 .armor-astir.sheet .move-roll:not(.disabled):hover,
 .armor-astir.sheet .move-activate:not(.disabled):hover,
 .armor-astir.sheet .icon-add-button:hover,
-.armor-astir.sheet .danger-add:hover {
+.armor-astir.sheet .danger-add:hover,
+.armor-astir.sheet .astir-create:hover {
 	background: var(--aa-primary-dark);
 	border-color: var(--aa-primary-dark);
 }

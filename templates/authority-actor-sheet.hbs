@@ -1,0 +1,94 @@
+<form class="{{cssClass}}" autocomplete="off">
+	<header class="sheet-header">
+		<img class="profile-img" src="{{actor.img}}" data-edit="img" alt="{{actor.name}}"/>
+		<div class="form-group">
+			<label>Name</label>
+			<input type="text" name="name" value="{{actor.name}}" placeholder="Name"/>
+		</div>
+	</header>
+	<section class="stability">
+		<h3>Stability</h3>
+		<ol class="stability-track">
+			{{#each stability.steps}}
+			<li class="stability-step-item">
+				<button type="button" class="stability-step{{#if filled}} filled{{/if}}" data-step="{{step}}" aria-label="Stability step {{step}}"></button>
+			</li>
+			{{/each}}
+		</ol>
+		<span class="stability-value">{{stability.value}}</span>
+	</section>
+	<section class="pillars">
+		<h3>Pillars</h3>
+		<ol class="entry-list pillar-list">
+			{{#each pillars}}
+			<li class="entry-list-item" data-entry-id="{{id}}">
+				<input type="text" class="entry-list-field pillar-name" data-list="pillars" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Pillar name"/>
+				<textarea class="entry-list-field pillar-description" data-list="pillars" data-entry-id="{{id}}" data-field="description" placeholder="What does the Authority hold here?">{{description}}</textarea>
+			</li>
+			{{/each}}
+		</ol>
+	</section>
+	<section class="divisions">
+		<h3>Divisions</h3>
+		<ol class="entry-list division-list">
+			{{#each divisions}}
+			<li class="entry-list-item" data-entry-id="{{id}}">
+				<input type="text" class="entry-list-field division-name" data-list="divisions" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Division name"/>
+				<div class="division-counters">
+					<div class="division-counter">
+						<label>Strength</label>
+						<button type="button" class="division-strength-step division-counter-decrement" data-entry-id="{{id}}" data-delta="-1" aria-label="Decrease Strength">-</button>
+						<span class="trait-value">{{strength}}</span>
+						<button type="button" class="division-strength-step division-counter-increment" data-entry-id="{{id}}" data-delta="1" aria-label="Increase Strength">+</button>
+					</div>
+					<div class="division-counter">
+						<label>Disfavor</label>
+						<button type="button" class="division-disfavor-step division-counter-decrement" data-entry-id="{{id}}" data-delta="-1" aria-label="Decrease Disfavor">-</button>
+						<span class="trait-value">{{disfavor}}</span>
+						<button type="button" class="division-disfavor-step division-counter-increment" data-entry-id="{{id}}" data-delta="1" aria-label="Increase Disfavor">+</button>
+					</div>
+				</div>
+				<textarea class="entry-list-field division-description" data-list="divisions" data-entry-id="{{id}}" data-field="description" placeholder="Describe this hostile organization…">{{description}}</textarea>
+			</li>
+			{{/each}}
+		</ol>
+	</section>
+	<section class="assets">
+		<div class="section-header">
+			<h3>Assets ({{assets.length}})</h3>
+			<div class="section-header-actions">
+				<button type="button" class="entry-list-add icon-add-button" data-list="assets" title="Add Asset" aria-label="Add Asset">+</button>
+			</div>
+		</div>
+		<ol class="entry-list asset-list">
+			{{#each assets}}
+			<li class="entry-list-item" data-entry-id="{{id}}">
+				<div class="entry-list-row">
+					<input type="text" class="entry-list-field" data-list="assets" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Name"/>
+					<button type="button" class="entry-list-remove" data-list="assets" data-entry-id="{{id}}" aria-label="Remove asset">✕</button>
+				</div>
+				<textarea class="entry-list-field" data-list="assets" data-entry-id="{{id}}" data-field="description" placeholder="Brief description…">{{description}}</textarea>
+			</li>
+			{{/each}}
+		</ol>
+	</section>
+	<section class="notable-actors">
+		<div class="section-header">
+			<h3>Actors ({{notableActors.length}})</h3>
+			<div class="section-header-actions">
+				<button type="button" class="entry-list-add icon-add-button" data-list="notableActors" title="Add Actor" aria-label="Add Actor">+</button>
+			</div>
+		</div>
+		<ol class="entry-list notable-actor-list">
+			{{#each notableActors}}
+			<li class="entry-list-item" data-entry-id="{{id}}">
+				<div class="entry-list-row">
+					<input type="text" class="entry-list-field" data-list="notableActors" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Name"/>
+					<button type="button" class="entry-list-remove" data-list="notableActors" data-entry-id="{{id}}" aria-label="Remove actor">✕</button>
+				</div>
+				<textarea class="entry-list-field" data-list="notableActors" data-entry-id="{{id}}" data-field="description" placeholder="Brief description…">{{description}}</textarea>
+			</li>
+			{{/each}}
+		</ol>
+	</section>
+</form>

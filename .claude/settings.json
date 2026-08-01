@@ -1,6 +1,17 @@
 {
   "permissions": {
     "defaultMode": "bypassPermissions",
+    "allow": [
+      "Bash(npm run test:coverage)",
+      "Bash(npm test)",
+      "Bash(npx vitest run)",
+      "Bash(npm run lint)",
+      "Bash(npx eslint .)",
+      "Bash(tasklist)",
+      "Bash(where /R *)",
+      "Bash(npx lint-staged)",
+      "Bash(npm run pullJSONtoLDB)"
+    ],
     "ask": [
       "Bash(rm *)",
       "Bash(rmdir *)",

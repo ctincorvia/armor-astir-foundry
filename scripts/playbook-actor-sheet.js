@@ -26,6 +26,22 @@ import {
 	resolveEquipmentTags
 } from "./equipment.js";
 import { chooseStartingGear, findStartingGearPool } from "./starting-gear.js";
+import {
+	ASTIR_CORES,
+	ASTIR_MOVE_CATALOG,
+	ASTIR_PART_CATALOG,
+	ASTIR_POWER_BASE,
+	ASTIR_POWER_MIN,
+	ASTIR_TIER_MAX,
+	ASTIR_TIER_MIN,
+	astirCoreApproaches,
+	astirMaxPower,
+	chooseAstirMove,
+	chooseAstirPart,
+	chooseAstirWeapon,
+	findAstirMove,
+	resolveAstirParts
+} from "./astir.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
 
@@ -39,9 +55,6 @@ const TRAIT_MAX = 3;
 // _moveGroupMoves) since all of them cap at 3 today. Revisit if a future move grants more.
 const HOLD_MIN = 0;
 const HOLD_MAX = 3;
-
-const POWER_MIN = 0;
-const POWER_MAX = 4;
 
 const SPOTLIGHT_MIN = 0;
 const SPOTLIGHT_MAX = 6;
@@ -61,11 +74,14 @@ const GRAVITY_CLOCK_VALUE_MAX = 3;
 // How many of the six top Advancement checklist items unlock the bottom four (see advancements.js).
 const ADVANCEMENT_UNLOCK_THRESHOLD = 3;
 
-// All three groups share one flat list for key lookup (_onMoveRoll/_onMoveDescription) since a
-// move's section (Basic vs Special vs Playbook) is purely a sheet-display grouping, not part of
-// its identity. Playbook move keys are pool-prefixed (see playbook-moves.js) so this stays
-// collision-free as pools fill in.
-const ALL_MOVES = [...BASIC_MOVES, ...SPECIAL_MOVES, ...ALL_PLAYBOOK_MOVES];
+// All groups share one flat list for key lookup (_onMoveRoll/_onMoveDescription) since a move's
+// section (Basic vs Special vs Playbook vs Astir) is purely a sheet-display grouping, not part of
+// its identity. Playbook/Astir move keys are pool-prefixed (see playbook-moves.js/astir.js) so
+// this stays collision-free as pools fill in. ASTIR_PART_CATALOG and ASTIR_MOVE_CATALOG are
+// flattened in whole, the same "every possible entry, not just what's picked" treatment
+// ALL_PLAYBOOK_MOVES already gives MOVE_POOLS — an individual actor's picked subset is resolved
+// separately (see resolveAstirParts/findAstirMove in getData).
+const ALL_MOVES = [...BASIC_MOVES, ...SPECIAL_MOVES, ...ALL_PLAYBOOK_MOVES, ...ASTIR_PART_CATALOG, ...ASTIR_MOVE_CATALOG];
 
 // Moves that represent attacking with a weapon (see moves.js's usesWeapon). Drives both
 // _onMoveRoll's weapon-choice prompt and the per-weapon quick-roll buttons in the Equipment tab
@@ -121,19 +137,7 @@ export class PlaybookActorSheet extends ActorSheet {
 			const stat = this.actor.system.stats?.[key];
 			return { key, label, value: stat?.value ?? 0, disabled: stat?.disabled ?? false };
 		});
-		// Astirs' overheating status lives on the character sheet for now (Astirs aren't their own
-		// documents yet — see Cool Off in moves.js) and only matters once CHANNEL is enabled, same
-		// gating as weave-magic's traits (missing stat entry reads as enabled, not disabled).
-		data.overheating = {
-			visible: !this.actor.system.stats?.channel?.disabled,
-			value: this.actor.system.attributes?.overheating?.value ?? false
-		};
-		// Power is another Channel/Astir-linked resource (spent by Subsystems to re-activate a
-		// part), so it's gated identically to overheating rather than always shown.
-		data.power = {
-			visible: !this.actor.system.stats?.channel?.disabled,
-			value: this.actor.system.attributes?.power?.value ?? 0
-		};
+		const astir = this._astir();
 		// Spotlight is a single 0-6 counter (system.attributes.spotlight.value) rendered as 6
 		// steps filled from the bottom up — always visible (not Channel-gated) since it tracks
 		// whose turn it is in the fiction, not an Astir/Channel resource.
@@ -157,12 +161,24 @@ export class PlaybookActorSheet extends ActorSheet {
 				removable: true
 			}
 		];
+		// Astir Parts read as moves, and the Astir's one unique move joins them under the same
+		// group — both are picked/removed only from the Astir tab (see _onAstirPartAdd/
+		// _onAstirMoveAdd), so unlike Playbook Moves this group renders no add/remove controls of
+		// its own. Appended, rather than inserted, so moveGroups[0..2] stay positionally stable for
+		// existing tests, and only pushed when there's something to show — a character with no
+		// Astir (or an empty one) leaves moveGroups exactly as it was before this feature existed.
+		const astirParts = resolveAstirParts(astir?.parts ?? []);
+		const astirMove = astir?.move ? findAstirMove(astir.move) : null;
+		const astirMoves = [...astirParts, ...(astirMove ? [astirMove] : [])];
+		if (astirMoves.length) {
+			data.moveGroups.push({ label: "Astir Moves", moves: this._moveGroupMoves(astirMoves) });
+		}
 		// Custom-made equipment (see claude.md, "Domain conventions") — never picked from a list,
 		// so unlike moves there's no shared catalog of equipment itself, only of the Tags that can
-		// be attached to it (see equipment.js). One array partitioned by `kind` into weapons and
-		// gear rather than two separate arrays, since add/edit/remove and tag resolution are
-		// identical either way and only the render needs to tell them apart. Weapons get their own
-		// header per claude.md; tierMin/tierMax feed the tab's Tier stepper bounds.
+		// be attached to it (see equipment.js). One array partitioned by `kind` (and, for weapons,
+		// by the astir flag) rather than several separate arrays, since add/edit/remove and tag
+		// resolution are identical either way and only the render needs to tell them apart. Weapons
+		// get their own header per claude.md; tierMin/tierMax feed the tab's Tier stepper bounds.
 		const equipment = this._equipment();
 		// The Equipment tab's per-weapon quick-roll buttons (see _onWeaponMoveRoll) — computed once
 		// and attached to every weapon entry below, rather than living once under data.equipment
@@ -179,15 +195,53 @@ export class PlaybookActorSheet extends ActorSheet {
 		// it opens is cancelled: it's a one-time chargen step, not a repeatable picker like "+ Add
 		// Playbook Move".
 		const startingGearPool = findStartingGearPool(this.actor.system.playbook?.name);
+		// Astir weapons (equipment entries flagged astir: true — see astir.js) are only ever
+		// added/edited/removed from the Astir tab, but still surface here, read-only, per
+		// claude.md — same computed entries feed both data.equipment.astirWeapons (Equipment tab)
+		// and data.astir.weapons (Astir tab) below, so there's only one place resolving them.
+		const astirWeapons = equipment
+			.filter((item) => item.kind === "weapon" && item.astir)
+			.map((item) => this._equipmentEntry(item, weaponMoves, astir));
 		data.equipment = {
 			tierMin: TIER_MIN,
 			tierMax: TIER_MAX,
-			weapons: equipment.filter((item) => item.kind === "weapon").map((item) => this._equipmentEntry(item, weaponMoves)),
+			weapons: equipment
+				.filter((item) => item.kind === "weapon" && !item.astir)
+				.map((item) => this._equipmentEntry(item, weaponMoves)),
+			astirWeapons,
 			gear: equipment.filter((item) => item.kind !== "weapon").map((item) => this._equipmentEntry(item)),
 			startingGear: {
 				available: Boolean(startingGearPool?.items?.length || startingGearPool?.customWeaponNote)
 					&& !this._startingGearChosen()
 			}
+		};
+		// The Astir tab. Gated on CHANNEL exactly like the old overheating/power meters were
+		// (missing stats.channel reads as enabled, not disabled) — but unlike those, "unavailable"
+		// still renders a nav item and a locked note (see the template) rather than disappearing,
+		// so a player can see why it's there but inert. exists is false either when no Astir has
+		// ever been created, or after it's been deleted — Create/Delete are the only ways in or out.
+		data.astir = {
+			available: !this.actor.system.stats?.channel?.disabled,
+			exists: Boolean(astir),
+			cores: ASTIR_CORES,
+			tierMin: ASTIR_TIER_MIN,
+			tierMax: ASTIR_TIER_MAX,
+			...(astir && {
+				// Always the character's own Callsign (see claude.md, "Domain conventions") — an
+				// Astir has no name of its own to set here, only to display.
+				name: this.actor.system.details?.callsign?.value || this.actor.name,
+				core: astir.core ?? "",
+				approachOptions: astirCoreApproaches(astir.core),
+				approach: astir.approach ?? "",
+				tier: astir.tier ?? ASTIR_TIER_MIN,
+				overheating: astir.overheating ?? false,
+				// max is always derived from the current parts, never stored — same reasoning as
+				// equipmentValue/advancements.topCount — so it can't drift after a part changes.
+				power: { value: astir.power ?? 0, max: astirMaxPower(astir.parts ?? []) },
+				parts: astirParts.map((part) => ({ key: part.key, name: part.name, powerCost: part.powerCost })),
+				move: astirMove ? { key: astirMove.key, name: astirMove.name } : null,
+				weapons: astirWeapons
+			})
 		};
 		// Dangers sit in their own left column beside the tab area (see the template) rather than
 		// inside a tab, since DEFENSELESS and the Danger list matter regardless of which tab is
@@ -255,13 +309,22 @@ export class PlaybookActorSheet extends ActorSheet {
 		return this._equipment().filter((item) => item.kind === "weapon");
 	}
 
+	_astir() {
+		return this.actor.system.attributes?.astir ?? null;
+	}
+
 	// Shared by getData (render shape) and _equipmentSpends (roll dialog offers) so a tag's
 	// current definition is only ever resolved from the catalog in one place. Value is always the
 	// live sum of the entry's current tags (see equipmentValue in equipment.js), never stored, so
 	// it can't drift out of sync after a tag is added or removed. scale/tier/weaponMoves are only
 	// present for weapons — gear never carries them. weaponMoves is precomputed once in getData
 	// and passed in here rather than recomputed per entry — see getData's own comment.
-	_equipmentEntry(entry, weaponMoves = []) {
+	//
+	// `astir` (the actor's raw Astir data, or null) is only ever needed for an entry flagged
+	// astir: true (see astir.js) — such an entry never stores its own scale/tier, inheriting the
+	// Astir's Tier and the "astir" WEAPON_SCALES entry instead, so isAstir tells the template to
+	// render that as read-only text rather than a stepper/select.
+	_equipmentEntry(entry, weaponMoves = [], astir = null) {
 		const tags = resolveEquipmentTags(entry.tags ?? []).map((tag) => ({
 			key: tag.key,
 			label: tag.label,
@@ -285,10 +348,13 @@ export class PlaybookActorSheet extends ActorSheet {
 			tags,
 			value: equipmentValue(entry.tags ?? []),
 			...(entry.kind === "weapon" && {
-				scale: entry.scale,
-				scaleLabel: WEAPON_SCALES.find((s) => s.key === entry.scale)?.label ?? entry.scale,
-				tier: entry.tier,
-				weaponMoves
+				scale: entry.astir ? "astir" : entry.scale,
+				scaleLabel: entry.astir
+					? WEAPON_SCALES.find((s) => s.key === "astir")?.label
+					: WEAPON_SCALES.find((s) => s.key === entry.scale)?.label ?? entry.scale,
+				tier: entry.astir ? astir?.tier : entry.tier,
+				weaponMoves,
+				isAstir: Boolean(entry.astir)
 			})
 		};
 	}
@@ -443,9 +509,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".trait-step").on("click", this._onTraitStep.bind(this));
 		html.find(".hold-step").on("click", this._onHoldStep.bind(this));
 		html.find(".flat-hold-step").on("click", this._onFlatHoldStep.bind(this));
-		html.find(".power-step").on("click", this._onPowerStep.bind(this));
 		html.find(".spotlight-step").on("click", this._onSpotlightStep.bind(this));
-		html.find(".overheating-checkbox").on("change", this._onOverheatingToggle.bind(this));
 		html.find(".advancement-checkbox").on("change", this._onAdvancementToggle.bind(this));
 		html.find(".danger-add-toggle").on("click", this._onDangerAddToggle.bind(this));
 		html.find(".danger-add").on("click", this._onDangerAdd.bind(this));
@@ -469,6 +533,18 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".equipment-tier-step").on("click", this._onEquipmentTierStep.bind(this));
 		html.find(".equipment-tag-spent-checkbox").on("change", this._onEquipmentTagSpentToggle.bind(this));
 		html.find(".weapon-move-roll").on("click", this._onWeaponMoveRoll.bind(this));
+		html.find(".astir-create").on("click", this._onAstirCreate.bind(this));
+		html.find(".astir-delete").on("click", this._onAstirDelete.bind(this));
+		html.find(".astir-core-select").on("change", this._onAstirCoreChange.bind(this));
+		html.find(".astir-approach-select").on("change", this._onAstirApproachChange.bind(this));
+		html.find(".astir-tier-step").on("click", this._onAstirTierStep.bind(this));
+		html.find(".astir-power-step").on("click", this._onAstirPowerStep.bind(this));
+		html.find(".astir-overheating-checkbox").on("change", this._onAstirOverheatingToggle.bind(this));
+		html.find(".astir-part-add").on("click", this._onAstirPartAdd.bind(this));
+		html.find(".astir-part-remove").on("click", this._onAstirPartRemove.bind(this));
+		html.find(".astir-move-add").on("click", this._onAstirMoveAdd.bind(this));
+		html.find(".astir-move-remove").on("click", this._onAstirMoveRemove.bind(this));
+		html.find(".astir-weapon-catalog-add").on("click", this._onAstirWeaponAdd.bind(this));
 	}
 
 	_onPlaybookChange(event) {
@@ -501,10 +577,6 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({ [`system.attributes.moveHold.${key}.value`]: next });
 	}
 
-	_onOverheatingToggle(event) {
-		this.actor.update({ "system.attributes.overheating.value": event.currentTarget.checked });
-	}
-
 	// Serves both the top and bottom Advancement groups — the key comes from the checkbox's own
 	// dataset, not a hardcoded group. Bottom checkboxes render `disabled` in the template while
 	// locked (see getData's `locked` field), and a disabled checkbox never dispatches `change`, so
@@ -513,14 +585,6 @@ export class PlaybookActorSheet extends ActorSheet {
 	_onAdvancementToggle(event) {
 		const { advancementKey: key } = event.currentTarget.dataset;
 		this.actor.update({ [`system.attributes.advancements.${key}`]: event.currentTarget.checked });
-	}
-
-	_onPowerStep(event) {
-		const { delta } = event.currentTarget.dataset;
-		const current = this.actor.system.attributes?.power?.value ?? 0;
-		const next = Math.min(POWER_MAX, Math.max(POWER_MIN, current + Number(delta)));
-		if (next === current) return;
-		this.actor.update({ "system.attributes.power.value": next });
 	}
 
 	// Clicking a step sets the value to that step, except clicking the current top (highest
@@ -534,6 +598,143 @@ export class PlaybookActorSheet extends ActorSheet {
 		const clamped = Math.min(SPOTLIGHT_MAX, Math.max(SPOTLIGHT_MIN, next));
 		if (clamped === current) return;
 		this.actor.update({ "system.attributes.spotlight.value": clamped });
+	}
+
+	// "+ Create Astir" on an available-but-empty Astir tab. Every player may have at most one —
+	// Create/Delete are the only ways in or out (see _onAstirDelete), there's no picker here.
+	_onAstirCreate() {
+		if (this._astir()) return;
+		this.actor.update({
+			"system.attributes.astir": {
+				id: foundry.utils.randomID(),
+				core: "",
+				approach: "",
+				tier: ASTIR_TIER_MIN,
+				power: ASTIR_POWER_BASE,
+				overheating: false,
+				parts: [],
+				move: null
+			}
+		});
+	}
+
+	// Deleting an Astir also drops every equipment entry it owns (see astir.js) — an orphaned
+	// astir: true weapon with no Astir to inherit Tier/Scale from would have nothing to render.
+	_onAstirDelete() {
+		if (!this._astir()) return;
+		this.actor.update({
+			"system.attributes.astir": null,
+			"system.attributes.equipment": this._equipment().filter((item) => !item.astir)
+		});
+	}
+
+	// Changing Core narrows which Approaches are valid (see astirCoreApproaches) — a currently-set
+	// Approach that the new Core doesn't offer is cleared rather than left dangling unrendered.
+	_onAstirCoreChange(event) {
+		const astir = this._astir();
+		if (!astir) return;
+		const core = event.currentTarget.value;
+		const updates = { "system.attributes.astir.core": core };
+		if (!astirCoreApproaches(core).some((approach) => approach.key === astir.approach)) {
+			updates["system.attributes.astir.approach"] = "";
+		}
+		this.actor.update(updates);
+	}
+
+	_onAstirApproachChange(event) {
+		if (!this._astir()) return;
+		this.actor.update({ "system.attributes.astir.approach": event.currentTarget.value });
+	}
+
+	_onAstirTierStep(event) {
+		const astir = this._astir();
+		if (!astir) return;
+		const { delta } = event.currentTarget.dataset;
+		const current = astir.tier ?? ASTIR_TIER_MIN;
+		const next = Math.min(ASTIR_TIER_MAX, Math.max(ASTIR_TIER_MIN, current + Number(delta)));
+		if (next === current) return;
+		this.actor.update({ "system.attributes.astir.tier": next });
+	}
+
+	// Bounded by astirMaxPower rather than a fixed constant, since Parts can reduce the ceiling —
+	// see getData's power.max.
+	_onAstirPowerStep(event) {
+		const astir = this._astir();
+		if (!astir) return;
+		const { delta } = event.currentTarget.dataset;
+		const current = astir.power ?? 0;
+		const max = astirMaxPower(astir.parts ?? []);
+		const next = Math.min(max, Math.max(ASTIR_POWER_MIN, current + Number(delta)));
+		if (next === current) return;
+		this.actor.update({ "system.attributes.astir.power": next });
+	}
+
+	_onAstirOverheatingToggle(event) {
+		if (!this._astir()) return;
+		this.actor.update({ "system.attributes.astir.overheating": event.currentTarget.checked });
+	}
+
+	// Adding a Part can lower max Power below the current value, so both are written in the same
+	// update — see astirMaxPower.
+	async _onAstirPartAdd() {
+		const astir = this._astir();
+		if (!astir) return;
+		const current = astir.parts ?? [];
+		const key = await chooseAstirPart(current);
+		if (!key || current.includes(key)) return;
+		const parts = [...current, key];
+		this.actor.update({
+			"system.attributes.astir.parts": parts,
+			"system.attributes.astir.power": Math.min(astir.power ?? 0, astirMaxPower(parts))
+		});
+	}
+
+	_onAstirPartRemove(event) {
+		const astir = this._astir();
+		if (!astir) return;
+		const { part: key } = event.currentTarget.dataset;
+		const current = astir.parts ?? [];
+		if (!current.includes(key)) return;
+		const parts = current.filter((k) => k !== key);
+		this.actor.update({
+			"system.attributes.astir.parts": parts,
+			"system.attributes.astir.power": Math.min(astir.power ?? 0, astirMaxPower(parts))
+		});
+	}
+
+	// The Astir's one unique move, picked from the character's own playbook pool, Cantrips, or the
+	// dedicated Astir Moves catalog (see astir.js#astirMoveSections) — picking a new one replaces
+	// whatever was there, since only one is ever held.
+	async _onAstirMoveAdd() {
+		const astir = this._astir();
+		if (!astir) return;
+		const key = await chooseAstirMove(this.actor.system.playbook?.name, astir.move ? [astir.move] : []);
+		if (!key) return;
+		this.actor.update({ "system.attributes.astir.move": key });
+	}
+
+	_onAstirMoveRemove() {
+		if (!this._astir()) return;
+		this.actor.update({ "system.attributes.astir.move": null });
+	}
+
+	// The "O" catalog picker for an Astir weapon (see astir.js#chooseAstirWeapon), then the same
+	// editor _onEquipmentCatalogAdd uses, with the astirWeapon option suppressing the fields an
+	// Astir weapon doesn't need — see configureEquipment.
+	async _onAstirWeaponAdd() {
+		if (!this._astir()) return;
+		const template = await chooseAstirWeapon();
+		if (!template) return;
+
+		const result = await configureEquipment(template, undefined, { astirWeapon: true });
+		if (!result) return;
+
+		this.actor.update({
+			"system.attributes.equipment": [
+				...this._equipment(),
+				{ id: foundry.utils.randomID(), spent: [], astir: true, ...result }
+			]
+		});
 	}
 
 	// The header "+" for Dangers just shows/hides the add-controls row (see _dangerAddOpen) rather
@@ -721,15 +922,24 @@ export class PlaybookActorSheet extends ActorSheet {
 		const entry = current.find((item) => item.id === equipmentId);
 		if (!entry) return;
 
-		const result = await configureEquipment(entry);
+		// An Astir weapon reopens with the same astirWeapon option that hid its Kind/Scale/Tier
+		// fields when it was first added (see _onAstirWeaponAdd/configureEquipment) — it's never
+		// possible to edit one into a non-Astir weapon or into Gear. Every other entry's call is
+		// left byte-for-byte as it was before this option existed.
+		const result = entry.astir
+			? await configureEquipment(entry, undefined, { astirWeapon: true })
+			: await configureEquipment(entry);
 		if (!result) return;
 
-		// Replaces the entry wholesale (keeping only id/spent) rather than merging onto the old
-		// one — editing a weapon down to Gear should drop its stale scale/tier, not leave them
-		// dangling unrendered.
+		// Replaces the entry wholesale (keeping only id/spent/astir) rather than merging onto the
+		// old one — editing a weapon down to Gear should drop its stale scale/tier, not leave them
+		// dangling unrendered. astir is carried forward explicitly, last, since result never
+		// includes it (configureEquipment has no concept of the flag, only of hiding fields for it).
 		await this.actor.update({
 			"system.attributes.equipment": current.map((item) => (
-				item.id === equipmentId ? { id: item.id, spent: item.spent ?? [], ...result } : item
+				item.id === equipmentId
+					? { id: item.id, spent: item.spent ?? [], ...result, ...(item.astir && { astir: true }) }
+					: item
 			))
 		});
 	}

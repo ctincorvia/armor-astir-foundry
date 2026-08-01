@@ -705,6 +705,83 @@ describe("configureEquipment", () => {
 	});
 });
 
+describe("configureEquipment - astirWeapon option", () => {
+	it("passes astirWeapon through to the template, forcing isWeapon true regardless of initial.kind", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			astirWeapon: true,
+			isWeapon: true
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves kind: weapon without ever reading a Kind field from the DOM", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Lance",
+			"[name='description']": "A long spear."
+		}, ["melee"]));
+
+		expect(await promise).toEqual({ name: "Lance", description: "A long spear.", kind: "weapon", tags: ["melee"] });
+	});
+
+	it("never resolves scale or tier, even if somehow present in the DOM", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Lance",
+			"[name='description']": "",
+			"[name='scale']": "foot",
+			"[name='tier']": "5"
+		}, ["melee"]));
+
+		const result = await promise;
+		expect(result.scale).toBeUndefined();
+		expect(result.tier).toBeUndefined();
+	});
+
+	it("still requires one of the Melee/Ranged/Sniper tags", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Lance",
+			"[name='description']": ""
+		}, ["blitz"]));
+
+		expect(await promise).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalled();
+	});
+
+	it("still enforces MAX_TAGS", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Lance",
+			"[name='description']": ""
+		}, ["blitz", "concealable", "impact", "infinite", "melee"]));
+
+		expect(await promise).toBeNull();
+	});
+});
+
 describe("EQUIPMENT_CATALOG", () => {
 	it("gives every item a unique key", () => {
 		const keys = EQUIPMENT_CATALOG.map((item) => item.key);

@@ -398,7 +398,10 @@ export function resolvePlaybookMoves(keys = []) {
 // The picker's display shape for one move. Trait labels come straight from the move's definition
 // rather than being filtered against the actor (unlike _moveTraits on the sheet): the picker shows
 // what a move rolls, not whether this particular character can currently roll it.
-function pickerMove(move) {
+//
+// Exported so astir.js's astirMoveSections can build its own (differently-shaped) picker tree
+// from the same pool/catalog data without duplicating this or pickerSection below.
+export function pickerMove(move) {
 	return {
 		key: move.key,
 		name: move.name,
@@ -407,7 +410,7 @@ function pickerMove(move) {
 	};
 }
 
-function pickerSection(pool, selectedKeys, { note = pool.note, open = false } = {}) {
+export function pickerSection(pool, selectedKeys, { note = pool.note, open = false } = {}) {
 	const moves = pool.moves.filter((move) => !selectedKeys.includes(move.key));
 	if (!moves.length) return null;
 	return { key: pool.key, label: pool.label, note, open, moves: moves.map(pickerMove) };
