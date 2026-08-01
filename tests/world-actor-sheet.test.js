@@ -55,6 +55,7 @@ describe("WorldActorSheet#activateListeners", () => {
 		expect(html.find).toHaveBeenCalledWith(".entry-list-add");
 		expect(html.find).toHaveBeenCalledWith(".entry-list-remove");
 		expect(html.find).toHaveBeenCalledWith(".entry-list-field");
+		expect(html.find).toHaveBeenCalledWith(".entry-list-counter-step");
 		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
 		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
 	});
@@ -134,5 +135,81 @@ describe("WorldActorSheet#_onEntryFieldChange", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.factions": [{ id: "a", exhausted: true }]
 		});
+	});
+});
+
+describe("WorldActorSheet#_onEntryCounterStep", () => {
+	it("increments the matching entry's field", () => {
+		const sheet = new WorldActorSheet();
+		sheet.actor = {
+			system: { attributes: { divisions: [{ id: "d1", strength: 2 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onEntryCounterStep({
+			currentTarget: { dataset: { list: "divisions", entryId: "d1", field: "strength", delta: "1", min: "0", max: "5" } }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.divisions": [{ id: "d1", strength: 3 }]
+		});
+	});
+
+	it("clamps at the given maximum", () => {
+		const sheet = new WorldActorSheet();
+		sheet.actor = {
+			system: { attributes: { divisions: [{ id: "d1", strength: 5 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onEntryCounterStep({
+			currentTarget: { dataset: { list: "divisions", entryId: "d1", field: "strength", delta: "1", min: "0", max: "5" } }
+		});
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at the given minimum", () => {
+		const sheet = new WorldActorSheet();
+		sheet.actor = {
+			system: { attributes: { factions: [{ id: "f1", grip: 0 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onEntryCounterStep({
+			currentTarget: { dataset: { list: "factions", entryId: "f1", field: "grip", delta: "-1", min: "0", max: "3" } }
+		});
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing field value as the minimum", () => {
+		const sheet = new WorldActorSheet();
+		sheet.actor = {
+			system: { attributes: { factions: [{ id: "f1" }] } },
+			update: vi.fn()
+		};
+
+		sheet._onEntryCounterStep({
+			currentTarget: { dataset: { list: "factions", entryId: "f1", field: "grip", delta: "1", min: "0", max: "3" } }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.factions": [{ id: "f1", grip: 1 }]
+		});
+	});
+
+	it("does nothing when no entry matches the given id", () => {
+		const sheet = new WorldActorSheet();
+		sheet.actor = {
+			system: { attributes: { divisions: [{ id: "d1", strength: 2 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onEntryCounterStep({
+			currentTarget: { dataset: { list: "divisions", entryId: "missing", field: "strength", delta: "1", min: "0", max: "5" } }
+		});
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 });

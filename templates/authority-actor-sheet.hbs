@@ -34,18 +34,18 @@
 			{{#each divisions}}
 			<li class="entry-list-item" data-entry-id="{{id}}">
 				<input type="text" class="entry-list-field division-name" data-list="divisions" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Division name"/>
-				<div class="division-counters">
-					<div class="division-counter">
+				<div class="entry-counter-row">
+					<div class="entry-counter">
 						<label>Strength</label>
-						<button type="button" class="division-strength-step division-counter-decrement" data-entry-id="{{id}}" data-delta="-1" aria-label="Decrease Strength">-</button>
+						<button type="button" class="entry-list-counter-step" data-list="divisions" data-entry-id="{{id}}" data-field="strength" data-delta="-1" data-min="0" data-max="5" aria-label="Decrease Strength">-</button>
 						<span class="trait-value">{{strength}}</span>
-						<button type="button" class="division-strength-step division-counter-increment" data-entry-id="{{id}}" data-delta="1" aria-label="Increase Strength">+</button>
+						<button type="button" class="entry-list-counter-step" data-list="divisions" data-entry-id="{{id}}" data-field="strength" data-delta="1" data-min="0" data-max="5" aria-label="Increase Strength">+</button>
 					</div>
-					<div class="division-counter">
+					<div class="entry-counter">
 						<label>Disfavor</label>
-						<button type="button" class="division-disfavor-step division-counter-decrement" data-entry-id="{{id}}" data-delta="-1" aria-label="Decrease Disfavor">-</button>
+						<button type="button" class="entry-list-counter-step" data-list="divisions" data-entry-id="{{id}}" data-field="disfavor" data-delta="-1" data-min="0" data-max="10" aria-label="Decrease Disfavor">-</button>
 						<span class="trait-value">{{disfavor}}</span>
-						<button type="button" class="division-disfavor-step division-counter-increment" data-entry-id="{{id}}" data-delta="1" aria-label="Increase Disfavor">+</button>
+						<button type="button" class="entry-list-counter-step" data-list="divisions" data-entry-id="{{id}}" data-field="disfavor" data-delta="1" data-min="0" data-max="10" aria-label="Increase Disfavor">+</button>
 					</div>
 				</div>
 				<textarea class="entry-list-field division-description" data-list="divisions" data-entry-id="{{id}}" data-field="description" placeholder="Describe this hostile organization…">{{description}}</textarea>

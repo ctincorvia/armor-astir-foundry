@@ -46,6 +46,14 @@ vi.mock("../scripts/astir.js", async (importOriginal) => ({
 	chooseAstirWeapon: vi.fn()
 }));
 
+// findCarrierActors defaults to no Carriers in the world, matching how lead-a-sortie's CREW
+// fixedTraits placeholder behaved before Carrier existed — see the beforeEach reset below.
+vi.mock("../scripts/carrier-actor-sheet.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	findCarrierActors: vi.fn(() => []),
+	chooseCarrier: vi.fn()
+}));
+
 import { PLAYBOOKS, swapActorPlaybook } from "../scripts/actor-creation.js";
 import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postGuidedResult, postMoveDescription, rollMove } from "../scripts/moves.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../scripts/advancements.js";
@@ -66,6 +74,7 @@ import {
 	chooseAstirPart,
 	chooseAstirWeapon
 } from "../scripts/astir.js";
+import { findCarrierActors, chooseCarrier } from "../scripts/carrier-actor-sheet.js";
 import {
 	PlaybookActorSheet,
 	registerPlaybookActorSheet,
@@ -101,6 +110,9 @@ beforeEach(() => {
 	chooseAstirPart.mockClear();
 	chooseAstirMove.mockClear();
 	chooseAstirWeapon.mockClear();
+	findCarrierActors.mockClear();
+	findCarrierActors.mockReturnValue([]);
+	chooseCarrier.mockClear();
 });
 
 describe("PlaybookActorSheet", () => {
@@ -3695,6 +3707,16 @@ describe("PlaybookActorSheet#activateListeners - moves", () => {
 	});
 });
 
+describe("PlaybookActorSheet#_moveTraits", () => {
+	it("leaves a non-crew fixedTrait untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+		const move = { traits: [], fixedTraits: [{ key: "cargo", label: "CARGO", value: 3 }] };
+
+		expect(sheet._moveTraits(move)).toEqual([{ key: "cargo", label: "CARGO", value: 3 }]);
+	});
+});
+
 describe("PlaybookActorSheet#_onMoveRoll", () => {
 	it("does nothing for an unrecognized move key", async () => {
 		const sheet = new PlaybookActorSheet();
@@ -3777,6 +3799,105 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 	it("finds a special move (lead a sortie) by key, same as a basic move", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: { know: { value: 1 }, defy: { value: 0 } } } };
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			LEAD_A_SORTIE,
+			[
+				{ key: "know", label: "KNOW", value: 1 },
+				{ key: "defy", label: "DEFY", value: 0 },
+				{ key: "crew", label: "CREW", value: 0 }
+			],
+			{ lockedEffect: null, equipmentSpends: [] }
+		);
+	});
+
+	it("resolves lead a sortie's CREW from the single Carrier in the world, without prompting", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { know: { value: 1 }, defy: { value: 0 } } } };
+		findCarrierActors.mockReturnValue([{ id: "carrier1", name: "The Wanderer", system: { stats: { crew: { value: 2 } } } }]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(chooseCarrier).not.toHaveBeenCalled();
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			LEAD_A_SORTIE,
+			[
+				{ key: "know", label: "KNOW", value: 1 },
+				{ key: "defy", label: "DEFY", value: 0 },
+				{ key: "crew", label: "CREW", value: 2 }
+			],
+			{ lockedEffect: null, equipmentSpends: [] }
+		);
+	});
+
+	it("prompts to choose a Carrier when more than one exists, and rolls with its Crew value", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { know: { value: 1 }, defy: { value: 0 } } } };
+		const carrier1 = { id: "carrier1", name: "The Wanderer", system: { stats: { crew: { value: 2 } } } };
+		const carrier2 = { id: "carrier2", name: "The Anchor", system: { stats: { crew: { value: -1 } } } };
+		findCarrierActors.mockReturnValue([carrier1, carrier2]);
+		chooseCarrier.mockResolvedValue("carrier2");
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(chooseCarrier).toHaveBeenCalledWith([carrier1, carrier2]);
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			LEAD_A_SORTIE,
+			[
+				{ key: "know", label: "KNOW", value: 1 },
+				{ key: "defy", label: "DEFY", value: 0 },
+				{ key: "crew", label: "CREW", value: -1 }
+			],
+			{ lockedEffect: null, equipmentSpends: [] }
+		);
+	});
+
+	it("aborts the roll when the multi-Carrier choice dialog is cancelled", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { know: { value: 1 }, defy: { value: 0 } } } };
+		findCarrierActors.mockReturnValue([
+			{ id: "carrier1", name: "The Wanderer", system: { stats: { crew: { value: 2 } } } },
+			{ id: "carrier2", name: "The Anchor", system: { stats: { crew: { value: -1 } } } }
+		]);
+		chooseCarrier.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(configureMoveRoll).not.toHaveBeenCalled();
+	});
+
+	it("treats a single Carrier missing its crew stat as 0", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { know: { value: 1 }, defy: { value: 0 } } } };
+		findCarrierActors.mockReturnValue([{ id: "carrier1", name: "The Wanderer", system: { stats: {} } }]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			LEAD_A_SORTIE,
+			[
+				{ key: "know", label: "KNOW", value: 1 },
+				{ key: "defy", label: "DEFY", value: 0 },
+				{ key: "crew", label: "CREW", value: 0 }
+			],
+			{ lockedEffect: null, equipmentSpends: [] }
+		);
+	});
+
+	it("treats the chosen Carrier missing its crew stat as 0", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { know: { value: 1 }, defy: { value: 0 } } } };
+		findCarrierActors.mockReturnValue([
+			{ id: "carrier1", name: "The Wanderer", system: { stats: {} } },
+			{ id: "carrier2", name: "The Anchor", system: { stats: {} } }
+		]);
+		chooseCarrier.mockResolvedValue("carrier1");
 		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });

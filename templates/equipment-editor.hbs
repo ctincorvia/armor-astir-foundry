@@ -6,7 +6,7 @@
 		<label>Name</label>
 		<input type="text" name="name" value="{{name}}"/>
 	</div>
-	{{#unless astirWeapon}}
+	{{#unless hideKindAndScale}}
 	<div class="form-group">
 		<label>Kind</label>
 		<select name="kind">
@@ -20,9 +20,11 @@
 			{{selectOptions scales selected=scale valueAttr="key" labelAttr="label"}}
 		</select>
 	</div>
+	{{/unless}}
+	{{#unless astirWeapon}}
 	<div class="form-group equipment-editor-weapon-fields">
 		<label>Tier</label>
-		<input type="number" name="tier" value="{{tier}}" min="{{tierMin}}" max="{{tierMax}}"/>
+		<input type="number" name="tier" value="{{tier}}" min="{{tierMin}}" max="{{tierMax}}" {{#if carrierWeapon}}disabled{{/if}}/>
 	</div>
 	{{/unless}}
 	<div class="form-group">

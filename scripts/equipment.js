@@ -12,8 +12,10 @@ export const WEAPON_RANGE_GROUP = "weapon-range";
 // Applies to every equipment entry (weapon or gear), and — like WEAPON_RANGE_GROUP above — never
 // counts a tag's `exclusiveGroup` membership (Melee/Ranged/Sniper) against the cap, since those
 // are a classifier rather than a regular tag pick. Enforced only at Save, same as the blank-name
-// and weapon-range checks in configureEquipment.
-export const MAX_TAGS = 3;
+// and weapon-range checks in configureEquipment. Flat across every tier (not scaled by TIER_MIN/
+// TIER_MAX) — Ashstaff I in EQUIPMENT_CATALOG needs 4 regular tags despite being Tier I, which is
+// what set this cap.
+export const MAX_TAGS = 4;
 
 export const TIER_MIN = 1;
 export const TIER_MAX = 5;
@@ -409,24 +411,236 @@ export const EQUIPMENT_TAGS = [
 // no "diverged from catalog" state to track. Shape matches configureEquipment's `initial` param
 // exactly (minus `id`), so a picked item can be passed straight through unmodified. Grows one
 // item at a time as rulebook equipment is transcribed, same restraint as EQUIPMENT_TAGS and
-// MOVE_POOLS; both entries below are placeholders, mirroring
-// soldier:placeholder-soldier-move in playbook-moves.js.
+// MOVE_POOLS. Keys carry a tier suffix (`-i`) since the rulebook's own weapon/gear lists are
+// organized by tier and higher-tier versions of the same name are expected to follow later.
+//
+// These are the rulebook's generic, not-Astir-exclusive Tier I weapons and gear — usable by any
+// character, unlike Astir-specific loadout (see astir.js).
 export const EQUIPMENT_CATALOG = [
 	{
-		key: "placeholder-weapon",
-		name: "Placeholder Weapon",
+		key: "infantry-weapon-i",
+		name: "Infantry Weapon I",
 		kind: "weapon",
-		description: "TODO: replace with a real catalog weapon.",
+		description: "Simple, sturdy weapons like blades and clubs.",
 		tags: ["melee"],
 		scale: "foot",
 		tier: TIER_MIN
 	},
 	{
-		key: "placeholder-gear",
-		name: "Placeholder Gear",
+		key: "dagger-i",
+		name: "Dagger I",
+		kind: "weapon",
+		description: "A concealable dagger, easily worn beneath clothing and thrown if needed.",
+		tags: ["melee", "intimate", "concealable"],
+		scale: "foot",
+		tier: TIER_MIN
+	},
+	{
+		key: "greatsword-i",
+		name: "Greatsword I",
+		kind: "weapon",
+		description: "A large weapon, with good reach and weight, perfect for taking heads. Praxis.",
+		tags: ["melee", "area", "two-handed"],
+		scale: "foot",
+		tier: TIER_MIN
+	},
+	{
+		key: "armourbane-i",
+		name: "Armourbane I",
+		kind: "weapon",
+		description: "A thin, pretty blade, good for slipping between armour plates.",
+		tags: ["melee", "fragile", "decisive"],
+		scale: "foot",
+		tier: TIER_MIN
+	},
+	{
+		key: "enchanted-blade-i",
+		name: "Enchanted Blade I",
+		kind: "weapon",
+		description: "What was once simple steel now carries the unmistakable sheen of ritual.",
+		tags: ["melee", "distinct", "bane"],
+		scale: "foot",
+		tier: TIER_MIN
+	},
+	{
+		key: "partisan-i",
+		name: "Partisan I",
+		kind: "weapon",
+		description: "A long spear, perfect for keeping your friends safe and your enemies at a very specific " +
+			"distance, as the saying goes.",
+		tags: ["melee", "defensive", "two-handed"],
+		scale: "foot",
+		tier: TIER_MIN
+	},
+	{
+		key: "bow-i",
+		name: "Bow I",
+		kind: "weapon",
+		description: "For when you don't need anything fancy, a bow is perfectly capable of doing the job for " +
+			"as long as you have arrows.",
+		tags: ["ranged", "decisive", "two-handed"],
+		scale: "foot",
+		tier: TIER_MIN
+	},
+	{
+		key: "sidearm-i",
+		name: "Sidearm I",
+		kind: "weapon",
+		description: "The typical protections afforded to Astir pilots: a reliable tool capable of firing " +
+			"bursts of light arcane energy.",
+		tags: ["ranged", "defensive", "weak"],
+		scale: "foot",
+		tier: TIER_MIN
+	},
+	{
+		key: "raypistol-i",
+		name: "Raypistol I",
+		kind: "weapon",
+		description: "A powerful but short-lived firebolt wand, fitted with a comfortable grip.",
+		tags: ["ranged", "limited", "bane"],
+		scale: "foot",
+		tier: TIER_MIN
+	},
+	{
+		key: "boltrifle-i",
+		name: "Boltrifle I",
+		kind: "weapon",
+		description: "Effectively repeating crossbows fed by lightweight 'barrels' of ammunition, bolt rifles " +
+			"are a common sight among troops of any real armed force.",
+		tags: ["ranged", "blitz", "two-handed"],
+		scale: "foot",
+		tier: TIER_MIN
+	},
+	{
+		key: "rayrifle-i",
+		name: "Rayrifle I",
+		kind: "weapon",
+		description: "A heavy rifle, often using magical crystals or wands as charge for a single shot. Their " +
+			"bulk, heavy recoil and cost makes them highly uncommon, but not overly so: after all, little " +
+			"else hand-held will put a hole through an Astir.",
+		tags: ["sniper", "reload", "ruin", "two-handed"],
+		scale: "foot",
+		tier: TIER_MIN
+	},
+	{
+		key: "ashstaff-i",
+		name: "Ashstaff I",
+		kind: "weapon",
+		description: "A large, shoulder-carried staff charged with incendiary magic. A little lighter and " +
+			"easier to use than a rayrifle, but still fairly bulky and lacking in the ability to pierce the " +
+			"protective wards of Astirs.",
+		// 4 regular tags (area, bane, unreliable, two-handed) despite being Tier I — this is what
+		// pushed MAX_TAGS from 3 to 4 (see its doc comment).
+		tags: ["ranged", "area", "bane", "unreliable", "two-handed"],
+		scale: "foot",
+		tier: TIER_MIN
+	},
+	{
+		key: "baneblade-ii",
+		name: "Baneblade II",
+		kind: "weapon",
+		description: "Most Astir pilots do not concern themselves with the scrambling of foot-soldiers. Some of " +
+			"these pilots meet very unexpected ends. Also seen as a Blowtorch, Enchanted Broadsword, or Bolt " +
+			"Gauntlets.",
+		tags: ["melee", "bane", "two-handed"],
+		scale: "foot",
+		tier: 2
+	},
+	{
+		key: "warp-slinger-ii",
+		name: "Warp-Slinger II",
+		kind: "weapon",
+		description: "An emplaced device incorporating multiple wands linked to a simple firing ritual that can " +
+			"be triggered by even those not gifted with magic. Also seen as an MG Turret, Point Laser, or " +
+			"Multi-Crossbow.",
+		tags: ["ranged", "blitz", "infinite", "huge"],
+		scale: "foot",
+		tier: 2
+	},
+	{
+		key: "ardent-rifle-ii",
+		name: "Ardent Rifle II",
+		kind: "weapon",
+		description: "A large two-handed tool that fires searing bolts of light, capable of burning through " +
+			"even an Astir's defences. Typically used by ardents, due to its weight. Also seen as an " +
+			"Arbalest, Flame Staff, or Greatbow.",
+		tags: ["ranged", "bane", "two-handed"],
+		scale: "foot",
+		tier: 2
+	},
+	{
+		key: "seeker-cluster-ii",
+		name: "Seeker Cluster II",
+		kind: "weapon",
+		description: "Guided by a faint magical intelligence, this device lets loose a swarm of small magical " +
+			"crystals to hound a particular target. Though they struggle to pierce armour, these crystals " +
+			"shatter on impact, resulting in sharp shrapnel. Also seen as Orbiting Motes, a Shock Rod, or " +
+			"Command Bracelets & Drone.",
+		tags: ["ranged", "guided", "defensive", "reload", "messy"],
+		scale: "foot",
+		tier: 2
+	},
+	{
+		key: "luxury-gift-i",
+		name: "Luxury Gift I",
 		kind: "gear",
-		description: "TODO: replace with real catalog gear.",
+		description: "For good first impressions, making up for bad ones, or just plain bribery.",
 		tags: []
+	},
+	{
+		key: "farspeech-stone-i",
+		name: "Farspeech Stone I",
+		kind: "gear",
+		description: "Stones of Farspeech allow you to communicate over great distances with the holder of a " +
+			"linked stone. Most are enchanted to be linked only to one other stone, but more expensive " +
+			"versions can be linked to as many as the owner requires.",
+		tags: []
+	},
+	{
+		key: "construct-sensor-i",
+		name: "Construct Sensor I",
+		kind: "gear",
+		description: "Circular tables with a surface constructed of an array of enchanted steel pins. The pins " +
+			"independently slide up and down when unregistered Constructs are detected in a certain radius, " +
+			"creating a rough three-dimensional relief of oncoming forces. The height of raised pins " +
+			"correspond to the size of a detected constructs, and larger tables with denser arrays allow for " +
+			"more precise reliefs.",
+		tags: []
+	},
+	{
+		key: "latch-i",
+		name: "Latch I",
+		kind: "gear",
+		description: "Basically handles enchanted to lock into place when pushed against something magical, " +
+			"Latches are typically used by ground forces to hitch a ride on constructs that don't have room " +
+			"for them to ride inside of. Also available as a pair of weaker Latches, built into a glove and " +
+			"boot, so that the wearer may simply hold a hand and foot against a construct to attach to it.",
+		tags: []
+	},
+	{
+		key: "grappling-hook-i",
+		name: "Grappling Hook I",
+		kind: "gear",
+		description: "Allows you to climb or grapple. A small sturdy grip attached to a barrel loaded with an " +
+			"steel hook, which is propelled by forceful magic. An attached cord can then be reeled in, " +
+			"allowing the holder to quickly relocate.",
+		tags: []
+	},
+	{
+		key: "invisibility-cloak-i",
+		name: "Invisibility Cloak I",
+		kind: "gear",
+		description: "Lets you be invisible. Generally speaking, doing just about anything is cooler whilst " +
+			"invisible.",
+		tags: ["fragile", "valuable"]
+	},
+	{
+		key: "arcane-charge-i",
+		name: "Arcane Charge I",
+		kind: "gear",
+		description: "A destructive spell delayed by a wax timer. Stick it on an Astir, light the wick, and run " +
+			"for your life.",
+		tags: ["ruin", "one-use"]
 	}
 ];
 
@@ -561,16 +775,26 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 // entirely: an Astir weapon is always a weapon, and always inherits its Astir's own tier and the
 // "astir" WEAPON_SCALES entry rather than storing either — everything else (tags, MAX_TAGS, the
 // required weapon-range group, the live Value readout) applies exactly as it does for any weapon.
-export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, { note, astirWeapon = false } = {}) {
+//
+// `carrierWeapon` (see carrier-actor-sheet.js) is a lighter version of the same idea: a Carrier
+// weapon is always a weapon, always Astir scale (Carriers are never Foot scale), and always
+// Tier 5 — but unlike an Astir weapon, there's nothing else for it to inherit those from, so
+// Tier stays a visible, disabled field (fixed at TIER_MAX) rather than being hidden outright.
+export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, { note, astirWeapon = false, carrierWeapon = false } = {}) {
 	const content = await renderTemplate(EQUIPMENT_EDITOR_TEMPLATE, {
 		note,
 		astirWeapon,
+		carrierWeapon,
+		// Kind and Scale are hidden for the same two callers — only Tier's treatment differs
+		// between them (hidden for Astir, shown-but-disabled for Carrier) — so one combined flag
+		// keeps the template from needing doubly-nested {{#unless}} blocks.
+		hideKindAndScale: astirWeapon || carrierWeapon,
 		name: initial?.name ?? "",
 		description: initial?.description ?? "",
-		isWeapon: astirWeapon || (initial?.kind ?? "weapon") === "weapon",
-		scale: initial?.scale ?? WEAPON_SCALES[0].key,
+		isWeapon: astirWeapon || carrierWeapon || (initial?.kind ?? "weapon") === "weapon",
+		scale: carrierWeapon ? "astir" : (initial?.scale ?? WEAPON_SCALES[0].key),
 		scales: WEAPON_SCALES,
-		tier: initial?.tier ?? TIER_MIN,
+		tier: carrierWeapon ? TIER_MAX : (initial?.tier ?? TIER_MIN),
 		tierMin: TIER_MIN,
 		tierMax: TIER_MAX,
 		// The starting total shown before any box is touched — same equipmentValue helper the
@@ -628,9 +852,10 @@ export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, 
 							resolve(null);
 							return;
 						}
-						// An Astir weapon dialog never renders the Kind select at all (see the template) —
-						// it's always a weapon, so there's nothing to read from the DOM here.
-						const kind = astirWeapon ? "weapon" : html.find("[name='kind']").val();
+						// Neither an Astir nor a Carrier weapon dialog renders the Kind select at all (see
+						// the template) — both are always weapons, so there's nothing to read from the DOM
+						// here for either.
+						const kind = (astirWeapon || carrierWeapon) ? "weapon" : html.find("[name='kind']").val();
 						const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
 						// Every checked key is a real tag — it was rendered from `tags` in the first
 						// place — so findEquipmentTag can't miss in either check below.
@@ -657,9 +882,13 @@ export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, 
 							tags: checkedKeys,
 							// scale/tier are never resolved for an Astir weapon — both are inherited from
 							// the Astir itself (see PlaybookActorSheet#_equipmentEntry) rather than stored.
+							// A Carrier weapon does store both, but always as the fixed astir/TIER_MAX pair
+							// rather than whatever the (disabled, for tier; absent, for scale) DOM fields show.
 							...(kind === "weapon" && !astirWeapon && {
-								scale: html.find("[name='scale']").val(),
-								tier: Math.min(TIER_MAX, Math.max(TIER_MIN, Number(html.find("[name='tier']").val()) || TIER_MIN))
+								scale: carrierWeapon ? "astir" : html.find("[name='scale']").val(),
+								tier: carrierWeapon
+									? TIER_MAX
+									: Math.min(TIER_MAX, Math.max(TIER_MIN, Number(html.find("[name='tier']").val()) || TIER_MIN))
 							})
 						});
 					}

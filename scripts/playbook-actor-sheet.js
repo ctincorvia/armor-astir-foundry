@@ -42,6 +42,7 @@ import {
 	findAstirMove,
 	resolveAstirParts
 } from "./astir.js";
+import { chooseCarrier, findCarrierActors } from "./carrier-actor-sheet.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
 
@@ -493,14 +494,28 @@ export class PlaybookActorSheet extends ActorSheet {
 	// Shared by getData (for sheet rendering) and _onMoveRoll (for the roll dialog) so a
 	// trait's current value is only ever read from the actor in one place. fixedTraits (e.g. Lead
 	// a Sortie's CREW) are appended as-is — never looked up on the actor — since they don't
-	// correspond to any TRAITS entry or system.stats key.
+	// correspond to any TRAITS entry or system.stats key. CREW is the one exception: its static
+	// placeholder value gets overwritten with a live read off whichever Carrier actor exists in
+	// the world (see _crewFixedTraitValue) — with zero or more than one Carrier, this resolves to
+	// 0 for display purposes; a roll in progress resolves the ambiguous multiple-Carrier case for
+	// real via a prompt (see _rollMove).
 	_moveTraits(move) {
 		const actorTraits = availableMoveTraits(this.actor, move).map((trait) => ({
 			key: trait.key,
 			label: trait.label,
 			value: this.actor.system.stats?.[trait.key]?.value ?? 0
 		}));
-		return [...actorTraits, ...(move.fixedTraits ?? [])];
+		const fixedTraits = (move.fixedTraits ?? []).map((trait) => (
+			trait.key === "crew" ? { ...trait, value: this._crewFixedTraitValue() } : trait
+		));
+		return [...actorTraits, ...fixedTraits];
+	}
+
+	// The single-Carrier case _moveTraits needs for display, and _rollMove's starting point
+	// before it decides whether the multi-Carrier prompt is even necessary.
+	_crewFixedTraitValue() {
+		const carriers = findCarrierActors();
+		return carriers.length === 1 ? carriers[0].system.stats?.crew?.value ?? 0 : 0;
 	}
 
 	activateListeners(html) {
@@ -1098,7 +1113,20 @@ export class PlaybookActorSheet extends ActorSheet {
 	// Shared by _onMoveRoll (weapon resolved via chooseWeapon, or left undefined for a move that
 	// isn't usesWeapon) and _onWeaponMoveRoll (weapon already known from the clicked button).
 	async _rollMove(move, weapon) {
-		const traits = this._moveTraits(move);
+		let traits = this._moveTraits(move);
+		// _moveTraits already resolved CREW for the single/zero-Carrier case; with more than one
+		// Carrier in the world that's ambiguous, so ask which one before locking in the value this
+		// roll actually uses. Cancelling aborts the whole roll, same convention chooseWeapon's own
+		// cancel already has.
+		if (move.fixedTraits?.some((trait) => trait.key === "crew")) {
+			const carriers = findCarrierActors();
+			if (carriers.length > 1) {
+				const carrierId = await chooseCarrier(carriers);
+				if (!carrierId) return;
+				const crewValue = carriers.find((c) => c.id === carrierId)?.system.stats?.crew?.value ?? 0;
+				traits = traits.map((trait) => (trait.key === "crew" ? { ...trait, value: crewValue } : trait));
+			}
+		}
 		if (!traits.length && !move.conditions) return;
 
 		// bite-the-dust's forcesDesperationAtMaxPerils wins ties over a forced weapon tag — both

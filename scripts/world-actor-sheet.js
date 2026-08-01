@@ -30,6 +30,7 @@ export class WorldActorSheet extends ActorSheet {
 		html.find(".entry-list-add").on("click", this._onEntryAdd.bind(this));
 		html.find(".entry-list-remove").on("click", this._onEntryRemove.bind(this));
 		html.find(".entry-list-field").on("change", this._onEntryFieldChange.bind(this));
+		html.find(".entry-list-counter-step").on("click", this._onEntryCounterStep.bind(this));
 	}
 
 	_onEntryAdd(event) {
@@ -52,5 +53,21 @@ export class WorldActorSheet extends ActorSheet {
 		const value = event.currentTarget.type === "checkbox" ? event.currentTarget.checked : event.currentTarget.value;
 		const current = this._list(key);
 		this.actor.update({ [`system.attributes.${key}`]: updateEntryField(current, entryId, field, value) });
+	}
+
+	// A clamped +/- counter on one entry's field (Authority's Division Strength/Disfavor, Cause's
+	// Faction Grip) — fully dataset-driven (list/entryId/field/delta/min/max all read off the
+	// clicked button) rather than a per-sheet handler, the same generalization _onEntryFieldChange
+	// already is for text/checkbox editing. A sheet with a counter like this needs new template
+	// markup only, no new JS.
+	_onEntryCounterStep(event) {
+		const { list: key, entryId, field, delta, min, max } = event.currentTarget.dataset;
+		const current = this._list(key);
+		const entry = current.find((e) => e.id === entryId);
+		if (!entry) return;
+		const value = entry[field] ?? Number(min);
+		const next = Math.min(Number(max), Math.max(Number(min), value + Number(delta)));
+		if (next === value) return;
+		this.actor.update({ [`system.attributes.${key}`]: updateEntryField(current, entryId, field, next) });
 	}
 }

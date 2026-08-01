@@ -1,5 +1,8 @@
 # Foundry Module Development Notes
 
+## Concurrent work
+- There might be other agents or humans working at the same time as you. Do not panic if you see diffs with changes you did not make in unrelated files. If you and another actor made changes to the same file, then you can investigate.
+
 ## Before declaring a task done
 - Stage the changes (`git add`) and run the pre-commit checks (`npx lint-staged` and `npm run test:coverage`, as defined in `.husky/pre-commit`) before declaring any task done.
 
@@ -14,89 +17,6 @@
 - **If either sibling repo is ever checked out to `main` (or a different tag) again, treat it as running ahead of what's installed** until re-pinned to match. `main` on both tracks newer, unreleased core-version support (e.g. `pbta`'s `main` currently targets core v14 / pbta 1.2.0), and a base-class or namespace reference copied from ahead-of-release source can throw at module-evaluation time — which aborts this module's entire `esmodules` import chain, not just the feature being added (this has happened once already). If in doubt, confirm a reference also appears in the *installed* system bundle (`Data/systems/pbta/module/pbta.js` in the Foundry user data directory) or in Foundry's own unpacked client source (`resources/app/client/...` under the Foundry install directory) — grep both if unsure.
 - Foundry does not hot-reload `esmodules` — after editing script files, the Foundry client needs a full reload (not just saving the file) to pick up the change. It *does* hot-reload `css`, `hbs`/`html` and `json` (verified in the installed client's `#handleHotReload`: CSS by cache-busting the `<link>` href, Handlebars by recompiling the partial and re-rendering every open window). So a styling or template tweak can land without a reload, while a script change always needs one — but the reload is driven by a server-side file watcher pushing a socket event, and whether that watcher fires through the `Data/modules/armor-astir` junctions is unverified, so treat a full reload as the reliable fallback whenever an edit doesn't appear.
 
-## Minimum structure
-```text
-Data/modules/<module-id>/
-  module.json
-```
-
-A practical structure is:
-```text
-module.json
-scripts/
-styles/
-templates/
-lang/
-packs/
-```
-
-## Minimum manifest
-The module must include a valid `module.json` at the root.
-
-Useful fields:
-- `id`: unique lowercase identifier, usually hyphenated
-- `title`: human-readable name shown in Foundry
-- `description`: summary of the module
-- `version`: version number for updates
-- `authors`: author info
-- `compatibility`: `minimum`, `verified`, optional `maximum`
-
-Example:
-```json
-{
-  "id": "armor-astir",
-  "title": "Armor Astir",
-  "description": "A Foundry module for the Armor Astir TRPG.",
-  "version": "0.1.0",
-  "authors": [{ "name": "Your Name" }],
-  "compatibility": {
-    "minimum": "10",
-    "verified": "11"
-  }
-}
-```
-
-## How modules load code
-- Add JavaScript via `scripts` or prefer `esmodules`.
-- Example:
-```json
-{
-  "esmodules": ["scripts/main.js"]
-}
-```
-- Use Foundry hooks for startup behavior:
-```js
-Hooks.on("init", () => {
-  console.log("Module initialized");
-});
-
-Hooks.on("ready", () => {
-  console.log("Module ready");
-});
-```
-
-## Useful manifest features
-- `styles`: add CSS files
-- `lang`: add localization files
-- `packs`: include compendium content
-- `relationships`: require other modules/systems/worlds
-- `system`: restrict the module to specific systems
-- `url`, `manifest`, `download`: useful for distribution and updates
-
-## Practical advice
-- Keep the manifest valid JSON.
-- Use a unique, lowercase `id`.
-- Start simple: manifest + one script.
-- Increment the version whenever you release changes.
-- If the module depends on another package, declare it in `relationships`.
-
-## Good first milestone
-Build the smallest possible working module:
-1. Create the folder and `module.json`
-2. Add one script file
-3. Load it with `esmodules` or `scripts`
-4. Confirm it appears in Foundry and logs to the console
-
 ## Domain conventions
 - "Playbooks" are always player-controlled Actors (type `character`), never Items. This differs from the baseline PBTA system, where a playbook is normally an Item of type `playbook` that gets applied to a blank character actor. In this module, dragging a playbook out of a compendium should produce a ready-to-play character actor directly — see `src/packs/basic-playbook-scout/` for the pattern (an Actor document with `system.details.callsign` added so players can also record a callsign alongside the actor's native name/image).
 
@@ -106,10 +26,13 @@ Build the smallest possible working module:
 - **Actor creation is entirely custom, not pbta's dialog.** `registerPlaybookActorCreation` (`scripts/actor-creation.js`) rebinds the sidebar's `.create-entry` button to `onCreateEntryClick`, which first calls `chooseActorKind()` — a Dialog offering "Playbook" plus every entry in `WORLD_ACTOR_KINDS` — then either falls into the existing `choosePlaybook()`/`createPlaybookActor()` path or calls `createWorldActor(kind, options)` directly with a plain object (`Actor.create({ name, type, folder, system: kind.buildSystem() })`). No `PbtaActor.createDialog`/`defaultName` codepath is ever exercised, which also sidesteps its unguarded `game.pbta.sheetConfig.actorTypes[type].label` lookup (would throw for an unregistered type) — safe here only because we always supply an explicit name and never call that dialog.
 - **`WORLD_ACTOR_KINDS` in `actor-creation.js`** is the single source of truth for the three kinds — `key` (chooseActorKind's dialog button key), `type` (the Foundry Actor type string), `name` (default actor name), `buildSystem()` (returns each kind's starting `system` data fresh per call, so array/object fields are never accidentally shared between actors created from the same kind).
 - **`scripts/entry-list.js`** holds pure, Foundry-API-free CRUD helpers (`addEntry`/`removeEntry`/`updateEntryField`) over id-keyed arrays — shared by every world actor list: Carrier's Crew Members, Authority's Assets/Actors/Pillars/Divisions, Cause's Factions.
-- **`scripts/world-actor-sheet.js`'s `WorldActorSheet`** is the base class all three sheets extend. It wires one generic set of handlers (`.entry-list-add`/`.entry-list-remove`/`.entry-list-field`, keyed by `data-list`/`data-entry-id`/`data-field`) against `system.attributes.<list>`, so a new list on any of the three sheets needs new template markup but no new JS. `_entryDefaults(key)` is the one override point for a list whose entries need more than `{name, description}` — Carrier's Crew Members add `position`, Cause's Factions add `exhausted`.
-- **Authority's Pillars and Divisions are fixed at exactly three slots each**, not add/remove lists — `createWorldActor`'s `buildSystem` for the Authority kind seeds three blank entries into each at creation, and the sheet renders them with `WorldActorSheet`'s field-edit handler but no add/remove controls. Authority's Stability (1–10, starting at 10) is a click-to-set segmented track like Playbook's Spotlight, but with no decrement-on-reclick behavior, since Stability's floor is 1, not 0 — there's no empty state to decrement into.
-- **Each Division additionally carries Strength (0–5) and Disfavor (0–10)**, seeded at creation (`strength`/`disfavor` on each of the three `blankEntry()` calls in `createWorldActor`'s Authority `buildSystem`) — the first division starts at Strength 5, the second and third at 4; Disfavor always starts at 0. Unlike a division's name/description (plain text fields through `WorldActorSheet`'s generic `_onEntryFieldChange`), these are stepped counters, so `AuthorityActorSheet` gets its own `_onDivisionCounterStep(event, field, min, max)` — shared by the public `_onDivisionStrengthStep`/`_onDivisionDisfavorStep` handlers, the same one-clamp-two-callers shape as pillars/divisions themselves sharing `blankEntry`.
-- Cause's Factions each carry an `exhausted` boolean, toggled via a checkbox routed through the same `_onEntryFieldChange` handler that edits text fields (it branches on `event.currentTarget.type === "checkbox"` vs the input's `.value`) — same manual-tracking model as Playbook moves' `uses` checkboxes and Equipment's `spent` tags: nothing auto-refreshes it, the player does.
+- **`scripts/world-actor-sheet.js`'s `WorldActorSheet`** is the base class all three sheets extend. It wires one generic set of handlers against `system.attributes.<list>`, all fully dataset-driven, so a new list — or a new stepped counter on an existing list — needs new template markup but no new JS:
+  - `.entry-list-add`/`.entry-list-remove`/`.entry-list-field` (`data-list`/`data-entry-id`/`data-field`) cover add/remove/edit. `_entryDefaults(key)` is the one override point for a list whose entries need more than `{name, description}` — Carrier's Crew Members add `position`, Cause's Factions add `exhausted`/`seized`/`grip`.
+  - `.entry-list-counter-step` (adding `data-delta`/`data-min`/`data-max`) covers a clamped +/- counter on one entry's field — Authority's Division Strength/Disfavor and Cause's Faction Grip all share this one handler; nothing sheet-specific reads or writes these, the bounds live entirely in the template.
+- **Authority's Pillars and Divisions are fixed at exactly three slots each**, not add/remove lists — `createWorldActor`'s `buildSystem` for the Authority kind seeds three blank entries into each at creation, and the sheet renders them with `WorldActorSheet`'s field-edit handler but no add/remove controls. Authority's Stability (1–10, starting at 10) is a click-to-set segmented track like Playbook's Spotlight, but with no decrement-on-reclick behavior, since Stability's floor is 1, not 0 — there's no empty state to decrement into. Each Division additionally carries Strength (0–5, seeded 5/4/4) and Disfavor (0–10, seeded 0) via the generic counter-step mechanism above.
+- **Cause's Factions carry two independent status flags** — `exhausted` and `seized` (both default off) — plus a Grip counter (0–3, default 0). The flags are plain checkboxes through `_onEntryFieldChange` (it branches on `event.currentTarget.type === "checkbox"` vs the input's `.value`); Grip goes through `_onEntryCounterStep`. Same manual-tracking model as Playbook moves' `uses` checkboxes and Equipment's `spent` tags: nothing auto-refreshes any of these, the player does.
+- **The Carrier can carry up to two weapons**, always custom-made and always Tier 5 — `scripts/carrier-actor-sheet.js` stores them in their own `system.attributes.weapons` array (not playbooks' mixed `system.attributes.equipment`, since a Carrier never has gear). Adding/editing one calls `configureEquipment(..., { carrierWeapon: true })` — a new option on `scripts/equipment.js`'s shared editor, mirroring the existing `astirWeapon` option — that hides the Kind select (always "weapon"), hides the Scale select (always the `"astir"` `WEAPON_SCALES` entry — Carrier weapons are never Foot scale), and disables the Tier input (always `TIER_MAX`); the sheet forces `kind`/`tier` again on save regardless, so a bug in the dialog can't leak a non-weapon or off-tier entry into the array. Each weapon gets a quick-roll button per `usesWeapon` move (Exchange Blows, Strike Decisively — filtered from `BASIC_MOVES`), which always rolls a fixed `{ key: "crew", label: "CREW", value: <this Carrier's own crew stat> }` trait rather than offering CLASH/TALK — clicking a specific weapon's button is the weapon choice, so unlike `PlaybookActorSheet` there's no `chooseWeapon` prompt and no Unarmed option (a Carrier "must use the carrier weapons"). Deliberately skips equipment spends, forced-tag-effects, reroll, and Guided — all of which `PlaybookActorSheet`'s own weapon rolls support — as a v1 scope cut.
+- **Playbooks rolling a move with a CREW `fixedTraits` entry (Lead a Sortie) resolve it from the world's Carrier actor(s)**, not a static placeholder. `carrier-actor-sheet.js` exports `findCarrierActors()` (filters `game.actors` by type) and `chooseCarrier(carriers)` (a `choosePlaybook`-style picker), imported by `playbook-actor-sheet.js`. `_moveTraits` resolves the single/zero-Carrier case synchronously for display (0 when zero or ambiguous); `_rollMove` only prompts via `chooseCarrier` when more than one Carrier exists, overriding the trait's value before the roll — cancelling aborts the whole roll, same convention `chooseWeapon`'s own cancel already has.
 
 ### Basic moves
 - Basic moves are **not** Items or compendium content — they're plain JS objects in the `BASIC_MOVES` array in `scripts/moves.js`, rendered directly by `PlaybookActorSheet` (`scripts/playbook-actor-sheet.js`). Every playbook gets them automatically; there's no per-move pack setup.

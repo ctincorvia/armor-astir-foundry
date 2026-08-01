@@ -13,10 +13,10 @@ describe("CauseActorSheet.defaultOptions", () => {
 });
 
 describe("CauseActorSheet#_entryDefaults", () => {
-	it("seeds a faction with name/description/exhausted", () => {
+	it("seeds a faction with name/description/exhausted/seized/grip", () => {
 		const sheet = new CauseActorSheet();
 
-		expect(sheet._entryDefaults()).toEqual({ name: "", description: "", exhausted: false });
+		expect(sheet._entryDefaults()).toEqual({ name: "", description: "", exhausted: false, seized: false, grip: 0 });
 	});
 });
 
@@ -24,12 +24,29 @@ describe("CauseActorSheet#getData", () => {
 	it("reads factions off the actor", () => {
 		const sheet = new CauseActorSheet();
 		sheet.actor = {
+			system: {
+				attributes: {
+					factions: [{ id: "1", name: "The Free Hands", description: "", exhausted: false, seized: false, grip: 2 }]
+				}
+			}
+		};
+
+		const data = sheet.getData({});
+
+		expect(data.factions).toEqual([
+			{ id: "1", name: "The Free Hands", description: "", exhausted: false, seized: false, grip: 2 }
+		]);
+	});
+
+	it("defaults a faction's missing grip to 0, for factions created before Grip existed", () => {
+		const sheet = new CauseActorSheet();
+		sheet.actor = {
 			system: { attributes: { factions: [{ id: "1", name: "The Free Hands", description: "", exhausted: false }] } }
 		};
 
 		const data = sheet.getData({});
 
-		expect(data.factions).toEqual([{ id: "1", name: "The Free Hands", description: "", exhausted: false }]);
+		expect(data.factions[0].grip).toBe(0);
 	});
 
 	it("defaults factions to empty when unset", () => {

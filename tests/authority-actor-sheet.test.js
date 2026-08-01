@@ -71,7 +71,7 @@ describe("AuthorityActorSheet#getData", () => {
 });
 
 describe("AuthorityActorSheet#activateListeners", () => {
-	it("binds the stability and division counter steppers alongside the shared entry-list handlers", () => {
+	it("binds the stability stepper alongside the shared entry-list handlers", () => {
 		const sheet = new AuthorityActorSheet();
 		sheet.actor = { system: {} };
 
@@ -81,8 +81,10 @@ describe("AuthorityActorSheet#activateListeners", () => {
 		sheet.activateListeners(html);
 
 		expect(html.find).toHaveBeenCalledWith(".stability-step");
-		expect(html.find).toHaveBeenCalledWith(".division-strength-step");
-		expect(html.find).toHaveBeenCalledWith(".division-disfavor-step");
+		// Division Strength/Disfavor now go through WorldActorSheet's generic
+		// .entry-list-counter-step handler (see world-actor-sheet.test.js) rather than a
+		// bespoke Authority-only binding.
+		expect(html.find).toHaveBeenCalledWith(".entry-list-counter-step");
 	});
 });
 
@@ -130,112 +132,6 @@ describe("AuthorityActorSheet#_onStabilityStep", () => {
 		sheet._onStabilityStep({ currentTarget: { dataset: { step: "3" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.stability.value": 3 });
-	});
-});
-
-describe("AuthorityActorSheet#_onDivisionStrengthStep", () => {
-	it("increments the matching division's strength", () => {
-		const sheet = new AuthorityActorSheet();
-		sheet.actor = {
-			system: { attributes: { divisions: [{ id: "d1", strength: 2 }] } },
-			update: vi.fn()
-		};
-
-		sheet._onDivisionStrengthStep({ currentTarget: { dataset: { entryId: "d1", delta: "1" } } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.divisions": [{ id: "d1", strength: 3 }]
-		});
-	});
-
-	it("clamps at the maximum of 5", () => {
-		const sheet = new AuthorityActorSheet();
-		sheet.actor = {
-			system: { attributes: { divisions: [{ id: "d1", strength: 5 }] } },
-			update: vi.fn()
-		};
-
-		sheet._onDivisionStrengthStep({ currentTarget: { dataset: { entryId: "d1", delta: "1" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-
-	it("clamps at the minimum of 0", () => {
-		const sheet = new AuthorityActorSheet();
-		sheet.actor = {
-			system: { attributes: { divisions: [{ id: "d1", strength: 0 }] } },
-			update: vi.fn()
-		};
-
-		sheet._onDivisionStrengthStep({ currentTarget: { dataset: { entryId: "d1", delta: "-1" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-
-	it("treats a missing strength as 0", () => {
-		const sheet = new AuthorityActorSheet();
-		sheet.actor = {
-			system: { attributes: { divisions: [{ id: "d1" }] } },
-			update: vi.fn()
-		};
-
-		sheet._onDivisionStrengthStep({ currentTarget: { dataset: { entryId: "d1", delta: "1" } } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.divisions": [{ id: "d1", strength: 1 }]
-		});
-	});
-
-	it("does nothing when no division matches the given id", () => {
-		const sheet = new AuthorityActorSheet();
-		sheet.actor = {
-			system: { attributes: { divisions: [{ id: "d1", strength: 2 }] } },
-			update: vi.fn()
-		};
-
-		sheet._onDivisionStrengthStep({ currentTarget: { dataset: { entryId: "missing", delta: "1" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-});
-
-describe("AuthorityActorSheet#_onDivisionDisfavorStep", () => {
-	it("increments the matching division's disfavor", () => {
-		const sheet = new AuthorityActorSheet();
-		sheet.actor = {
-			system: { attributes: { divisions: [{ id: "d1", disfavor: 3 }] } },
-			update: vi.fn()
-		};
-
-		sheet._onDivisionDisfavorStep({ currentTarget: { dataset: { entryId: "d1", delta: "1" } } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.divisions": [{ id: "d1", disfavor: 4 }]
-		});
-	});
-
-	it("clamps at the maximum of 10", () => {
-		const sheet = new AuthorityActorSheet();
-		sheet.actor = {
-			system: { attributes: { divisions: [{ id: "d1", disfavor: 10 }] } },
-			update: vi.fn()
-		};
-
-		sheet._onDivisionDisfavorStep({ currentTarget: { dataset: { entryId: "d1", delta: "1" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-
-	it("clamps at the minimum of 0", () => {
-		const sheet = new AuthorityActorSheet();
-		sheet.actor = {
-			system: { attributes: { divisions: [{ id: "d1", disfavor: 0 }] } },
-			update: vi.fn()
-		};
-
-		sheet._onDivisionDisfavorStep({ currentTarget: { dataset: { entryId: "d1", delta: "-1" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 });
 

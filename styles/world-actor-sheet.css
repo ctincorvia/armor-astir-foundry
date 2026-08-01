@@ -27,11 +27,11 @@
 	color: var(--aa-primary-dark);
 }
 
-/* Shared by Crew's stepper and each Division's Strength/Disfavor steppers — same small
-   +/- control in three places. */
+/* Shared by Crew's stepper and every generic entry-list counter step (Authority's Division
+   Strength/Disfavor, Cause's Faction Grip — see world-actor-sheet.js's _onEntryCounterStep) —
+   same small +/- control everywhere it appears. */
 .armor-astir.sheet .crew-step,
-.armor-astir.sheet .division-strength-step,
-.armor-astir.sheet .division-disfavor-step {
+.armor-astir.sheet .entry-list-counter-step {
 	width: 22px;
 	height: 22px;
 	padding: 0;
@@ -43,8 +43,7 @@
 }
 
 .armor-astir.sheet .crew-step:hover,
-.armor-astir.sheet .division-strength-step:hover,
-.armor-astir.sheet .division-disfavor-step:hover {
+.armor-astir.sheet .entry-list-counter-step:hover {
 	border-color: var(--aa-primary);
 	color: var(--aa-primary-dark);
 }
@@ -109,21 +108,23 @@
 	border-radius: var(--aa-radius);
 }
 
-.armor-astir.sheet .division-counters {
+/* Generic entry-level counter row (Authority's Division Strength/Disfavor, Cause's Faction
+   Grip) — a label, a stepped value, and the +/- pair from .entry-list-counter-step above. */
+.armor-astir.sheet .entry-counter-row {
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
 	gap: var(--aa-space-3);
 }
 
-.armor-astir.sheet .division-counter {
+.armor-astir.sheet .entry-counter {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
 	gap: var(--aa-space-1);
 }
 
-.armor-astir.sheet .division-counter label {
+.armor-astir.sheet .entry-counter label {
 	font-size: 11px;
 	font-weight: bold;
 	white-space: nowrap;
@@ -166,7 +167,9 @@
 	resize: vertical;
 }
 
-.armor-astir.sheet .faction-exhausted-label {
+/* Shared by both of a Faction's status checkboxes (Exhausted, Seized) — one label/checkbox pair
+   shape, used twice. */
+.armor-astir.sheet .faction-flag-label {
 	display: flex;
 	flex-direction: row;
 	align-items: center;

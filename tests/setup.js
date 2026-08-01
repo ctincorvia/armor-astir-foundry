@@ -23,7 +23,8 @@ vi.stubGlobal("game", {
 		get: vi.fn()
 	},
 	actors: {
-		get: vi.fn()
+		get: vi.fn(),
+		filter: vi.fn(() => [])
 	}
 });
 

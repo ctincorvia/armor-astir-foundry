@@ -311,9 +311,10 @@ export const SPECIAL_MOVES = [
 		key: "lead-a-sortie",
 		name: "Lead a Sortie",
 		traits: ["know", "defy"],
-		// CREW isn't a TRAITS entry — there's no Crew mechanic/UI anywhere in this module yet, so
-		// this is a fixed placeholder value (never read from actor.system.stats) rather than a
-		// gated/steppable stat like the other five. Revisit once Crew has a real home on the sheet.
+		// CREW isn't a TRAITS entry or a stat on this actor — it's the Carrier's own Crew trait
+		// (see carrier-actor-sheet.js). The `value: 0` here is only a placeholder for a fresh
+		// move definition; PlaybookActorSheet#_moveTraits overwrites it with a live read off
+		// whichever Carrier actor exists in the world before this ever reaches a sheet or a roll.
 		fixedTraits: [{ key: "crew", label: "CREW", value: 0 }],
 		description:
 			"<p>When it's time for action and you lead a Sortie, decide who planned the mission and roll;</p>" +

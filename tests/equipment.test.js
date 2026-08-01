@@ -24,9 +24,9 @@ import {
 
 const BLITZ = EQUIPMENT_TAGS.find((tag) => tag.key === "blitz");
 
-// A fixture catalog independent of EQUIPMENT_CATALOG's real (currently placeholder-only)
-// content, mirroring FIXTURE_TAGS above and the same injectable-argument pattern
-// playbookMoveSections uses in playbook-moves.js.
+// A fixture catalog independent of EQUIPMENT_CATALOG's real content, mirroring FIXTURE_TAGS
+// above and the same injectable-argument pattern playbookMoveSections uses in
+// playbook-moves.js.
 const FIXTURE_CATALOG = [
 	{ key: "fixture-sword", name: "Fixture Sword", kind: "weapon", description: "a", tags: [], scale: "foot", tier: 2 },
 	{ key: "fixture-blade", name: "Fixture Blade", kind: "weapon", description: "b", tags: [], scale: "foot", tier: 1 },
@@ -666,7 +666,7 @@ describe("configureEquipment", () => {
 			"[name='name']": "Rations",
 			"[name='kind']": "gear",
 			"[name='description']": ""
-		}, ["blitz", "concealable", "impact", "infinite"]));
+		}, ["blitz", "concealable", "impact", "infinite", "mounted"]));
 
 		expect(await promise).toBeNull();
 		expect(ui.notifications.warn).toHaveBeenCalled();
@@ -682,9 +682,9 @@ describe("configureEquipment", () => {
 			"[name='name']": "Rations",
 			"[name='kind']": "gear",
 			"[name='description']": ""
-		}, ["blitz", "concealable", "impact"]));
+		}, ["blitz", "concealable", "impact", "infinite"]));
 
-		expect(await promise).toEqual(expect.objectContaining({ tags: ["blitz", "concealable", "impact"] }));
+		expect(await promise).toEqual(expect.objectContaining({ tags: ["blitz", "concealable", "impact", "infinite"] }));
 	});
 
 	it("never counts a Melee/Ranged/Sniper tag against the MAX_TAGS cap", async () => {
@@ -776,9 +776,80 @@ describe("configureEquipment - astirWeapon option", () => {
 		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
 			"[name='name']": "Lance",
 			"[name='description']": ""
-		}, ["blitz", "concealable", "impact", "infinite", "melee"]));
+		}, ["blitz", "concealable", "impact", "infinite", "mounted", "melee"]));
 
 		expect(await promise).toBeNull();
+	});
+});
+
+describe("configureEquipment - carrierWeapon option", () => {
+	it("passes carrierWeapon through to the template, hiding Kind/Scale and pre-filling astir/TIER_MAX", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			carrierWeapon: true,
+			hideKindAndScale: true,
+			isWeapon: true,
+			scale: "astir",
+			tier: TIER_MAX
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves kind: weapon and scale: astir without ever reading those fields from the DOM", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Ram Cannon",
+			"[name='description']": "A hull-mounted cannon.",
+			"[name='tier']": "3"
+		}, ["melee"]));
+
+		expect(await promise).toEqual({
+			name: "Ram Cannon",
+			description: "A hull-mounted cannon.",
+			kind: "weapon",
+			tags: ["melee"],
+			scale: "astir",
+			tier: TIER_MAX
+		});
+	});
+
+	it("always resolves Tier 5, even if a different value is present in the (disabled) DOM field", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Ram Cannon",
+			"[name='description']": "",
+			"[name='tier']": "1"
+		}, ["melee"]));
+
+		expect((await promise).tier).toBe(TIER_MAX);
+	});
+
+	it("still requires one of the Melee/Ranged/Sniper tags", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Ram Cannon",
+			"[name='description']": ""
+		}, ["blitz"]));
+
+		expect(await promise).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalled();
 	});
 });
 
@@ -834,8 +905,8 @@ describe("findCatalogEquipment", () => {
 	});
 
 	it("defaults to the real EQUIPMENT_CATALOG", () => {
-		expect(findCatalogEquipment("placeholder-weapon")).toEqual(
-			EQUIPMENT_CATALOG.find((item) => item.key === "placeholder-weapon")
+		expect(findCatalogEquipment("infantry-weapon-i")).toEqual(
+			EQUIPMENT_CATALOG.find((item) => item.key === "infantry-weapon-i")
 		);
 	});
 });
