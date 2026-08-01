@@ -34,6 +34,7 @@ import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postMoveDescription, rol
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../scripts/advancements.js";
 import { ALL_PLAYBOOK_MOVES, choosePlaybookMove } from "../scripts/playbook-moves.js";
 import { UNARMED, chooseEquipmentCatalogItem, chooseWeapon, configureEquipment } from "../scripts/equipment.js";
+import { GRAVITY_TRIGGERS } from "../scripts/gravity-triggers.js";
 import { PlaybookActorSheet, registerPlaybookActorSheet, TRAITS } from "../scripts/playbook-actor-sheet.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
@@ -122,6 +123,24 @@ describe("PlaybookActorSheet#getData", () => {
 		const data = sheet.getData();
 
 		expect(data.approachOptions.map((a) => a.key)).toEqual(["arcane", "elemental"]);
+	});
+
+	it("gives the actor's playbook its gravity trigger", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { slug: "the-commander" } } };
+
+		const data = sheet.getData();
+
+		expect(data.gravityTrigger).toBe(GRAVITY_TRIGGERS["the-commander"]);
+	});
+
+	it("falls back to null gravity trigger when the actor has no playbook set", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {} };
+
+		const data = sheet.getData();
+
+		expect(data.gravityTrigger).toBeNull();
 	});
 });
 

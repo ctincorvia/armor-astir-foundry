@@ -196,6 +196,11 @@
 	margin-top: 8px;
 }
 
+.armor-astir.sheet .gravity-trigger-text {
+	margin: 4px 0 0;
+	font-size: 12px;
+}
+
 .armor-astir.sheet .gravity-clock-list {
 	margin: 0;
 	padding: 0;

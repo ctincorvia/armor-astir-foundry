@@ -233,6 +233,12 @@
 					</section>
 				</div>
 				<div class="tab" data-group="primary" data-tab="social">
+					{{#if gravityTrigger}}
+					<section class="gravity-trigger">
+						<h3>Gravity Trigger</h3>
+						<p class="gravity-trigger-text">{{gravityTrigger}}</p>
+					</section>
+					{{/if}}
 					<section class="gravity-clocks">
 						<h3>Gravity Clocks ({{gravityClocks.list.length}}/{{gravityClocks.max}})</h3>
 						<ol class="gravity-clock-list">

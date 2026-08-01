@@ -1,5 +1,6 @@
 import { PLAYBOOKS, swapActorPlaybook } from "./actor-creation.js";
 import { availableApproaches } from "./approaches.js";
+import { gravityTriggerForPlaybook } from "./gravity-triggers.js";
 import {
 	BASIC_MOVES,
 	SPECIAL_MOVES,
@@ -88,6 +89,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		data.playbooks = PLAYBOOKS;
 		data.currentPlaybookId = PLAYBOOKS.find((p) => p.name === this.actor.system.playbook?.name)?.packId ?? null;
 		data.approachOptions = availableApproaches(this.actor.system.playbook?.slug);
+		data.gravityTrigger = gravityTriggerForPlaybook(this.actor.system.playbook?.slug);
 		data.traits = TRAITS.map(({ key, label }) => {
 			const stat = this.actor.system.stats?.[key];
 			return { key, label, value: stat?.value ?? 0, disabled: stat?.disabled ?? false };
