@@ -92,7 +92,9 @@ export class PlaybookActorSheet extends ActorSheet {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			classes: ["armor-astir", "sheet", "actor", "playbook"],
 			template: PLAYBOOK_SHEET_TEMPLATE,
-			width: 720,
+			// Matches styles/playbook-actor-sheet.css's min-width floor — keeping them in sync avoids
+			// Foundry's tracked position starting narrower than the CSS floor allows it to render.
+			width: 760,
 			// Deliberately not "auto": core Application#setPosition special-cases options.height === "auto"
 			// by re-measuring content and resetting el.style.height on every position update, including
 			// every mousemove while dragging the resize handle — so the window could never be dragged
@@ -267,8 +269,12 @@ export class PlaybookActorSheet extends ActorSheet {
 			description: tag.description,
 			// A forcesEffect tag (Unreliable) shows the same "used this period" checkbox as a
 			// player-opted spend, even though checking it happens automatically after a roll rather
-			// than by the player's own choice — see _forcedWeaponEffect/_rollMove.
-			spendable: Boolean(tag.spend || tag.forcesEffect),
+			// than by the player's own choice — see _forcedWeaponEffect/_rollMove. A reroll tag
+			// (Decisive/Defensive/Versatile) gets marked spent the same way, by handleReroll — without
+			// this, its checkbox would never render at all, leaving a spent reroll tag with no way to
+			// clear it back for a new Scene (the same manual-reset gap _onEquipmentTagSpentToggle's
+			// comment already covers for the other two).
+			spendable: Boolean(tag.spend || tag.forcesEffect || tag.reroll),
 			spent: Boolean(entry.spent?.includes(tag.key))
 		}));
 		return {

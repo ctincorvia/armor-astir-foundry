@@ -281,6 +281,13 @@
 	color: var(--aa-primary-dark);
 }
 
+/* Floor only — core Foundry's resize-drag reads this via getComputedStyle to clamp how far the
+   user can shrink the window (see setPosition in the installed client's apps/app.js), while
+   leaving no max-width means the window can still be dragged wider than this with no limit. */
+.armor-astir.sheet {
+	min-width: 760px;
+}
+
 .armor-astir.sheet .sheet-main {
 	display: flex;
 	flex-direction: row;
@@ -719,33 +726,54 @@
 	list-style: none;
 }
 
+/* Grid, not flex — same reasoning as .danger-item/.move above: a flex row let the label and the
+   Spent checkbox drift wherever the (wildly variable-length) description happened to push them,
+   so nothing lined up between rows. `order` (rather than reordering the template's markup) puts
+   label + Spent checkbox on a fixed top row — Spent always lands in the same right-hand column
+   regardless of label length — while the description's own `grid-column: 1 / -1` forces it onto
+   its own full-width row underneath, so long rules text never fights the label for space. */
 .armor-astir.sheet .equipment-tag {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: baseline;
-	gap: var(--aa-space-2);
+	column-gap: var(--aa-space-2);
+	row-gap: 2px;
 	font-size: 12px;
 	padding: 2px 0;
 }
 
 .armor-astir.sheet .equipment-tag-label {
+	order: 1;
 	font-weight: bold;
 	color: var(--aa-secondary-dark);
 }
 
-.armor-astir.sheet .equipment-tag-description {
-	opacity: 0.8;
-}
-
 .armor-astir.sheet .equipment-tag-spent {
+	order: 2;
+	/* Opts out of the grid row's own align-items: baseline — a flex container with a checkbox in
+	   it has no real text baseline to match against .equipment-tag-label's, which is what left it
+	   sitting visibly higher/lower than the label and description text beside it. Centering it
+	   against the row's height instead lines it up with both. */
+	align-self: center;
 	display: flex;
 	flex-direction: row;
 	align-items: center;
 	gap: var(--aa-space-1);
-	margin-left: auto;
 	font-size: 11px;
 	white-space: nowrap;
+}
+
+/* Secondary, matching the tag label's own --aa-secondary-dark, rather than the browser's default
+   gray control — accent-color is the standard, cross-browser way to recolor a native checkbox
+   without rebuilding it from scratch. */
+.armor-astir.sheet .equipment-tag-spent-checkbox {
+	accent-color: var(--aa-secondary-dark);
+}
+
+.armor-astir.sheet .equipment-tag-description {
+	order: 3;
+	grid-column: 1 / -1;
+	opacity: 0.8;
 }
 
 /* Each field (Appearance/Backstory/Notes) is its own labeled ProseMirror editor rather than one
@@ -781,6 +809,18 @@
 
 .armor-astir.sheet .weapon-move-roll:not(.disabled):hover {
 	background: var(--aa-primary-tint);
+}
+
+/* Foundry's chat-message.html renders our whole flavor (this entire .armor-astir-move-chat tree)
+   inside <span class="flavor-text"> in the card's <header>, while its own dice-roll box (the
+   "2d6 + 2" formula pill + total) is a separate sibling <div class="message-content"> right after
+   </header> — core sets no margin on either boundary, so whatever renders last in here (usually
+   the Reroll button) sits flush against Foundry's own roll display with zero gap. This margin is
+   what puts space back between the two; it has to live on the outermost element since a flex
+   item's margin (flavor-text is a flex child of the header) doesn't collapse through its
+   container the way a normal block margin would. */
+.armor-astir-move-chat {
+	margin-bottom: var(--aa-space-2);
 }
 
 .armor-astir-move-chat .move-name {
@@ -1023,9 +1063,6 @@
 }
 
 .armor-astir.move-roll-dialog .move-roll-equipment-spend {
-	display: flex;
-	flex-direction: column;
-	gap: 1px;
 	font-size: 12px;
 }
 
@@ -1033,12 +1070,28 @@
 	opacity: 0.5;
 }
 
+/* Checkbox + name share one row (same shape as equipment-editor-tag-option/move-picker-description
+   below); the description is a block-level sibling underneath rather than a flex item that could
+   wrap onto its own line above or beside the checkbox — that's what was stacking the checkbox on
+   top of its tag instead of beside it. */
+.armor-astir.move-roll-dialog .move-roll-equipment-spend-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+}
+
+.armor-astir.move-roll-dialog .move-roll-equipment-spend.disabled .move-roll-equipment-spend-option {
+	cursor: not-allowed;
+}
+
 .armor-astir.move-roll-dialog .move-roll-equipment-name {
 	font-weight: bold;
 }
 
 .armor-astir.move-roll-dialog .move-roll-equipment-description {
-	margin-left: 18px;
+	margin-left: 22px;
 	font-size: 11px;
 	opacity: 0.8;
 }

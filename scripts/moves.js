@@ -476,7 +476,14 @@ export async function configureMoveRoll(move, traits, { lockedEffect = null, equ
 			},
 			default: "roll",
 			close: () => resolve(null)
-		}, { classes: ["armor-astir", "move-roll-dialog"] }).render(true);
+		}, {
+			classes: ["armor-astir", "move-roll-dialog"],
+			// Dialog's own default (400px) crowded the Equipment section's tag name + description
+			// onto too narrow a column once the checkbox got its own row back (see
+			// move-roll-equipment-spend-option in styles/playbook-actor-sheet.css) — a little extra
+			// width gives that text room without needing to shrink or truncate it.
+			width: 480
+		}).render(true);
 	});
 }
 

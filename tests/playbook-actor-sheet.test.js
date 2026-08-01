@@ -91,7 +91,7 @@ describe("PlaybookActorSheet.defaultOptions", () => {
 		expect(options).toEqual({
 			classes: ["armor-astir", "sheet", "actor", "playbook"],
 			template: "modules/armor-astir/templates/playbook-actor-sheet.hbs",
-			width: 720,
+			width: 760,
 			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }]
 		});
 	});
@@ -1577,6 +1577,23 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 				attributes: {
 					equipment: [
 						{ id: "1", kind: "weapon", name: "Rifle", description: "", tags: ["unreliable"], spent: [], scale: "foot", tier: 1 }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.equipment.weapons[0].tags[0].spendable).toBe(true);
+	});
+
+	it("marks a reroll-only tag (e.g. Defensive) spendable, so a spent one can be cleared", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					equipment: [
+						{ id: "1", kind: "weapon", name: "Rifle", description: "", tags: ["defensive"], spent: [], scale: "foot", tier: 1 }
 					]
 				}
 			}
