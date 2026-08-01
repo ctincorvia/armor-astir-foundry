@@ -98,6 +98,12 @@ export class PlaybookActorSheet extends ActorSheet {
 		});
 	}
 
+	// Dangers' add-controls (label input + type select) are a mini form, not a one-click "add a
+	// blank entry" action like the other header "+" buttons, so its "+" toggles the row open/shut
+	// instead of opening a dialog. Transient UI state, not actor data — lives on the sheet instance
+	// and resets whenever the sheet is fully closed and reopened.
+	_dangerAddOpen = false;
+
 	getData(options) {
 		const data = super.getData(options);
 		data.playbooks = PLAYBOOKS;
@@ -185,7 +191,8 @@ export class PlaybookActorSheet extends ActorSheet {
 			max: DANGER_MAX,
 			list: dangers.map((danger) => ({ ...danger, isPeril: danger.type === "peril" })),
 			atMax: dangers.length >= DANGER_MAX,
-			canAdd: dangers.length < DANGER_MAX
+			canAdd: dangers.length < DANGER_MAX,
+			addOpen: this._dangerAddOpen && dangers.length < DANGER_MAX
 		};
 		// Gravity Clocks live in the Social tab: up to 5 independent progress tracks, each with
 		// its own label, a Spotlight-style fill track, and a separate 1-3 value. Unlike Spotlight
@@ -429,6 +436,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".spotlight-step").on("click", this._onSpotlightStep.bind(this));
 		html.find(".overheating-checkbox").on("change", this._onOverheatingToggle.bind(this));
 		html.find(".advancement-checkbox").on("change", this._onAdvancementToggle.bind(this));
+		html.find(".danger-add-toggle").on("click", this._onDangerAddToggle.bind(this));
 		html.find(".danger-add").on("click", this._onDangerAdd.bind(this));
 		html.find(".danger-remove").on("click", this._onDangerRemove.bind(this));
 		html.find(".gravity-clock-add").on("click", this._onGravityClockAdd.bind(this));
@@ -517,6 +525,14 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({ "system.attributes.spotlight.value": clamped });
 	}
 
+	// The header "+" for Dangers just shows/hides the add-controls row (see _dangerAddOpen) rather
+	// than opening a dialog — there's a label and a type to fill in first, so a single click can't
+	// add anything on its own the way the other header "+" buttons do.
+	_onDangerAddToggle() {
+		this._dangerAddOpen = !this._dangerAddOpen;
+		this.render();
+	}
+
 	// Reads the sibling label/type inputs out of the add-danger controls the clicked button lives
 	// in, rather than off the button's own dataset — unlike every other control on this sheet,
 	// there's no single value to encode as a data-* attribute on the button itself.
@@ -533,6 +549,11 @@ export class PlaybookActorSheet extends ActorSheet {
 			"system.attributes.dangers": [...current, { id: foundry.utils.randomID(), type: typeSelect.value, label }]
 		});
 		labelInput.value = "";
+		// Players add dangers one at a time in practice, so close the row back up rather than
+		// leaving it open for a second entry — same one-at-a-time assumption as _onDangerAddToggle
+		// opening it fresh each time. The actor update above already triggers Foundry's own
+		// re-render, so this just needs to flip the flag _onDangerAddToggle also uses.
+		this._dangerAddOpen = false;
 	}
 
 	_onDangerRemove(event) {

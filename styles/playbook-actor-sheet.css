@@ -55,6 +55,35 @@
 	margin-top: 0;
 }
 
+/* A header paired with small square "+" action button(s) (Playbook Moves, Weapons, Gear,
+   Gravity Clocks, Dangers) — the wrapper carries the h3's usual vertical rhythm so the h3 itself
+   can drop its own margin and stay flex:1, letting its primary-colored underline run the full
+   row width right up to the buttons. */
+.armor-astir.sheet .section-header {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--aa-space-2);
+	margin: var(--aa-space-4) 0 var(--aa-space-2);
+}
+
+.armor-astir.sheet .section-header:first-child {
+	margin-top: 0;
+}
+
+.armor-astir.sheet .section-header h3 {
+	flex: 1 1 auto;
+	margin: 0;
+}
+
+.armor-astir.sheet .section-header-actions {
+	display: flex;
+	flex-direction: row;
+	flex: 0 0 auto;
+	gap: var(--aa-space-1);
+}
+
 .armor-astir.sheet .sheet-header {
 	gap: var(--aa-space-4);
 }
@@ -361,14 +390,18 @@
 	margin-top: var(--aa-space-2);
 }
 
-/* Trailing "add" controls for a list — Playbook Move, Equipment (x2 per kind), Gravity Clock —
-   get one shared spacing wrapper instead of each list managing its own ad-hoc top margin. */
-.armor-astir.sheet .section-actions {
+/* Small square "+" buttons that live in a .section-header-actions cluster (Playbook Move,
+   Weapons x3, Gear x2, Gravity Clock, Dangers) — sized to sit next to the header text instead of
+   stretching the full row width the way the old standalone "+ Add X" buttons did. */
+.armor-astir.sheet .icon-add-button {
+	width: 20px;
+	height: 20px;
+	padding: 0;
 	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
-	gap: var(--aa-space-2);
-	margin-top: var(--aa-space-2);
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+	font-size: 14px;
 }
 
 /* Static playbook prose, not a tracker — a callout reads better than a structural panel here.
@@ -554,16 +587,12 @@
 	cursor: not-allowed;
 }
 
-/* Solid actions (Roll / Activate / the various "+ Add" buttons) take the primary fill; outline
+/* Solid actions (Roll / Activate / every header "+" button) take the primary fill; outline
    actions (Description / Edit) take the primary border with dark primary text. Both are chrome
    the player acts on, so both track the primary role. */
 .armor-astir.sheet .move-roll,
 .armor-astir.sheet .move-activate,
-.armor-astir.sheet .playbook-move-add,
-.armor-astir.sheet .equipment-add,
-.armor-astir.sheet .equipment-catalog-add,
-.armor-astir.sheet .starting-gear-add,
-.armor-astir.sheet .gravity-clock-add,
+.armor-astir.sheet .icon-add-button,
 .armor-astir.sheet .danger-add {
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
@@ -575,11 +604,7 @@
 
 .armor-astir.sheet .move-roll:not(.disabled):hover,
 .armor-astir.sheet .move-activate:not(.disabled):hover,
-.armor-astir.sheet .playbook-move-add:hover,
-.armor-astir.sheet .equipment-add:hover,
-.armor-astir.sheet .equipment-catalog-add:hover,
-.armor-astir.sheet .starting-gear-add:hover,
-.armor-astir.sheet .gravity-clock-add:hover,
+.armor-astir.sheet .icon-add-button:hover,
 .armor-astir.sheet .danger-add:hover {
 	background: var(--aa-primary-dark);
 	border-color: var(--aa-primary-dark);

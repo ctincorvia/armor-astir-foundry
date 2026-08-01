@@ -69,7 +69,14 @@
 	</div>
 	<section class="sheet-main">
 		<aside class="dangers-column">
-			<h3>Dangers ({{dangers.list.length}}/{{dangers.max}})</h3>
+			<div class="section-header">
+				<h3>Dangers ({{dangers.list.length}}/{{dangers.max}})</h3>
+				{{#if dangers.canAdd}}
+				<div class="section-header-actions">
+					<button type="button" class="danger-add-toggle icon-add-button" title="Add a Danger" aria-label="Add a Danger" aria-expanded="{{dangers.addOpen}}">+</button>
+				</div>
+				{{/if}}
+			</div>
 			{{#if dangers.atMax}}
 			<p class="defenseless-label">DEFENSELESS</p>
 			{{/if}}
@@ -81,7 +88,7 @@
 				</li>
 				{{/each}}
 			</ol>
-			{{#if dangers.canAdd}}
+			{{#if dangers.addOpen}}
 			<div class="danger-add-controls">
 				<input type="text" class="danger-label-input" placeholder="Describe the danger…"/>
 				<select class="danger-type-select">
@@ -103,7 +110,14 @@
 				<div class="tab" data-group="primary" data-tab="moves">
 					<section class="moves">
 						{{#each moveGroups}}
-						<h3>{{label}}</h3>
+						<div class="section-header">
+							<h3>{{label}}</h3>
+							{{#if addable}}
+							<div class="section-header-actions">
+								<button type="button" class="playbook-move-add icon-add-button" title="Add a Playbook Move" aria-label="Add a Playbook Move">+</button>
+							</div>
+							{{/if}}
+						</div>
 						<ol class="move-list">
 							{{#each moves}}
 							<li class="move" data-move="{{key}}">
@@ -141,20 +155,21 @@
 							</li>
 							{{/each}}
 						</ol>
-						{{#if addable}}
-						<div class="section-actions">
-							<button type="button" class="playbook-move-add">+ Add a Playbook Move</button>
-						</div>
-						{{/if}}
 						{{/each}}
 					</section>
 				</div>
 				<div class="tab" data-group="primary" data-tab="equipment">
 					<section class="equipment">
-						{{#if equipment.startingGear.available}}
-						<button type="button" class="starting-gear-add">+ Choose Starting Gear</button>
-						{{/if}}
-						<h3>Weapons</h3>
+						<div class="section-header">
+							<h3>Weapons</h3>
+							<div class="section-header-actions">
+								{{#if equipment.startingGear.available}}
+								<button type="button" class="starting-gear-add icon-add-button" title="Choose Starting Gear" aria-label="Choose Starting Gear">+</button>
+								{{/if}}
+								<button type="button" class="equipment-add icon-add-button" data-kind="weapon" title="Add Weapon" aria-label="Add Weapon">+</button>
+								<button type="button" class="equipment-catalog-add icon-add-button" data-kind="weapon" title="Pick Weapon from Catalog" aria-label="Pick Weapon from Catalog">O</button>
+							</div>
+						</div>
 						<ol class="equipment-list">
 							{{#each equipment.weapons}}
 							<li class="equipment-item" data-equipment-id="{{id}}">
@@ -201,11 +216,13 @@
 							</li>
 							{{/each}}
 						</ol>
-						<div class="section-actions">
-							<button type="button" class="equipment-add" data-kind="weapon">+ Add Weapon</button>
-							<button type="button" class="equipment-catalog-add" data-kind="weapon">+ Pick Weapon from Catalog</button>
+						<div class="section-header">
+							<h3>Gear</h3>
+							<div class="section-header-actions">
+								<button type="button" class="equipment-add icon-add-button" data-kind="gear" title="Add Gear" aria-label="Add Gear">+</button>
+								<button type="button" class="equipment-catalog-add icon-add-button" data-kind="gear" title="Pick Gear from Catalog" aria-label="Pick Gear from Catalog">O</button>
+							</div>
 						</div>
-						<h3>Gear</h3>
 						<ol class="equipment-list">
 							{{#each equipment.gear}}
 							<li class="equipment-item" data-equipment-id="{{id}}">
@@ -239,10 +256,6 @@
 							</li>
 							{{/each}}
 						</ol>
-						<div class="section-actions">
-							<button type="button" class="equipment-add" data-kind="gear">+ Add Gear</button>
-							<button type="button" class="equipment-catalog-add" data-kind="gear">+ Pick Gear from Catalog</button>
-						</div>
 					</section>
 				</div>
 				<div class="tab" data-group="primary" data-tab="social">
@@ -253,7 +266,14 @@
 					</section>
 					{{/if}}
 					<section class="gravity-clocks">
-						<h3>Gravity Clocks ({{gravityClocks.list.length}}/{{gravityClocks.max}})</h3>
+						<div class="section-header">
+							<h3>Gravity Clocks ({{gravityClocks.list.length}}/{{gravityClocks.max}})</h3>
+							{{#if gravityClocks.canAdd}}
+							<div class="section-header-actions">
+								<button type="button" class="gravity-clock-add icon-add-button" title="Add Gravity Clock" aria-label="Add Gravity Clock">+</button>
+							</div>
+							{{/if}}
+						</div>
 						<ol class="gravity-clock-list">
 							{{#each gravityClocks.list}}
 							<li class="gravity-clock-item" data-clock-id="{{id}}">
@@ -278,11 +298,6 @@
 							</li>
 							{{/each}}
 						</ol>
-						{{#if gravityClocks.canAdd}}
-						<div class="section-actions">
-							<button type="button" class="gravity-clock-add">Add Gravity Clock</button>
-						</div>
-						{{/if}}
 					</section>
 				</div>
 				<div class="tab" data-group="primary" data-tab="advancement">

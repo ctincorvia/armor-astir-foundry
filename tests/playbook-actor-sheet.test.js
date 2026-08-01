@@ -768,7 +768,37 @@ describe("PlaybookActorSheet#getData - dangers", () => {
 
 		const data = sheet.getData();
 
-		expect(data.dangers).toEqual({ max: 3, list: [], atMax: false, canAdd: true });
+		expect(data.dangers).toEqual({ max: 3, list: [], atMax: false, canAdd: true, addOpen: false });
+	});
+
+	it("reports addOpen once toggled open, while still below max", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+		sheet._dangerAddOpen = true;
+
+		const data = sheet.getData();
+
+		expect(data.dangers.addOpen).toBe(true);
+	});
+
+	it("hides addOpen once at max, even if toggled open", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					dangers: [
+						{ id: "1", type: "risk", label: "a" },
+						{ id: "2", type: "risk", label: "b" },
+						{ id: "3", type: "risk", label: "c" }
+					]
+				}
+			}
+		};
+		sheet._dangerAddOpen = true;
+
+		const data = sheet.getData();
+
+		expect(data.dangers.addOpen).toBe(false);
 	});
 
 	it("marks each danger as a peril or a risk based on its stored type", () => {
@@ -823,9 +853,27 @@ describe("PlaybookActorSheet#activateListeners - dangers", () => {
 
 		sheet.activateListeners(html);
 
+		expect(html.find).toHaveBeenCalledWith(".danger-add-toggle");
 		expect(html.find).toHaveBeenCalledWith(".danger-add");
 		expect(html.find).toHaveBeenCalledWith(".danger-remove");
 		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onDangerAddToggle", () => {
+	it("flips _dangerAddOpen and re-renders", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.render = vi.fn();
+
+		sheet._onDangerAddToggle();
+
+		expect(sheet._dangerAddOpen).toBe(true);
+		expect(sheet.render).toHaveBeenCalledTimes(1);
+
+		sheet._onDangerAddToggle();
+
+		expect(sheet._dangerAddOpen).toBe(false);
+		expect(sheet.render).toHaveBeenCalledTimes(2);
 	});
 });
 
@@ -858,6 +906,30 @@ describe("PlaybookActorSheet#_onDangerAdd", () => {
 			"system.attributes.dangers": [{ id: "test-id", type: "peril", label: "Exposed position" }]
 		});
 		expect(labelInput.value).toBe("");
+	});
+
+	// Players add dangers one at a time in practice, so a successful add closes the row back up
+	// rather than leaving it open for another entry.
+	it("closes the add-danger row once a danger is successfully added", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { dangers: [] } }, update: vi.fn() };
+		sheet._dangerAddOpen = true;
+		const { ...event } = fakeDangerAddEvent({ label: "Exposed position", type: "peril" });
+
+		sheet._onDangerAdd(event);
+
+		expect(sheet._dangerAddOpen).toBe(false);
+	});
+
+	it("leaves the add-danger row open when the label is blank", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { dangers: [] } }, update: vi.fn() };
+		sheet._dangerAddOpen = true;
+		const { ...event } = fakeDangerAddEvent({ label: "   " });
+
+		sheet._onDangerAdd(event);
+
+		expect(sheet._dangerAddOpen).toBe(true);
 	});
 
 	it("appends to, rather than replaces, existing dangers", () => {
