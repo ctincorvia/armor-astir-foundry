@@ -8,6 +8,7 @@ vi.mock("../scripts/actor-creation.js", async (importOriginal) => ({
 vi.mock("../scripts/moves.js", async (importOriginal) => ({
 	...(await importOriginal()),
 	configureMoveRoll: vi.fn(),
+	postGuidedResult: vi.fn(),
 	postMoveDescription: vi.fn(),
 	rollMove: vi.fn()
 }));
@@ -29,13 +30,28 @@ vi.mock("../scripts/equipment.js", async (importOriginal) => ({
 	chooseWeapon: vi.fn()
 }));
 
+// Only the picker dialog is mocked — the pool definitions and findStartingGearPool stay real, same
+// reasoning as playbook-moves.js above.
+vi.mock("../scripts/starting-gear.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	chooseStartingGear: vi.fn()
+}));
+
 import { PLAYBOOKS, swapActorPlaybook } from "../scripts/actor-creation.js";
-import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postMoveDescription, rollMove } from "../scripts/moves.js";
+import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postGuidedResult, postMoveDescription, rollMove } from "../scripts/moves.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../scripts/advancements.js";
 import { ALL_PLAYBOOK_MOVES, choosePlaybookMove } from "../scripts/playbook-moves.js";
 import { UNARMED, chooseEquipmentCatalogItem, chooseWeapon, configureEquipment } from "../scripts/equipment.js";
+import { STARTING_GEAR_POOLS, chooseStartingGear } from "../scripts/starting-gear.js";
 import { GRAVITY_TRIGGERS } from "../scripts/gravity-triggers.js";
-import { PlaybookActorSheet, registerPlaybookActorSheet, TRAITS } from "../scripts/playbook-actor-sheet.js";
+import {
+	PlaybookActorSheet,
+	registerPlaybookActorSheet,
+	registerMoveChatListeners,
+	onRenderMoveChat,
+	mergeSpentTags,
+	TRAITS
+} from "../scripts/playbook-actor-sheet.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 const STRIKE_DECISIVELY = BASIC_MOVES.find((m) => m.key === "strike-decisively");
@@ -52,12 +68,14 @@ const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:per
 beforeEach(() => {
 	swapActorPlaybook.mockClear();
 	configureMoveRoll.mockClear();
+	postGuidedResult.mockClear();
 	postMoveDescription.mockClear();
 	rollMove.mockClear();
 	choosePlaybookMove.mockClear();
 	configureEquipment.mockClear();
 	chooseEquipmentCatalogItem.mockClear();
 	chooseWeapon.mockClear();
+	chooseStartingGear.mockClear();
 });
 
 describe("PlaybookActorSheet", () => {
@@ -73,7 +91,7 @@ describe("PlaybookActorSheet.defaultOptions", () => {
 		expect(options).toEqual({
 			classes: ["armor-astir", "sheet", "actor", "playbook"],
 			template: "modules/armor-astir/templates/playbook-actor-sheet.hbs",
-			width: 620,
+			width: 720,
 			height: "auto",
 			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }]
 		});
@@ -93,6 +111,116 @@ describe("registerPlaybookActorSheet", () => {
 			types: ["character"],
 			makeDefault: true
 		});
+	});
+});
+
+function fakeChatHtml() {
+	const state = { handler: null };
+	state.html = {
+		find: (selector) => (selector === ".move-reroll"
+			? { on: (event, handler) => { state.handler = handler; } }
+			: {})
+	};
+	return state;
+}
+
+describe("registerMoveChatListeners", () => {
+	it("registers a renderChatMessage hook wired to onRenderMoveChat", () => {
+		registerMoveChatListeners();
+
+		expect(Hooks.on).toHaveBeenCalledWith("renderChatMessage", onRenderMoveChat);
+	});
+});
+
+describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
+	it("does nothing for a message with no reroll offer", () => {
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat({ flags: {} }, fake.html);
+
+		expect(fake.handler).toBeNull();
+	});
+
+	it("does nothing for a message with no flags at all", () => {
+		const fake = fakeChatHtml();
+
+		expect(() => onRenderMoveChat({}, fake.html)).not.toThrow();
+		expect(fake.handler).toBeNull();
+	});
+
+	it("wires the Reroll button, disabling it on click and rerunning the move", async () => {
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", tags: ["defensive"], spent: [] };
+		const actor = { id: "actor1", system: { attributes: { equipment: [rifle] } }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const reroll = {
+			actorId: "actor1",
+			moveKey: "exchange-blows",
+			trait: { key: "clash", label: "CLASH", value: 0 },
+			equipmentId: "eq1",
+			tagKey: "defensive",
+			options: { advantage: "none", effect: "none", weaponLabel: "Rifle" }
+		};
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat({ flags: { "armor-astir": { reroll } } }, fake.html);
+		const button = { disabled: false };
+		fake.handler({ currentTarget: button });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(button.disabled).toBe(true);
+		expect(actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...rifle, spent: ["defensive"] }]
+		});
+		expect(rollMove).toHaveBeenCalledWith(actor, EXCHANGE_BLOWS, reroll.trait, reroll.options);
+	});
+
+	it("does nothing when the actor no longer exists", async () => {
+		game.actors.get.mockReturnValue(undefined);
+		const reroll = {
+			actorId: "gone", moveKey: "exchange-blows", trait: {}, equipmentId: "eq1", tagKey: "defensive", options: {}
+		};
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat({ flags: { "armor-astir": { reroll } } }, fake.html);
+		fake.handler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(rollMove).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the move no longer resolves", async () => {
+		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const reroll = {
+			actorId: "actor1", moveKey: "not-a-real-move", trait: {}, equipmentId: "eq1", tagKey: "defensive", options: {}
+		};
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat({ flags: { "armor-astir": { reroll } } }, fake.html);
+		fake.handler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).not.toHaveBeenCalled();
+		expect(rollMove).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing equipment array as empty when marking the reroll tag spent", async () => {
+		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const reroll = {
+			actorId: "actor1", moveKey: "exchange-blows", trait: {}, equipmentId: "eq1", tagKey: "defensive", options: {}
+		};
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat({ flags: { "armor-astir": { reroll } } }, fake.html);
+		fake.handler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.equipment": [] });
 	});
 });
 
@@ -1265,7 +1393,40 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 
 		const data = sheet.getData();
 
-		expect(data.equipment).toEqual({ tierMin: 1, tierMax: 5, weapons: [], gear: [] });
+		expect(data.equipment).toEqual({
+			tierMin: 1,
+			tierMax: 5,
+			weapons: [],
+			gear: [],
+			startingGear: { available: false }
+		});
+	});
+
+	it("makes starting gear available for a playbook whose pool has items or a custom weapon", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.equipment.startingGear).toEqual({ available: true });
+	});
+
+	it("hides starting gear for a playbook whose pool has neither items nor a custom weapon", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Commander" }, attributes: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.equipment.startingGear).toEqual({ available: false });
+	});
+
+	it("hides starting gear for good once startingGearChosen is set, even if the pool still has content", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { startingGearChosen: true } } };
+
+		const data = sheet.getData();
+
+		expect(data.equipment.startingGear).toEqual({ available: false });
 	});
 
 	it("partitions equipment into weapons and gear by kind", () => {
@@ -1336,6 +1497,23 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 				]
 			}
 		]);
+	});
+
+	it("marks a forcesEffect-only tag (e.g. Unreliable) spendable, same as a player-opted spend", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					equipment: [
+						{ id: "1", kind: "weapon", name: "Rifle", description: "", tags: ["unreliable"], spent: [], scale: "foot", tier: 1 }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.equipment.weapons[0].tags[0].spendable).toBe(true);
 	});
 
 	it("marks a tag spent when its key is in the entry's spent array", () => {
@@ -1431,6 +1609,7 @@ describe("PlaybookActorSheet#activateListeners - equipment", () => {
 
 		expect(html.find).toHaveBeenCalledWith(".equipment-add");
 		expect(html.find).toHaveBeenCalledWith(".equipment-catalog-add");
+		expect(html.find).toHaveBeenCalledWith(".starting-gear-add");
 		expect(html.find).toHaveBeenCalledWith(".equipment-edit");
 		expect(html.find).toHaveBeenCalledWith(".equipment-remove");
 		expect(html.find).toHaveBeenCalledWith(".equipment-tier-step");
@@ -1535,6 +1714,124 @@ describe("PlaybookActorSheet#_onEquipmentCatalogAdd", () => {
 		await sheet._onEquipmentCatalogAdd({ currentTarget: { dataset: { kind: "weapon" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onStartingGearAdd", () => {
+	const scoutPool = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Scout");
+	const [firstItem, secondItem] = scoutPool.items;
+	const weaponResult = { name: "Custom Blade", description: "", kind: "weapon", tags: [], scale: "foot", tier: 1 };
+
+	it("does nothing for a playbook with no starting gear pool", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "Not a Real Playbook" }, attributes: { equipment: [] } }, update: vi.fn() };
+
+		await sheet._onStartingGearAdd();
+
+		expect(chooseStartingGear).not.toHaveBeenCalled();
+		expect(configureEquipment).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for a pool with neither items nor a custom weapon", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Commander" }, attributes: { equipment: [] } }, update: vi.fn() };
+
+		await sheet._onStartingGearAdd();
+
+		expect(chooseStartingGear).not.toHaveBeenCalled();
+		expect(configureEquipment).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("opens the gear picker, then the custom weapon editor with the pool's guidance note", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { equipment: [] } }, update: vi.fn() };
+		chooseStartingGear.mockResolvedValue([]);
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onStartingGearAdd();
+
+		expect(chooseStartingGear).toHaveBeenCalledWith("The Scout");
+		expect(configureEquipment).toHaveBeenCalledWith({ kind: "weapon" }, undefined, { note: scoutPool.customWeaponNote });
+	});
+
+	it("appends picked pool items as new gear entries when the weapon editor is dismissed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { equipment: [] } }, update: vi.fn() };
+		chooseStartingGear.mockResolvedValue([firstItem, secondItem]);
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onStartingGearAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.startingGearChosen": true,
+			"system.attributes.equipment": [
+				{ id: "test-id", spent: [], kind: "gear", name: firstItem.name, description: firstItem.description, tags: [] },
+				{ id: "test-id", spent: [], kind: "gear", name: secondItem.name, description: secondItem.description, tags: [] }
+			]
+		});
+	});
+
+	it("appends the custom weapon when the gear picker is cancelled", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { equipment: [] } }, update: vi.fn() };
+		chooseStartingGear.mockResolvedValue(null);
+		configureEquipment.mockResolvedValue(weaponResult);
+
+		await sheet._onStartingGearAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.startingGearChosen": true,
+			"system.attributes.equipment": [{ id: "test-id", spent: [], ...weaponResult }]
+		});
+	});
+
+	it("appends both the picked gear and the custom weapon in a single update", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { equipment: [] } }, update: vi.fn() };
+		chooseStartingGear.mockResolvedValue([firstItem]);
+		configureEquipment.mockResolvedValue(weaponResult);
+
+		await sheet._onStartingGearAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledTimes(1);
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.startingGearChosen": true,
+			"system.attributes.equipment": [
+				{ id: "test-id", spent: [], kind: "gear", name: firstItem.name, description: firstItem.description, tags: [] },
+				{ id: "test-id", spent: [], ...weaponResult }
+			]
+		});
+	});
+
+	it("appends to, rather than replaces, existing equipment", async () => {
+		const sheet = new PlaybookActorSheet();
+		const existing = { id: "existing", kind: "gear", name: "Rations", description: "", tags: [], spent: [] };
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { equipment: [existing] } }, update: vi.fn() };
+		chooseStartingGear.mockResolvedValue([firstItem]);
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onStartingGearAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.startingGearChosen": true,
+			"system.attributes.equipment": [
+				existing,
+				{ id: "test-id", spent: [], kind: "gear", name: firstItem.name, description: firstItem.description, tags: [] }
+			]
+		});
+	});
+
+	it("still marks startingGearChosen, without touching equipment, when both dialogs are cancelled", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { equipment: [] } }, update: vi.fn() };
+		chooseStartingGear.mockResolvedValue(null);
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onStartingGearAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.startingGearChosen": true });
 	});
 });
 
@@ -3014,6 +3311,26 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		});
 	});
 
+	it("excludes a spend tag with no effect (e.g. Ward) from the roll-dialog offering", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: {
+					equipment: [{ id: "eq1", kind: "gear", name: "Charm", description: "", tags: ["ward"], spent: [] }]
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null,
+			equipmentSpends: []
+		});
+	});
+
 	it("disables offered spends when the roll's Effect is already locked (bite the dust at max Perils)", async () => {
 		const sheet = new PlaybookActorSheet();
 		const defy = { key: "defy", label: "DEFY", value: 0 };
@@ -3256,6 +3573,332 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "not-a-real-id" } } });
 
 		expect(configureMoveRoll).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", () => {
+	it("locks Effect to Desperation on the first roll with an unspent Unreliable weapon this Scene", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["unreliable"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
+			lockedEffect: "desperation",
+			equipmentSpends: []
+		});
+	});
+
+	it("does not lock Effect when the Unreliable tag is already spent this Scene", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["unreliable"], spent: ["unreliable"], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
+			lockedEffect: null,
+			equipmentSpends: []
+		});
+	});
+
+	it("treats a missing spent array as nothing spent yet, for a forced tag", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["unreliable"], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
+			lockedEffect: "desperation"
+		}));
+	});
+
+	it("marks the forced tag spent after rolling, alongside any player-chosen spend, in one update", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["unreliable", "blitz"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		const config = {
+			trait: { key: "clash", label: "CLASH", value: 0 },
+			advantage: "none",
+			effect: "desperation",
+			spentTags: [{ equipmentId: "eq1", tagKey: "blitz" }]
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...rifle, spent: ["blitz", "unreliable"] }]
+		});
+	});
+
+	it("does not force an effect for a weapon with no forcesEffect tag", async () => {
+		const sheet = new PlaybookActorSheet();
+		const halberd = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["blitz"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [halberd] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
+			lockedEffect: null
+		}));
+	});
+
+	it("treats a missing tags array as no forced effect", async () => {
+		const sheet = new PlaybookActorSheet();
+		const fists = { id: "eq1", kind: "weapon", name: "Fists", description: "", spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [fists] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
+			lockedEffect: null
+		}));
+	});
+
+	it("never forces an effect for Unarmed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [] } },
+			update: vi.fn()
+		};
+		chooseWeapon.mockResolvedValue(UNARMED);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
+			lockedEffect: null
+		}));
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versatile)", () => {
+	const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none" };
+
+	it("offers a reroll when the weapon has an unspent reroll tag matching this move", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["defensive"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, {
+			...config,
+			weaponLabel: "Rifle",
+			reroll: { equipmentId: "eq1", tagKey: "defensive" }
+		});
+	});
+
+	it("does not offer a reroll when the weapon's reroll tag doesn't cover this move", async () => {
+		const sheet = new PlaybookActorSheet();
+		// Decisive only covers strike-decisively, not exchange-blows.
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["decisive"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle" });
+	});
+
+	it("does not offer an already-spent reroll tag", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["defensive"], spent: ["defensive"], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle" });
+	});
+
+	it("offers Versatile's reroll for strike-decisively as well as exchange-blows", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["versatile"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "strike-decisively", equipmentId: "eq1" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, STRIKE_DECISIVELY, config.trait, {
+			...config,
+			weaponLabel: "Rifle",
+			reroll: { equipmentId: "eq1", tagKey: "versatile" }
+		});
+	});
+
+	it("treats a missing spent array as nothing spent yet, for a reroll tag", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["defensive"], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, {
+			...config,
+			weaponLabel: "Rifle",
+			reroll: { equipmentId: "eq1", tagKey: "defensive" }
+		});
+	});
+
+	it("treats a missing tags array as no reroll offer", async () => {
+		const sheet = new PlaybookActorSheet();
+		const fists = { id: "eq1", kind: "weapon", name: "Fists", description: "", spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [fists] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Fists" });
+	});
+
+	it("never offers a reroll for Unarmed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed" });
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
+	it("passes guided: true to configureMoveRoll when the weapon has a live Guided tag", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["guided"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
+			lockedEffect: null,
+			equipmentSpends: [],
+			guided: true
+		});
+	});
+
+	it("omits guided from configureMoveRoll's options for a non-Guided weapon", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: [], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, equipmentSpends: [] });
+	});
+
+	it("treats a missing tags array as not Guided", async () => {
+		const sheet = new PlaybookActorSheet();
+		const fists = { id: "eq1", kind: "weapon", name: "Fists", description: "", spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [fists] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, equipmentSpends: [] });
+	});
+
+	it("is never Guided for Unarmed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, equipmentSpends: [] });
+	});
+
+	it("posts a guided result and never rolls when Take 7-9 is chosen", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["guided"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ takeSeven: true });
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, { weaponLabel: "Rifle" });
+		expect(rollMove).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("labels the guided result Unarmed when taking 7-9 with no weapon", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ takeSeven: true });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, { weaponLabel: "Unarmed" });
 	});
 });
 

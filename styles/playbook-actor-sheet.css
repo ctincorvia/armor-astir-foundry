@@ -1,5 +1,62 @@
+/* Design tokens. Declared on both roots this module renders under — the actor sheet + every
+   dialog (all carry the "armor-astir" class) and the chat card (its own "armor-astir-move-chat"
+   root, never nested under "armor-astir") — so nothing leaks into pbta's own chrome or other
+   modules' sheets. */
+.armor-astir,
+.armor-astir-move-chat {
+	/* Palette — the two gems, named for what they are. Nothing styles against these directly. */
+	--aa-moonstone: #7fa8b8;
+	--aa-moonstone-dark: #4a6e7c;
+	--aa-moonstone-tint: #edf4f7;
+	--aa-amethyst: #6c3483;
+	--aa-amethyst-dark: #45205a;
+	--aa-amethyst-tint: #f0e6f8;
+	--aa-danger: #8b1a1a;
+	--aa-danger-tint: #f7e8e8;
+
+	/* Roles — every rule below styles against these, never against a gem name directly, so
+	   swapping which gem plays which role is a two-line change here instead of ~40 scattered
+	   edits. Primary = chrome the player acts on (headers, tabs, buttons); secondary = the
+	   player's own tracked state (pips, value readouts, tag labels).
+
+	   Note the -dark variants aren't just "darker": moonstone at full strength (#7fa8b8) is far
+	   too pale to sit under white text (~2.4:1, under the 4.5:1 floor), so any surface that fills
+	   with a color AND carries white text must use a -dark variant, never the base. */
+	--aa-primary: var(--aa-amethyst);
+	--aa-primary-dark: var(--aa-amethyst-dark);
+	--aa-primary-tint: var(--aa-amethyst-tint);
+	--aa-secondary: var(--aa-moonstone);
+	--aa-secondary-dark: var(--aa-moonstone-dark);
+	--aa-secondary-tint: var(--aa-moonstone-tint);
+	--aa-space-1: 4px;
+	--aa-space-2: 8px;
+	--aa-space-3: 12px;
+	--aa-space-4: 16px;
+	--aa-radius: 4px;
+	--aa-border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+}
+
+/* One header style for every section title on the sheet — uppercase + a primary-colored rule
+   gives every "Traits" / "Weapons" / "Advancement" label the same clear delineation from body
+   text. Scoped to the sheet only, not dialogs or the chat card, so it doesn't catch move-chat's
+   h3.move-name (a card title, not a section label). */
+.armor-astir.sheet h3 {
+	margin: var(--aa-space-4) 0 var(--aa-space-2);
+	padding-bottom: var(--aa-space-1);
+	border-bottom: 2px solid var(--aa-primary);
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--aa-primary-dark);
+}
+
+.armor-astir.sheet h3:first-child {
+	margin-top: 0;
+}
+
 .armor-astir.sheet .sheet-header {
-	gap: 16px;
+	gap: var(--aa-space-4);
 }
 
 .armor-astir.sheet .sheet-header .playbook-swap {
@@ -8,7 +65,7 @@
 	flex-direction: row;
 	align-items: center;
 	align-self: flex-start;
-	gap: 6px;
+	gap: var(--aa-space-2);
 	margin-left: auto;
 }
 
@@ -22,17 +79,47 @@
 	flex-direction: row;
 	align-items: center;
 	align-self: flex-start;
-	gap: 6px;
+	gap: var(--aa-space-2);
 }
 
 .armor-astir.sheet .sheet-header .approach-swap label {
 	white-space: nowrap;
 }
 
+.armor-astir.sheet .status-row {
+	display: flex;
+	flex-direction: row;
+	align-items: stretch;
+	gap: var(--aa-space-3);
+	margin: var(--aa-space-3) 0;
+}
+
+.armor-astir.sheet .status-row .traits {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.armor-astir.sheet .status-row .spotlight {
+	flex: 0 0 auto;
+}
+
+/* Bordered panel treatment shared by every top-level section so their edges line up with each
+   other — this is what lets .dangers-column drop its old padding-top fudge (see below) and still
+   land at the same y-offset as .sheet-tabs' nav. Excludes .gravity-trigger, which gets its own
+   callout treatment instead of a structural panel (it's static playbook text, not a tracker). */
+.armor-astir.sheet .traits,
+.armor-astir.sheet .spotlight,
+.armor-astir.sheet .dangers-column,
+.armor-astir.sheet .tab.active > section:not(.gravity-trigger) {
+	padding: var(--aa-space-3);
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+}
+
 .armor-astir.sheet .traits-list {
 	display: flex;
 	flex-wrap: wrap;
-	gap: 10px;
+	gap: var(--aa-space-3);
 	margin: 0;
 	padding: 0;
 	list-style: none;
@@ -42,7 +129,7 @@
 	display: flex;
 	flex-direction: column;
 	align-items: center;
-	gap: 2px;
+	gap: var(--aa-space-1);
 }
 
 .armor-astir.sheet .trait-label {
@@ -54,12 +141,7 @@
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 4px;
-}
-
-.armor-astir.sheet .trait-value {
-	min-width: 1.5em;
-	text-align: center;
+	gap: var(--aa-space-1);
 }
 
 .armor-astir.sheet .trait.disabled .trait-label,
@@ -67,12 +149,25 @@
 	opacity: 0.5;
 }
 
+/* Overheating and Power are each only a few characters wide, so they sit side by side rather than
+   stacking. Deliberately no margin/padding of its own: when a playbook shows neither, Handlebars
+   still leaves whitespace inside this div, and whitespace-only text never becomes a flex item —
+   so an empty .trait-meters collapses to zero height instead of leaving a gap. The children keep
+   their own margin-top, which is what spaces the row off the traits list above. */
+.armor-astir.sheet .trait-meters {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--aa-space-4);
+}
+
 .armor-astir.sheet .overheating-label {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 6px;
-	margin-top: 10px;
+	gap: var(--aa-space-2);
+	margin-top: var(--aa-space-3);
 	font-weight: bold;
 }
 
@@ -80,49 +175,88 @@
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 4px;
-	margin-top: 10px;
+	gap: var(--aa-space-1);
+	margin-top: var(--aa-space-3);
 	font-weight: bold;
 }
 
-.armor-astir.sheet .power-value {
+/* One rule for every numeric readout tied to a player-tracked resource (Traits, Power, Hold,
+   Gravity Clock progress) — same reasoning as the remove-button and step-pip consolidations
+   below: these were four byte-identical min-width/text-align rules. Primary, not secondary: these
+   are numerals the player reads at a glance, so they take the same color as the sheet's other
+   "acted on" chrome rather than the quieter tracker color the pips below use. */
+.armor-astir.sheet .trait-value,
+.armor-astir.sheet .power-value,
+.armor-astir.sheet .hold-value,
+.armor-astir.sheet .gravity-clock-value {
 	min-width: 1.5em;
 	text-align: center;
-}
-
-.armor-astir.sheet .spotlight {
-	margin-top: 10px;
+	font-weight: 700;
+	color: var(--aa-primary-dark);
 }
 
 .armor-astir.sheet .spotlight-track {
 	display: flex;
 	flex-direction: row;
-	gap: 6px;
+	gap: var(--aa-space-2);
 	margin: 0;
 	padding: 0;
 	list-style: none;
 }
 
-.armor-astir.sheet .spotlight-step {
+/* Spotlight and Gravity Clock steps are the same pip-track control (empty box / filled box)
+   used in two different trackers — one rule instead of two duplicated ones. */
+.armor-astir.sheet .spotlight-step,
+.armor-astir.sheet .gravity-clock-step {
 	width: 20px;
 	height: 20px;
 	padding: 0;
-	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
-	border-radius: 3px;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
 	background: transparent;
 	cursor: pointer;
 }
 
-.armor-astir.sheet .spotlight-step.filled {
-	background: #4a4a8a;
-	border-color: #4a4a8a;
+.armor-astir.sheet .spotlight-step.filled,
+.armor-astir.sheet .gravity-clock-step.filled {
+	background: var(--aa-secondary);
+	border-color: var(--aa-secondary);
+}
+
+/* The little +/- steppers scattered across Traits, Power, Hold, Gravity Clock value and
+   Equipment Tier were all relying on the browser's bare default button look — one consolidated
+   rule gives them a consistent, deliberate appearance instead. */
+.armor-astir.sheet .trait-step,
+.armor-astir.sheet .power-step,
+.armor-astir.sheet .hold-step,
+.armor-astir.sheet .flat-hold-step,
+.armor-astir.sheet .gravity-clock-value-step,
+.armor-astir.sheet .equipment-tier-step {
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .trait-step:hover,
+.armor-astir.sheet .power-step:hover,
+.armor-astir.sheet .hold-step:hover,
+.armor-astir.sheet .flat-hold-step:hover,
+.armor-astir.sheet .gravity-clock-value-step:hover,
+.armor-astir.sheet .equipment-tier-step:hover {
+	border-color: var(--aa-primary);
+	color: var(--aa-primary-dark);
 }
 
 .armor-astir.sheet .sheet-main {
 	display: flex;
 	flex-direction: row;
 	align-items: flex-start;
-	gap: 12px;
+	gap: var(--aa-space-3);
 }
 
 .armor-astir.sheet .dangers-column {
@@ -131,7 +265,6 @@
 	   a long, unbroken danger label would force the column past its 170px basis and drag the
 	   remove button out past the column's right edge with it. */
 	min-width: 0;
-	padding-top: 10px;
 }
 
 .armor-astir.sheet .sheet-tabs-column {
@@ -140,9 +273,16 @@
 }
 
 .armor-astir.sheet .defenseless-label {
-	margin: 0 0 6px;
-	font-weight: bold;
-	color: #8b1a1a;
+	margin: 0 0 var(--aa-space-2);
+	padding: var(--aa-space-1) var(--aa-space-2);
+	border-radius: var(--aa-radius);
+	background: var(--aa-danger-tint);
+	font-weight: 700;
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	text-align: center;
+	color: var(--aa-danger);
 }
 
 .armor-astir.sheet .danger-list {
@@ -154,22 +294,33 @@
 /* Grid (not flex+space-between) so the remove button always sits in the same fixed-width
    second column, regardless of how long or short each row's label is — that's what keeps
    every button aligned in a straight vertical line down the column. minmax(0, 1fr) on the
-   label column is what lets it shrink to fit instead of forcing the row past 170px. */
+   label column is what lets it shrink to fit instead of forcing the row past 170px. The left
+   border reads Peril vs Risk apart at a glance, on top of the label's own weight/color. */
 .armor-astir.sheet .danger-item {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: center;
-	gap: 6px;
-	padding: 2px 0;
+	gap: var(--aa-space-2);
+	padding: var(--aa-space-1) var(--aa-space-2);
+	border-left: 3px solid transparent;
 }
 
 .armor-astir.sheet .danger-label {
 	overflow-wrap: anywhere;
 }
 
+.armor-astir.sheet .danger-peril {
+	border-left-color: var(--aa-danger);
+	background: var(--aa-danger-tint);
+}
+
 .armor-astir.sheet .danger-peril .danger-label {
 	font-weight: bold;
-	color: #8b1a1a;
+	color: var(--aa-danger);
+}
+
+.armor-astir.sheet .danger-risk {
+	border-left-color: var(--color-border-light-tertiary, #c9c7b8);
 }
 
 .armor-astir.sheet .danger-risk .danger-label {
@@ -177,28 +328,64 @@
 	color: inherit;
 }
 
-.armor-astir.sheet .danger-remove {
-	width: 18px;
-	height: 18px;
+/* Every small square icon-button that removes a list entry — Danger, Gravity Clock, Playbook
+   Move, Equipment — was four byte-identical rules; one consolidated rule instead. */
+.armor-astir.sheet .danger-remove,
+.armor-astir.sheet .gravity-clock-remove,
+.armor-astir.sheet .playbook-move-remove,
+.armor-astir.sheet .equipment-remove {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
 	padding: 0;
-	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
-	border-radius: 3px;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
 	background: transparent;
 	line-height: 1;
 	font-size: 11px;
 	cursor: pointer;
 }
 
+.armor-astir.sheet .danger-remove:hover,
+.armor-astir.sheet .gravity-clock-remove:hover,
+.armor-astir.sheet .playbook-move-remove:hover,
+.armor-astir.sheet .equipment-remove:hover {
+	border-color: var(--aa-danger);
+	color: var(--aa-danger);
+}
+
 .armor-astir.sheet .danger-add-controls {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
-	margin-top: 8px;
+	gap: var(--aa-space-1);
+	margin-top: var(--aa-space-2);
+}
+
+/* Trailing "add" controls for a list — Playbook Move, Equipment (x2 per kind), Gravity Clock —
+   get one shared spacing wrapper instead of each list managing its own ad-hoc top margin. */
+.armor-astir.sheet .section-actions {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-2);
+	margin-top: var(--aa-space-2);
+}
+
+/* Static playbook prose, not a tracker — a callout reads better than a structural panel here.
+   The secondary color marks it as tied to the player's own Gravity Clocks below it. */
+.armor-astir.sheet .gravity-trigger {
+	padding: var(--aa-space-2) var(--aa-space-3);
+	border-left: 3px solid var(--aa-secondary);
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-tint);
 }
 
 .armor-astir.sheet .gravity-trigger-text {
-	margin: 4px 0 0;
+	margin: var(--aa-space-1) 0 0;
 	font-size: 12px;
+	font-style: italic;
+	line-height: 1.5;
+	color: var(--aa-secondary-dark);
 }
 
 .armor-astir.sheet .gravity-clock-list {
@@ -208,15 +395,15 @@
 }
 
 .armor-astir.sheet .gravity-clock-item {
-	padding: 8px 0;
-	border-bottom: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	padding: var(--aa-space-2) 0;
+	border-bottom: var(--aa-border);
 }
 
 .armor-astir.sheet .gravity-clock-header {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 6px;
+	gap: var(--aa-space-2);
 }
 
 .armor-astir.sheet .gravity-clock-label-input {
@@ -224,79 +411,70 @@
 	min-width: 0;
 }
 
-.armor-astir.sheet .gravity-clock-remove {
-	flex: 0 0 auto;
-	width: 18px;
-	height: 18px;
-	padding: 0;
-	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
-	border-radius: 3px;
-	background: transparent;
-	line-height: 1;
-	font-size: 11px;
-	cursor: pointer;
-}
-
 .armor-astir.sheet .gravity-clock-body {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
-	gap: 8px;
-	margin-top: 6px;
+	gap: var(--aa-space-2);
+	margin-top: var(--aa-space-2);
 }
 
 .armor-astir.sheet .gravity-clock-track {
 	display: flex;
 	flex-direction: row;
-	gap: 6px;
+	gap: var(--aa-space-2);
 	margin: 0;
 	padding: 0;
 	list-style: none;
-}
-
-.armor-astir.sheet .gravity-clock-step {
-	width: 20px;
-	height: 20px;
-	padding: 0;
-	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
-	border-radius: 3px;
-	background: transparent;
-	cursor: pointer;
-}
-
-.armor-astir.sheet .gravity-clock-step.filled {
-	background: #4a4a8a;
-	border-color: #4a4a8a;
 }
 
 .armor-astir.sheet .gravity-clock-value-control {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 4px;
+	gap: var(--aa-space-1);
 	flex: 0 0 auto;
 }
 
-.armor-astir.sheet .gravity-clock-value {
-	min-width: 1.5em;
-	text-align: center;
-}
-
-.armor-astir.sheet .gravity-clock-add {
-	margin-top: 8px;
-}
-
+/* No top margin: .sheet-main lays .dangers-column and .sheet-tabs-column side by side from the
+   same y, so any top margin here would drop the tab nav below the Dangers panel's top edge and
+   visibly break the two columns' alignment. */
 .armor-astir.sheet .sheet-tabs {
-	margin: 10px 0;
-	padding: 4px 0;
-	border-top: 1px solid var(--color-border-light-tertiary, #c9c7b8);
-	border-bottom: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	margin: 0 0 var(--aa-space-3);
+	padding: var(--aa-space-1) 0;
+	border-top: var(--aa-border);
+	border-bottom: 2px solid var(--aa-primary);
 }
 
 .armor-astir.sheet .sheet-tabs .item {
+	margin-right: var(--aa-space-3);
+	padding: var(--aa-space-1) var(--aa-space-1) calc(var(--aa-space-1) + 2px);
+	border-bottom: 2px solid transparent;
+	font-weight: 700;
+	font-size: 12px;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	color: var(--color-text-dark-secondary, #666);
 	cursor: pointer;
-	font-weight: bold;
+}
+
+.armor-astir.sheet .sheet-tabs .item:hover {
+	color: var(--aa-primary-dark);
+}
+
+.armor-astir.sheet .sheet-tabs .item.active {
+	border-bottom-color: var(--aa-primary);
+	color: var(--aa-primary-dark);
+}
+
+/* Foundry's core CSS hides an inactive tab with `.tab[data-tab]:not(.active) { display: none }`;
+   scoping this to .active (rather than plain .tab) keeps this rule mutually exclusive with core's
+   selector so there's no specificity fight over which one wins. */
+.armor-astir.sheet .tab.active {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-3);
 }
 
 .armor-astir.sheet .move-list {
@@ -305,47 +483,55 @@
 	list-style: none;
 }
 
+/* Grid (not flex) so a long move name can't push its row's controls out past the row's right
+   edge — same reasoning as .danger-item above. minmax(0, 1fr) lets the name column shrink below
+   its content's min-content size instead of overflowing. */
 .armor-astir.sheet .move {
-	display: flex;
-	flex-direction: row;
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: center;
-	justify-content: space-between;
-	gap: 8px;
-	padding: 4px 0;
-	border-bottom: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	gap: var(--aa-space-2);
+	padding: var(--aa-space-2) var(--aa-space-1);
+	border-bottom: var(--aa-border);
+}
+
+/* Stripe uses the quieter secondary tint; hover uses the primary tint so an interaction always
+   reads in the primary color, whichever gem that currently is. */
+.armor-astir.sheet .move:nth-child(even),
+.armor-astir.sheet .equipment-item:nth-child(even) {
+	background: var(--aa-secondary-tint);
+}
+
+.armor-astir.sheet .move:hover,
+.armor-astir.sheet .equipment-item:hover {
+	background: var(--aa-primary-tint);
 }
 
 .armor-astir.sheet .move-row-controls {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 8px;
-	flex: 0 0 auto;
+	gap: var(--aa-space-2);
 }
 
 .armor-astir.sheet .hold-control {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 4px;
-}
-
-.armor-astir.sheet .hold-value {
-	min-width: 1.5em;
-	text-align: center;
+	gap: var(--aa-space-1);
 }
 
 .armor-astir.sheet .move-uses-control {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--aa-space-1);
 }
 
 .armor-astir.sheet .move-use {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 4px;
+	gap: var(--aa-space-1);
 	font-size: 11px;
 	white-space: nowrap;
 }
@@ -353,7 +539,7 @@
 .armor-astir.sheet .move-controls {
 	display: flex;
 	flex-direction: row;
-	gap: 4px;
+	gap: var(--aa-space-1);
 	flex: 0 0 auto;
 }
 
@@ -368,21 +554,49 @@
 	cursor: not-allowed;
 }
 
-.armor-astir.sheet .playbook-move-remove {
-	flex: 0 0 auto;
-	width: 18px;
-	height: 18px;
-	padding: 0;
-	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
-	border-radius: 3px;
-	background: transparent;
-	line-height: 1;
-	font-size: 11px;
+/* Solid actions (Roll / Activate / the various "+ Add" buttons) take the primary fill; outline
+   actions (Description / Edit) take the primary border with dark primary text. Both are chrome
+   the player acts on, so both track the primary role. */
+.armor-astir.sheet .move-roll,
+.armor-astir.sheet .move-activate,
+.armor-astir.sheet .playbook-move-add,
+.armor-astir.sheet .equipment-add,
+.armor-astir.sheet .equipment-catalog-add,
+.armor-astir.sheet .starting-gear-add,
+.armor-astir.sheet .gravity-clock-add,
+.armor-astir.sheet .danger-add {
+	border: 1px solid var(--aa-primary);
+	border-radius: var(--aa-radius);
+	background: var(--aa-primary);
+	color: #fff;
+	font-weight: 700;
 	cursor: pointer;
 }
 
-.armor-astir.sheet .playbook-move-add {
-	margin-top: 8px;
+.armor-astir.sheet .move-roll:not(.disabled):hover,
+.armor-astir.sheet .move-activate:not(.disabled):hover,
+.armor-astir.sheet .playbook-move-add:hover,
+.armor-astir.sheet .equipment-add:hover,
+.armor-astir.sheet .equipment-catalog-add:hover,
+.armor-astir.sheet .starting-gear-add:hover,
+.armor-astir.sheet .gravity-clock-add:hover,
+.armor-astir.sheet .danger-add:hover {
+	background: var(--aa-primary-dark);
+	border-color: var(--aa-primary-dark);
+}
+
+.armor-astir.sheet .move-description,
+.armor-astir.sheet .equipment-edit {
+	border: 1px solid var(--aa-primary);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	color: var(--aa-primary-dark);
+	cursor: pointer;
+}
+
+.armor-astir.sheet .move-description:not(.disabled):hover,
+.armor-astir.sheet .equipment-edit:hover {
+	background: var(--aa-primary-tint);
 }
 
 .armor-astir.sheet .advancement-list {
@@ -392,31 +606,31 @@
 }
 
 .armor-astir.sheet .advancement-item {
-	padding: 2px 0;
+	padding: var(--aa-space-1) 0;
 }
 
 .armor-astir.sheet .advancement-label {
 	display: flex;
 	flex-direction: row;
 	align-items: flex-start;
-	gap: 6px;
+	gap: var(--aa-space-2);
 }
 
 .armor-astir.sheet .advancement-unlock-hint {
-	margin: 6px 0;
+	margin: var(--aa-space-2) 0;
 	font-size: 12px;
 	font-style: italic;
 }
 
 .armor-astir.sheet .equipment-list {
-	margin: 0 0 8px;
+	margin: 0 0 var(--aa-space-2);
 	padding: 0;
 	list-style: none;
 }
 
 .armor-astir.sheet .equipment-item {
-	padding: 6px 0;
-	border-bottom: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	padding: var(--aa-space-2) var(--aa-space-1);
+	border-bottom: var(--aa-border);
 }
 
 .armor-astir.sheet .equipment-header {
@@ -424,11 +638,12 @@
 	flex-direction: row;
 	flex-wrap: wrap;
 	align-items: center;
-	gap: 8px;
+	gap: var(--aa-space-2);
 }
 
 .armor-astir.sheet .equipment-name {
 	font-weight: bold;
+	color: var(--aa-primary-dark);
 }
 
 .armor-astir.sheet .equipment-value {
@@ -440,7 +655,7 @@
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 4px;
+	gap: var(--aa-space-1);
 	font-size: 12px;
 }
 
@@ -453,30 +668,17 @@
 .armor-astir.sheet .equipment-item-controls {
 	display: flex;
 	flex-direction: row;
-	gap: 4px;
+	gap: var(--aa-space-1);
 	margin-left: auto;
 }
 
-.armor-astir.sheet .equipment-remove {
-	flex: 0 0 auto;
-	width: 18px;
-	height: 18px;
-	padding: 0;
-	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
-	border-radius: 3px;
-	background: transparent;
-	line-height: 1;
-	font-size: 11px;
-	cursor: pointer;
-}
-
 .armor-astir.sheet .equipment-description {
-	margin: 4px 0 0;
+	margin: var(--aa-space-1) 0 0;
 	font-size: 12px;
 }
 
 .armor-astir.sheet .equipment-tag-list {
-	margin: 4px 0 0;
+	margin: var(--aa-space-1) 0 0;
 	padding: 0;
 	list-style: none;
 }
@@ -486,13 +688,14 @@
 	flex-direction: row;
 	flex-wrap: wrap;
 	align-items: baseline;
-	gap: 6px;
+	gap: var(--aa-space-2);
 	font-size: 12px;
-	padding: 1px 0;
+	padding: 2px 0;
 }
 
 .armor-astir.sheet .equipment-tag-label {
 	font-weight: bold;
+	color: var(--aa-secondary-dark);
 }
 
 .armor-astir.sheet .equipment-tag-description {
@@ -503,7 +706,7 @@
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 3px;
+	gap: var(--aa-space-1);
 	margin-left: auto;
 	font-size: 11px;
 	white-space: nowrap;
@@ -513,29 +716,34 @@
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
-	gap: 4px;
-	margin-top: 6px;
+	gap: var(--aa-space-1);
+	margin-top: var(--aa-space-2);
 }
 
 .armor-astir.sheet .weapon-move-roll {
+	padding: var(--aa-space-1) var(--aa-space-2);
+	border: 1px solid var(--aa-primary);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	color: var(--aa-primary-dark);
 	font-size: 11px;
-	padding: 2px 6px;
+	font-weight: 700;
+	cursor: pointer;
 }
 
-.armor-astir.sheet .equipment-add,
-.armor-astir.sheet .equipment-catalog-add {
-	margin: 4px 8px 12px 0;
+.armor-astir.sheet .weapon-move-roll:not(.disabled):hover {
+	background: var(--aa-primary-tint);
 }
 
 .armor-astir-move-chat .move-name {
-	margin: 0 0 4px;
+	margin: 0 0 var(--aa-space-1);
 }
 
 .armor-astir-move-chat .move-roll-result {
 	display: flex;
 	flex-direction: row;
 	align-items: baseline;
-	gap: 8px;
+	gap: var(--aa-space-2);
 }
 
 .armor-astir-move-chat .move-tier {
@@ -551,15 +759,15 @@
 }
 
 .armor-astir-move-chat .move-tier-failure {
-	color: #8b1a1a;
+	color: var(--aa-danger);
 }
 
 .armor-astir-move-chat .move-result-text {
-	margin: 4px 0 0;
+	margin: var(--aa-space-1) 0 0;
 }
 
 .armor-astir-move-chat .move-result-text p {
-	margin: 4px 0 0;
+	margin: var(--aa-space-1) 0 0;
 }
 
 .armor-astir-move-chat .move-result-text p:first-child {
@@ -567,7 +775,7 @@
 }
 
 .armor-astir-move-chat .move-result-text ul {
-	margin: 4px 0 0;
+	margin: var(--aa-space-1) 0 0;
 	padding-left: 18px;
 }
 
@@ -576,11 +784,12 @@
 }
 
 .armor-astir-move-chat .move-hold {
-	margin: 4px 0 0;
+	margin: var(--aa-space-1) 0 0;
 }
 
 .armor-astir-move-chat .move-hold-count {
 	font-weight: bold;
+	color: var(--aa-secondary-dark);
 }
 
 .armor-astir-move-chat .move-hold-prompt {
@@ -600,9 +809,9 @@
 }
 
 .armor-astir-move-chat .move-reminders {
-	margin: 4px 0 0;
+	margin: var(--aa-space-1) 0 0;
 	padding: 2px 6px 2px 20px;
-	border-left: 3px solid #8b1a1a;
+	border-left: 3px solid var(--aa-danger);
 	font-weight: bold;
 }
 
@@ -610,17 +819,39 @@
 	margin: 1px 0;
 }
 
+/* Same solid-primary treatment as the sheet's own Roll/Activate buttons (see the sheet's
+   .move-roll rule) — this is chrome the player acts on too, just rendered on a chat card instead
+   of the sheet, so it can't share that rule's `.armor-astir.sheet` scope. */
+.armor-astir-move-chat .move-reroll {
+	margin-top: var(--aa-space-1);
+	border: 1px solid var(--aa-primary);
+	border-radius: var(--aa-radius);
+	background: var(--aa-primary);
+	color: #fff;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.armor-astir-move-chat .move-reroll:hover {
+	background: var(--aa-primary-dark);
+}
+
+.armor-astir-move-chat .move-reroll:disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
 .armor-astir-move-chat .move-conditions {
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
-	gap: 4px;
-	margin-top: 4px;
+	gap: var(--aa-space-1);
+	margin-top: var(--aa-space-1);
 }
 
 .armor-astir-move-chat .move-condition {
 	padding: 1px 6px;
-	border-radius: 3px;
+	border-radius: var(--aa-radius);
 	font-size: 11px;
 	font-weight: bold;
 	color: #fff;
@@ -633,12 +864,14 @@
 
 .armor-astir-move-chat .move-condition-disadvantage,
 .armor-astir-move-chat .move-condition-disadvantage2 {
-	background: #8b1a1a;
+	background: var(--aa-danger);
 }
 
+/* -dark, not the base: these chips carry white text, and the secondary gem at full strength is
+   too pale to sit under it (see the role-token note at the top of this file). */
 .armor-astir-move-chat .move-condition-confidence,
 .armor-astir-move-chat .move-condition-desperation {
-	background: #4a4a8a;
+	background: var(--aa-secondary-dark);
 }
 
 .armor-astir-move-chat .move-condition-downtime,
@@ -658,8 +891,8 @@
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
-	gap: 4px;
-	margin: 4px 0 0;
+	gap: var(--aa-space-1);
+	margin: var(--aa-space-1) 0 0;
 	padding: 0;
 	list-style: none;
 }
@@ -670,8 +903,8 @@
 	align-items: center;
 	gap: 3px;
 	padding: 1px 6px;
-	border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
-	border-radius: 3px;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
 	font-size: 12px;
 	font-weight: bold;
 }
@@ -682,7 +915,7 @@
 }
 
 .armor-astir-move-chat .move-die-changed {
-	border-color: #4a4a8a;
+	border-color: var(--aa-secondary-dark);
 }
 
 .armor-astir-move-chat .move-die-original {
@@ -696,8 +929,8 @@
 	flex-direction: row;
 	align-items: center;
 	justify-content: space-between;
-	gap: 8px;
-	margin-bottom: 6px;
+	gap: var(--aa-space-2);
+	margin-bottom: var(--aa-space-2);
 }
 
 .armor-astir.move-roll-dialog .move-roll-conditions {
@@ -707,29 +940,37 @@
 .armor-astir.move-roll-dialog .move-roll-conditions-list {
 	display: flex;
 	flex-direction: column;
-	gap: 2px;
+	gap: var(--aa-space-1);
 }
 
 .armor-astir.move-roll-dialog .move-roll-condition {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 4px;
+	gap: var(--aa-space-1);
 	white-space: nowrap;
 }
 
 .armor-astir.move-roll-dialog .move-roll-locked-note {
-	margin: 0 0 6px;
+	margin: 0 0 var(--aa-space-2);
 	font-size: 12px;
 	font-weight: bold;
-	color: #8b1a1a;
+	color: var(--aa-danger);
+	text-align: right;
+}
+
+.armor-astir.move-roll-dialog .move-roll-guided-note {
+	margin: 0 0 var(--aa-space-2);
+	font-size: 12px;
+	font-weight: bold;
+	color: var(--aa-primary-dark);
 	text-align: right;
 }
 
 .armor-astir.move-roll-dialog .move-roll-equipment-list {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: var(--aa-space-1);
 }
 
 .armor-astir.move-roll-dialog .move-roll-equipment-spend {
@@ -758,13 +999,13 @@
 	flex-direction: column;
 	align-items: stretch;
 	gap: 2px;
-	margin-bottom: 6px;
+	margin-bottom: var(--aa-space-2);
 }
 
 .armor-astir.equipment-editor .equipment-editor-tag-list {
 	display: flex;
 	flex-direction: column;
-	gap: 4px;
+	gap: var(--aa-space-1);
 }
 
 .armor-astir.equipment-editor .equipment-editor-tag {
@@ -772,16 +1013,26 @@
 	flex-direction: row;
 	flex-wrap: wrap;
 	align-items: baseline;
-	gap: 6px;
+	gap: var(--aa-space-2);
 	font-size: 12px;
 }
 
 .armor-astir.equipment-editor .equipment-editor-tag-label {
 	font-weight: bold;
+	color: var(--aa-secondary-dark);
 }
 
 .armor-astir.equipment-editor .equipment-editor-tag-description {
 	opacity: 0.8;
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-total {
+	margin: var(--aa-space-2) 0 0;
+	font-weight: bold;
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-total-value {
+	color: var(--aa-primary-dark);
 }
 
 /* pbta's own CSS (pbta.css) gives every Dialog's .dialog-buttons an unwanted flex-grow inside
@@ -803,25 +1054,26 @@
 /* The picker's accordion is plain <details>/<summary> — the open/closed state is native browser
    behaviour, so no dialog-side JS is involved in expanding a section. */
 .armor-astir.playbook-move-picker .move-picker-section {
-	margin-bottom: 6px;
-	padding-bottom: 4px;
-	border-bottom: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	margin-bottom: var(--aa-space-2);
+	padding-bottom: var(--aa-space-1);
+	border-bottom: var(--aa-border);
 }
 
 .armor-astir.playbook-move-picker .move-picker-section-label {
-	padding: 2px 0;
+	padding: var(--aa-space-1) 0;
 	font-weight: bold;
+	color: var(--aa-primary-dark);
 	cursor: pointer;
 }
 
 .armor-astir.playbook-move-picker .move-picker-subsection {
-	margin: 4px 0 0 14px;
+	margin: var(--aa-space-1) 0 0 14px;
 	padding-bottom: 0;
 	border-bottom: none;
 }
 
 .armor-astir.playbook-move-picker .move-picker-section-note {
-	margin: 2px 0 4px;
+	margin: 2px 0 var(--aa-space-1);
 	font-size: 12px;
 	font-style: italic;
 	opacity: 0.8;
@@ -834,14 +1086,14 @@
 }
 
 .armor-astir.playbook-move-picker .move-picker-item {
-	padding: 4px 0;
+	padding: var(--aa-space-1) 0;
 }
 
 .armor-astir.playbook-move-picker .move-picker-option {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 6px;
+	gap: var(--aa-space-2);
 	cursor: pointer;
 }
 
@@ -849,10 +1101,14 @@
 	font-weight: bold;
 }
 
-.armor-astir.playbook-move-picker .move-picker-trait {
-	padding: 1px 5px;
-	border-radius: 3px;
-	background: #4a4a8a;
+/* Trait/tag chips share one look wherever they appear — the move picker's trait pills and the
+   weapon picker's tag pills. The secondary color marks them as belonging to the player's own
+   move/gear; -dark because they carry white text (see the role-token note at the top). */
+.armor-astir.playbook-move-picker .move-picker-trait,
+.armor-astir.weapon-picker .weapon-picker-tag {
+	padding: 2px 6px;
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-dark);
 	font-size: 11px;
 	font-weight: bold;
 	color: #fff;
@@ -881,14 +1137,14 @@
 }
 
 .armor-astir.equipment-catalog-picker .equipment-catalog-picker-item {
-	padding: 4px 0;
+	padding: var(--aa-space-1) 0;
 }
 
 .armor-astir.equipment-catalog-picker .equipment-catalog-picker-option {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 6px;
+	gap: var(--aa-space-2);
 	cursor: pointer;
 }
 
@@ -913,14 +1169,14 @@
 }
 
 .armor-astir.weapon-picker .weapon-picker-item {
-	padding: 4px 0;
+	padding: var(--aa-space-1) 0;
 }
 
 .armor-astir.weapon-picker .weapon-picker-option {
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: 6px;
+	gap: var(--aa-space-2);
 	cursor: pointer;
 }
 
@@ -937,15 +1193,6 @@
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
-	gap: 4px;
+	gap: var(--aa-space-1);
 	margin-left: 22px;
-}
-
-.armor-astir.weapon-picker .weapon-picker-tag {
-	padding: 1px 5px;
-	border-radius: 3px;
-	background: #4a4a8a;
-	font-size: 11px;
-	font-weight: bold;
-	color: #fff;
 }

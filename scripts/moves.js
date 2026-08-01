@@ -399,7 +399,12 @@ export function availableMoveTraits(actor, move) {
 // passed in rather than read off `move`. Offering it here, rather than filtering it down before
 // the call, keeps this one place responsible for turning "what's offerable" into "what was
 // checked".
-export async function configureMoveRoll(move, traits, { lockedEffect = null, equipmentSpends = [] } = {}) {
+//
+// guided (see PlaybookActorSheet#_weaponIsGuided) adds a third "Take 7-9 (Guided)" button
+// alongside Roll/Cancel — Guided's "take a 7-9 rather than rolling, if you wish" is the player's
+// choice at the moment of rolling, not a pre-filtered option, so every field above stays exactly
+// as offered; picking it just resolves without ever reading any of them.
+export async function configureMoveRoll(move, traits, { lockedEffect = null, equipmentSpends = [], guided = false } = {}) {
 	const content = await renderTemplate(MOVE_ROLL_DIALOG_TEMPLATE, {
 		traits,
 		intents: move.intents,
@@ -407,7 +412,8 @@ export async function configureMoveRoll(move, traits, { lockedEffect = null, equ
 		advantageStates: ADVANTAGE_STATES,
 		effectStates: EFFECT_STATES,
 		lockedEffect,
-		equipmentSpends
+		equipmentSpends,
+		guided
 	});
 
 	return new Promise((resolve) => {
@@ -457,6 +463,12 @@ export async function configureMoveRoll(move, traits, { lockedEffect = null, equ
 						});
 					}
 				},
+				...(guided && {
+					takeSeven: {
+						label: "Take 7-9 (Guided)",
+						callback: () => resolve({ takeSeven: true })
+					}
+				}),
 				cancel: {
 					label: "Cancel",
 					callback: () => resolve(null)
@@ -528,6 +540,27 @@ export async function rollMove(actor, move, trait, options = {}) {
 		.filter(Boolean)
 		.map(({ key, label }) => ({ key, label }));
 
+	// options.reroll (see PlaybookActorSheet#_availableReroll) is only ever set for a usesWeapon
+	// move whose chosen weapon still has an unspent Decisive/Defensive/Versatile tag matching this
+	// move — but the reroll itself (Decisive: "reroll a failed strike decisively") only ever
+	// applies to a 6- result, so it's only offered on the chat card, and only ever recorded on the
+	// message, when the roll actually failed.
+	const rerollOffer = tier === "failure" && options.reroll
+		? {
+			actorId: actor.id,
+			moveKey: move.key,
+			trait,
+			equipmentId: options.reroll.equipmentId,
+			tagKey: options.reroll.tagKey,
+			// Re-plays the same dice conditions the original attempt used — advantage/effect were
+			// the player's own choice, not something a reroll should silently change — but never
+			// carries spentTags/reroll forward: any spend already landed on the failed attempt, and
+			// the tag this reroll itself consumes is marked spent separately (see
+			// PlaybookActorSheet#onRenderMoveChat), not through another roll-dialog spend.
+			options: { advantage: options.advantage, effect: options.effect, weaponLabel: options.weaponLabel }
+		}
+		: null;
+
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
 		name: move.name,
 		traitLabel: trait?.label ?? null,
@@ -544,12 +577,47 @@ export async function rollMove(actor, move, trait, options = {}) {
 		dice,
 		hold,
 		questionPrompt: move.questionPrompts?.[tier] ?? null,
-		questions: move.questions ?? null
+		questions: move.questions ?? null,
+		reroll: Boolean(rerollOffer)
 	});
 
 	return roll.toMessage({
 		speaker: ChatMessage.getSpeaker({ actor }),
-		flavor
+		flavor,
+		...(rerollOffer && { flags: { "armor-astir": { reroll: rerollOffer } } })
+	});
+}
+
+// Guided's "take a 7-9 rather than rolling, if you wish" (see equipment.js's EQUIPMENT_TAGS
+// comment) — posts the same mixed-success chat shape rollMove would, minus every dice-specific
+// field (no Roll term ever gets created), when the player picks configureMoveRoll's "Take 7-9"
+// button instead of rolling. Hold still gets granted exactly as rollMove would on a real 7-9 —
+// Guided skips the dice, not the move's own consequences.
+export async function postGuidedResult(actor, move, options = {}) {
+	const tier = "mixed";
+	const hold = move.hold ? move.hold[tier] : null;
+	if (move.hold) await actor.update({ "system.resources.hold.value": hold });
+
+	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
+		name: move.name,
+		traitLabel: null,
+		intentLabel: null,
+		weaponLabel: options.weaponLabel ?? null,
+		tier,
+		tierLabel: MOVE_RESULT_LABELS[tier],
+		resultText: move.results[tier],
+		reminders: null,
+		conditions: [{ key: "guided", label: "Guided" }],
+		dice: null,
+		hold,
+		questionPrompt: move.questionPrompts?.[tier] ?? null,
+		questions: move.questions ?? null,
+		reroll: false
+	});
+
+	return ChatMessage.create({
+		speaker: ChatMessage.getSpeaker({ actor }),
+		content: flavor
 	});
 }
 

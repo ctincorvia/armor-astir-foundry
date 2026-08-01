@@ -6,6 +6,7 @@ import {
 	SPECIAL_MOVES,
 	availableMoveTraits,
 	configureMoveRoll,
+	postGuidedResult,
 	postMoveDescription,
 	rollMove
 } from "./moves.js";
@@ -24,6 +25,7 @@ import {
 	findEquipmentTag,
 	resolveEquipmentTags
 } from "./equipment.js";
+import { chooseStartingGear, findStartingGearPool } from "./starting-gear.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
 
@@ -70,6 +72,18 @@ const ALL_MOVES = [...BASIC_MOVES, ...SPECIAL_MOVES, ...ALL_PLAYBOOK_MOVES];
 // (see _equipmentEntry).
 const WEAPON_MOVES = ALL_MOVES.filter((move) => move.usesWeapon);
 
+// Merges a batch of {equipmentId, tagKey} spends into an equipment array's per-entry `spent`
+// list. Shared by PlaybookActorSheet#_spendEquipmentTags (a player-chosen or forced spend, ahead
+// of the roll it modifies) and handleReroll below (a reroll tag, spent after the fact — from
+// outside any PlaybookActorSheet instance, since a chat-card click isn't tied to one).
+export function mergeSpentTags(equipment, spentTags) {
+	return equipment.map((item) => {
+		const additions = spentTags.filter((spend) => spend.equipmentId === item.id).map((spend) => spend.tagKey);
+		if (!additions.length) return item;
+		return { ...item, spent: [...new Set([...(item.spent ?? []), ...additions])] };
+	});
+}
+
 // All playbook actors are "character" type (see claude.md, "Domain conventions"). Every
 // playbook shares the same name/callsign/photo header, so one sheet class and template
 // serves all of them; a playbook that needs its own fields can extend this later.
@@ -78,7 +92,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			classes: ["armor-astir", "sheet", "actor", "playbook"],
 			template: PLAYBOOK_SHEET_TEMPLATE,
-			width: 620,
+			width: 720,
 			height: "auto",
 			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }]
 		});
@@ -144,11 +158,23 @@ export class PlaybookActorSheet extends ActorSheet {
 		// hand-rolling gating) means these buttons inherit the exact same, already-tested `gated`
 		// semantics as the Moves tab's own Roll buttons for free.
 		const weaponMoves = this._moveGroupMoves(WEAPON_MOVES).map(({ key, name, gated }) => ({ key, name, gated }));
+		// The "+ Choose Starting Gear" button (see _onStartingGearAdd) only shows up once its
+		// playbook's pool actually has something to offer — same "drop when empty" treatment
+		// playbookMoveSections gives an empty pool, so Commander/Impostor stay hidden until their
+		// pools are filled in (see starting-gear.js) — and disappears for good, on this actor,
+		// the first time it's clicked (system.attributes.startingGearChosen), even if every dialog
+		// it opens is cancelled: it's a one-time chargen step, not a repeatable picker like "+ Add
+		// Playbook Move".
+		const startingGearPool = findStartingGearPool(this.actor.system.playbook?.name);
 		data.equipment = {
 			tierMin: TIER_MIN,
 			tierMax: TIER_MAX,
 			weapons: equipment.filter((item) => item.kind === "weapon").map((item) => this._equipmentEntry(item, weaponMoves)),
-			gear: equipment.filter((item) => item.kind !== "weapon").map((item) => this._equipmentEntry(item))
+			gear: equipment.filter((item) => item.kind !== "weapon").map((item) => this._equipmentEntry(item)),
+			startingGear: {
+				available: Boolean(startingGearPool?.items?.length || startingGearPool?.customWeaponNote)
+					&& !this._startingGearChosen()
+			}
 		};
 		// Dangers sit in their own left column beside the tab area (see the template) rather than
 		// inside a tab, since DEFENSELESS and the Danger list matter regardless of which tab is
@@ -227,7 +253,10 @@ export class PlaybookActorSheet extends ActorSheet {
 			label: tag.label,
 			value: tag.value,
 			description: tag.description,
-			spendable: Boolean(tag.spend),
+			// A forcesEffect tag (Unreliable) shows the same "used this period" checkbox as a
+			// player-opted spend, even though checking it happens automatically after a roll rather
+			// than by the player's own choice — see _forcedWeaponEffect/_rollMove.
+			spendable: Boolean(tag.spend || tag.forcesEffect),
 			spent: Boolean(entry.spent?.includes(tag.key))
 		}));
 		return {
@@ -269,7 +298,10 @@ export class PlaybookActorSheet extends ActorSheet {
 			for (const tagKey of entry.tags ?? []) {
 				if (spent.includes(tagKey)) continue;
 				const tag = findEquipmentTag(tagKey);
-				if (!tag?.spend) continue;
+				// A spend with no `effect` (Ward, Vorpal, One-Use, Refresh, Dangerous) only tracks
+				// "used this period" via the Equipment tab's own checkbox (see _equipmentEntry) —
+				// its effect happens outside any one roll, so it's never offered here.
+				if (!tag?.spend?.effect) continue;
 				spends.push({
 					equipmentId: entry.id,
 					equipmentName: entry.name,
@@ -286,6 +318,14 @@ export class PlaybookActorSheet extends ActorSheet {
 
 	_advancements() {
 		return this.actor.system.attributes?.advancements ?? {};
+	}
+
+	// Whether "+ Choose Starting Gear" has already been clicked on this actor (see getData's
+	// startingGear.available and _onStartingGearAdd) — resets naturally on a playbook swap, since
+	// swapActorPlaybook (actor-creation.js) replaces system.attributes wholesale from the new
+	// playbook's compendium source, same as playbookMoves.
+	_startingGearChosen() {
+		return Boolean(this.actor.system.attributes?.startingGearChosen);
 	}
 
 	// Just the picked keys — the move definitions live in playbook-moves.js, so stored data never
@@ -404,6 +444,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
 		html.find(".equipment-add").on("click", this._onEquipmentAdd.bind(this));
 		html.find(".equipment-catalog-add").on("click", this._onEquipmentCatalogAdd.bind(this));
+		html.find(".starting-gear-add").on("click", this._onStartingGearAdd.bind(this));
 		html.find(".equipment-edit").on("click", this._onEquipmentEdit.bind(this));
 		html.find(".equipment-remove").on("click", this._onEquipmentRemove.bind(this));
 		html.find(".equipment-tier-step").on("click", this._onEquipmentTierStep.bind(this));
@@ -586,6 +627,53 @@ export class PlaybookActorSheet extends ActorSheet {
 		await this._saveNewEquipment(result);
 	}
 
+	// The "+ Choose Starting Gear" button (see getData's startingGear.available). Chains two
+	// independent dialogs the same way _onEquipmentCatalogAdd and _onMoveRoll already chain
+	// theirs: chooseStartingGear's hard-capped subset pick (see starting-gear.js), then
+	// configureEquipment for the pool's custom weapon (skipped entirely for a pool with no
+	// customWeaponNote, e.g. Commander/Impostor before their pools are filled in). Each half
+	// resolves null independently on cancel — cancelling one still saves the other if it was
+	// completed — and picked gear items are saved as ordinary snapshot equipment entries, same
+	// treatment as a catalog pick (see claude.md, "Equipment").
+	//
+	// startingGearChosen is always set, even if both dialogs are cancelled — clicking the button
+	// is what spends the one-time allowance, not what gets picked from it, so the button
+	// disappears for good (see getData) whether or not anything was actually added.
+	async _onStartingGearAdd() {
+		const playbookName = this.actor.system.playbook?.name;
+		const pool = findStartingGearPool(playbookName);
+		// Mirrors getData's startingGear.available gate — a pool with nothing to offer (e.g.
+		// Commander/Impostor today) never reaches the button in the first place, but guarding
+		// here too keeps this a true no-op rather than spending the one-time flag for nothing.
+		if (!pool || (!pool.items.length && !pool.customWeaponNote)) return;
+
+		const newEntries = [];
+
+		if (pool.items.length) {
+			const picked = await chooseStartingGear(playbookName);
+			if (picked) {
+				newEntries.push(...picked.map((item) => ({
+					id: foundry.utils.randomID(),
+					spent: [],
+					kind: "gear",
+					name: item.name,
+					description: item.description,
+					tags: []
+				})));
+			}
+		}
+
+		if (pool.customWeaponNote) {
+			const weapon = await configureEquipment({ kind: "weapon" }, undefined, { note: pool.customWeaponNote });
+			if (weapon) newEntries.push({ id: foundry.utils.randomID(), spent: [], ...weapon });
+		}
+
+		const updates = { "system.attributes.startingGearChosen": true };
+		if (newEntries.length) updates["system.attributes.equipment"] = [...this._equipment(), ...newEntries];
+
+		await this.actor.update(updates);
+	}
+
 	// Shared tail of _onEquipmentAdd and _onEquipmentCatalogAdd: appends a resolved
 	// configureEquipment result as a brand-new entry, generating its id and starting spent empty.
 	async _saveNewEquipment(result) {
@@ -714,27 +802,92 @@ export class PlaybookActorSheet extends ActorSheet {
 		await this._rollMove(move, weapon);
 	}
 
+	// The chosen weapon's still-live (unspent) forcesEffect tag, if any — e.g. Unreliable, which
+	// forces Desperation on its first roll each Scene rather than being player-opted like `spend`
+	// (see equipment.js's EQUIPMENT_TAGS comment). Returns the tag key alongside the effect so the
+	// caller can mark it spent afterward the same way a player's own spend is marked. Only a
+	// usesWeapon move ever passes a real weapon (or null for Unarmed) here — every other move's
+	// `weapon` stays undefined and short-circuits to null via the falsy check.
+	_forcedWeaponEffect(weapon) {
+		if (!weapon) return null;
+		const spent = weapon.spent ?? [];
+		for (const tagKey of weapon.tags ?? []) {
+			if (spent.includes(tagKey)) continue;
+			const tag = findEquipmentTag(tagKey);
+			if (tag?.forcesEffect) return { tagKey, effect: tag.forcesEffect.effect };
+		}
+		return null;
+	}
+
+	// The chosen weapon's still-live (unspent) reroll tag matching this move, if any (Decisive,
+	// Defensive, Versatile — see equipment.js's EQUIPMENT_TAGS comment). Same shape/short-circuit
+	// as _forcedWeaponEffect, but keyed off the move rather than always-applicable: Decisive only
+	// lists strike-decisively, Defensive only exchange-blows, so a weapon's Decisive tag offers
+	// nothing when rolling Exchange Blows.
+	_availableReroll(move, weapon) {
+		if (!weapon) return null;
+		const spent = weapon.spent ?? [];
+		for (const tagKey of weapon.tags ?? []) {
+			if (spent.includes(tagKey)) continue;
+			const tag = findEquipmentTag(tagKey);
+			if (tag?.reroll?.moves.includes(move.key)) return { equipmentId: weapon.id, tagKey };
+		}
+		return null;
+	}
+
+	// Whether the chosen weapon has a live Guided tag (see equipment.js's EQUIPMENT_TAGS comment).
+	// Unlike a spend or a reroll, Guided has no "once per period" limit and nothing to mark spent
+	// — it's just always offerable as long as the weapon carries the tag.
+	_weaponIsGuided(weapon) {
+		if (!weapon) return false;
+		return (weapon.tags ?? []).some((tagKey) => findEquipmentTag(tagKey)?.guided);
+	}
+
 	// Shared by _onMoveRoll (weapon resolved via chooseWeapon, or left undefined for a move that
 	// isn't usesWeapon) and _onWeaponMoveRoll (weapon already known from the clicked button).
 	async _rollMove(move, weapon) {
 		const traits = this._moveTraits(move);
 		if (!traits.length && !move.conditions) return;
 
-		// Only bite-the-dust declares forcesDesperationAtMaxPerils (see moves.js) — every other
-		// move resolves lockedEffect to null and configureMoveRoll's Effect select behaves exactly
-		// as before.
-		const lockedEffect = move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null;
+		// bite-the-dust's forcesDesperationAtMaxPerils wins ties over a forced weapon tag — both
+		// only ever lock to Desperation today, so there's nothing to actually conflict, but the
+		// precedence keeps a future second forcesEffect value from silently overriding
+		// bite-the-dust's danger-state read.
+		const forced = this._forcedWeaponEffect(weapon);
+		const lockedEffect = (move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null)
+			?? forced?.effect
+			?? null;
 		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
-		const config = await configureMoveRoll(move, traits, { lockedEffect, equipmentSpends });
+		// Omitted entirely rather than passed as `false` when not guided — configureMoveRoll
+		// already defaults it to false itself, and this keeps every non-Guided call's options
+		// shape exactly as it was before Guided existed, same treatment `reroll` gets below.
+		const guided = this._weaponIsGuided(weapon);
+		const config = await configureMoveRoll(move, traits, { lockedEffect, equipmentSpends, ...(guided && { guided }) });
 		if (!config) return;
 
-		if (config.spentTags?.length) await this._spendEquipmentTags(config.spentTags);
+		// Guided's "Take 7-9" button resolves with nothing but this flag — no trait, dice, or
+		// equipment spend was ever read, so there's nothing to mark spent and nothing left to roll.
+		if (config.takeSeven) {
+			await postGuidedResult(this.actor, move, { weaponLabel: weapon ? weapon.name : "Unarmed" });
+			return;
+		}
+
+		// A forced tag (e.g. Unreliable) is marked spent right alongside whatever the player
+		// checked in the dialog — same single update, same "used this period" checkbox on the
+		// Equipment tab (see _equipmentEntry's spendable) as a player-chosen spend.
+		const spends = [...(config.spentTags ?? []), ...(forced ? [{ equipmentId: weapon.id, tagKey: forced.tagKey }] : [])];
+		if (spends.length) await this._spendEquipmentTags(spends);
 
 		// weapon undefined (not a usesWeapon move) leaves rollMove's options untouched, same as
 		// today, for every move except Exchange Blows/Strike Decisively. null (Unarmed) or a real
 		// weapon entry both add a weaponLabel, recorded on the chat card even when nothing was
-		// spent (see rollMove in moves.js).
-		const options = weapon !== undefined ? { ...config, weaponLabel: weapon ? weapon.name : "Unarmed" } : config;
+		// spent (see rollMove in moves.js). reroll is only ever attached for a usesWeapon move too
+		// — rollMove itself decides whether to actually offer it, based on whether this attempt
+		// fails (see moves.js).
+		const reroll = this._availableReroll(move, weapon);
+		const options = weapon !== undefined
+			? { ...config, weaponLabel: weapon ? weapon.name : "Unarmed", ...(reroll && { reroll }) }
+			: config;
 		await rollMove(this.actor, move, config.trait, options);
 	}
 
@@ -742,14 +895,7 @@ export class PlaybookActorSheet extends ActorSheet {
 	// its entry, before the roll itself is posted — same write-then-roll order as read-the-room's
 	// hold in rollMove, so the sheet reflects a spend even if the chat render that follows fails.
 	async _spendEquipmentTags(spentTags) {
-		const current = this._equipment();
-		await this.actor.update({
-			"system.attributes.equipment": current.map((item) => {
-				const additions = spentTags.filter((spend) => spend.equipmentId === item.id).map((spend) => spend.tagKey);
-				if (!additions.length) return item;
-				return { ...item, spent: [...new Set([...(item.spent ?? []), ...additions])] };
-			})
-		});
+		await this.actor.update({ "system.attributes.equipment": mergeSpentTags(this._equipment(), spentTags) });
 	}
 
 	// Stands in for a roll on moves with a flat hold grant (B-Plot, or a flatHold Soldier Move) —
@@ -781,4 +927,45 @@ export function registerPlaybookActorSheet() {
 			makeDefault: true
 		});
 	});
+}
+
+// Marks the reroll's tag spent (the same array/checkbox _onEquipmentTagSpentToggle drives) and
+// reruns rollMove with the original attempt's trait/options — posts a fresh chat message rather
+// than editing the failed one, avoiding the Roll re-serialization hazard rollMove's own comment
+// already flags for an already-evaluated roll. Not exported: only reachable through the click
+// handler onRenderMoveChat wires up below.
+async function handleReroll(reroll) {
+	const actor = game.actors.get(reroll.actorId);
+	const move = ALL_MOVES.find((m) => m.key === reroll.moveKey);
+	if (!actor || !move) return;
+
+	const equipment = actor.system.attributes?.equipment ?? [];
+	await actor.update({
+		"system.attributes.equipment": mergeSpentTags(equipment, [{ equipmentId: reroll.equipmentId, tagKey: reroll.tagKey }])
+	});
+	await rollMove(actor, move, reroll.trait, reroll.options);
+}
+
+// Reads a rendered chat message's reroll offer (see moves.js#rollMove) and wires its Reroll
+// button, if the card has one, to redo the roll. Exported as a standalone function — rather than
+// only existing as an inline Hooks.on callback — so it's callable directly from tests: Hooks.on
+// itself is a no-op in the test environment (see tests/setup.js), so a callback defined only
+// inline there would never actually execute and would fail the coverage gate, the same reasoning
+// this module's Dialog button callbacks are tested by invoking them directly rather than through
+// Dialog's own (also stubbed) render.
+export function onRenderMoveChat(message, html) {
+	const reroll = message.flags?.["armor-astir"]?.reroll;
+	if (!reroll) return;
+
+	html.find(".move-reroll").on("click", (event) => {
+		// Disables the button immediately so the same card can't be clicked for a second reroll —
+		// the tag itself is also marked spent in handleReroll, but that only shows up on the
+		// Equipment tab, not on this already-rendered card.
+		event.currentTarget.disabled = true;
+		handleReroll(reroll);
+	});
+}
+
+export function registerMoveChatListeners() {
+	Hooks.on("renderChatMessage", onRenderMoveChat);
 }

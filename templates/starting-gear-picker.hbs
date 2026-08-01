@@ -1,0 +1,25 @@
+<form class="armor-astir-starting-gear-picker">
+	<p class="starting-gear-picker-instructions">Choose {{chooseCount}}.</p>
+	{{#if items.length}}
+	<ol class="starting-gear-picker-list">
+		{{#each items}}
+		<li class="starting-gear-picker-item">
+			<label class="starting-gear-picker-option">
+				<input type="checkbox" name="starting-gear-item" value="{{key}}"/>
+				<span class="starting-gear-picker-name">{{name}}</span>
+			</label>
+			<div class="starting-gear-picker-description">{{description}}</div>
+		</li>
+		{{/each}}
+	</ol>
+	{{else}}
+	<p class="starting-gear-picker-empty">There is no starting equipment list for this playbook yet.</p>
+	{{/if}}
+	{{#if freeformNotes.length}}
+	<ul class="starting-gear-picker-notes">
+		{{#each freeformNotes}}
+		<li>{{this}}</li>
+		{{/each}}
+	</ul>
+	{{/if}}
+</form>

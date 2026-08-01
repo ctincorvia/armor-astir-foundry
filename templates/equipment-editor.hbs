@@ -1,4 +1,7 @@
 <form class="armor-astir-equipment-editor">
+	{{#if note}}
+	<p class="equipment-editor-note">{{note}}</p>
+	{{/if}}
 	<div class="form-group">
 		<label>Name</label>
 		<input type="text" name="name" value="{{name}}"/>
@@ -35,5 +38,6 @@
 			</label>
 			{{/each}}
 		</div>
+		<p class="equipment-editor-tag-total">Total: <span class="equipment-editor-tag-total-value">{{tagTotal}}</span></p>
 	</div>
 </form>

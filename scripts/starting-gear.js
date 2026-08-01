@@ -1,0 +1,104 @@
+export const STARTING_GEAR_PICKER_TEMPLATE = "modules/armor-astir/templates/starting-gear-picker.hbs";
+
+// Per-playbook starting gear allowances (see claude.md, "Domain conventions" for the general
+// catalog/keys split this mirrors from MOVE_POOLS and EQUIPMENT_CATALOG). Unlike playbookMoves,
+// picked items are never stored as a permanent key reference back to this file — they're turned
+// straight into ordinary system.attributes.equipment entries (see
+// PlaybookActorSheet#_onStartingGearAdd), the same snapshot treatment EQUIPMENT_CATALOG picks
+// already get, since that array is always freely editable afterward regardless of where an entry
+// came from.
+//
+// `chooseCount` is a hard cap enforced by chooseStartingGear below — unlike MOVE_POOLS/
+// EQUIPMENT_CATALOG's deliberate non-enforcement of pool membership and prerequisites, a starting
+// gear allowance is a real chargen budget, not a loose fictional guideline. `customWeaponNote` is
+// shown as non-blocking guidance text on the weapon editor (see equipment.js's configureEquipment
+// `note` option) — the tag-value budget it describes is never enforced. `freeformNotes` are
+// narrative-only lines with no mechanical hook (e.g. "Any tier I weapons that feel appropriate"),
+// transcribed as prose per claude.md's "systems that do not exist yet" guidance rather than
+// modeled.
+export const STARTING_GEAR_POOLS = [
+	{
+		playbookName: "The Scout",
+		chooseCount: 2,
+		customWeaponNote: "Design a +2 total cost weapon using tags of your choice.",
+		freeformNotes: [
+			"Any tier I weapons that feel appropriate.",
+			"Clothes that match your look."
+		],
+		items: [
+			{
+				key: "the-scout:maps-and-tools",
+				name: "Maps & Tools",
+				description: "You can always find a way through or past."
+			},
+			{
+				key: "the-scout:aid-and-repair-kit",
+				name: "Aid & Repair Kit",
+				description: "You can tend to minor injuries or damages."
+			},
+			{
+				key: "the-scout:traps-and-wards",
+				name: "Traps & Wards",
+				description: "You can always set up a defence given time."
+			},
+			{
+				key: "the-scout:blades-and-bracers",
+				name: "Blades & Bracers",
+				description: "You can always produce a basic weapon, +ward."
+			}
+		]
+	},
+	{ playbookName: "The Commander", chooseCount: 0, items: [] },
+	{ playbookName: "The Impostor", chooseCount: 0, items: [] }
+];
+
+export function findStartingGearPool(playbookName, pools = STARTING_GEAR_POOLS) {
+	return pools.find((pool) => pool.playbookName === playbookName) ?? null;
+}
+
+// Opens the "+ Choose Starting Gear" picker for one playbook's pool and resolves the picked
+// items' full definitions (not bare keys — the caller turns each straight into an equipment
+// entry, same as a catalog pick), or null if the dialog was dismissed. Mirrors
+// chooseEquipmentCatalogItem's promise/Dialog shape (equipment.js).
+//
+// The checked selection is truncated to pool.chooseCount before resolving, in checkbox order —
+// the hard-cap enforcement point. This mirrors configureEquipment's existing tier-clamp idiom
+// (normalize the result rather than reject the dialog) instead of blocking Add or disabling
+// checkboxes live, which would need the kind of reactive-form wiring claude.md notes this
+// module's Dialogs have no precedent for.
+export async function chooseStartingGear(playbookName, pools = STARTING_GEAR_POOLS) {
+	const pool = findStartingGearPool(playbookName, pools);
+	if (!pool) return null;
+
+	const content = await renderTemplate(STARTING_GEAR_PICKER_TEMPLATE, {
+		items: pool.items,
+		chooseCount: pool.chooseCount,
+		freeformNotes: pool.freeformNotes ?? []
+	});
+
+	return new Promise((resolve) => {
+		new Dialog({
+			title: "Choose Starting Gear",
+			content,
+			buttons: {
+				add: {
+					label: "Add",
+					callback: (html) => {
+						const checkedKeys = html.find("[name='starting-gear-item']:checked").map((_, el) => el.value).get();
+						const picked = checkedKeys
+							.slice(0, pool.chooseCount)
+							.map((key) => pool.items.find((item) => item.key === key))
+							.filter(Boolean);
+						resolve(picked);
+					}
+				},
+				cancel: {
+					label: "Cancel",
+					callback: () => resolve(null)
+				}
+			},
+			default: "add",
+			close: () => resolve(null)
+		}, { classes: ["armor-astir", "starting-gear-picker"] }).render(true);
+	});
+}

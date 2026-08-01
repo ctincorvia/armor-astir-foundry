@@ -11,6 +11,7 @@ import {
 	availableMoveTraits,
 	configureMoveRoll,
 	moveResultTier,
+	postGuidedResult,
 	postMoveDescription,
 	rollMove
 } from "../scripts/moves.js";
@@ -433,6 +434,108 @@ describe("configureMoveRoll - equipment spends", () => {
 	});
 });
 
+describe("configureMoveRoll - guided", () => {
+	const clash = { key: "clash", label: "CLASH", value: 1 };
+
+	it("passes guided through to the dialog template", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { guided: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			guided: true
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults guided to false", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			guided: false
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("adds a Take 7-9 button that resolves { takeSeven: true } when guided", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { guided: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.takeSeven.callback();
+
+		expect(await promise).toEqual({ takeSeven: true });
+	});
+
+	it("omits the Take 7-9 button when not guided", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[0].buttons.takeSeven).toBeUndefined();
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+});
+
+describe("postGuidedResult", () => {
+	it("posts the move's mixed-success text as chat content, with no dice", async () => {
+		const actor = { system: {} };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		renderTemplate.mockResolvedValue("<div>guided</div>");
+
+		await postGuidedResult(actor, EXCHANGE_BLOWS, { weaponLabel: "Rifle" });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, {
+			name: "Exchange Blows",
+			traitLabel: null,
+			intentLabel: null,
+			weaponLabel: "Rifle",
+			tier: "mixed",
+			tierLabel: MOVE_RESULT_LABELS.mixed,
+			resultText: EXCHANGE_BLOWS.results.mixed,
+			reminders: null,
+			conditions: [{ key: "guided", label: "Guided" }],
+			dice: null,
+			hold: null,
+			questionPrompt: null,
+			questions: null,
+			reroll: false
+		});
+		expect(ChatMessage.create).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			content: "<div>guided</div>"
+		});
+	});
+
+	it("defaults weaponLabel to null when no options are given", async () => {
+		const actor = { system: {} };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await postGuidedResult(actor, EXCHANGE_BLOWS);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ weaponLabel: null }));
+	});
+
+	it("grants a move's flat hold tier the same way a real roll would", async () => {
+		const actor = { system: {}, update: vi.fn() };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await postGuidedResult(actor, READ_THE_ROOM, {});
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.resources.hold.value": READ_THE_ROOM.hold.mixed });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ hold: READ_THE_ROOM.hold.mixed }));
+	});
+});
+
 describe("rollMove", () => {
 	it("rolls 2d6 plus the chosen trait's value with no modifiers", async () => {
 		const actor = { system: { stats: { clash: { value: 2 } } } };
@@ -637,6 +740,67 @@ describe("rollMove", () => {
 			speaker: { actor: "speaker" },
 			flavor: "<div>flavor</div>"
 		});
+	});
+});
+
+describe("rollMove - reroll (Decisive/Defensive/Versatile)", () => {
+	it("offers a reroll, and records everything needed to redo it, when the roll fails", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, {
+			advantage: "none",
+			effect: "none",
+			weaponLabel: "Halberd",
+			reroll: { equipmentId: "eq1", tagKey: "defensive" }
+		});
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ reroll: true }));
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(rollInstance.toMessage).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			flavor: "",
+			flags: {
+				"armor-astir": {
+					reroll: {
+						actorId: "actor1",
+						moveKey: "exchange-blows",
+						trait: clash,
+						equipmentId: "eq1",
+						tagKey: "defensive",
+						options: { advantage: "none", effect: "none", weaponLabel: "Halberd" }
+					}
+				}
+			}
+		});
+	});
+
+	it("does not offer a reroll when the roll doesn't fail", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [6, 6] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { reroll: { equipmentId: "eq1", tagKey: "defensive" } });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ reroll: false }));
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(rollInstance.toMessage).toHaveBeenCalledWith({ speaker: { actor: "speaker" }, flavor: "" });
+	});
+
+	it("does not offer a reroll on a failure when no reroll option was passed", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ reroll: false }));
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(rollInstance.toMessage).toHaveBeenCalledWith({ speaker: { actor: "speaker" }, flavor: "" });
 	});
 });
 

@@ -24,45 +24,49 @@
 			</select>
 		</div>
 	</header>
-	<section class="traits">
-		<h3>Traits</h3>
-		<ol class="traits-list">
-			{{#each traits}}
-			<li class="trait {{#if disabled}}disabled{{/if}}" data-trait="{{key}}">
-				<label class="trait-label">{{label}}</label>
-				<div class="trait-control">
-					<button type="button" class="trait-step trait-decrement" data-trait="{{key}}" data-delta="-1" {{#if disabled}}disabled{{/if}}>-</button>
-					<span class="trait-value">{{value}}</span>
-					<button type="button" class="trait-step trait-increment" data-trait="{{key}}" data-delta="1" {{#if disabled}}disabled{{/if}}>+</button>
+	<div class="status-row">
+		<section class="traits">
+			<h3>Traits</h3>
+			<ol class="traits-list">
+				{{#each traits}}
+				<li class="trait {{#if disabled}}disabled{{/if}}" data-trait="{{key}}">
+					<label class="trait-label">{{label}}</label>
+					<div class="trait-control">
+						<button type="button" class="trait-step trait-decrement" data-trait="{{key}}" data-delta="-1" {{#if disabled}}disabled{{/if}}>-</button>
+						<span class="trait-value">{{value}}</span>
+						<button type="button" class="trait-step trait-increment" data-trait="{{key}}" data-delta="1" {{#if disabled}}disabled{{/if}}>+</button>
+					</div>
+				</li>
+				{{/each}}
+			</ol>
+			<div class="trait-meters">
+				{{#if overheating.visible}}
+				<label class="overheating-label">
+					<input type="checkbox" class="overheating-checkbox" {{#if overheating.value}}checked{{/if}}/>
+					Overheating
+				</label>
+				{{/if}}
+				{{#if power.visible}}
+				<div class="power-control">
+					<label class="power-label">Power</label>
+					<button type="button" class="power-step power-decrement" data-delta="-1">-</button>
+					<span class="power-value">{{power.value}}</span>
+					<button type="button" class="power-step power-increment" data-delta="1">+</button>
 				</div>
-			</li>
-			{{/each}}
-		</ol>
-		{{#if overheating.visible}}
-		<label class="overheating-label">
-			<input type="checkbox" class="overheating-checkbox" {{#if overheating.value}}checked{{/if}}/>
-			Overheating
-		</label>
-		{{/if}}
-		{{#if power.visible}}
-		<div class="power-control">
-			<label class="power-label">Power</label>
-			<button type="button" class="power-step power-decrement" data-delta="-1">-</button>
-			<span class="power-value">{{power.value}}</span>
-			<button type="button" class="power-step power-increment" data-delta="1">+</button>
-		</div>
-		{{/if}}
-	</section>
-	<section class="spotlight">
-		<h3>Spotlight</h3>
-		<ol class="spotlight-track">
-			{{#each spotlight.steps}}
-			<li class="spotlight-step-item">
-				<button type="button" class="spotlight-step{{#if filled}} filled{{/if}}" data-step="{{step}}" aria-label="Spotlight step {{step}}"></button>
-			</li>
-			{{/each}}
-		</ol>
-	</section>
+				{{/if}}
+			</div>
+		</section>
+		<section class="spotlight">
+			<h3>Spotlight</h3>
+			<ol class="spotlight-track">
+				{{#each spotlight.steps}}
+				<li class="spotlight-step-item">
+					<button type="button" class="spotlight-step{{#if filled}} filled{{/if}}" data-step="{{step}}" aria-label="Spotlight step {{step}}"></button>
+				</li>
+				{{/each}}
+			</ol>
+		</section>
+	</div>
 	<section class="sheet-main">
 		<aside class="dangers-column">
 			<h3>Dangers ({{dangers.list.length}}/{{dangers.max}})</h3>
@@ -138,13 +142,18 @@
 							{{/each}}
 						</ol>
 						{{#if addable}}
-						<button type="button" class="playbook-move-add">+ Add a Playbook Move</button>
+						<div class="section-actions">
+							<button type="button" class="playbook-move-add">+ Add a Playbook Move</button>
+						</div>
 						{{/if}}
 						{{/each}}
 					</section>
 				</div>
 				<div class="tab" data-group="primary" data-tab="equipment">
 					<section class="equipment">
+						{{#if equipment.startingGear.available}}
+						<button type="button" class="starting-gear-add">+ Choose Starting Gear</button>
+						{{/if}}
 						<h3>Weapons</h3>
 						<ol class="equipment-list">
 							{{#each equipment.weapons}}
@@ -192,8 +201,10 @@
 							</li>
 							{{/each}}
 						</ol>
-						<button type="button" class="equipment-add" data-kind="weapon">+ Add Weapon</button>
-					<button type="button" class="equipment-catalog-add" data-kind="weapon">+ Pick Weapon from Catalog</button>
+						<div class="section-actions">
+							<button type="button" class="equipment-add" data-kind="weapon">+ Add Weapon</button>
+							<button type="button" class="equipment-catalog-add" data-kind="weapon">+ Pick Weapon from Catalog</button>
+						</div>
 						<h3>Gear</h3>
 						<ol class="equipment-list">
 							{{#each equipment.gear}}
@@ -228,8 +239,10 @@
 							</li>
 							{{/each}}
 						</ol>
-						<button type="button" class="equipment-add" data-kind="gear">+ Add Gear</button>
-					<button type="button" class="equipment-catalog-add" data-kind="gear">+ Pick Gear from Catalog</button>
+						<div class="section-actions">
+							<button type="button" class="equipment-add" data-kind="gear">+ Add Gear</button>
+							<button type="button" class="equipment-catalog-add" data-kind="gear">+ Pick Gear from Catalog</button>
+						</div>
 					</section>
 				</div>
 				<div class="tab" data-group="primary" data-tab="social">
@@ -266,7 +279,9 @@
 							{{/each}}
 						</ol>
 						{{#if gravityClocks.canAdd}}
-						<button type="button" class="gravity-clock-add">Add Gravity Clock</button>
+						<div class="section-actions">
+							<button type="button" class="gravity-clock-add">Add Gravity Clock</button>
+						</div>
 						{{/if}}
 					</section>
 				</div>

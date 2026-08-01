@@ -45,6 +45,9 @@
 		{{/each}}
 	</ul>
 	{{/if}}
+	{{#if reroll}}
+	<button type="button" class="move-reroll">Reroll (Decisive/Defensive/Versatile)</button>
+	{{/if}}
 	{{else}}
 	<div class="move-description">{{{description}}}</div>
 	{{/if}}

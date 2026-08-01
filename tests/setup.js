@@ -21,6 +21,9 @@ vi.stubGlobal("game", {
 	},
 	packs: {
 		get: vi.fn()
+	},
+	actors: {
+		get: vi.fn()
 	}
 });
 

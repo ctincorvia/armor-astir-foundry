@@ -60,6 +60,26 @@ function fakeEquipmentHtml(values, checkedTags = []) {
 	};
 }
 
+// Fakes the jQuery chain configureEquipment's `render` callback uses to wire up the live tag
+// total: `.find("[name='tag']").on("change", handler)` to capture the handler, `.find("[name='tag']:checked")`
+// to report whichever keys the test sets on `.checkedTags` at call time (so a test can change what's
+// "checked" between renders and re-invoking the handler, same as a real toggle), and
+// `.find(".equipment-editor-tag-total-value").text(...)` to capture what was written.
+function fakeEquipmentRenderHtml() {
+	const state = { handlers: {}, total: undefined, checkedTags: [] };
+	state.html = {
+		find: (selector) => {
+			if (selector === "[name='tag']") return { on: (event, handler) => { state.handlers[event] = handler; } };
+			if (selector === "[name='tag']:checked") {
+				return { map: (fn) => ({ get: () => state.checkedTags.map((value, index) => fn(index, { value })) }) };
+			}
+			if (selector === ".equipment-editor-tag-total-value") return { text: (value) => { state.total = value; } };
+			return {};
+		}
+	};
+	return state;
+}
+
 beforeEach(() => {
 	vi.resetAllMocks();
 	// resetAllMocks wipes the default Dialog implementation stubbed in tests/setup.js.
@@ -83,9 +103,32 @@ describe("EQUIPMENT_TAGS", () => {
 		}
 	});
 
-	it("only ever spends into a real EFFECT_STATES key", () => {
-		for (const tag of EQUIPMENT_TAGS.filter((t) => t.spend)) {
+	it("only ever spends into a real EFFECT_STATES key, when it sets one at all", () => {
+		// A spend with no `effect` (Ward, Vorpal, One-Use, Refresh, Dangerous) is a manual
+		// "used this period" tracker with no roll-dialog offering — see equipment.js's EQUIPMENT_TAGS
+		// comment — so it's exempt from this check rather than required to match a real effect.
+		for (const tag of EQUIPMENT_TAGS.filter((t) => t.spend?.effect)) {
 			expect(EFFECT_STATES.some((state) => state.key === tag.spend.effect)).toBe(true);
+		}
+	});
+
+	it("gives every spend and forcesEffect a Scene or Sortie period", () => {
+		for (const tag of EQUIPMENT_TAGS.filter((t) => t.spend || t.forcesEffect)) {
+			const period = (tag.spend ?? tag.forcesEffect).period;
+			expect(["Scene", "Sortie"]).toContain(period);
+		}
+	});
+
+	it("only ever forces a real EFFECT_STATES key", () => {
+		for (const tag of EQUIPMENT_TAGS.filter((t) => t.forcesEffect)) {
+			expect(EFFECT_STATES.some((state) => state.key === tag.forcesEffect.effect)).toBe(true);
+		}
+	});
+
+	it("only ever rerolls a non-empty list of move keys", () => {
+		for (const tag of EQUIPMENT_TAGS.filter((t) => t.reroll)) {
+			expect(tag.reroll.moves.length).toBeGreaterThan(0);
+			expect(["Scene", "Sortie"]).toContain(tag.reroll.period);
 		}
 	});
 
@@ -332,6 +375,80 @@ describe("configureEquipment", () => {
 		Dialog.mock.calls.at(-1)[0].close();
 
 		expect(await promise).toBeNull();
+	});
+
+	it("passes an optional note through to the template, for non-blocking guidance text", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS, { note: "Aim for a +2 total." });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			note: "Aim for a +2 total."
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("leaves note undefined when no options are given, unchanged for every existing caller", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			note: undefined
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults the tag total to 0 when creating blank", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			tagTotal: 0
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("passes the existing entry's tag total to the template when editing", async () => {
+		const entry = { id: "abc", name: "Halberd", tags: ["fixture-positive", "fixture-negative"] };
+		const promise = configureEquipment(entry, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			tagTotal: 1
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("recomputes and displays the tag total live as checkboxes change", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		expect(state.handlers.change).toEqual(expect.any(Function));
+
+		state.checkedTags = ["fixture-positive", "fixture-spendable"];
+		state.handlers.change();
+		expect(state.total).toBe(3);
+
+		state.checkedTags = ["fixture-negative"];
+		state.handlers.change();
+		expect(state.total).toBe(-1);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
 	});
 });
 
