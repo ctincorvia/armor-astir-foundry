@@ -1708,7 +1708,10 @@ export class PlaybookActorSheet extends ActorSheet {
 	// (separately-tracked, per-move-key) pool, the same field _onFlatHoldStep writes to, clamped
 	// the same way. Divination Codex's showsReadTheRoomQuestions gets a different Activate
 	// behavior — no hold to grant, just Read the Room's real question list posted to chat — but
-	// shares the same button per _moveGroupMoves' `activatable`.
+	// shares the same button per _moveGroupMoves' `activatable`. Either way, Activate also posts
+	// the move's own description to chat, the same as the Description button (postMoveDescription)
+	// — unlike that button, this fires even when the mechanical effect itself is a no-op (e.g.
+	// hold already at HOLD_MAX), since the player still asked to see the move's text.
 	async _onMoveActivate(event) {
 		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
 		if (!move) return;
@@ -1716,8 +1719,10 @@ export class PlaybookActorSheet extends ActorSheet {
 		if (move.flatHold) {
 			const current = this.actor.system.attributes?.moveHold?.[move.key]?.value ?? 0;
 			const next = Math.min(HOLD_MAX, Math.max(HOLD_MIN, current + move.flatHold));
-			if (next === current) return;
-			await this.actor.update({ [`system.attributes.moveHold.${move.key}.value`]: next });
+			if (next !== current) {
+				await this.actor.update({ [`system.attributes.moveHold.${move.key}.value`]: next });
+			}
+			await postMoveDescription(this.actor, move);
 			return;
 		}
 
@@ -1731,6 +1736,7 @@ export class PlaybookActorSheet extends ActorSheet {
 				content: `<ul>${readTheRoom.questions.map((question) => `<li>${question}</li>`).join("")}</ul>`
 			});
 			await this.actor.update({ [`system.attributes.moveUses.${move.key}.expended`]: true });
+			await postMoveDescription(this.actor, move);
 		}
 	}
 

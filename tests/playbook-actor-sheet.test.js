@@ -6481,6 +6481,7 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+		expect(postMoveDescription).not.toHaveBeenCalled();
 	});
 
 	it("adds b-plot's flat hold to its own moveHold pool", async () => {
@@ -6490,6 +6491,7 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "b-plot" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.b-plot.value": 3 });
+		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, B_PLOT);
 	});
 
 	it("adds to, rather than replaces, an existing moveHold value", async () => {
@@ -6508,6 +6510,7 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 		await sheet._onMoveActivate({ currentTarget: { dataset: { move: "b-plot" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, B_PLOT);
 	});
 
 	it("does not affect the shared resources.hold field", async () => {
@@ -6553,6 +6556,7 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			[`system.attributes.moveUses.${DIVINATION_CODEX.key}.expended`]: true
 		});
+		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, DIVINATION_CODEX);
 	});
 });
 
