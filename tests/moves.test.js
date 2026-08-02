@@ -15,8 +15,12 @@ import {
 	postMoveDescription,
 	rollMove
 } from "../scripts/moves.js";
+import { ALL_PLAYBOOK_MOVES } from "../scripts/playbook-moves.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
+// The one real move carrying separateHold — a roll-tiered hold grant routed into its own
+// per-move pool instead of the shared system.resources.hold field (see playbook-moves.js).
+const MOBILITY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-scout:mobility");
 const WEATHER_THE_STORM = BASIC_MOVES.find((m) => m.key === "weather-the-storm");
 const READ_THE_ROOM = BASIC_MOVES.find((m) => m.key === "read-the-room");
 const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertainties");
@@ -137,6 +141,12 @@ describe("availableMoveTraits", () => {
 	});
 });
 
+describe("SPECIAL_MOVES - b-plot", () => {
+	it("scopes its flat hold pool to the Sortie, for PlaybookActorSheet#_onRefreshSortie", () => {
+		expect(B_PLOT.period).toBe("Sortie");
+	});
+});
+
 describe("configureMoveRoll", () => {
 	const clash = { key: "clash", label: "CLASH", value: 1 };
 	const talk = { key: "talk", label: "TALK", value: 2 };
@@ -208,26 +218,41 @@ describe("BASIC_MOVES - bite the dust", () => {
 describe("configureMoveRoll - lockedEffect", () => {
 	const clash = { key: "clash", label: "CLASH", value: 1 };
 
-	it("passes a null lockedEffect to the dialog template by default", async () => {
+	it("passes a null lockedEffect and lockedEffectLabel to the dialog template by default", async () => {
 		const promise = configureMoveRoll(BITE_THE_DUST, [clash]);
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
-			lockedEffect: null
+			lockedEffect: null,
+			lockedEffectLabel: null
 		}));
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
 	});
 
-	it("passes the given lockedEffect to the dialog template", async () => {
+	it("passes the given lockedEffect and its display label to the dialog template", async () => {
 		const promise = configureMoveRoll(BITE_THE_DUST, [clash], { lockedEffect: "desperation" });
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
-			lockedEffect: "desperation"
+			lockedEffect: "desperation",
+			lockedEffectLabel: "Desperation"
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("labels a Confidence lockedEffect (Field Scout's grantsEffectOnMove) correctly too", async () => {
+		const promise = configureMoveRoll(BITE_THE_DUST, [clash], { lockedEffect: "confidence" });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			lockedEffectLabel: "Confidence"
 		}));
 
 		Dialog.mock.calls.at(-1)[0].close();
@@ -681,6 +706,15 @@ describe("postGuidedResult", () => {
 
 		expect(actor.update).toHaveBeenCalledWith({ "system.resources.hold.value": READ_THE_ROOM.hold.mixed });
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ hold: READ_THE_ROOM.hold.mixed }));
+	});
+
+	it("routes a separateHold move's Guided hold into its own per-move pool", async () => {
+		const actor = { system: {}, update: vi.fn() };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await postGuidedResult(actor, MOBILITY, {});
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.the-scout:mobility.value": MOBILITY.hold.mixed });
 	});
 });
 
@@ -1190,6 +1224,47 @@ describe("rollMove - hold", () => {
 			questionPrompt: null,
 			questions: null
 		}));
+	});
+});
+
+describe("rollMove - separateHold (Mobility)", () => {
+	it("writes a hit's hold to the move's own per-move pool, not the shared hold field", async () => {
+		const actor = { system: { stats: { defy: { value: 0 } } }, update: vi.fn() };
+		const defy = TRAITS.find((t) => t.key === "defy");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [5, 5] });
+
+		await rollMove(actor, MOBILITY, defy);
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.the-scout:mobility.value": 3 });
+	});
+
+	it("does not touch the shared hold field at all", async () => {
+		const actor = { system: { stats: { defy: { value: 0 } } }, update: vi.fn() };
+		const defy = TRAITS.find((t) => t.key === "defy");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [4, 4] });
+
+		await rollMove(actor, MOBILITY, defy);
+
+		expect(actor.update).not.toHaveBeenCalledWith(expect.objectContaining({
+			"system.resources.hold.value": expect.anything()
+		}));
+	});
+
+	it("does not overwrite Read the Room's hold when Mobility is rolled right after", async () => {
+		const actor = { system: { stats: { sense: { value: 0 }, defy: { value: 0 } } }, update: vi.fn() };
+		const sense = TRAITS.find((t) => t.key === "sense");
+		const defy = TRAITS.find((t) => t.key === "defy");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		mockRoll({ dice: [5, 5] });
+		await rollMove(actor, READ_THE_ROOM, sense);
+		expect(actor.update).toHaveBeenLastCalledWith({ "system.resources.hold.value": 3 });
+
+		mockRoll({ dice: [4, 4] });
+		await rollMove(actor, MOBILITY, defy);
+		expect(actor.update).toHaveBeenLastCalledWith({ "system.attributes.moveHold.the-scout:mobility.value": 1 });
 	});
 });
 

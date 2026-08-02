@@ -37,6 +37,13 @@ vi.mock("../scripts/starting-gear.js", async (importOriginal) => ({
 	chooseStartingGear: vi.fn()
 }));
 
+// Only the picker dialog is mocked — the pool definitions and findStartingMovePool stay real, same
+// reasoning as starting-gear.js above.
+vi.mock("../scripts/starting-moves.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	chooseStartingMoves: vi.fn()
+}));
+
 // Only the picker dialogs are mocked — the catalogs/helpers stay real, same reasoning as
 // playbook-moves.js/equipment.js above.
 vi.mock("../scripts/astir.js", async (importOriginal) => ({
@@ -60,7 +67,9 @@ import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../scripts/advancements.js"
 import { ALL_PLAYBOOK_MOVES, choosePlaybookMove } from "../scripts/playbook-moves.js";
 import { UNARMED, chooseEquipmentCatalogItem, chooseWeapon, configureEquipment } from "../scripts/equipment.js";
 import { STARTING_GEAR_POOLS, chooseStartingGear } from "../scripts/starting-gear.js";
+import { chooseStartingMoves } from "../scripts/starting-moves.js";
 import { GRAVITY_TRIGGERS } from "../scripts/gravity-triggers.js";
+import { PLAYBOOK_FLAVOR, defaultConsiderText, defaultLookText } from "../scripts/playbook-flavor.js";
 import {
 	ASTIR_CORES,
 	ASTIR_DEFAULT_IMG,
@@ -93,7 +102,7 @@ const BITE_THE_DUST = BASIC_MOVES.find((m) => m.key === "bite-the-dust");
 const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
-const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-scout:bullheaded");
+const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:bullheaded");
 const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
 const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
 const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
@@ -123,6 +132,7 @@ beforeEach(() => {
 	chooseEquipmentCatalogItem.mockClear();
 	chooseWeapon.mockClear();
 	chooseStartingGear.mockClear();
+	chooseStartingMoves.mockClear();
 	chooseAstirPart.mockClear();
 	chooseAstirMove.mockClear();
 	chooseAstirWeapon.mockClear();
@@ -322,6 +332,103 @@ describe("PlaybookActorSheet#getData", () => {
 
 		expect(data.gravityTrigger).toBeNull();
 	});
+
+	it("seeds Look/Consider with the playbook's flavor prompts when the actor has none saved", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { slug: "the-scout" } } };
+
+		const data = sheet.getData();
+
+		expect(data.lookText).toBe(defaultLookText("the-scout"));
+		expect(data.considerText).toBe(defaultConsiderText("the-scout"));
+		expect(PLAYBOOK_FLAVOR["the-scout"].look.length).toBeGreaterThan(0);
+	});
+
+	it("falls back to empty Look/Consider text when the actor has no playbook set", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {} };
+
+		const data = sheet.getData();
+
+		expect(data.lookText).toBe("");
+		expect(data.considerText).toBe("");
+	});
+
+	it("prefers the actor's own saved Look/Consider text over the playbook's flavor prompts", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { slug: "the-scout" },
+				details: { look: { value: "<p>My own look</p>" }, consider: { value: "<p>My own answer</p>" } }
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.lookText).toBe("<p>My own look</p>");
+		expect(data.considerText).toBe("<p>My own answer</p>");
+	});
+
+	it("defaults an actor with no picked moves and no Astir to Tier 1", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {} };
+
+		const data = sheet.getData();
+
+		expect(data.tier).toEqual({ base: 1, effective: 1, fromAstir: false });
+	});
+
+	it("raises base Tier off a picked move's conflictTier, e.g. Field Scout", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: ["the-scout:field-scout"] } } };
+
+		const data = sheet.getData();
+
+		expect(data.tier).toEqual({ base: 2, effective: 2, fromAstir: false });
+	});
+
+	it("takes the higher of two conflictTier moves rather than the last one picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: ["the-scout:field-scout", "the-scout:giant-slayer"] } }
+		};
+
+		const data = sheet.getData();
+
+		expect(data.tier.base).toBe(3);
+	});
+
+	it("reads Tier off the Astir instead of base while piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: ["the-scout:field-scout"],
+					astir: { tier: 4, piloted: true }
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.tier).toEqual({ base: 2, effective: 4, fromAstir: true });
+	});
+
+	it("reverts to base Tier once dismounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: ["the-scout:field-scout"],
+					astir: { tier: 4, piloted: false }
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.tier).toEqual({ base: 2, effective: 2, fromAstir: false });
+	});
 });
 
 describe("PlaybookActorSheet#activateListeners", () => {
@@ -336,6 +443,69 @@ describe("PlaybookActorSheet#activateListeners", () => {
 
 		expect(html.find).toHaveBeenCalledWith(".playbook-select");
 		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_seedCosmeticDefaults", () => {
+	it("writes both Look and Consider defaults for an owned actor with neither stored", () => {
+		const sheet = new PlaybookActorSheet();
+		const update = vi.fn();
+		sheet.actor = { isOwner: true, system: { playbook: { slug: "the-scout" } }, update };
+
+		sheet._seedCosmeticDefaults();
+
+		expect(update).toHaveBeenCalledWith({
+			"system.details.look.value": defaultLookText("the-scout"),
+			"system.details.consider.value": defaultConsiderText("the-scout")
+		});
+	});
+
+	it("does nothing for an actor the current user doesn't own", () => {
+		const sheet = new PlaybookActorSheet();
+		const update = vi.fn();
+		sheet.actor = { isOwner: false, system: { playbook: { slug: "the-scout" } }, update };
+
+		sheet._seedCosmeticDefaults();
+
+		expect(update).not.toHaveBeenCalled();
+	});
+
+	it("does not resurrect a field the player deliberately cleared to an empty string", () => {
+		const sheet = new PlaybookActorSheet();
+		const update = vi.fn();
+		sheet.actor = {
+			isOwner: true,
+			system: { playbook: { slug: "the-scout" }, details: { look: { value: "" }, consider: { value: "" } } },
+			update
+		};
+
+		sheet._seedCosmeticDefaults();
+
+		expect(update).not.toHaveBeenCalled();
+	});
+
+	it("only seeds the one field still missing when the other is already stored", () => {
+		const sheet = new PlaybookActorSheet();
+		const update = vi.fn();
+		sheet.actor = {
+			isOwner: true,
+			system: { playbook: { slug: "the-scout" }, details: { look: { value: "<p>Mine</p>" } } },
+			update
+		};
+
+		sheet._seedCosmeticDefaults();
+
+		expect(update).toHaveBeenCalledWith({ "system.details.consider.value": defaultConsiderText("the-scout") });
+	});
+
+	it("does nothing for a playbook with no flavor prompts to seed", () => {
+		const sheet = new PlaybookActorSheet();
+		const update = vi.fn();
+		sheet.actor = { isOwner: true, system: { playbook: { slug: "the-commander" } }, update };
+
+		sheet._seedCosmeticDefaults();
+
+		expect(update).not.toHaveBeenCalled();
 	});
 });
 
@@ -2963,6 +3133,30 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		});
 	});
 
+	it("carries a picked item's own tags onto the new gear entry, e.g. Blades & Bracers' ward", async () => {
+		const bladesAndBracers = scoutPool.items.find((item) => item.key === "the-scout:blades-and-bracers");
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { equipment: [] } }, update: vi.fn() };
+		chooseStartingGear.mockResolvedValue([bladesAndBracers]);
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onStartingGearAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.startingGearChosen": true,
+			"system.attributes.equipment": [
+				{
+					id: "test-id",
+					spent: [],
+					kind: "gear",
+					name: bladesAndBracers.name,
+					description: bladesAndBracers.description,
+					tags: ["ward"]
+				}
+			]
+		});
+	});
+
 	it("appends the custom weapon when the gear picker is cancelled", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { equipment: [] } }, update: vi.fn() };
@@ -3022,6 +3216,90 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		await sheet._onStartingGearAdd();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.startingGearChosen": true });
+	});
+});
+
+describe("PlaybookActorSheet#_onStartingMovesAdd", () => {
+	it("does nothing for a playbook with no starting-move allotment", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "Not a Real Playbook" } }, update: vi.fn() };
+
+		await sheet._onStartingMovesAdd();
+
+		expect(chooseStartingMoves).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for a playbook whose pool has nothing to offer yet", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Commander" } }, update: vi.fn() };
+
+		await sheet._onStartingMovesAdd();
+
+		expect(chooseStartingMoves).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("opens the picker for The Scout's own pool", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: {} }, update: vi.fn() };
+		chooseStartingMoves.mockResolvedValue([]);
+
+		await sheet._onStartingMovesAdd();
+
+		expect(chooseStartingMoves).toHaveBeenCalledWith("The Scout");
+	});
+
+	it("appends the picked keys to the actor's existing playbookMoves", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { playbook: { name: "The Scout" }, attributes: { playbookMoves: [DENY.key] } },
+			update: vi.fn()
+		};
+		chooseStartingMoves.mockResolvedValue(["the-scout:field-scout", "the-scout:mobility"]);
+
+		await sheet._onStartingMovesAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.startingMovesChosen": true,
+			"system.attributes.playbookMoves": [DENY.key, "the-scout:field-scout", "the-scout:mobility"]
+		});
+	});
+
+	it("does not duplicate a key the actor already has", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { playbook: { name: "The Scout" }, attributes: { playbookMoves: ["the-scout:field-scout"] } },
+			update: vi.fn()
+		};
+		chooseStartingMoves.mockResolvedValue(["the-scout:field-scout", "the-scout:mobility"]);
+
+		await sheet._onStartingMovesAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.startingMovesChosen": true,
+			"system.attributes.playbookMoves": ["the-scout:field-scout", "the-scout:mobility"]
+		});
+	});
+
+	it("still marks startingMovesChosen, without touching playbookMoves, when the picker is cancelled", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: {} }, update: vi.fn() };
+		chooseStartingMoves.mockResolvedValue(null);
+
+		await sheet._onStartingMovesAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.startingMovesChosen": true });
+	});
+
+	it("still marks startingMovesChosen, without touching playbookMoves, when nothing was picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: {} }, update: vi.fn() };
+		chooseStartingMoves.mockResolvedValue([]);
+
+		await sheet._onStartingMovesAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.startingMovesChosen": true });
 	});
 });
 
@@ -3553,7 +3831,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 				label: "Playbook Moves",
 				moves: [],
 				addable: true,
-				removable: true
+				removable: true,
+				startingMovesAvailable: false
 			},
 			{
 				label: "Special Moves",
@@ -3640,6 +3919,34 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 		expect(groups.filter((group) => group.removable).map((group) => group.label)).toEqual(["Playbook Moves"]);
 	});
 
+	it("makes starting moves available for The Scout, which has a real allotment to offer", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" } } };
+
+		expect(playbookGroup(sheet.getData()).startingMovesAvailable).toBe(true);
+	});
+
+	it("hides starting moves for a playbook with nothing to offer yet, e.g. The Commander", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Commander" } } };
+
+		expect(playbookGroup(sheet.getData()).startingMovesAvailable).toBe(false);
+	});
+
+	it("hides starting moves for good once startingMovesChosen is set", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { startingMovesChosen: true } } };
+
+		expect(playbookGroup(sheet.getData()).startingMovesAvailable).toBe(false);
+	});
+
+	it("hides starting moves when the actor has no playbook set", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {} };
+
+		expect(playbookGroup(sheet.getData()).startingMovesAvailable).toBe(false);
+	});
+
 	it("renders the moves the actor has picked, in the order they were picked", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
@@ -3719,6 +4026,7 @@ describe("PlaybookActorSheet#activateListeners - playbook moves", () => {
 
 		expect(html.find).toHaveBeenCalledWith(".playbook-move-add");
 		expect(html.find).toHaveBeenCalledWith(".playbook-move-remove");
+		expect(html.find).toHaveBeenCalledWith(".starting-moves-add");
 		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
 	});
 });
@@ -5432,6 +5740,53 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 	});
 });
 
+describe("PlaybookActorSheet#_rollMove - Field Scout's grantsEffectOnMove", () => {
+	it("locks Read the Room's Effect to Confidence when Field Scout is picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { sense: { value: 0 } }, attributes: { playbookMoves: ["the-scout:field-scout"] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(READ_THE_ROOM, expect.any(Array), expect.objectContaining({
+			lockedEffect: "confidence"
+		}));
+	});
+
+	it("leaves Read the Room's Effect unlocked without Field Scout picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { sense: { value: 0 } }, attributes: { playbookMoves: [] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(READ_THE_ROOM, expect.any(Array), expect.objectContaining({
+			lockedEffect: null
+		}));
+	});
+
+	it("does not lock a different move's Effect just because Field Scout is picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { know: { value: 0 } }, attributes: { playbookMoves: ["the-scout:field-scout"] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), expect.objectContaining({
+			lockedEffect: null
+		}));
+	});
+});
+
 describe("PlaybookActorSheet#_rollMove - Familiar weapons (+CHANNEL override)", () => {
 	const wisp = { id: "eq1", kind: "weapon", astir: true, familiar: true, name: "Wisp Familiar III", description: "", tags: ["ranged"], spent: [] };
 
@@ -6245,5 +6600,341 @@ describe("PlaybookActorSheet#_onMoveDescription", () => {
 		await sheet._onMoveDescription({ currentTarget: { dataset: { move: "b-plot" } } });
 
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, B_PLOT);
+	});
+});
+
+describe("PlaybookActorSheet#getData - controls", () => {
+	it("disables both buttons when there is no Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.controls).toEqual({ mountUpDisabled: true, dismountDisabled: true });
+	});
+
+	it("enables Mount Up and disables Dismount for an unpiloted Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: false } } } };
+
+		const data = sheet.getData();
+
+		expect(data.controls).toEqual({ mountUpDisabled: false, dismountDisabled: true });
+	});
+
+	it("disables Mount Up and enables Dismount for a piloted Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: true } } } };
+
+		const data = sheet.getData();
+
+		expect(data.controls).toEqual({ mountUpDisabled: true, dismountDisabled: false });
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - controls", () => {
+	it("binds click handlers to the Mount Up, Dismount, Refresh Scene, and Refresh Sortie buttons", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".controls-mount-up");
+		expect(html.find).toHaveBeenCalledWith(".controls-dismount");
+		expect(html.find).toHaveBeenCalledWith(".controls-refresh-scene");
+		expect(html.find).toHaveBeenCalledWith(".controls-refresh-sortie");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onMountUp", () => {
+	it("does nothing when there is no Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onMountUp();
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when already piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: true } } }, update: vi.fn() };
+
+		sheet._onMountUp();
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("sets piloted to true", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: false } } }, update: vi.fn() };
+
+		sheet._onMountUp();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.piloted": true });
+	});
+
+	it("warns and does not update when Power is negative", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", piloted: false, power: -1 } } },
+			update: vi.fn()
+		};
+
+		sheet._onMountUp();
+
+		expect(ui.notifications.warn).toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onDismount", () => {
+	it("does nothing when there is no Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onDismount();
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when already not piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: false } } }, update: vi.fn() };
+
+		sheet._onDismount();
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("sets piloted to false", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: true } } }, update: vi.fn() };
+
+		sheet._onDismount();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.piloted": false });
+	});
+});
+
+describe("PlaybookActorSheet#_onRefreshScene", () => {
+	it("clears every Scene-scoped spend/forcesEffect/reroll tag but leaves Sortie-scoped and unscoped ones", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = {
+			id: "1",
+			kind: "weapon",
+			name: "Halberd",
+			description: "",
+			// blitz: spend.period Scene; unreliable: forcesEffect.period Scene; decisive: reroll.period
+			// Scene; cursed: no spend/forcesEffect/reroll at all; dangerous: spend.period Sortie.
+			tags: ["blitz", "unreliable", "decisive", "cursed", "dangerous"],
+			spent: ["blitz", "unreliable", "decisive", "cursed", "dangerous"],
+			scale: "foot",
+			tier: 1
+		};
+		sheet.actor = {
+			system: { attributes: { equipment: [entry] }, resources: { hold: { value: 2 } } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshScene();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, spent: ["cursed", "dangerous"] }],
+			"system.attributes.moveHold.the-scout:mobility.value": 0,
+			"system.resources.hold.value": 0
+		});
+	});
+
+	it("leaves the equipment array untouched when nothing matches the Scene period", () => {
+		const sheet = new PlaybookActorSheet();
+		const untouched = {
+			id: "1", kind: "weapon", name: "Halberd", description: "", tags: ["dangerous"], spent: ["dangerous"]
+		};
+		const noSpends = { id: "2", kind: "gear", name: "Rations", description: "", tags: [], spent: [] };
+		const neverSpent = { id: "3", kind: "gear", name: "Kit", description: "", tags: ["ward"] };
+		sheet.actor = {
+			system: {
+				attributes: { equipment: [untouched, noSpends, neverSpent] },
+				resources: { hold: { value: 0 } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshScene();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.the-scout:mobility.value": 0,
+			"system.resources.hold.value": 0
+		});
+	});
+
+	it("does not touch Sortie-scoped moveUses flags", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { moveUses: { [SEEK_ALLIES.key]: { sortie: true } } },
+				resources: { hold: { value: 0 } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshScene();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.the-scout:mobility.value": 0,
+			"system.resources.hold.value": 0
+		});
+	});
+
+	it("resets the shared hold value to 0 even with nothing else to clear", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {}, resources: { hold: { value: 3 } } }, update: vi.fn() };
+
+		sheet._onRefreshScene();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.the-scout:mobility.value": 0,
+			"system.resources.hold.value": 0
+		});
+	});
+
+	it("clears a live separateHold pool (Mobility) alongside the shared hold value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { moveHold: { "the-scout:mobility": { value: 3 } } },
+				resources: { hold: { value: 0 } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshScene();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.the-scout:mobility.value": 0,
+			"system.resources.hold.value": 0
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onRefreshSortie", () => {
+	it("clears Sortie-scoped spent equipment tags but leaves Scene-scoped ones", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = {
+			id: "1",
+			kind: "weapon",
+			name: "Halberd",
+			description: "",
+			tags: ["blitz", "dangerous"],
+			spent: ["blitz", "dangerous"],
+			scale: "foot",
+			tier: 1
+		};
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, spent: ["blitz"] }],
+			"system.attributes.moveHold.b-plot.value": 0,
+			"system.attributes.moveHold.the-scout:improvisation.value": 0,
+			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
+			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0
+		});
+	});
+
+	it("clears a Sortie-scoped moveUses flag (Seek Allies) but leaves Personal Familiar's Downtime use", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					moveUses: {
+						[SEEK_ALLIES.key]: { sortie: true },
+						[PERSONAL_FAMILIAR.key]: { downtime: true }
+					}
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveUses.${SEEK_ALLIES.key}.sortie`]: false,
+			"system.attributes.moveHold.b-plot.value": 0,
+			"system.attributes.moveHold.the-scout:improvisation.value": 0,
+			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
+			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0
+		});
+	});
+
+	it("clears an Astir Active part's Expended flag", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { moveUses: { [DIVINATION_CODEX.key]: { expended: true } } } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveUses.${DIVINATION_CODEX.key}.expended`]: false,
+			"system.attributes.moveHold.b-plot.value": 0,
+			"system.attributes.moveHold.the-scout:improvisation.value": 0,
+			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
+			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0
+		});
+	});
+
+	it("resets Astir Potions to 0 when Alchemical Suite is installed", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", parts: [ALCHEMICAL_SUITE.key], potions: { red: 2, blue: 1, yellow: 3 } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.astir.potions": { red: 0, blue: 0, yellow: 0 },
+			"system.attributes.moveHold.b-plot.value": 0,
+			"system.attributes.moveHold.the-scout:improvisation.value": 0,
+			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
+			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0
+		});
+	});
+
+	it("does not add a potions field when Alchemical Suite is not installed", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", parts: [] } } }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).not.toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.astir.potions": expect.anything() })
+		);
+	});
+
+	it("resets the three flat hold pools to 0 even with nothing else to clear", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.b-plot.value": 0,
+			"system.attributes.moveHold.the-scout:improvisation.value": 0,
+			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
+			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0
+		});
 	});
 });

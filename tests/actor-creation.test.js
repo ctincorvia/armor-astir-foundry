@@ -185,7 +185,7 @@ describe("swapActorPlaybook", () => {
 
 		const existingEquipment = [{ id: "eq1", kind: "weapon", name: "Halberd", tags: [], spent: [] }];
 		const actor = {
-			system: { attributes: { equipment: existingEquipment, playbookMoves: ["the-scout:bullheaded"] } },
+			system: { attributes: { equipment: existingEquipment, playbookMoves: ["the-scout:field-scout"] } },
 			update: vi.fn().mockResolvedValue(undefined),
 			items: [],
 			deleteEmbeddedDocuments: vi.fn(),

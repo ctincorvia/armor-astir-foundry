@@ -134,6 +134,19 @@
 	white-space: nowrap;
 }
 
+.armor-astir.sheet .sheet-header .tier-readout {
+	display: flex;
+	flex: 0 0 auto;
+	flex-direction: row;
+	align-items: center;
+	align-self: flex-start;
+	gap: var(--aa-space-2);
+}
+
+.armor-astir.sheet .sheet-header .tier-readout label {
+	white-space: nowrap;
+}
+
 .armor-astir.sheet .status-row {
 	display: flex;
 	flex-direction: row;
@@ -152,12 +165,16 @@
 }
 
 /* Bordered panel treatment shared by every top-level section so their edges line up with each
-   other — this is what lets .dangers-column drop its old padding-top fudge (see below) and still
+   other — this is what lets .dangers-panel drop its old padding-top fudge (see below) and still
    land at the same y-offset as .sheet-tabs' nav. Excludes .gravity-trigger, which gets its own
-   callout treatment instead of a structural panel (it's static playbook text, not a tracker). */
+   callout treatment instead of a structural panel (it's static playbook text, not a tracker).
+   .dangers-panel and .controls-panel are the two stacked boxes inside .dangers-column (see
+   below) — each gets its own outline rather than the column sharing one, per the Controls
+   section being visually distinct from Dangers. */
 .armor-astir.sheet .traits,
 .armor-astir.sheet .spotlight,
-.armor-astir.sheet .dangers-column,
+.armor-astir.sheet .dangers-panel,
+.armor-astir.sheet .controls-panel,
 .armor-astir.sheet .tab.active > section:not(.gravity-trigger) {
 	padding: var(--aa-space-3);
 	border: var(--aa-border);
@@ -360,6 +377,9 @@
 }
 
 .armor-astir.sheet .dangers-column {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-3);
 	flex: 0 0 170px;
 	/* Without this, a flex item's automatic minimum width is its content's min-content size —
 	   a long, unbroken danger label would force the column past its 170px basis and drag the
@@ -466,6 +486,17 @@
 	flex-direction: column;
 	gap: var(--aa-space-1);
 	margin-top: var(--aa-space-2);
+}
+
+.armor-astir.sheet .controls-actions {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-2);
+}
+
+.armor-astir.sheet .controls-actions button {
+	width: 100%;
+	padding: var(--aa-space-1) var(--aa-space-2);
 }
 
 /* Small square "+" buttons that live in a .section-header-actions cluster (Playbook Move,
@@ -690,6 +721,10 @@
 	background: var(--aa-primary-tint);
 }
 
+.armor-astir.sheet .move-name {
+	font-weight: 700;
+}
+
 .armor-astir.sheet .move-row-controls {
 	display: flex;
 	flex-direction: row;
@@ -726,13 +761,32 @@
 	flex: 0 0 auto;
 }
 
+/* Solid (filled) buttons swap their full-strength primary fill + white text for the primary tint
+   background with dark primary text instead of just fading via opacity — a faded amethyst fill
+   under faded white text washed out to a barely-there light gray, which is what made the dismount
+   button unreadable. This keeps the disabled state in the same amethyst/moonstone family. */
 .armor-astir.sheet .move-roll.disabled,
 .armor-astir.sheet .move-activate.disabled,
+.armor-astir.sheet .controls-mount-up.disabled,
+.armor-astir.sheet .controls-dismount.disabled {
+	background: var(--aa-primary-tint);
+	border-color: var(--aa-primary-tint);
+	color: var(--aa-primary-dark);
+	cursor: not-allowed;
+}
+
+/* Outline/plain buttons already read fine on a transparent background — mute the border rather
+   than the text, so the "disabled" look comes across without hurting legibility. */
 .armor-astir.sheet .move-description.disabled,
 .armor-astir.sheet .hold-step.disabled,
 .armor-astir.sheet .flat-hold-step.disabled,
-.armor-astir.sheet .advancement-item.disabled,
 .armor-astir.sheet .weapon-move-roll.disabled {
+	border-color: var(--aa-primary-tint);
+	color: var(--aa-primary-dark);
+	cursor: not-allowed;
+}
+
+.armor-astir.sheet .advancement-item.disabled {
 	opacity: 0.5;
 	cursor: not-allowed;
 }
@@ -744,7 +798,11 @@
 .armor-astir.sheet .move-activate,
 .armor-astir.sheet .icon-add-button,
 .armor-astir.sheet .danger-add,
-.armor-astir.sheet .astir-create {
+.armor-astir.sheet .astir-create,
+.armor-astir.sheet .controls-mount-up,
+.armor-astir.sheet .controls-dismount,
+.armor-astir.sheet .controls-refresh-scene,
+.armor-astir.sheet .controls-refresh-sortie {
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
 	background: var(--aa-primary);
@@ -757,7 +815,11 @@
 .armor-astir.sheet .move-activate:not(.disabled):hover,
 .armor-astir.sheet .icon-add-button:hover,
 .armor-astir.sheet .danger-add:hover,
-.armor-astir.sheet .astir-create:hover {
+.armor-astir.sheet .astir-create:hover,
+.armor-astir.sheet .controls-mount-up:not(.disabled):hover,
+.armor-astir.sheet .controls-dismount:not(.disabled):hover,
+.armor-astir.sheet .controls-refresh-scene:hover,
+.armor-astir.sheet .controls-refresh-sortie:hover {
 	background: var(--aa-primary-dark);
 	border-color: var(--aa-primary-dark);
 }
@@ -910,8 +972,8 @@
 	opacity: 0.8;
 }
 
-/* Each field (Appearance/Backstory/Notes) is its own labeled ProseMirror editor rather than one
-   shared textarea, so each can be edited and scanned independently. */
+/* Each field (Look/Consider/Backstory/Notes) is its own labeled ProseMirror editor rather than
+   one shared textarea, so each can be edited and scanned independently. */
 .armor-astir.sheet .cosmetic {
 	display: flex;
 	flex-direction: column;
@@ -1066,8 +1128,13 @@
 	background: var(--aa-primary-dark);
 }
 
+/* Same tint/-dark swap as the sheet's own solid disabled buttons (see .move-roll.disabled) —
+   opacity alone faded the primary fill and white text to unreadable gray-on-gray. */
 .armor-astir-move-chat .move-reroll:disabled {
-	opacity: 0.5;
+	background: var(--aa-primary-tint);
+	border-color: var(--aa-primary-tint);
+	color: var(--aa-primary-dark);
+	opacity: 1;
 	cursor: not-allowed;
 }
 
@@ -1349,6 +1416,18 @@
 	background: var(--aa-primary-dark);
 }
 
+/* pbta's own base styling (_window.scss) blows radio and checkbox inputs up to 18x18 via plain
+   width/height, rather than scaling the browser's native ~13px control. Chromium centers a
+   checkbox's glyph fine under that stretch, but not a radio's dot — it renders visibly low
+   within the enlarged box, which is what made every armor-astir radio list (this picker, the
+   playbook-move/weapon/equipment-catalog pickers) look off despite every option row already
+   using align-items: center on its flex row. Nudging the box up half a pixel corrects it without
+   touching layout flow (transform doesn't affect flex sizing), and is scoped to every armor-astir
+   dialog at once rather than duplicated per picker, matching the .dialog-button fix above. */
+.armor-astir input[type="radio"] {
+	transform: translateY(-1px);
+}
+
 /* The picker's accordion is plain <details>/<summary> — the open/closed state is native browser
    behaviour, so no dialog-side JS is involved in expanding a section. */
 .armor-astir.playbook-move-picker .move-picker-section {
@@ -1426,6 +1505,55 @@
 .armor-astir.playbook-move-picker .move-picker-empty {
 	margin: 0;
 	font-style: italic;
+}
+
+/* Same checkbox/label/description row shape as .move-picker-option above (radio here instead of
+   checkbox for the pick-one list, but the alignment problem and fix are identical). */
+.armor-astir.starting-move-picker .starting-move-picker-instructions {
+	margin: 0 0 var(--aa-space-1);
+	font-weight: bold;
+}
+
+.armor-astir.starting-move-picker .starting-move-picker-list {
+	margin: 0 0 var(--aa-space-2);
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.starting-move-picker .starting-move-picker-item {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir.starting-move-picker .starting-move-picker-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+}
+
+.armor-astir.starting-move-picker .starting-move-picker-name {
+	font-weight: bold;
+}
+
+.armor-astir.starting-move-picker .starting-move-picker-trait {
+	padding: 2px 6px;
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-dark);
+	font-size: 11px;
+	font-weight: bold;
+	color: #fff;
+}
+
+/* Indented to line up under the option's label text rather than the checkbox/radio itself, same
+   as .move-picker-description above. */
+.armor-astir.starting-move-picker .starting-move-picker-description {
+	margin-left: 22px;
+	font-size: 12px;
+}
+
+.armor-astir.starting-move-picker .starting-move-picker-description p {
+	margin: 2px 0;
 }
 
 .armor-astir.equipment-catalog-picker .equipment-catalog-picker-list {

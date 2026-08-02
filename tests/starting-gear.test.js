@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
 import { STARTING_GEAR_POOLS, chooseStartingGear, findStartingGearPool } from "../scripts/starting-gear.js";
+import { findEquipmentTag } from "../scripts/equipment.js";
 
 // A fixture pool set independent of the real STARTING_GEAR_POOLS (currently Scout-only content),
 // mirroring the injectable `pools`/`playbooks` pattern MOVE_POOLS/playbookMoveSections and
@@ -62,6 +63,16 @@ describe("STARTING_GEAR_POOLS", () => {
 		const scout = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Scout");
 		for (const item of scout.items) {
 			expect(item.key.startsWith("the-scout:")).toBe(true);
+		}
+	});
+
+	it("names a real Equipment tag on every item that declares one, e.g. Blades & Bracers' ward", () => {
+		for (const pool of STARTING_GEAR_POOLS) {
+			for (const item of pool.items.filter((i) => i.tags)) {
+				for (const tagKey of item.tags) {
+					expect(findEquipmentTag(tagKey)).toBeTruthy();
+				}
+			}
 		}
 	});
 });

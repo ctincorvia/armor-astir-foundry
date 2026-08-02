@@ -23,6 +23,10 @@
 				{{selectOptions approachOptions selected=data.system.attributes.approach valueAttr="key" labelAttr="label" blank="— Choose —"}}
 			</select>
 		</div>
+		<div class="tier-readout">
+			<label>Tier</label>
+			<span class="tier-value">{{tier.effective}}{{#if tier.fromAstir}} (Astir){{/if}}</span>
+		</div>
 	</header>
 	<div class="status-row">
 		<section class="traits">
@@ -53,35 +57,48 @@
 	</div>
 	<section class="sheet-main">
 		<aside class="dangers-column">
-			<div class="section-header">
-				<h3>Dangers ({{dangers.list.length}}/{{dangers.max}})</h3>
-				{{#if dangers.canAdd}}
-				<div class="section-header-actions">
-					<button type="button" class="danger-add-toggle icon-add-button" title="Add a Danger" aria-label="Add a Danger" aria-expanded="{{dangers.addOpen}}">+</button>
+			<div class="dangers-panel">
+				<div class="section-header">
+					<h3>Dangers ({{dangers.list.length}}/{{dangers.max}})</h3>
+					{{#if dangers.canAdd}}
+					<div class="section-header-actions">
+						<button type="button" class="danger-add-toggle icon-add-button" title="Add a Danger" aria-label="Add a Danger" aria-expanded="{{dangers.addOpen}}">+</button>
+					</div>
+					{{/if}}
+				</div>
+				{{#if dangers.atMax}}
+				<p class="defenseless-label">DEFENSELESS</p>
+				{{/if}}
+				<ol class="danger-list">
+					{{#each dangers.list}}
+					<li class="danger-item {{#if isPeril}}danger-peril{{else}}danger-risk{{/if}}">
+						<span class="danger-label">{{label}}</span>
+						<button type="button" class="danger-remove" data-danger-id="{{id}}" aria-label="Remove danger">✕</button>
+					</li>
+					{{/each}}
+				</ol>
+				{{#if dangers.addOpen}}
+				<div class="danger-add-controls">
+					<input type="text" class="danger-label-input" placeholder="Describe the danger…"/>
+					<select class="danger-type-select">
+						<option value="risk">Risk</option>
+						<option value="peril">Peril</option>
+					</select>
+					<button type="button" class="danger-add">Add</button>
 				</div>
 				{{/if}}
 			</div>
-			{{#if dangers.atMax}}
-			<p class="defenseless-label">DEFENSELESS</p>
-			{{/if}}
-			<ol class="danger-list">
-				{{#each dangers.list}}
-				<li class="danger-item {{#if isPeril}}danger-peril{{else}}danger-risk{{/if}}">
-					<span class="danger-label">{{label}}</span>
-					<button type="button" class="danger-remove" data-danger-id="{{id}}" aria-label="Remove danger">✕</button>
-				</li>
-				{{/each}}
-			</ol>
-			{{#if dangers.addOpen}}
-			<div class="danger-add-controls">
-				<input type="text" class="danger-label-input" placeholder="Describe the danger…"/>
-				<select class="danger-type-select">
-					<option value="risk">Risk</option>
-					<option value="peril">Peril</option>
-				</select>
-				<button type="button" class="danger-add">Add</button>
+			<div class="controls-panel">
+				<div class="section-header">
+					<h3>Controls</h3>
+				</div>
+				<div class="controls-actions">
+					<button type="button" class="controls-mount-up{{#if controls.mountUpDisabled}} disabled{{/if}}" {{#if controls.mountUpDisabled}}disabled{{/if}}>Mount Up</button>
+					<button type="button" class="controls-dismount{{#if controls.dismountDisabled}} disabled{{/if}}" {{#if controls.dismountDisabled}}disabled{{/if}}>Dismount</button>
+					<button type="button" class="controls-refresh-scene">Refresh Scene</button>
+					<button type="button" class="controls-refresh-sortie">Refresh Sortie</button>
+				</div>
 			</div>
-			{{/if}}
 		</aside>
 		<div class="sheet-tabs-column">
 			<nav class="sheet-tabs tabs" data-group="primary">
@@ -100,7 +117,11 @@
 							<h3>{{label}}</h3>
 							{{#if addable}}
 							<div class="section-header-actions">
+								{{#if startingMovesAvailable}}
+								<button type="button" class="starting-moves-add icon-add-button" title="Choose Starting Moves" aria-label="Choose Starting Moves">+</button>
+								{{else}}
 								<button type="button" class="playbook-move-add icon-add-button" title="Add a Playbook Move" aria-label="Add a Playbook Move">+</button>
+								{{/if}}
 							</div>
 							{{/if}}
 						</div>
@@ -151,9 +172,10 @@
 							<div class="section-header-actions">
 								{{#if equipment.startingGear.available}}
 								<button type="button" class="starting-gear-add icon-add-button" title="Choose Starting Gear" aria-label="Choose Starting Gear">+</button>
-								{{/if}}
+								{{else}}
 								<button type="button" class="equipment-add icon-add-button" data-kind="weapon" title="Add Weapon" aria-label="Add Weapon">+</button>
 								<button type="button" class="equipment-catalog-add icon-add-button" data-kind="weapon" title="Pick Weapon from Catalog" aria-label="Pick Weapon from Catalog">O</button>
+								{{/if}}
 							</div>
 						</div>
 						<ol class="equipment-list">
@@ -248,8 +270,10 @@
 						<div class="section-header">
 							<h3>Gear</h3>
 							<div class="section-header-actions">
+								{{#unless equipment.startingGear.available}}
 								<button type="button" class="equipment-add icon-add-button" data-kind="gear" title="Add Gear" aria-label="Add Gear">+</button>
 								<button type="button" class="equipment-catalog-add icon-add-button" data-kind="gear" title="Pick Gear from Catalog" aria-label="Pick Gear from Catalog">O</button>
+								{{/unless}}
 							</div>
 						</div>
 						<ol class="equipment-list">
@@ -541,8 +565,12 @@
 				<div class="tab" data-group="primary" data-tab="cosmetic">
 					<section class="cosmetic">
 						<div class="cosmetic-field">
-							<h3>Appearance</h3>
-							{{editor data.system.details.appearance.value target="system.details.appearance.value" button=true owner=owner editable=editable engine="prosemirror" collaborate=false}}
+							<h3>Look</h3>
+							{{editor lookText target="system.details.look.value" button=true owner=owner editable=editable engine="prosemirror" collaborate=false}}
+						</div>
+						<div class="cosmetic-field">
+							<h3>Consider</h3>
+							{{editor considerText target="system.details.consider.value" button=true owner=owner editable=editable engine="prosemirror" collaborate=false}}
 						</div>
 						<div class="cosmetic-field">
 							<h3>Backstory</h3>

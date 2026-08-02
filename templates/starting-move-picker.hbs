@@ -1,0 +1,36 @@
+<form class="armor-astir-starting-move-picker">
+	{{#if pickOneMoves.length}}
+	<p class="starting-move-picker-instructions">Pick one.</p>
+	<ol class="starting-move-picker-list">
+		{{#each pickOneMoves}}
+		<li class="starting-move-picker-item">
+			<label class="starting-move-picker-option">
+				<input type="radio" name="starting-move-pick-one" value="{{key}}"/>
+				<span class="starting-move-picker-name">{{name}}</span>
+				{{#each traitLabels}}
+				<span class="starting-move-picker-trait">+{{this}}</span>
+				{{/each}}
+			</label>
+			<div class="starting-move-picker-description">{{{description}}}</div>
+		</li>
+		{{/each}}
+	</ol>
+	{{/if}}
+	{{#if additionalMoves.length}}
+	<p class="starting-move-picker-instructions">Choose {{chooseCount}} more.</p>
+	<ol class="starting-move-picker-list">
+		{{#each additionalMoves}}
+		<li class="starting-move-picker-item">
+			<label class="starting-move-picker-option">
+				<input type="checkbox" name="starting-move-additional" value="{{key}}"/>
+				<span class="starting-move-picker-name">{{name}}</span>
+				{{#each traitLabels}}
+				<span class="starting-move-picker-trait">+{{this}}</span>
+				{{/each}}
+			</label>
+			<div class="starting-move-picker-description">{{{description}}}</div>
+		</li>
+		{{/each}}
+	</ol>
+	{{/if}}
+</form>

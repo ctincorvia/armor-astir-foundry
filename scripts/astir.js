@@ -54,7 +54,10 @@ export const ASTIR_DEFAULT_IMG = "icons/svg/mystery-man.svg";
 // part gets a manual uses: [{key: "expended", ...}] checkbox — Subsystems' own rules text
 // ("re-activate an expended [Active] Astir part") already assumes every Active part can become
 // expended, and this reuses the existing generic uses mechanism with no new rendering code.
-const EXPENDED_USE = [{ key: "expended", label: "Expended" }];
+// period: "Sortie" — cleared by the Controls tab's Refresh Sortie button (see
+// PlaybookActorSheet#_onRefreshSortie); Subsystems' own "spend 1 Power to re-activate" text is a
+// separate, unaffected mid-Sortie option, not a substitute for the periodic refresh.
+const EXPENDED_USE = [{ key: "expended", label: "Expended", period: "Sortie" }];
 
 export const ASTIR_PART_CATALOG = [
 	{

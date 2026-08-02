@@ -11,10 +11,11 @@ import {
 	resolvePlaybookMoves
 } from "../scripts/playbook-moves.js";
 
-const BULLHEADED = "the-scout:bullheaded";
+const BULLHEADED = "the-impostor:bullheaded";
 // Deny is the one real Cantrip with traits/results — plays the same functional role the old
 // placeholder cantrip did (rolls +CHANNEL, disabled by default for The Scout).
 const DENY = "cantrips:deny";
+const SCOUT_KEYS = MOVE_POOLS.find((pool) => pool.key === "the-scout").moves.map((move) => move.key);
 const CANTRIP_KEYS = MOVE_POOLS.find((pool) => pool.key === "cantrips").moves.map((move) => move.key);
 const SOLDIER_KEYS = MOVE_POOLS.find((pool) => pool.key === "soldier").moves.map((move) => move.key);
 
@@ -99,6 +100,40 @@ describe("MOVE_POOLS", () => {
 
 		expect(seekAllies.uses.map((use) => use.key)).toEqual(["sortie"]);
 		expect(personalFamiliar.uses.map((use) => use.key)).toEqual(["sortie", "downtime"]);
+	});
+
+	// PlaybookActorSheet#_onRefreshSortie reads this field to know which uses entries and flat
+	// hold pools to clear — Downtime isn't a resettable button in this module, so Personal
+	// Familiar's downtime use deliberately carries no period.
+	it("scopes Sortie-limited uses and flat hold pools to the Sortie, leaving Downtime unscoped", () => {
+		const seekAllies = findPlaybookMove("cantrips:seek-allies");
+		const personalFamiliar = findPlaybookMove("cantrips:personal-familiar");
+		const arityMethod = findPlaybookMove("soldier:the-arity-method");
+		const getOutOfMyWay = findPlaybookMove("soldier:get-out-of-my-way");
+		const onceTheWarsOver = findPlaybookMove("soldier:once-the-wars-over");
+
+		expect(seekAllies.uses.find((use) => use.key === "sortie").period).toBe("Sortie");
+		expect(arityMethod.uses.find((use) => use.key === "sortie").period).toBe("Sortie");
+		expect(personalFamiliar.uses.find((use) => use.key === "sortie").period).toBe("Sortie");
+		expect(personalFamiliar.uses.find((use) => use.key === "downtime").period).toBeUndefined();
+		expect(getOutOfMyWay.period).toBe("Sortie");
+		expect(onceTheWarsOver.period).toBe("Sortie");
+	});
+
+	it("scopes The Scout's own flat hold moves the same way", () => {
+		const improvisation = findPlaybookMove("the-scout:improvisation");
+		const pathFinding = findPlaybookMove("the-scout:path-finding");
+
+		expect(improvisation.period).toBe("Sortie");
+		expect(pathFinding.period).toBeUndefined();
+	});
+
+	it("marks Field Scout and Giant Slayer as The Scout's Starting Moves", () => {
+		const fieldScout = findPlaybookMove("the-scout:field-scout");
+		const giantSlayer = findPlaybookMove("the-scout:giant-slayer");
+
+		expect(fieldScout.starting).toBe(true);
+		expect(giantSlayer.starting).toBe(true);
 	});
 });
 
@@ -236,10 +271,17 @@ describe("playbookMoveSections", () => {
 			.toHaveLength(2);
 	});
 
-	it("offers The Scout Bullheaded from the real pools", () => {
+	it("offers The Scout's own moves from the real pools", () => {
 		const [first] = playbookMoveSections("The Scout");
 
 		expect(first.key).toBe("the-scout");
+		expect(first.moves.map((move) => move.key)).toEqual(SCOUT_KEYS);
+	});
+
+	it("offers The Impostor's Bullheaded from the real pools", () => {
+		const [first] = playbookMoveSections("The Impostor");
+
+		expect(first.key).toBe("the-impostor");
 		expect(first.moves.map((move) => move.key)).toEqual([BULLHEADED]);
 	});
 
@@ -317,7 +359,7 @@ describe("choosePlaybookMove", () => {
 	});
 
 	it("hides the moves the actor already has from the picker", async () => {
-		choosePlaybookMove("The Scout", [BULLHEADED, ...CANTRIP_KEYS, ...SOLDIER_KEYS]);
+		choosePlaybookMove("The Scout", [...SCOUT_KEYS, ...CANTRIP_KEYS, ...SOLDIER_KEYS]);
 		await Promise.resolve();
 		await Promise.resolve();
 

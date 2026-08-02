@@ -412,7 +412,8 @@ export const EQUIPMENT_TAGS = [
 		label: "Ruin",
 		value: 2,
 		// Same not-yet-modeled tier-opposition system as Bane; left as prose.
-		description: "As per bane, but up to two tiers higher rather than one."
+		description: "You suffer no penalty against opponents up to two tiers above you when attacking " +
+			"with ruin, rather than one tier as with bane."
 	},
 	{
 		key: "versatile",

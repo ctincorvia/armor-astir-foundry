@@ -360,6 +360,9 @@ export const SPECIAL_MOVES = [
 		// shared system.resources.hold pool, since a character could plausibly hold both at
 		// once — see PlaybookActorSheet.
 		flatHold: 3,
+		// Its own text scopes spending this hold to "During the Sortie" — cleared by the
+		// Controls tab's Refresh Sortie button (see PlaybookActorSheet#_onRefreshSortie).
+		period: "Sortie",
 		description:
 			"<p>When you head out for some solitary revenge, leave to take part in negotiations, or " +
 			"otherwise take part in a secondary narrative thread to the players involved in the Sortie, " +
@@ -425,6 +428,11 @@ export async function configureMoveRoll(
 		advantageStates: ADVANTAGE_STATES,
 		effectStates: EFFECT_STATES,
 		lockedEffect,
+		// Display label for the locked-note below the Effect select — resolved here rather than
+		// hardcoded in the template, since lockedEffect can now be "confidence" (Field Scout's
+		// grantsEffectOnMove — see PlaybookActorSheet#_grantedEffectForMove) as well as the
+		// original "desperation" sources (bite-the-dust at max Perils, a forced weapon tag).
+		lockedEffectLabel: lockedEffect ? effectState(lockedEffect).label : null,
 		equipmentSpends,
 		astirPartSpends,
 		guided
@@ -551,7 +559,15 @@ export async function rollMove(actor, move, trait, options = {}) {
 	// wipe hold left over from an earlier successful read.
 	const hold = move.hold ? move.hold[tier] : null;
 	if (move.hold && tier !== "failure") {
-		await actor.update({ "system.resources.hold.value": hold });
+		// separateHold (e.g. Mobility — see playbook-moves.js) routes a roll-tiered hold grant
+		// into its own per-move pool, the same field flatHold moves already use, instead of the
+		// shared system.resources.hold field Read the Room writes — otherwise a second roll-tiered
+		// hold move would silently overwrite Read the Room's live hold (see
+		// PlaybookActorSheet#_moveGroupMoves, which reads hold back from the matching field).
+		const holdField = move.separateHold
+			? `system.attributes.moveHold.${move.key}.value`
+			: "system.resources.hold.value";
+		await actor.update({ [holdField]: hold });
 	}
 
 	// Checked conditions (e.g. Help or Hinder's Downtime/prior-help/Hook) ride alongside the
@@ -649,7 +665,13 @@ export async function rollMove(actor, move, trait, options = {}) {
 export async function postGuidedResult(actor, move, options = {}) {
 	const tier = "mixed";
 	const hold = move.hold ? move.hold[tier] : null;
-	if (move.hold) await actor.update({ "system.resources.hold.value": hold });
+	if (move.hold) {
+		// Same separateHold routing as rollMove above.
+		const holdField = move.separateHold
+			? `system.attributes.moveHold.${move.key}.value`
+			: "system.resources.hold.value";
+		await actor.update({ [holdField]: hold });
+	}
 
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
 		name: move.name,

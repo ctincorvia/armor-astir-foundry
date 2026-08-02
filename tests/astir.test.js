@@ -107,12 +107,13 @@ describe("ASTIR_PART_CATALOG", () => {
 	});
 
 	// Subsystems' own rules text ("re-activate an expended [Active] Astir part") assumes every
-	// Active part can become Expended — see claude.md's Astir section.
-	it("gives every Active part a manual Expended checkbox", () => {
+	// Active part can become Expended — see claude.md's Astir section. period: "Sortie" is what
+	// PlaybookActorSheet#_onRefreshSortie reads to clear it in bulk.
+	it("gives every Active part a manual, Sortie-scoped Expended checkbox", () => {
 		const activeParts = ASTIR_PART_CATALOG.filter((part) => part.partType === "Active");
 		expect(activeParts.length).toBeGreaterThan(0);
 		for (const part of activeParts) {
-			expect(part.uses).toEqual([{ key: "expended", label: "Expended" }]);
+			expect(part.uses).toEqual([{ key: "expended", label: "Expended", period: "Sortie" }]);
 		}
 	});
 

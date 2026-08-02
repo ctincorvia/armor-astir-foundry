@@ -44,7 +44,11 @@ export const STARTING_GEAR_POOLS = [
 			{
 				key: "the-scout:blades-and-bracers",
 				name: "Blades & Bracers",
-				description: "You can always produce a basic weapon, +ward."
+				description: "You can always produce a basic weapon, +ward.",
+				// The "+ward" in the description above is a real Equipment tag (see
+				// equipment.js's EQUIPMENT_TAGS), not just prose — carried here so
+				// PlaybookActorSheet#_onStartingGearAdd can attach it to the picked entry.
+				tags: ["ward"]
 			}
 		]
 	},

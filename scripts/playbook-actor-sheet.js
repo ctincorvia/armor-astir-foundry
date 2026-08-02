@@ -1,6 +1,7 @@
 import { PLAYBOOKS, swapActorPlaybook } from "./actor-creation.js";
 import { availableApproaches } from "./approaches.js";
 import { gravityTriggerForPlaybook } from "./gravity-triggers.js";
+import { defaultConsiderText, defaultLookText } from "./playbook-flavor.js";
 import {
 	BASIC_MOVES,
 	SPECIAL_MOVES,
@@ -27,6 +28,7 @@ import {
 	resolveEquipmentTags
 } from "./equipment.js";
 import { chooseStartingGear, findStartingGearPool } from "./starting-gear.js";
+import { chooseStartingMoves, findStartingMovePool } from "./starting-moves.js";
 import {
 	ASTIR_CORES,
 	ASTIR_DEFAULT_IMG,
@@ -63,6 +65,13 @@ const HOLD_MAX = 3;
 
 const SPOTLIGHT_MIN = 0;
 const SPOTLIGHT_MAX = 6;
+
+// A character's Tier for all physical-conflict purposes is 1 by default unless a picked playbook
+// move raises it (Field Scout, Giant Slayer — see playbook-moves.js's conflictTier). Deliberately
+// its own constant rather than reusing equipment's TIER_MIN or the Astir's own ASTIR_TIER_MIN —
+// astir.js keeps those two bands from drifting into each other; a character's on-foot Tier is a
+// third, independent band (see claude.md's Character Tier notes).
+const CHARACTER_TIER_DEFAULT = 1;
 
 // Ceiling across every playbook today (see claude.md's Dangers notes) — none currently need the
 // occasionally-mentioned 4, so this stays a flat constant rather than a per-playbook field until
@@ -138,6 +147,18 @@ export class PlaybookActorSheet extends ActorSheet {
 		data.currentPlaybookId = PLAYBOOKS.find((p) => p.name === this.actor.system.playbook?.name)?.packId ?? null;
 		data.approachOptions = availableApproaches(this.actor.system.playbook?.slug);
 		data.gravityTrigger = gravityTriggerForPlaybook(this.actor.system.playbook?.slug);
+		// Look/Consider editors on the Cosmetic tab start pre-filled with the playbook's own
+		// flavor prompts (see playbook-flavor.js) until the player has saved text of their own —
+		// once system.details.look/consider.value is set, that stored value wins. This is only
+		// the *display* fallback for the brief window before _seedCosmeticDefaults' own write
+		// resolves (see activateListeners) — real editing reads straight from the actor.
+		const playbookSlug = this.actor.system.playbook?.slug;
+		data.lookText = this.actor.system.details?.look?.value || defaultLookText(playbookSlug);
+		data.considerText = this.actor.system.details?.consider?.value || defaultConsiderText(playbookSlug);
+		// Rendered next to the Approach select in the header — see claude.md's Character Tier
+		// notes: on-foot Tier and Approach are the same kind of "how you fight outside your Astir"
+		// property. Derived fresh every render, not stored — see _conflictTier.
+		data.tier = this._conflictTier();
 		data.traits = TRAITS.map(({ key, label }) => {
 			const stat = this.actor.system.stats?.[key];
 			return { key, label, value: stat?.value ?? 0, disabled: stat?.disabled ?? false };
@@ -158,13 +179,20 @@ export class PlaybookActorSheet extends ActorSheet {
 		// Roll/Activate/Description buttons with no extra handling. Display order is basic, then
 		// playbook, then Astir (if any), then special — the character's own moves read before the
 		// fixed reference lists, moveGroups[0] staying Basic for existing tests.
+		// The "+ Choose Starting Moves" button (see _onStartingMovesAdd) — same "drop when empty,
+		// disappear for good once clicked" treatment equipment's startingGear.available already
+		// gets, so Commander/Impostor stay hidden until their pools are filled in (see
+		// starting-moves.js).
+		const startingMovePool = findStartingMovePool(this.actor.system.playbook?.name);
 		data.moveGroups = [
 			{ label: "Basic Moves", moves: this._moveGroupMoves(BASIC_MOVES) },
 			{
 				label: "Playbook Moves",
 				moves: this._moveGroupMoves(resolvePlaybookMoves(this._playbookMoves())),
 				addable: true,
-				removable: true
+				removable: true,
+				startingMovesAvailable: Boolean(startingMovePool?.pickOneKeys?.length || startingMovePool?.chooseCount)
+					&& !this._startingMovesChosen()
 			}
 		];
 		// Astir Parts read as moves, and the Astir's one unique move joins them under the same
@@ -296,6 +324,14 @@ export class PlaybookActorSheet extends ActorSheet {
 				weapons: astirWeapons
 			})
 		};
+		// The Controls section (see the template's dangers-column) — Mount Up/Dismount just drive
+		// the same piloted flag the Astir tab's own checkbox does (see _setAstirPiloted), so their
+		// disabled state mirrors exactly what claude.md's Piloted note and the feature ask require:
+		// no Astir at all, or already in the target state.
+		data.controls = {
+			mountUpDisabled: !astir || piloted,
+			dismountDisabled: !astir || !piloted
+		};
 		// Dangers sit in their own left column beside the tab area (see the template) rather than
 		// inside a tab, since DEFENSELESS and the Danger list matter regardless of which tab is
 		// open. atMax drives both the DEFENSELESS label and hiding the add-danger controls once
@@ -379,6 +415,25 @@ export class PlaybookActorSheet extends ActorSheet {
 	// benefits only apply while the Astir is actually being piloted."
 	_astirPiloted() {
 		return Boolean(this._astir()?.piloted);
+	}
+
+	// This character's Tier for all physical-conflict purposes (see claude.md's Character Tier
+	// notes) — derived fresh every call, never stored, so Mount Up/Dismount and the Astir tab's
+	// own Piloted checkbox all move it for free through the single _setAstirPiloted write path,
+	// with nothing to re-sync (same reasoning equipmentValue/advancements.topCount already
+	// establish for other always-derived numbers). `base` is CHARACTER_TIER_DEFAULT unless a
+	// picked playbook move raises it via conflictTier (Field Scout II, Giant Slayer III) — max
+	// wins if somehow both are picked, since "pick either" is exactly as unenforced as every other
+	// pool restriction in this module (see playbook-moves.js's own top comment). While piloting an
+	// Astir, `effective` is the Astir's own Tier instead of `base` — on dismount it reverts.
+	_conflictTier() {
+		const picked = resolvePlaybookMoves(this._playbookMoves());
+		const base = picked.reduce((max, move) => Math.max(max, move.conflictTier ?? 0), CHARACTER_TIER_DEFAULT);
+		const astir = this._astir();
+		if (this._astirPiloted() && astir) {
+			return { base, effective: astir.tier ?? ASTIR_TIER_MIN, fromAstir: true };
+		}
+		return { base, effective: base, fromAstir: false };
 	}
 
 	// Shared by getData (render shape) and _equipmentSpends (roll dialog offers) so a tag's
@@ -502,12 +557,30 @@ export class PlaybookActorSheet extends ActorSheet {
 		return this.actor.system.attributes?.advancements ?? {};
 	}
 
+	// Field Scout's "read the room with confidence, always" (see playbook-moves.js's
+	// grantsEffectOnMove) — locks a specific *other* move's Effect regardless of which move is
+	// actually being rolled, so this is resolved off the actor's picked playbook moves rather than
+	// a flag on `move` itself (contrast forcesDesperationAtMaxPerils/requiresChannelDisabled, which
+	// are read straight off the move being rolled). Returns null when no picked move grants
+	// anything for this particular move key.
+	_grantedEffectForMove(move) {
+		const granting = resolvePlaybookMoves(this._playbookMoves())
+			.find((m) => m.grantsEffectOnMove?.moveKey === move.key);
+		return granting?.grantsEffectOnMove.effect ?? null;
+	}
+
 	// Whether "+ Choose Starting Gear" has already been clicked on this actor (see getData's
 	// startingGear.available and _onStartingGearAdd) — resets naturally on a playbook swap, since
 	// swapActorPlaybook (actor-creation.js) replaces system.attributes wholesale from the new
 	// playbook's compendium source, same as playbookMoves.
 	_startingGearChosen() {
 		return Boolean(this.actor.system.attributes?.startingGearChosen);
+	}
+
+	// Same one-shot treatment as _startingGearChosen above, for the "+ Choose Starting Moves"
+	// button (see getData's startingMovesAvailable and _onStartingMovesAdd).
+	_startingMovesChosen() {
+		return Boolean(this.actor.system.attributes?.startingMovesChosen);
 	}
 
 	// Just the picked keys — the move definitions live in playbook-moves.js, so stored data never
@@ -534,8 +607,10 @@ export class PlaybookActorSheet extends ActorSheet {
 			// move key, at system.attributes.moveHold.<moveKey> (an ObjectField, unlike the
 			// strictly-schemed system.resources) — keyed the same way system.attributes.moveUses
 			// already is, so two different flatHold moves (e.g. b-plot and a Soldier Move) on the
-			// same actor can't collide and overwrite each other's count.
-			const hold = move.flatHold
+			// same actor can't collide and overwrite each other's count. separateHold (Mobility)
+			// is the same per-move pool, but for a move that's still roll-tiered rather than flat —
+			// see moves.js#rollMove for the matching write side.
+			const hold = (move.flatHold || move.separateHold)
 				? this.actor.system.attributes?.moveHold?.[move.key]?.value ?? 0
 				: this.actor.system.resources?.hold?.value ?? 0;
 			// True only for moves gated off Channel being enabled (b-plot, via
@@ -569,8 +644,9 @@ export class PlaybookActorSheet extends ActorSheet {
 				descriptionGated: channelGated,
 				trackHold: Boolean(move.hold) || Boolean(move.flatHold),
 				// Which stepper/handler the template wires up (_onHoldStep vs
-				// _onFlatHoldStep) — see the hold comment above.
-				separateHoldPool: Boolean(move.flatHold),
+				// _onFlatHoldStep) — see the hold comment above. separateHold routes to the same
+				// per-move stepper as flatHold, even though it's still a roll-tiered grant.
+				separateHoldPool: Boolean(move.flatHold) || Boolean(move.separateHold),
 				hold,
 				// Generic, per-move-key checkboxes for a "once per Sortie"/"once per Downtime" cap
 				// (e.g. Cantrips' Seek Allies, Personal Familiar — see playbook-moves.js). Not
@@ -631,8 +707,34 @@ export class PlaybookActorSheet extends ActorSheet {
 		return carriers.length === 1 ? carriers[0].system.stats?.crew?.value ?? 0 : 0;
 	}
 
+	// Foundry's {{editor}} helper only uses getData's lookText/considerText for the read-only
+	// preview shown before the player clicks to edit — the moment they do, FormApplication's own
+	// _activateEditor re-reads system.details.look/consider.value straight off the real actor
+	// document (client/apps/form.js), bypassing whatever getData computed. So the flavor-prompt
+	// default has to actually be written to the actor the first time its sheet renders with
+	// nothing stored there yet; after that, the editor's own save takes over and this never fires
+	// again for that field. Checked against undefined rather than falsy so a player who
+	// deliberately clears a field to "" doesn't have the prompt text resurrected on the next
+	// render. Gated on isOwner so a GM or observer opening someone else's sheet never attempts a
+	// write they don't have permission for.
+	_seedCosmeticDefaults() {
+		if (!this.actor.isOwner) return;
+		const playbookSlug = this.actor.system.playbook?.slug;
+		const updates = {};
+		if (this.actor.system.details?.look?.value === undefined) {
+			const look = defaultLookText(playbookSlug);
+			if (look) updates["system.details.look.value"] = look;
+		}
+		if (this.actor.system.details?.consider?.value === undefined) {
+			const consider = defaultConsiderText(playbookSlug);
+			if (consider) updates["system.details.consider.value"] = consider;
+		}
+		if (Object.keys(updates).length) this.actor.update(updates);
+	}
+
 	activateListeners(html) {
 		super.activateListeners(html);
+		this._seedCosmeticDefaults();
 		html.find(".playbook-select").on("change", this._onPlaybookChange.bind(this));
 		html.find(".trait-step").on("click", this._onTraitStep.bind(this));
 		html.find(".hold-step").on("click", this._onHoldStep.bind(this));
@@ -647,6 +749,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".gravity-clock-label-input").on("change", this._onGravityClockLabelChange.bind(this));
 		html.find(".gravity-clock-value-step").on("click", this._onGravityClockValueStep.bind(this));
 		html.find(".gravity-clock-step").on("click", this._onGravityClockStep.bind(this));
+		html.find(".starting-moves-add").on("click", this._onStartingMovesAdd.bind(this));
 		html.find(".playbook-move-add").on("click", this._onPlaybookMoveAdd.bind(this));
 		html.find(".playbook-move-remove").on("click", this._onPlaybookMoveRemove.bind(this));
 		html.find(".move-use-checkbox").on("change", this._onMoveUseToggle.bind(this));
@@ -676,6 +779,10 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".astir-move-add").on("click", this._onAstirMoveAdd.bind(this));
 		html.find(".astir-move-remove").on("click", this._onAstirMoveRemove.bind(this));
 		html.find(".astir-weapon-catalog-add").on("click", this._onAstirWeaponAdd.bind(this));
+		html.find(".controls-mount-up").on("click", this._onMountUp.bind(this));
+		html.find(".controls-dismount").on("click", this._onDismount.bind(this));
+		html.find(".controls-refresh-scene").on("click", this._onRefreshScene.bind(this));
+		html.find(".controls-refresh-sortie").on("click", this._onRefreshSortie.bind(this));
 	}
 
 	_onPlaybookChange(event) {
@@ -822,19 +929,109 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({ "system.attributes.astir.overheating": event.currentTarget.checked });
 	}
 
-	// Blocks manually re-checking Piloted while Power is negative (see claude.md's Piloted note) —
-	// mirrors _astirPowerUpdates' own auto-uncheck-on-mutation guard, for the case where the player
-	// tries to flip it back on directly instead of changing their loadout first.
-	_onAstirPilotedToggle(event) {
+	// Shared by the Astir tab's own Piloted checkbox and the Controls section's Mount Up/Dismount
+	// buttons — blocks setting Piloted true while Power is negative (see claude.md's Piloted note),
+	// mirroring _astirPowerUpdates' own auto-uncheck-on-mutation guard. Returns whether the update
+	// actually applied, so a caller with something to revert (the checkbox) can do so. Every caller
+	// already checks for an Astir before reaching this (see _onAstirPilotedToggle/_onMountUp/
+	// _onDismount), so this doesn't re-check.
+	_setAstirPiloted(checked) {
 		const astir = this._astir();
-		if (!astir) return;
-		const checked = event.currentTarget.checked;
 		if (checked && (astir.power ?? 0) < 0) {
-			event.currentTarget.checked = false;
 			ui.notifications.warn("This Astir's Power is negative — it can't be piloted until the loadout changes.");
-			return;
+			return false;
 		}
 		this.actor.update({ "system.attributes.astir.piloted": checked });
+		return true;
+	}
+
+	_onAstirPilotedToggle(event) {
+		if (!this._astir()) return;
+		const checked = event.currentTarget.checked;
+		if (!this._setAstirPiloted(checked)) {
+			event.currentTarget.checked = !checked;
+		}
+	}
+
+	// Disabled in the template whenever there's no Astir or it's already piloted (see getData's
+	// data.controls), but guarded here too in case a click still lands.
+	_onMountUp() {
+		const astir = this._astir();
+		if (!astir || astir.piloted) return;
+		this._setAstirPiloted(true);
+	}
+
+	_onDismount() {
+		const astir = this._astir();
+		if (!astir || !astir.piloted) return;
+		this._setAstirPiloted(false);
+	}
+
+	// The generic, data-driven half of both Refresh buttons (see _onRefreshScene/_onRefreshSortie)
+	// — walks ALL_MOVES for every `uses` entry whose `period` matches (playbook moves and Astir
+	// parts share one pass, since ALL_MOVES already flattens both catalogs together — see its own
+	// comment), and filters `entry.spent` on every equipment item against each tag's own
+	// spend/forcesEffect/reroll period (see equipment.js). Returns a plain update patch rather than
+	// calling actor.update itself, so each button can layer its own period-specific extras on top.
+	_refreshPeriod(period) {
+		const updates = {};
+		for (const move of ALL_MOVES) {
+			for (const use of move.uses ?? []) {
+				if (use.period !== period) continue;
+				if (this.actor.system.attributes?.moveUses?.[move.key]?.[use.key]) {
+					updates[`system.attributes.moveUses.${move.key}.${use.key}`] = false;
+				}
+			}
+		}
+		const equipment = this._equipment();
+		const nextEquipment = equipment.map((item) => {
+			const spent = item.spent ?? [];
+			if (!spent.length) return item;
+			const kept = spent.filter((tagKey) => {
+				const tag = findEquipmentTag(tagKey);
+				const tagPeriod = tag?.spend?.period ?? tag?.forcesEffect?.period ?? tag?.reroll?.period;
+				return tagPeriod !== period;
+			});
+			return kept.length === spent.length ? item : { ...item, spent: kept };
+		});
+		if (nextEquipment.some((item, i) => item !== equipment[i])) {
+			updates["system.attributes.equipment"] = nextEquipment;
+		}
+		return updates;
+	}
+
+	// Clears every Scene-scoped spend/uses checkbox, plus Read the Room's shared hold — its own
+	// text ties expiry to "the current situation," which this module treats as roughly a Scene
+	// boundary for this button. Every separateHold move's own per-move pool (Mobility) is cleared
+	// alongside it, the same "walk ALL_MOVES for a shared field" treatment _onRefreshSortie
+	// already gives Sortie-scoped flatHold pools below.
+	_onRefreshScene() {
+		const updates = this._refreshPeriod("Scene");
+		for (const move of ALL_MOVES) {
+			if (move.separateHold) {
+				updates[`system.attributes.moveHold.${move.key}.value`] = HOLD_MIN;
+			}
+		}
+		updates["system.resources.hold.value"] = HOLD_MIN;
+		this.actor.update(updates);
+	}
+
+	// Clears every Sortie-scoped spend/uses checkbox, plus the flat hold pools (B-Plot, Get Out of
+	// My Way!, Once the War's Over — all scoped to "the Sortie" by their own text, see moves.js/
+	// playbook-moves.js) and Alchemical Suite's Potions when installed (mirrors getData's own
+	// grantsPotionsOnLeadASortie gating so an Astir without the part never gains a stray potions
+	// field).
+	_onRefreshSortie() {
+		const updates = this._refreshPeriod("Sortie");
+		for (const move of ALL_MOVES) {
+			if (move.flatHold && move.period === "Sortie") {
+				updates[`system.attributes.moveHold.${move.key}.value`] = HOLD_MIN;
+			}
+		}
+		if (this._astirParts().some((part) => part.grantsPotionsOnLeadASortie)) {
+			updates["system.attributes.astir.potions"] = { red: 0, blue: 0, yellow: 0 };
+		}
+		this.actor.update(updates);
 	}
 
 	// Alchemical Suite's Potions (see getData/astir.js) — a plain decrement-only "Use" button, min
@@ -1093,7 +1290,7 @@ export class PlaybookActorSheet extends ActorSheet {
 					kind: "gear",
 					name: item.name,
 					description: item.description,
-					tags: []
+					tags: item.tags ?? []
 				})));
 			}
 		}
@@ -1105,6 +1302,30 @@ export class PlaybookActorSheet extends ActorSheet {
 
 		const updates = { "system.attributes.startingGearChosen": true };
 		if (newEntries.length) updates["system.attributes.equipment"] = [...this._equipment(), ...newEntries];
+
+		await this.actor.update(updates);
+	}
+
+	// The "+ Choose Starting Moves" button (see getData's startingMovesAvailable). Same one-time
+	// allowance shape as _onStartingGearAdd: startingMovesChosen is always set, even if the dialog
+	// is cancelled or nothing was picked, since clicking the button is what spends the allowance —
+	// the button disappears for good either way.
+	async _onStartingMovesAdd() {
+		const playbookName = this.actor.system.playbook?.name;
+		const pool = findStartingMovePool(playbookName);
+		// Mirrors getData's startingMovesAvailable gate — a pool with nothing to offer (e.g.
+		// Commander/Impostor today) never reaches the button in the first place, but guarding here
+		// too keeps this a true no-op rather than spending the one-time flag for nothing.
+		if (!pool || (!pool.pickOneKeys.length && !pool.chooseCount)) return;
+
+		const picked = await chooseStartingMoves(playbookName);
+
+		const updates = { "system.attributes.startingMovesChosen": true };
+		if (picked?.length) {
+			const current = this._playbookMoves();
+			const additions = picked.filter((key) => !current.includes(key));
+			if (additions.length) updates["system.attributes.playbookMoves"] = [...current, ...additions];
+		}
 
 		await this.actor.update(updates);
 	}
@@ -1351,10 +1572,13 @@ export class PlaybookActorSheet extends ActorSheet {
 		// bite-the-dust's forcesDesperationAtMaxPerils wins ties over a forced weapon tag — both
 		// only ever lock to Desperation today, so there's nothing to actually conflict, but the
 		// precedence keeps a future second forcesEffect value from silently overriding
-		// bite-the-dust's danger-state read.
+		// bite-the-dust's danger-state read. Field Scout's standing grantsEffectOnMove (see
+		// _grantedEffectForMove) sits last: it's a permanent grant rather than either of the other
+		// two's emergency/reactive lock, so anything already forcing an axis wins over it.
 		const forced = this._forcedWeaponEffect(weapon);
 		const lockedEffect = (move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null)
 			?? forced?.effect
+			?? this._grantedEffectForMove(move)
 			?? null;
 		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
 		const astirPartSpends = this._astirPartSpends(lockedEffect);
