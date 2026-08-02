@@ -27,9 +27,10 @@ const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
 
-// checkedConditions/checkedEquipmentTags fake the jQuery `.find("[name='...']:checked").map(...).get()`
-// chains configureMoveRoll uses to collect Help or Hinder's checkbox values and equipment spends.
-function fakeRollHtml(values, checkedConditions = [], checkedEquipmentTags = []) {
+// checkedConditions/checkedEquipmentTags/checkedAstirPartSpends fake the jQuery
+// `.find("[name='...']:checked").map(...).get()` chains configureMoveRoll uses to collect Help or
+// Hinder's checkbox values, equipment spends, and Astir Part spends.
+function fakeRollHtml(values, checkedConditions = [], checkedEquipmentTags = [], checkedAstirPartSpends = []) {
 	return {
 		find: (selector) => {
 			if (selector === "[name='condition']:checked") {
@@ -37,6 +38,9 @@ function fakeRollHtml(values, checkedConditions = [], checkedEquipmentTags = [])
 			}
 			if (selector === "[name='equipment-tag']:checked") {
 				return { map: (fn) => ({ get: () => checkedEquipmentTags.map((value, index) => fn(index, { value })) }) };
+			}
+			if (selector === "[name='astir-part-spend']:checked") {
+				return { map: (fn) => ({ get: () => checkedAstirPartSpends.map((value, index) => fn(index, { value })) }) };
 			}
 			return { val: () => values[selector] };
 		}
@@ -419,6 +423,149 @@ describe("configureMoveRoll - equipment spends", () => {
 	});
 
 	it("does not add a spentTags key when no equipment was offered", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}));
+
+		expect(await promise).toEqual({ trait: clash, advantage: "none", effect: "none" });
+	});
+});
+
+describe("configureMoveRoll - astir part spends", () => {
+	const clash = { key: "clash", label: "CLASH", value: 1 };
+	const wardingSpend = {
+		partKey: "astir-part:warding",
+		partName: "Warding",
+		description: "Reduce an incoming source of harm from a peril to a risk, or a risk to nothing.",
+		effect: null,
+		advantage: null,
+		disabled: false
+	};
+	const artifactSpend = {
+		partKey: "astir-part:artifact",
+		partName: "Artifact",
+		description: "Grants advantage towards a task this Artifact is designed for.",
+		effect: null,
+		advantage: "advantage",
+		disabled: false
+	};
+
+	it("passes the offered astir part spends to the dialog template", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { astirPartSpends: [wardingSpend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			astirPartSpends: [wardingSpend]
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults astirPartSpends to an empty list", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			astirPartSpends: []
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves checked astir part spends as a plain array of part keys", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { astirPartSpends: [wardingSpend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], ["astir-part:warding"]));
+
+		expect(await promise).toEqual({
+			trait: clash,
+			advantage: "none",
+			effect: "none",
+			spentParts: ["astir-part:warding"]
+		});
+	});
+
+	it("sets the roll's Advantage from a checked spend's advantage, regardless of the Dice select's own value", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { astirPartSpends: [artifactSpend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "disadvantage",
+			"[name='effect']": "none"
+		}, [], [], ["astir-part:artifact"]));
+
+		expect((await promise).advantage).toBe("advantage");
+	});
+
+	it("sets the roll's effect from a checked spend's effect, same precedence as an equipment spend", async () => {
+		const spend = { ...wardingSpend, effect: "confidence" };
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { astirPartSpends: [spend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "desperation"
+		}, [], [], ["astir-part:warding"]));
+
+		expect((await promise).effect).toBe("confidence");
+	});
+
+	it("lets lockedEffect win over a checked part's effect", async () => {
+		const spend = { ...wardingSpend, effect: "confidence" };
+		const promise = configureMoveRoll(BITE_THE_DUST, [clash], { lockedEffect: "desperation", astirPartSpends: [spend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], ["astir-part:warding"]));
+
+		expect((await promise).effect).toBe("desperation");
+	});
+
+	it("resolves an empty spentParts list when spends were offered but none were checked", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { astirPartSpends: [wardingSpend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}));
+
+		expect(await promise).toEqual({ trait: clash, advantage: "none", effect: "none", spentParts: [] });
+	});
+
+	it("does not add a spentParts key when no astir part was offered", async () => {
 		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
 		await Promise.resolve();
 		await Promise.resolve();

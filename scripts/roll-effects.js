@@ -62,6 +62,15 @@ export function applyRollEffects(results, { advantage, effect }) {
 	}));
 }
 
+// True when the two dice actually kept for the total (see applyRollEffects) show the same face —
+// Flourish Component's "regain 1 Power when you roll doubles" reads off this (see
+// PlaybookActorSheet#_onMoveResolved). Checked post-substitution/post-keep-selection, i.e. against
+// what the roll actually resolved to, not the original faces.
+export function rolledDoubles(dice) {
+	const kept = dice.filter((die) => die.kept);
+	return kept.length === KEPT_DICE && kept.every((die) => die.result === kept[0].result);
+}
+
 export function rollConditions(advantage, effect) {
 	const conditions = [];
 	if (advantage.key !== "none") conditions.push({ key: advantage.key, label: advantage.label });

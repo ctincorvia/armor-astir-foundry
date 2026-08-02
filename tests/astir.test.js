@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { APPROACHES } from "../scripts/approaches.js";
+import { DRAIN_GROUP, findEquipmentTag } from "../scripts/equipment.js";
 import { findPlaybookMove } from "../scripts/playbook-moves.js";
 import {
 	ASTIR_CORES,
@@ -12,7 +13,9 @@ import {
 	ASTIR_WEAPON_CATALOG,
 	astirCoreApproaches,
 	astirMaxPower,
+	astirMaxWeaponPower,
 	astirMoveSections,
+	astirWeaponDrainTotal,
 	chooseAstirMove,
 	chooseAstirPart,
 	chooseAstirWeapon,
@@ -85,13 +88,37 @@ describe("ASTIR_POWER_MIN/ASTIR_POWER_BASE", () => {
 });
 
 describe("ASTIR_PART_CATALOG", () => {
-	it("gives every part a key prefixed astir-part:, the move shape, and a numeric powerCost", () => {
+	it("gives every part a key prefixed astir-part:, the move shape, and a valid partType", () => {
 		for (const part of ASTIR_PART_CATALOG) {
 			expect(part.key.startsWith("astir-part:")).toBe(true);
 			expect(part.name).toBeTruthy();
 			expect(Array.isArray(part.traits)).toBe(true);
 			expect(part.description).toBeTruthy();
-			expect(typeof part.powerCost).toBe("number");
+			expect(["Active", "Passive"]).toContain(part.partType);
+			// Not every part carries a Power cost (see astirMaxPower) — only the ones with a
+			// "(-X Power)" annotation in the rulebook do.
+			if (part.powerCost !== undefined) expect(typeof part.powerCost).toBe("number");
+		}
+	});
+
+	it("gives every part a unique key", () => {
+		const keys = ASTIR_PART_CATALOG.map((part) => part.key);
+		expect(new Set(keys).size).toBe(keys.length);
+	});
+
+	// Subsystems' own rules text ("re-activate an expended [Active] Astir part") assumes every
+	// Active part can become Expended — see claude.md's Astir section.
+	it("gives every Active part a manual Expended checkbox", () => {
+		const activeParts = ASTIR_PART_CATALOG.filter((part) => part.partType === "Active");
+		expect(activeParts.length).toBeGreaterThan(0);
+		for (const part of activeParts) {
+			expect(part.uses).toEqual([{ key: "expended", label: "Expended" }]);
+		}
+	});
+
+	it("gives a spend with an effect or advantage a short plain-text spend.description", () => {
+		for (const part of ASTIR_PART_CATALOG.filter((p) => p.spend?.effect || p.spend?.advantage)) {
+			expect(part.spend.description).toBeTruthy();
 		}
 	});
 });
@@ -125,34 +152,137 @@ describe("findAstirPart/resolveAstirParts", () => {
 	});
 });
 
+// Shared by astirWeaponDrainTotal/astirMaxPower/astirMaxWeaponPower below — mirrors equipment.js's
+// own FIXTURE_TAGS convention (see tests/equipment.test.js) rather than depending on the real
+// EQUIPMENT_TAGS catalog's Drain entries.
+const DRAIN_TAGS = [
+	{ key: "drain-1", label: "Drain 1", value: -1, exclusiveGroup: DRAIN_GROUP },
+	{ key: "drain-2", label: "Drain 2", value: -2, exclusiveGroup: DRAIN_GROUP },
+	{ key: "non-drain", label: "Non-Drain", value: -1 }
+];
+
+describe("astirWeaponDrainTotal", () => {
+	it("sums Drain tags across every weapon mounted on the Astir, as a positive magnitude", () => {
+		const equipment = [
+			{ id: "1", kind: "weapon", astir: true, tags: ["drain-1"] },
+			{ id: "2", kind: "weapon", astir: true, tags: ["drain-2"] }
+		];
+		expect(astirWeaponDrainTotal(equipment, DRAIN_TAGS)).toBe(3);
+	});
+
+	it("ignores a mundane (non-Astir) weapon's Drain", () => {
+		const equipment = [{ id: "1", kind: "weapon", tags: ["drain-2"] }];
+		expect(astirWeaponDrainTotal(equipment, DRAIN_TAGS)).toBe(0);
+	});
+
+	it("ignores gear, even if it somehow carries a Drain tag", () => {
+		const equipment = [{ id: "1", kind: "gear", tags: ["drain-2"] }];
+		expect(astirWeaponDrainTotal(equipment, DRAIN_TAGS)).toBe(0);
+	});
+
+	it("ignores a non-Drain tag", () => {
+		const equipment = [{ id: "1", kind: "weapon", astir: true, tags: ["non-drain"] }];
+		expect(astirWeaponDrainTotal(equipment, DRAIN_TAGS)).toBe(0);
+	});
+
+	it("defaults to 0 for missing/empty equipment", () => {
+		expect(astirWeaponDrainTotal()).toBe(0);
+	});
+
+	it("treats a missing tags array on an Astir weapon entry as empty", () => {
+		const equipment = [{ id: "1", kind: "weapon", astir: true }];
+		expect(astirWeaponDrainTotal(equipment, DRAIN_TAGS)).toBe(0);
+	});
+});
+
 describe("astirMaxPower", () => {
 	const FIXTURE_PARTS = [
 		{ key: "astir-part:a", name: "A", traits: [], description: "a", powerCost: 1 },
 		{ key: "astir-part:b", name: "B", traits: [], description: "b", powerCost: 2 },
-		{ key: "astir-part:no-cost", name: "C", traits: [], description: "c" }
+		{ key: "astir-part:no-cost", name: "C", traits: [], description: "c" },
+		{ key: "astir-part:conduit", name: "Conduit", traits: [], description: "d", weaponPowerBonus: 2 }
 	];
 
 	it("starts at the base when no parts are equipped", () => {
-		expect(astirMaxPower([], FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE);
+		expect(astirMaxPower([], [], FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE);
 	});
 
 	it("subtracts every equipped part's powerCost from the base", () => {
-		expect(astirMaxPower(["astir-part:a", "astir-part:b"], FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE - 3);
+		expect(astirMaxPower(["astir-part:a", "astir-part:b"], [], FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE - 3);
 	});
 
 	it("treats a missing powerCost as 0", () => {
-		expect(astirMaxPower(["astir-part:no-cost"], FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE);
+		expect(astirMaxPower(["astir-part:no-cost"], [], FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE);
 	});
 
-	it("floors at ASTIR_POWER_MIN rather than going negative", () => {
+	it("floors at ASTIR_POWER_MIN rather than going negative from part cost alone", () => {
 		const heavy = [
 			{ key: "astir-part:heavy", name: "Heavy", traits: [], description: "h", powerCost: 99 }
 		];
-		expect(astirMaxPower(["astir-part:heavy"], heavy)).toBe(ASTIR_POWER_MIN);
+		expect(astirMaxPower(["astir-part:heavy"], [], heavy)).toBe(ASTIR_POWER_MIN);
 	});
 
 	it("ignores a stale key that no longer resolves", () => {
-		expect(astirMaxPower(["astir-part:deleted"], FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE);
+		expect(astirMaxPower(["astir-part:deleted"], [], FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE);
+	});
+
+	it("is untouched by Weapon Drain fully absorbed by the Weapon Power pool", () => {
+		const equipment = [{ id: "1", kind: "weapon", astir: true, tags: ["drain-1"] }];
+		expect(astirMaxPower(["astir-part:conduit"], equipment, FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE);
+	});
+
+	it("is reduced by whatever Weapon Drain didn't fit in the Weapon Power pool", () => {
+		// Weapon Power capacity is 2 (Conduit); 3 Drain absorbs 2, spills 1 onto main Power.
+		const equipment = [
+			{ id: "1", kind: "weapon", astir: true, tags: ["drain-1"] },
+			{ id: "2", kind: "weapon", astir: true, tags: ["drain-2"] }
+		];
+		expect(astirMaxPower(["astir-part:conduit"], equipment, FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE - 1);
+	});
+
+	it("can go negative from Weapon Drain when there's no Weapon Power pool to absorb it", () => {
+		const equipment = [{ id: "1", kind: "weapon", astir: true, tags: ["drain-2"] }];
+		expect(astirMaxPower([], equipment, FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE - 2);
+
+		const veryHeavy = [
+			{ id: "1", kind: "weapon", astir: true, tags: ["drain-2"] },
+			{ id: "2", kind: "weapon", astir: true, tags: ["drain-2"] },
+			{ id: "3", kind: "weapon", astir: true, tags: ["drain-2"] }
+		];
+		expect(astirMaxPower([], veryHeavy, FIXTURE_PARTS)).toBeLessThan(0);
+	});
+});
+
+describe("astirMaxWeaponPower", () => {
+	const FIXTURE_PARTS = [
+		{ key: "astir-part:a", name: "A", traits: [], description: "a", weaponPowerBonus: 2 },
+		{ key: "astir-part:no-bonus", name: "B", traits: [], description: "b" }
+	];
+
+	it("starts at 0 when no parts are equipped", () => {
+		expect(astirMaxWeaponPower([], [], FIXTURE_PARTS)).toBe(0);
+	});
+
+	it("adds every equipped part's weaponPowerBonus", () => {
+		expect(astirMaxWeaponPower(["astir-part:a"], [], FIXTURE_PARTS)).toBe(2);
+	});
+
+	it("treats a missing weaponPowerBonus as 0", () => {
+		expect(astirMaxWeaponPower(["astir-part:no-bonus"], [], FIXTURE_PARTS)).toBe(0);
+	});
+
+	it("ignores a stale key that no longer resolves", () => {
+		expect(astirMaxWeaponPower(["astir-part:deleted"], [], FIXTURE_PARTS)).toBe(0);
+	});
+
+	it("is reduced by Weapon Drain claiming part of its capacity", () => {
+		const equipment = [{ id: "1", kind: "weapon", astir: true, tags: ["drain-1"] }];
+		expect(astirMaxWeaponPower(["astir-part:a"], equipment, FIXTURE_PARTS)).toBe(1);
+	});
+
+	it("floors at 0 rather than going negative when Drain exceeds capacity", () => {
+		const equipment = [{ id: "1", kind: "weapon", astir: true, tags: ["drain-2"] }];
+		expect(astirMaxWeaponPower([], equipment, FIXTURE_PARTS)).toBe(0);
 	});
 });
 
@@ -203,6 +333,14 @@ describe("ASTIR_WEAPON_CATALOG/findCatalogAstirWeapon", () => {
 
 	it("returns null for an unknown key", () => {
 		expect(findCatalogAstirWeapon("not-a-real-key")).toBeNull();
+	});
+
+	it("only ever references a real EQUIPMENT_TAGS key", () => {
+		for (const item of ASTIR_WEAPON_CATALOG) {
+			for (const tagKey of item.tags) {
+				expect(findEquipmentTag(tagKey)).not.toBeNull();
+			}
+		}
 	});
 });
 

@@ -140,12 +140,25 @@
 }
 
 .armor-astir.sheet .entry-list-item {
-	padding: var(--aa-space-2) 0;
+	padding: var(--aa-space-2) var(--aa-space-1);
 	border-bottom: var(--aa-border);
 }
 
 .armor-astir.sheet .entry-list-item:last-child {
 	border-bottom: none;
+}
+
+/* Same zebra-stripe/hover treatment as playbook-actor-sheet.css's .move/.equipment-item rows —
+   an interaction always reads in the primary color, a resting stripe in the quieter secondary.
+   Excludes .pillar-list/.division-list: those lay their entries out as a 3-column grid of cards
+   (see above), not a vertical row list, so ":nth-child(even)" would just tint the middle card
+   instead of reading as a stripe. */
+.armor-astir.sheet .entry-list:not(.pillar-list):not(.division-list) > .entry-list-item:nth-child(even) {
+	background: var(--aa-secondary-tint);
+}
+
+.armor-astir.sheet .entry-list:not(.pillar-list):not(.division-list) > .entry-list-item:hover {
+	background: var(--aa-primary-tint);
 }
 
 .armor-astir.sheet .entry-list-row {

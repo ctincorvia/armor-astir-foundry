@@ -71,6 +71,7 @@ import {
 	ASTIR_TIER_MAX,
 	ASTIR_TIER_MIN,
 	astirMaxPower,
+	astirMaxWeaponPower,
 	chooseAstirMove,
 	chooseAstirPart,
 	chooseAstirWeapon
@@ -96,6 +97,16 @@ const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-scout:bullheade
 const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
 const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
 const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
+const WEAPON_CONDUIT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:weapon-conduit");
+const INPUT_CHANNEL = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:input-channel");
+const SPELL_ROUTINES = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:spell-routines");
+const FLOURISH_COMPONENT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:flourish-component");
+const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:alchemical-suite");
+const STANDARDISED_PARTS = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:standardised-parts");
+const DIVINATION_CODEX = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:divination-codex");
+const WARDING = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:warding");
+const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:artifact");
+const READ_THE_ROOM = BASIC_MOVES.find((m) => m.key === "read-the-room");
 
 beforeEach(() => {
 	swapActorPlaybook.mockClear();
@@ -103,6 +114,10 @@ beforeEach(() => {
 	postGuidedResult.mockClear();
 	postMoveDescription.mockClear();
 	rollMove.mockClear();
+	// rollMove resolves { message, dice } (see moves.js) — a bare default so every existing test
+	// that doesn't care about the roll's dice (most of them) doesn't have to configure this itself.
+	// Tests that do care (Flourish Component's doubles regen) override this per-test.
+	rollMove.mockResolvedValue({ message: undefined, dice: null });
 	choosePlaybookMove.mockClear();
 	configureEquipment.mockClear();
 	chooseEquipmentCatalogItem.mockClear();
@@ -476,7 +491,7 @@ describe("PlaybookActorSheet#getData - astir", () => {
 
 		const data = sheet.getData();
 
-		expect(data.astir.power).toEqual({ value: 4, max: astirMaxPower([partKey]) });
+		expect(data.astir.power).toEqual({ value: 4, max: astirMaxPower([partKey], []), negative: false });
 	});
 
 	it("resolves parts to their name and power cost", () => {
@@ -491,7 +506,155 @@ describe("PlaybookActorSheet#getData - astir", () => {
 			}
 		};
 
-		expect(sheet.getData().astir.parts).toEqual([{ key: part.key, name: part.name, powerCost: part.powerCost ?? 0 }]);
+		expect(sheet.getData().astir.parts).toEqual([
+			{ key: part.key, name: part.name, powerCost: part.powerCost, partType: part.partType }
+		]);
+	});
+
+	it("reports the piloted flag", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: { astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, parts: [], move: null, piloted: true } }
+			}
+		};
+
+		expect(sheet.getData().astir.piloted).toBe(true);
+	});
+
+	it("reports weapon power as 0/0 without Weapon Conduit, and the bonus max with it", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: { astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, parts: [], move: null } }
+			}
+		};
+
+		expect(sheet.getData().astir.weaponPower).toEqual({ value: 0, max: 0 });
+
+		sheet.actor.system.attributes.astir.parts = [WEAPON_CONDUIT.key];
+		sheet.actor.system.attributes.astir.weaponPower = 1;
+
+		expect(sheet.getData().astir.weaponPower).toEqual({ value: 1, max: astirMaxWeaponPower([WEAPON_CONDUIT.key], []) });
+	});
+
+	it("lowers max power for an Astir weapon's Drain, absorbed by Weapon Power first when Weapon Conduit is installed", () => {
+		const sheet = new PlaybookActorSheet();
+		const weapon = { id: "w1", kind: "weapon", astir: true, tags: ["drain-1"] };
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, weaponPower: 0, parts: [WEAPON_CONDUIT.key], move: null },
+					equipment: [weapon]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		// Weapon Conduit's capacity (2) fully absorbs the single Drain-1, so main Power is untouched
+		// and Weapon Power's max drops from 2 to 1.
+		expect(data.astir.power).toEqual({ value: 4, max: ASTIR_POWER_BASE, negative: false });
+		expect(data.astir.weaponPower).toEqual({ value: 0, max: 1 });
+	});
+
+	it("flags power.negative and spills excess Drain onto main Power once Weapon Power's capacity is used up", () => {
+		const sheet = new PlaybookActorSheet();
+		const weapons = [
+			{ id: "w1", kind: "weapon", astir: true, tags: ["drain-3"] },
+			{ id: "w2", kind: "weapon", astir: true, tags: ["drain-3"] }
+		];
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", core: "", approach: "", tier: 3, power: -2, parts: [], move: null },
+					equipment: weapons
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.astir.power).toEqual({ value: -2, max: astirMaxPower([], weapons), negative: true });
+		expect(data.astir.power.max).toBeLessThan(0);
+	});
+
+	it("reports Potions once Alchemical Suite is installed", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: {
+						id: "a1",
+						core: "",
+						approach: "",
+						tier: 3,
+						power: 4,
+						parts: [ALCHEMICAL_SUITE.key],
+						move: null,
+						potions: { red: 2, blue: 0, yellow: 1 }
+					}
+				}
+			}
+		};
+
+		expect(sheet.getData().astir.potions).toEqual({ red: 2, blue: 0, yellow: 1 });
+	});
+
+	it("defaults each Potion color to 0 when none is stored yet", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, parts: [ALCHEMICAL_SUITE.key], move: null }
+				}
+			}
+		};
+
+		expect(sheet.getData().astir.potions).toEqual({ red: 0, blue: 0, yellow: 0 });
+	});
+
+	it("reports Repair Tokens once Standardised Parts is installed", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: {
+						id: "a1",
+						core: "",
+						approach: "",
+						tier: 3,
+						power: 4,
+						parts: [STANDARDISED_PARTS.key],
+						move: null,
+						repairTokens: 3
+					}
+				}
+			}
+		};
+
+		expect(sheet.getData().astir.repairTokens).toEqual({ value: 3 });
+	});
+
+	it("defaults Repair Tokens to 0 when Standardised Parts is installed but none is stored yet", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, parts: [STANDARDISED_PARTS.key], move: null }
+				}
+			}
+		};
+
+		expect(sheet.getData().astir.repairTokens).toEqual({ value: 0 });
 	});
 
 	it("resolves the unique move to its key and name", () => {
@@ -564,7 +727,11 @@ describe("PlaybookActorSheet#getData - astir", () => {
 			approach: "",
 			tier: ASTIR_TIER_MIN,
 			overheating: false,
-			power: { value: 0, max: ASTIR_POWER_BASE },
+			piloted: false,
+			power: { value: 0, max: ASTIR_POWER_BASE, negative: false },
+			weaponPower: { value: 0, max: 0 },
+			potions: null,
+			repairTokens: null,
 			parts: [],
 			move: null,
 			weapons: []
@@ -611,6 +778,43 @@ describe("PlaybookActorSheet#getData - astir moves group", () => {
 		expect(group.addable).toBeUndefined();
 		expect(group.removable).toBeUndefined();
 	});
+
+	it("gates every entry — parts and the unique move alike — when the Astir isn't piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		const part = ASTIR_PART_CATALOG[0];
+		const move = ASTIR_MOVE_CATALOG[0];
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: {
+						id: "a1", core: "", approach: "", tier: 3, power: 4, parts: [part.key], move: move.key, piloted: false
+					}
+				}
+			}
+		};
+
+		const group = sheet.getData().moveGroups.find((g) => g.label === "Astir Moves");
+
+		expect(group.moves.every((m) => m.gated)).toBe(true);
+	});
+
+	it("leaves gating to each entry's own logic once piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		const part = ASTIR_PART_CATALOG[0];
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, parts: [part.key], move: null, piloted: true }
+				}
+			}
+		};
+
+		const group = sheet.getData().moveGroups.find((g) => g.label === "Astir Moves");
+
+		expect(group.moves[0].gated).toBe(false);
+	});
 });
 
 describe("PlaybookActorSheet#activateListeners - astir", () => {
@@ -630,7 +834,10 @@ describe("PlaybookActorSheet#activateListeners - astir", () => {
 			[".astir-approach-select", "change"],
 			[".astir-tier-step", "click"],
 			[".astir-power-step", "click"],
+			[".astir-weapon-power-step", "click"],
 			[".astir-overheating-checkbox", "change"],
+			[".astir-piloted-checkbox", "change"],
+			[".astir-potion-use", "click"],
 			[".astir-part-add", "click"],
 			[".astir-part-remove", "click"],
 			[".astir-move-add", "click"],
@@ -660,6 +867,7 @@ describe("PlaybookActorSheet#_onAstirCreate", () => {
 				tier: ASTIR_TIER_MIN,
 				power: ASTIR_POWER_BASE,
 				overheating: false,
+				piloted: false,
 				parts: [],
 				move: null
 			}
@@ -881,6 +1089,148 @@ describe("PlaybookActorSheet#_onAstirOverheatingToggle", () => {
 	});
 });
 
+describe("PlaybookActorSheet#_onAstirWeaponPowerStep", () => {
+	it("increments the weapon power value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", weaponPower: 0, parts: [WEAPON_CONDUIT.key] } } },
+			update: vi.fn()
+		};
+
+		sheet._onAstirWeaponPowerStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.weaponPower": 1 });
+	});
+
+	it("clamps at the parts-adjusted maximum rather than a fixed constant", () => {
+		const sheet = new PlaybookActorSheet();
+		const max = astirMaxWeaponPower([WEAPON_CONDUIT.key]);
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", weaponPower: max, parts: [WEAPON_CONDUIT.key] } } },
+			update: vi.fn()
+		};
+
+		sheet._onAstirWeaponPowerStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at ASTIR_POWER_MIN", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", weaponPower: ASTIR_POWER_MIN, parts: [] } } },
+			update: vi.fn()
+		};
+
+		sheet._onAstirWeaponPowerStep({ currentTarget: { dataset: { delta: "-1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing weaponPower and parts array as 0 and none", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1" } } }, update: vi.fn() };
+
+		sheet._onAstirWeaponPowerStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when there is no Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onAstirWeaponPowerStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onAstirPilotedToggle", () => {
+	it("writes the checkbox's checked state", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1" } } }, update: vi.fn() };
+
+		sheet._onAstirPilotedToggle({ currentTarget: { checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.piloted": true });
+	});
+
+	it("does nothing when there is no Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onAstirPilotedToggle({ currentTarget: { checked: true } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("blocks checking the box while Power is negative, reverting it and warning instead of updating", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", power: -1 } } }, update: vi.fn() };
+		const event = { currentTarget: { checked: true } };
+
+		sheet._onAstirPilotedToggle(event);
+
+		expect(event.currentTarget.checked).toBe(false);
+		expect(ui.notifications.warn).toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("still allows unchecking the box while Power is negative", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", power: -1, piloted: true } } }, update: vi.fn() };
+
+		sheet._onAstirPilotedToggle({ currentTarget: { checked: false } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.piloted": false });
+	});
+});
+
+describe("PlaybookActorSheet#_onAstirPotionUse", () => {
+	it("decrements the chosen color by 1", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", potions: { red: 2, blue: 0, yellow: 1 } } } },
+			update: vi.fn()
+		};
+
+		sheet._onAstirPotionUse({ currentTarget: { dataset: { potion: "red" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.potions.red": 1 });
+	});
+
+	it("does nothing when that color is already at 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", potions: { red: 0, blue: 0, yellow: 0 } } } },
+			update: vi.fn()
+		};
+
+		sheet._onAstirPotionUse({ currentTarget: { dataset: { potion: "red" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing potions object as all zero", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1" } } }, update: vi.fn() };
+
+		sheet._onAstirPotionUse({ currentTarget: { dataset: { potion: "red" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when there is no Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onAstirPotionUse({ currentTarget: { dataset: { potion: "red" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
 describe("PlaybookActorSheet#_onAstirPartAdd", () => {
 	it("adds the chosen part and re-clamps power to the new maximum", async () => {
 		const sheet = new PlaybookActorSheet();
@@ -893,7 +1243,8 @@ describe("PlaybookActorSheet#_onAstirPartAdd", () => {
 		expect(chooseAstirPart).toHaveBeenCalledWith([]);
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.astir.parts": [partKey],
-			"system.attributes.astir.power": astirMaxPower([partKey])
+			"system.attributes.astir.power": astirMaxPower([partKey]),
+			"system.attributes.astir.weaponPower": 0
 		});
 	});
 
@@ -907,7 +1258,8 @@ describe("PlaybookActorSheet#_onAstirPartAdd", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.astir.parts": [partKey],
-			"system.attributes.astir.power": 0
+			"system.attributes.astir.power": 0,
+			"system.attributes.astir.weaponPower": 0
 		});
 	});
 
@@ -932,7 +1284,8 @@ describe("PlaybookActorSheet#_onAstirPartAdd", () => {
 		expect(chooseAstirPart).toHaveBeenCalledWith([]);
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.astir.parts": [partKey],
-			"system.attributes.astir.power": 0
+			"system.attributes.astir.power": 0,
+			"system.attributes.astir.weaponPower": 0
 		});
 	});
 
@@ -944,6 +1297,25 @@ describe("PlaybookActorSheet#_onAstirPartAdd", () => {
 
 		expect(chooseAstirPart).not.toHaveBeenCalled();
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("accounts for existing Astir weapon Drain when re-clamping power", async () => {
+		const sheet = new PlaybookActorSheet();
+		const partKey = ASTIR_PART_CATALOG[0].key;
+		const weapon = { id: "w1", kind: "weapon", astir: true, tags: ["drain-2"] };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, parts: [] }, equipment: [weapon] } },
+			update: vi.fn()
+		};
+		chooseAstirPart.mockResolvedValue(partKey);
+
+		await sheet._onAstirPartAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.astir.parts": [partKey],
+			"system.attributes.astir.power": astirMaxPower([partKey], [weapon]),
+			"system.attributes.astir.weaponPower": 0
+		});
 	});
 });
 
@@ -957,7 +1329,8 @@ describe("PlaybookActorSheet#_onAstirPartRemove", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.astir.parts": [],
-			"system.attributes.astir.power": 0
+			"system.attributes.astir.power": 0,
+			"system.attributes.astir.weaponPower": 0
 		});
 	});
 
@@ -988,7 +1361,8 @@ describe("PlaybookActorSheet#_onAstirPartRemove", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.astir.parts": [],
-			"system.attributes.astir.power": 0
+			"system.attributes.astir.power": 0,
+			"system.attributes.astir.weaponPower": 0
 		});
 	});
 
@@ -999,6 +1373,34 @@ describe("PlaybookActorSheet#_onAstirPartRemove", () => {
 		sheet._onAstirPartRemove({ currentTarget: { dataset: { part: "astir-part:placeholder-part" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("un-pilots with a warning when removing a Power-granting part leaves Power negative under existing Drain", () => {
+		const sheet = new PlaybookActorSheet();
+		const conduitKey = "astir-part:weapon-conduit";
+		const weapons = [
+			{ id: "w1", kind: "weapon", astir: true, tags: ["drain-3"] },
+			{ id: "w2", kind: "weapon", astir: true, tags: ["drain-3"] }
+		];
+		sheet.actor = {
+			system: {
+				attributes: { astir: { id: "a1", power: 4, piloted: true, parts: [conduitKey] }, equipment: weapons }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onAstirPartRemove({ currentTarget: { dataset: { part: conduitKey } } });
+
+		// Removing Weapon Conduit drops the Weapon Power pool (2) that was absorbing part of the
+		// 6 total Drain, so all of it now spills onto main Power: max = ASTIR_POWER_BASE (4) - 6.
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.astir.parts": [],
+			"system.attributes.astir.power": astirMaxPower([], weapons),
+			"system.attributes.astir.weaponPower": 0,
+			"system.attributes.astir.piloted": false
+		});
+		expect(astirMaxPower([], weapons)).toBeLessThan(0);
+		expect(ui.notifications.warn).toHaveBeenCalled();
 	});
 });
 
@@ -1085,7 +1487,81 @@ describe("PlaybookActorSheet#_onAstirWeaponAdd", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
 				{ id: "test-id", spent: [], astir: true, name: "Lance", description: "", kind: "weapon", tags: ["melee"] }
-			]
+			],
+			"system.attributes.astir.power": 0,
+			"system.attributes.astir.weaponPower": 0
+		});
+	});
+
+	it("lowers Power when the added weapon carries Drain, and un-pilots with a warning if it goes negative", async () => {
+		const sheet = new PlaybookActorSheet();
+		const existing = { id: "e1", kind: "weapon", astir: true, tags: ["drain-3"] };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 1, piloted: true, parts: [] }, equipment: [existing] } },
+			update: vi.fn()
+		};
+		const template = { key: "placeholder-astir-weapon", name: "Placeholder Astir Weapon", description: "", tags: ["drain-2"] };
+		chooseAstirWeapon.mockResolvedValue(template);
+		configureEquipment.mockResolvedValue({ name: "Lance", description: "", kind: "weapon", tags: ["drain-2"] });
+
+		await sheet._onAstirWeaponAdd();
+
+		// Total Drain (drain-3 existing + drain-2 new) is 5, with no Weapon Power pool to absorb any
+		// of it: max Power = ASTIR_POWER_BASE (4) - 5 = -1.
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				existing,
+				{ id: "test-id", spent: [], astir: true, name: "Lance", description: "", kind: "weapon", tags: ["drain-2"] }
+			],
+			"system.attributes.astir.power": -1,
+			"system.attributes.astir.weaponPower": 0,
+			"system.attributes.astir.piloted": false
+		});
+		expect(ui.notifications.warn).toHaveBeenCalled();
+	});
+
+	it("carries familiar: true onto the saved entry when the picked template is a Familiar weapon", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1" }, equipment: [] } }, update: vi.fn() };
+		const template = { key: "wisp-familiar", name: "Wisp Familiar III", description: "", tags: ["ranged"], familiar: true };
+		chooseAstirWeapon.mockResolvedValue(template);
+		configureEquipment.mockResolvedValue({ name: "Wisp Familiar III", description: "", kind: "weapon", tags: ["ranged"] });
+
+		await sheet._onAstirWeaponAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{
+					id: "test-id",
+					spent: [],
+					astir: true,
+					familiar: true,
+					name: "Wisp Familiar III",
+					description: "",
+					kind: "weapon",
+					tags: ["ranged"]
+				}
+			],
+			"system.attributes.astir.power": 0,
+			"system.attributes.astir.weaponPower": 0
+		});
+	});
+
+	it("does not set familiar on the saved entry when the picked template isn't a Familiar", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1" }, equipment: [] } }, update: vi.fn() };
+		const template = { key: "astir-fists", name: "Astir Fists III", description: "", tags: ["melee"] };
+		chooseAstirWeapon.mockResolvedValue(template);
+		configureEquipment.mockResolvedValue({ name: "Astir Fists III", description: "", kind: "weapon", tags: ["melee"] });
+
+		await sheet._onAstirWeaponAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{ id: "test-id", spent: [], astir: true, name: "Astir Fists III", description: "", kind: "weapon", tags: ["melee"] }
+			],
+			"system.attributes.astir.power": 0,
+			"system.attributes.astir.weaponPower": 0
 		});
 	});
 
@@ -2584,6 +3060,30 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 		});
 	});
 
+	it("carries the familiar flag forward on a Familiar weapon", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", astir: true, familiar: true, name: "Wisp Familiar III", description: "", tags: ["ranged"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Wisp Familiar III", description: "", kind: "weapon", tags: ["ranged"] });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{
+					id: "1",
+					spent: [],
+					name: "Wisp Familiar III",
+					description: "",
+					kind: "weapon",
+					tags: ["ranged"],
+					astir: true,
+					familiar: true
+				}
+			]
+		});
+	});
+
 	it("treats a missing spent array on the edited entry as empty", async () => {
 		const sheet = new PlaybookActorSheet();
 		const entry = { id: "1", kind: "gear", name: "Odd", description: "", tags: [] };
@@ -2617,6 +3117,43 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
+
+	it("recomputes Power when editing an Astir weapon's tags changes its Drain, with an Astir present", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", astir: true, name: "Lance", description: "", tags: ["melee"], spent: [] };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, piloted: true, parts: [] }, equipment: [entry] } },
+			update: vi.fn()
+		};
+		configureEquipment.mockResolvedValue({ name: "Lance II", description: "", kind: "weapon", tags: ["drain-2"] });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		const edited = { id: "1", spent: [], name: "Lance II", description: "", kind: "weapon", tags: ["drain-2"], astir: true };
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [edited],
+			"system.attributes.astir.power": astirMaxPower([], [edited]),
+			"system.attributes.astir.weaponPower": 0
+		});
+	});
+
+	it("leaves Power untouched when editing a mundane weapon even with an Astir present", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", name: "Sword", description: "", tags: ["melee"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, parts: [] }, equipment: [entry] } },
+			update: vi.fn()
+		};
+		configureEquipment.mockResolvedValue({ name: "Sword+1", description: "", kind: "weapon", tags: ["drain-2"], scale: "foot", tier: 1 });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{ id: "1", spent: [], name: "Sword+1", description: "", kind: "weapon", tags: ["drain-2"], scale: "foot", tier: 1 }
+			]
+		});
+	});
 });
 
 describe("PlaybookActorSheet#_onEquipmentRemove", () => {
@@ -2639,6 +3176,36 @@ describe("PlaybookActorSheet#_onEquipmentRemove", () => {
 		sheet._onEquipmentRemove({ currentTarget: { dataset: { equipmentId: "not-a-real-id" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.equipment": [a] });
+	});
+
+	it("recomputes Power (freeing it back up) when removing a Drain-tagged Astir weapon, with an Astir present", () => {
+		const sheet = new PlaybookActorSheet();
+		const weapon = { id: "1", kind: "weapon", astir: true, tags: ["drain-2"] };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 1, parts: [] }, equipment: [weapon] } },
+			update: vi.fn()
+		};
+
+		sheet._onEquipmentRemove({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [],
+			"system.attributes.astir.power": 1,
+			"system.attributes.astir.weaponPower": 0
+		});
+	});
+
+	it("leaves Power untouched when removing gear even with an Astir present", () => {
+		const sheet = new PlaybookActorSheet();
+		const gear = { id: "1", kind: "gear", name: "Rope", description: "", tags: [], spent: [] };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, parts: [] }, equipment: [gear] } },
+			update: vi.fn()
+		};
+
+		sheet._onEquipmentRemove({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.equipment": [] });
 	});
 });
 
@@ -2980,6 +3547,14 @@ describe("PlaybookActorSheet#getData - moves", () => {
 					}
 				]
 			},
+			// Empty until the player picks something with the "+" — no playbook starts with any
+			// playbook moves. addable/removable are what render that "+" and each row's ✕.
+			{
+				label: "Playbook Moves",
+				moves: [],
+				addable: true,
+				removable: true
+			},
 			{
 				label: "Special Moves",
 				moves: [
@@ -3029,14 +3604,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						uses: []
 					}
 				]
-			},
-			// Empty until the player picks something with the "+" — no playbook starts with any
-			// playbook moves. addable/removable are what render that "+" and each row's ✕.
-			{
-				label: "Playbook Moves",
-				moves: [],
-				addable: true,
-				removable: true
 			}
 		]);
 	});
@@ -3393,7 +3960,7 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").gated).toBe(true);
+		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").gated).toBe(true);
 	});
 
 	it("gates b-plot when CHANNEL is missing from stats (reads as enabled)", () => {
@@ -3402,7 +3969,7 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").gated).toBe(true);
+		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").gated).toBe(true);
 	});
 
 	it("un-gates b-plot once CHANNEL is disabled", () => {
@@ -3411,7 +3978,7 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").gated).toBe(false);
+		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").gated).toBe(false);
 	});
 
 	it("never gates lead a sortie or subsystems off CHANNEL, unlike b-plot", () => {
@@ -3420,8 +3987,8 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[1].moves.find((m) => m.key === "lead-a-sortie").gated).toBe(false);
-		expect(data.moveGroups[1].moves.find((m) => m.key === "subsystems").gated).toBe(false);
+		expect(data.moveGroups[2].moves.find((m) => m.key === "lead-a-sortie").gated).toBe(false);
+		expect(data.moveGroups[2].moves.find((m) => m.key === "subsystems").gated).toBe(false);
 	});
 
 	it("also greys out b-plot's Description button when CHANNEL is enabled", () => {
@@ -3430,7 +3997,7 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").descriptionGated).toBe(true);
+		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").descriptionGated).toBe(true);
 	});
 
 	it("un-greys b-plot's Description button once CHANNEL is disabled", () => {
@@ -3439,7 +4006,7 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").descriptionGated).toBe(false);
+		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").descriptionGated).toBe(false);
 	});
 
 	it("never greys out weave magic's Description button, unlike b-plot", () => {
@@ -3500,7 +4067,7 @@ describe("PlaybookActorSheet#getData - flatHold moves' separate hold pools", () 
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").hold).toBe(2);
+		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").hold).toBe(2);
 		// Read the Room (a basic move) keeps reading the shared pool, unaffected by moveHold.
 		expect(data.moveGroups[0].moves.find((m) => m.key === "read-the-room").hold).toBe(5);
 	});
@@ -3511,7 +4078,7 @@ describe("PlaybookActorSheet#getData - flatHold moves' separate hold pools", () 
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").hold).toBe(0);
+		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").hold).toBe(0);
 	});
 
 	it("keeps two different flatHold moves' pools independent, keyed by their own move key", () => {
@@ -3531,8 +4098,8 @@ describe("PlaybookActorSheet#getData - flatHold moves' separate hold pools", () 
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[1].moves.find((m) => m.key === "b-plot").hold).toBe(2);
-		expect(data.moveGroups[2].moves.find((m) => m.key === "soldier:get-out-of-my-way").hold).toBe(1);
+		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").hold).toBe(2);
+		expect(data.moveGroups[1].moves.find((m) => m.key === "soldier:get-out-of-my-way").hold).toBe(1);
 	});
 });
 
@@ -3718,6 +4285,73 @@ describe("PlaybookActorSheet#_moveTraits", () => {
 
 		expect(sheet._moveTraits(move)).toEqual([{ key: "cargo", label: "CARGO", value: 3 }]);
 	});
+
+	it("offers +CHANNEL on any move when piloted with Input Channel installed", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, channel: { value: 2, disabled: true } },
+				attributes: { astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: true } }
+			}
+		};
+		const move = { traits: ["clash"] };
+
+		expect(sheet._moveTraits(move)).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 },
+			{ key: "channel", label: "CHANNEL", value: 2 }
+		]);
+	});
+
+	it("does not offer +CHANNEL when not piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, channel: { value: 2, disabled: true } },
+				attributes: { astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: false } }
+			}
+		};
+
+		expect(sheet._moveTraits({ traits: ["clash"] })).toEqual([{ key: "clash", label: "CLASH", value: 1 }]);
+	});
+
+	it("does not offer +CHANNEL without Input Channel installed", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, channel: { value: 2, disabled: true } },
+				attributes: { astir: { id: "a1", parts: [], piloted: true } }
+			}
+		};
+
+		expect(sheet._moveTraits({ traits: ["clash"] })).toEqual([{ key: "clash", label: "CLASH", value: 1 }]);
+	});
+
+	it("treats a missing channel stat value as 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 } },
+				attributes: { astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: true } }
+			}
+		};
+
+		expect(sheet._moveTraits({ traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 },
+			{ key: "channel", label: "CHANNEL", value: 0 }
+		]);
+	});
+
+	it("does not add a second CHANNEL entry when the move already rolls it", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 2, disabled: false } },
+				attributes: { astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: true } }
+			}
+		};
+
+		expect(sheet._moveTraits({ traits: ["channel"] })).toEqual([{ key: "channel", label: "CHANNEL", value: 2 }]);
+	});
 });
 
 describe("PlaybookActorSheet#_onMoveRoll", () => {
@@ -3772,7 +4406,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			BASIC_MOVES.find((m) => m.key === "help-or-hinder"),
 			[],
-			{ lockedEffect: null, equipmentSpends: [] }
+			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 
@@ -3791,7 +4425,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "clash", label: "CLASH", value: 1 },
 				{ key: "talk", label: "TALK", value: 0 }
 			],
-			{ lockedEffect: null, equipmentSpends: [] }
+			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 		// exchange-blows is usesWeapon (see moves.js) and the actor has no equipment at all here,
 		// so the weapon-choice step is skipped straight to "Unarmed" — see
@@ -3813,7 +4447,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, equipmentSpends: [] }
+			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 
@@ -3833,7 +4467,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 2 }
 			],
-			{ lockedEffect: null, equipmentSpends: [] }
+			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 
@@ -3856,7 +4490,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: -1 }
 			],
-			{ lockedEffect: null, equipmentSpends: [] }
+			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 
@@ -3889,7 +4523,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, equipmentSpends: [] }
+			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 
@@ -3912,7 +4546,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, equipmentSpends: [] }
+			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 
@@ -3958,7 +4592,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: "desperation", equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: "desperation", astirPartSpends: [], equipmentSpends: [] });
 	});
 
 	it("does not lock Desperation when at max Dangers but the types are mixed", async () => {
@@ -3979,7 +4613,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, astirPartSpends: [], equipmentSpends: [] });
 	});
 
 	it("does not lock Desperation when below max Dangers, even if all are Perils", async () => {
@@ -3999,7 +4633,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, astirPartSpends: [], equipmentSpends: [] });
 	});
 
 	it("never locks Desperation for a move without forcesDesperationAtMaxPerils, even at max Perils", async () => {
@@ -4026,7 +4660,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 				{ key: "clash", label: "CLASH", value: 0 },
 				{ key: "talk", label: "TALK", value: 0 }
 			],
-			{ lockedEffect: null, equipmentSpends: [] }
+			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 });
@@ -4066,7 +4700,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			DISPEL_UNCERTAINTIES,
 			[{ key: "know", label: "KNOW", value: 1 }],
-			{ lockedEffect: null, equipmentSpends: [blitzSpend] }
+			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [blitzSpend] }
 		);
 	});
 
@@ -4086,7 +4720,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null,
-			equipmentSpends: []
+			astirPartSpends: [], equipmentSpends: []
 		});
 	});
 
@@ -4106,7 +4740,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null,
-			equipmentSpends: [blitzSpend]
+			astirPartSpends: [], equipmentSpends: [blitzSpend]
 		});
 	});
 
@@ -4126,7 +4760,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null,
-			equipmentSpends: []
+			astirPartSpends: [], equipmentSpends: []
 		});
 	});
 
@@ -4146,7 +4780,73 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null,
-			equipmentSpends: []
+			astirPartSpends: [], equipmentSpends: []
+		});
+	});
+
+	it("excludes an Astir weapon's spendable tag while unpiloted, even for a non-usesWeapon move", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: {
+					astir: { id: "a1", piloted: false },
+					equipment: [{ id: "eq1", kind: "weapon", astir: true, name: "Lance", description: "", tags: ["blitz"], spent: [] }]
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null,
+			astirPartSpends: [], equipmentSpends: []
+		});
+	});
+
+	it("offers an Astir weapon's spendable tag once piloted, excluding a mundane weapon's", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: {
+					astir: { id: "a1", piloted: true },
+					equipment: [
+						{ id: "eq1", kind: "weapon", astir: true, name: "Lance", description: "", tags: ["blitz"], spent: [] },
+						{ id: "eq2", kind: "weapon", name: "Halberd", description: "", tags: ["blitz"], spent: [] }
+					]
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null,
+			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })]
+		});
+	});
+
+	it("leaves a gear entry's spendable tag unaffected by piloted state", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: {
+					astir: { id: "a1", piloted: true },
+					equipment: [{ id: "eq1", kind: "gear", name: "Charm", description: "", tags: ["blitz"], spent: [] }]
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null,
+			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })]
 		});
 	});
 
@@ -4166,7 +4866,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null,
-			equipmentSpends: []
+			astirPartSpends: [], equipmentSpends: []
 		});
 	});
 
@@ -4192,7 +4892,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], {
 			lockedEffect: "desperation",
-			equipmentSpends: [{ ...blitzSpend, disabled: true }]
+			astirPartSpends: [], equipmentSpends: [{ ...blitzSpend, disabled: true }]
 		});
 	});
 
@@ -4265,6 +4965,169 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 	});
 });
 
+describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
+	const know = { key: "know", label: "KNOW", value: 1 };
+	const wardingSpend = {
+		partKey: WARDING.key,
+		partName: "Warding",
+		description: WARDING.spend.description,
+		effect: null,
+		advantage: null,
+		disabled: false
+	};
+
+	it("offers an installed part's spend when piloted and not yet Expended", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { astir: { id: "a1", parts: [WARDING.key], piloted: true } }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null,
+			astirPartSpends: [wardingSpend],
+			equipmentSpends: []
+		});
+	});
+
+	it("offers nothing when not piloted", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { astir: { id: "a1", parts: [WARDING.key], piloted: false } }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null,
+			astirPartSpends: [],
+			equipmentSpends: []
+		});
+	});
+
+	it("excludes a part already marked Expended", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: {
+					astir: { id: "a1", parts: [WARDING.key], piloted: true },
+					moveUses: { [WARDING.key]: { expended: true } }
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null,
+			astirPartSpends: [],
+			equipmentSpends: []
+		});
+	});
+
+	it("excludes a part with no spend field", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { astir: { id: "a1", parts: [WEAPON_CONDUIT.key], piloted: true } }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null,
+			astirPartSpends: [],
+			equipmentSpends: []
+		});
+	});
+
+	// Artifact's spend sets Advantage, not Effect (unlike an equipment tag's spend) — a locked
+	// Effect (bite-the-dust at max Perils) has nothing to conflict with, so it stays offerable.
+	it("leaves an advantage-only spend enabled even when the roll's Effect is locked (bite the dust at max Perils)", async () => {
+		const sheet = new PlaybookActorSheet();
+		const defy = { key: "defy", label: "DEFY", value: 0 };
+		sheet.actor = {
+			system: {
+				stats: { defy: { value: 0 } },
+				attributes: {
+					dangers: [
+						{ id: "1", type: "peril", label: "a" },
+						{ id: "2", type: "peril", label: "b" },
+						{ id: "3", type: "peril", label: "c" }
+					],
+					astir: { id: "a1", parts: [ARTIFACT.key], piloted: true }
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], {
+			lockedEffect: "desperation",
+			astirPartSpends: [{
+				partKey: ARTIFACT.key,
+				partName: "Artifact",
+				description: ARTIFACT.spend.description,
+				effect: null,
+				advantage: "advantage",
+				disabled: false
+			}],
+			equipmentSpends: []
+		});
+	});
+
+	it("marks each checked part spend Expended, then rolls the move", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { astir: { id: "a1", parts: [WARDING.key], piloted: true } }
+			},
+			update: vi.fn()
+		};
+		const config = { trait: know, advantage: "none", effect: "none", spentParts: [WARDING.key] };
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ [`system.attributes.moveUses.${WARDING.key}.expended`]: true });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, {
+			...config,
+			spentPartLabels: [{ key: WARDING.key, label: "Warding" }]
+		});
+	});
+
+	it("does not touch moveUses when no astir part was spent", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { know: { value: 1 } }, attributes: {} },
+			update: vi.fn()
+		};
+		const config = { trait: know, advantage: "none", effect: "none" };
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, config);
+	});
+});
+
 describe("PlaybookActorSheet#activateListeners - weapon moves", () => {
 	it("binds a click handler to the per-weapon quick-roll buttons", () => {
 		const sheet = new PlaybookActorSheet();
@@ -4294,6 +5157,38 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		expect(chooseWeapon).toHaveBeenCalledWith([halberd, sidearm]);
 	});
 
+	it("excludes Astir weapons from the weapon choice while unpiloted", async () => {
+		const sheet = new PlaybookActorSheet();
+		const astirWeapon = { id: "eq3", kind: "weapon", astir: true, name: "Lance", description: "", tags: [], spent: [] };
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { astir: { id: "a1", piloted: false }, equipment: [halberd, astirWeapon] }
+			}
+		};
+		chooseWeapon.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(chooseWeapon).toHaveBeenCalledWith([halberd]);
+	});
+
+	it("excludes mundane weapons from the weapon choice while piloted, offering only Astir weapons", async () => {
+		const sheet = new PlaybookActorSheet();
+		const astirWeapon = { id: "eq3", kind: "weapon", astir: true, name: "Lance", description: "", tags: [], spent: [] };
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { astir: { id: "a1", piloted: true }, equipment: [halberd, astirWeapon] }
+			}
+		};
+		chooseWeapon.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(chooseWeapon).toHaveBeenCalledWith([astirWeapon]);
+	});
+
 	it("aborts the whole roll when the weapon-choice dialog is dismissed", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [halberd] } } };
@@ -4318,7 +5213,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null,
-			equipmentSpends: []
+			astirPartSpends: [], equipmentSpends: []
 		});
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
 	});
@@ -4338,7 +5233,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null,
-			equipmentSpends: [expect.objectContaining({ equipmentId: armed.id, tagKey: "blitz" })]
+			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: armed.id, tagKey: "blitz" })]
 		});
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz" });
 	});
@@ -4391,7 +5286,7 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 		expect(chooseWeapon).not.toHaveBeenCalled();
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null,
-			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })]
+			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })]
 		});
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz" });
 	});
@@ -4429,7 +5324,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: "desperation",
-			equipmentSpends: []
+			astirPartSpends: [], equipmentSpends: []
 		});
 	});
 
@@ -4446,7 +5341,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null,
-			equipmentSpends: []
+			astirPartSpends: [], equipmentSpends: []
 		});
 	});
 
@@ -4534,6 +5429,88 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
 			lockedEffect: null
 		}));
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - Familiar weapons (+CHANNEL override)", () => {
+	const wisp = { id: "eq1", kind: "weapon", astir: true, familiar: true, name: "Wisp Familiar III", description: "", tags: ["ranged"], spent: [] };
+
+	it("rolls Exchange Blows with a Familiar weapon as +CHANNEL instead of CLASH/TALK", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, talk: { value: 2 }, channel: { value: 3 } },
+				attributes: { equipment: [wisp] }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			[{ key: "channel", label: "CHANNEL", value: 3 }],
+			expect.any(Object)
+		);
+	});
+
+	it("rolls Strike Decisively with a Familiar weapon as +CHANNEL too", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, talk: { value: 2 }, channel: { value: 3 } },
+				attributes: { equipment: [wisp] }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "strike-decisively", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			STRIKE_DECISIVELY,
+			[{ key: "channel", label: "CHANNEL", value: 3 }],
+			expect.any(Object)
+		);
+	});
+
+	it("defaults CHANNEL to 0 when the actor has no channel stat at all", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { clash: { value: 1 }, talk: { value: 2 } }, attributes: { equipment: [wisp] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			[{ key: "channel", label: "CHANNEL", value: 0 }],
+			expect.any(Object)
+		);
+	});
+
+	it("leaves CLASH/TALK untouched for a non-Familiar weapon", async () => {
+		const sheet = new PlaybookActorSheet();
+		const halberd = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [] };
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, talk: { value: 2 }, channel: { value: 3 } },
+				attributes: { equipment: [halberd] }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			[{ key: "clash", label: "CLASH", value: 1 }, { key: "talk", label: "TALK", value: 2 }],
+			expect.any(Object)
+		);
 	});
 });
 
@@ -4668,7 +5645,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null,
-			equipmentSpends: [],
+			astirPartSpends: [], equipmentSpends: [],
 			guided: true
 		});
 	});
@@ -4684,7 +5661,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, astirPartSpends: [], equipmentSpends: [] });
 	});
 
 	it("treats a missing tags array as not Guided", async () => {
@@ -4698,7 +5675,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, astirPartSpends: [], equipmentSpends: [] });
 	});
 
 	it("is never Guided for Unarmed", async () => {
@@ -4711,7 +5688,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, astirPartSpends: [], equipmentSpends: [] });
 	});
 
 	it("posts a guided result and never rolls when Take 7-9 is chosen", async () => {
@@ -4741,6 +5718,274 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, { weaponLabel: "Unarmed", weaponTags: null });
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on any move)", () => {
+	it("is Guided for a non-weapon move when piloted with Spell Routines installed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { astir: { id: "a1", parts: [SPELL_ROUTINES.key], piloted: true } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null,
+			astirPartSpends: [],
+			equipmentSpends: [],
+			guided: true
+		});
+	});
+
+	it("is not Guided when not piloted, even with Spell Routines installed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { astir: { id: "a1", parts: [SPELL_ROUTINES.key], piloted: false } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null,
+			astirPartSpends: [],
+			equipmentSpends: []
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - Astir Part reactions (potions, doubles regen)", () => {
+	it("grants a Potion of each color after this actor rolls Lead a Sortie with Alchemical Suite installed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 }, defy: { value: 0 } },
+				attributes: {
+					astir: { id: "a1", parts: [ALCHEMICAL_SUITE.key], piloted: true, potions: { red: 1, blue: 0, yellow: 0 } }
+				}
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ trait: { key: "know", label: "KNOW", value: 1 }, advantage: "none", effect: "none" });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.astir.potions": { red: 2, blue: 1, yellow: 1 }
+		});
+	});
+
+	it("does not grant Potions for a move other than Lead a Sortie", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { astir: { id: "a1", parts: [ALCHEMICAL_SUITE.key], piloted: true } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ trait: { key: "know", label: "KNOW", value: 1 }, advantage: "none", effect: "none" });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalledWith(expect.objectContaining({
+			"system.attributes.astir.potions": expect.anything()
+		}));
+	});
+
+	it("regains 1 Power when the roll's kept dice come up doubles with Flourish Component installed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { astir: { id: "a1", parts: [FLOURISH_COMPONENT.key], piloted: true, power: 1 } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ trait: { key: "know", label: "KNOW", value: 1 }, advantage: "none", effect: "none" });
+		rollMove.mockResolvedValue({
+			message: undefined,
+			dice: [{ original: 3, result: 3, changed: false, kept: true }, { original: 3, result: 3, changed: false, kept: true }]
+		});
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.power": 2 });
+	});
+
+	it("does not regain Power when the roll's kept dice are not doubles", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { astir: { id: "a1", parts: [FLOURISH_COMPONENT.key], piloted: true, power: 1 } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ trait: { key: "know", label: "KNOW", value: 1 }, advantage: "none", effect: "none" });
+		rollMove.mockResolvedValue({
+			message: undefined,
+			dice: [{ original: 3, result: 3, changed: false, kept: true }, { original: 5, result: 5, changed: false, kept: true }]
+		});
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does not react to potions/doubles when not piloted", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 }, defy: { value: 0 } },
+				attributes: {
+					astir: { id: "a1", parts: [ALCHEMICAL_SUITE.key, FLOURISH_COMPONENT.key], piloted: false, power: 1 }
+				}
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ trait: { key: "know", label: "KNOW", value: 1 }, advantage: "none", effect: "none" });
+		rollMove.mockResolvedValue({
+			message: undefined,
+			dice: [{ original: 3, result: 3, changed: false, kept: true }, { original: 3, result: 3, changed: false, kept: true }]
+		});
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_grantPotions", () => {
+	it("increments each color by 1", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", potions: { red: 1, blue: 0, yellow: 0 } } } },
+			update: vi.fn()
+		};
+
+		await sheet._grantPotions();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.astir.potions": { red: 2, blue: 1, yellow: 1 }
+		});
+	});
+
+	it("treats a missing potions object as all zero", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1" } } }, update: vi.fn() };
+
+		await sheet._grantPotions();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.astir.potions": { red: 1, blue: 1, yellow: 1 }
+		});
+	});
+
+	it("does nothing when there is no Astir", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		await sheet._grantPotions();
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_regainAstirPower", () => {
+	it("adds the given amount, clamped to the parts-adjusted maximum", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", power: 1, parts: [] } } }, update: vi.fn() };
+
+		await sheet._regainAstirPower(1);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.power": 2 });
+	});
+
+	it("does not exceed the maximum", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: ASTIR_POWER_BASE, parts: [] } } },
+			update: vi.fn()
+		};
+
+		await sheet._regainAstirPower(1);
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing power and parts array as 0 and none", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1" } } }, update: vi.fn() };
+
+		await sheet._regainAstirPower(1);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.power": 1 });
+	});
+
+	it("does nothing when there is no Astir", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		await sheet._regainAstirPower(1);
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveResolved", () => {
+	it("does nothing when not piloted", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", parts: [ALCHEMICAL_SUITE.key], piloted: false } } },
+			update: vi.fn()
+		};
+
+		await sheet._onMoveResolved(LEAD_A_SORTIE, null);
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when there is no Astir at all", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		await sheet._onMoveResolved(LEAD_A_SORTIE, null);
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_spendAstirParts", () => {
+	it("marks each given part key Expended in one update", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		await sheet._spendAstirParts([WARDING.key, ARTIFACT.key]);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveUses.${WARDING.key}.expended`]: true,
+			[`system.attributes.moveUses.${ARTIFACT.key}.expended`]: true
+		});
+	});
+
+	it("writes nothing for an empty list", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		await sheet._spendAstirParts([]);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({});
 	});
 });
 
@@ -4783,6 +6028,26 @@ describe("PlaybookActorSheet#getData - weaponMoves", () => {
 		]);
 	});
 
+	it("gates a mundane weapon's weaponMoves once the Astir is piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					astir: { id: "a1", tier: 3, parts: [], move: null, piloted: true },
+					equipment: [{ id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [], scale: "foot", tier: 1 }]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.equipment.weapons[0].weaponMoves).toEqual([
+			{ key: "exchange-blows", name: "Exchange Blows", gated: true },
+			{ key: "strike-decisively", name: "Strike Decisively", gated: true }
+		]);
+	});
+
 	it("does not attach weaponMoves to gear", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
@@ -4797,6 +6062,50 @@ describe("PlaybookActorSheet#getData - weaponMoves", () => {
 		const data = sheet.getData();
 
 		expect(data.equipment.gear[0].weaponMoves).toBeUndefined();
+	});
+
+	it("gates an Astir weapon's weaponMoves when the Astir isn't piloted, regardless of its own gating", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					astir: { id: "a1", tier: 3, parts: [], move: null, piloted: false },
+					equipment: [
+						{ id: "eq1", kind: "weapon", astir: true, name: "Lance", description: "", tags: [], spent: [] }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.astir.weapons[0].weaponMoves).toEqual([
+			{ key: "exchange-blows", name: "Exchange Blows", gated: true },
+			{ key: "strike-decisively", name: "Strike Decisively", gated: true }
+		]);
+	});
+
+	it("leaves an Astir weapon's weaponMoves gating to its own logic once piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					astir: { id: "a1", tier: 3, parts: [], move: null, piloted: true },
+					equipment: [
+						{ id: "eq1", kind: "weapon", astir: true, name: "Lance", description: "", tags: [], spent: [] }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.astir.weapons[0].weaponMoves).toEqual([
+			{ key: "exchange-blows", name: "Exchange Blows", gated: false },
+			{ key: "strike-decisively", name: "Strike Decisively", gated: false }
+		]);
 	});
 });
 
@@ -4871,6 +6180,23 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 3
+		});
+	});
+
+	it("posts Read the Room's real question list to chat and checks Expended, for Divination Codex", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: DIVINATION_CODEX.key } } });
+
+		expect(ChatMessage.create).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			flavor: "<h3>Divination Codex</h3>",
+			content: `<ul>${READ_THE_ROOM.questions.map((question) => `<li>${question}</li>`).join("")}</ul>`
+		});
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveUses.${DIVINATION_CODEX.key}.expended`]: true
 		});
 	});
 });

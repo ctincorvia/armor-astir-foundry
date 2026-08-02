@@ -7,7 +7,8 @@ import {
 	advantageState,
 	applyRollEffects,
 	effectState,
-	rollConditions
+	rollConditions,
+	rolledDoubles
 } from "../scripts/roll-effects.js";
 
 function results(...values) {
@@ -160,6 +161,44 @@ describe("applyRollEffects", () => {
 		const breakdown = applyRollEffects(rolled, { advantage: advantageState("disadvantage"), effect: effectState("none") });
 
 		expect(breakdown.map((die) => die.kept)).toEqual([true, false, true]);
+	});
+});
+
+describe("rolledDoubles", () => {
+	it("is true when the two kept dice show the same result", () => {
+		const rolled = results(3, 3);
+		const breakdown = applyRollEffects(rolled, { advantage: advantageState("none"), effect: effectState("none") });
+
+		expect(rolledDoubles(breakdown)).toBe(true);
+	});
+
+	it("is false when the two kept dice differ", () => {
+		const rolled = results(3, 5);
+		const breakdown = applyRollEffects(rolled, { advantage: advantageState("none"), effect: effectState("none") });
+
+		expect(rolledDoubles(breakdown)).toBe(false);
+	});
+
+	it("ignores a discarded die that would have matched, under advantage", () => {
+		// Keeps the highest two (5, 4); the discarded 4 would tie the kept 4 if counted.
+		const rolled = results(4, 5, 4);
+		const breakdown = applyRollEffects(rolled, { advantage: advantageState("advantage"), effect: effectState("none") });
+
+		expect(rolledDoubles(breakdown)).toBe(false);
+	});
+
+	it("is true when the two kept dice under advantage happen to match", () => {
+		const rolled = results(2, 5, 5);
+		const breakdown = applyRollEffects(rolled, { advantage: advantageState("advantage"), effect: effectState("none") });
+
+		expect(rolledDoubles(breakdown)).toBe(true);
+	});
+
+	it("reflects a Confidence/Desperation substitution, same as the total itself does", () => {
+		const rolled = results(1, 6);
+		const breakdown = applyRollEffects(rolled, { advantage: advantageState("none"), effect: effectState("confidence") });
+
+		expect(rolledDoubles(breakdown)).toBe(true);
 	});
 });
 

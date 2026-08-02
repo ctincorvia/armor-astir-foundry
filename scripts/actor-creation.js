@@ -90,7 +90,7 @@ export function choosePlaybook(playbooks = PLAYBOOKS) {
 			content: "<p>Choose a playbook for the new character.</p>",
 			buttons,
 			close: () => resolve(null)
-		}).render(true);
+		}, { classes: ["armor-astir"] }).render(true);
 	});
 }
 
@@ -171,7 +171,7 @@ export function chooseActorKind(worldActorKinds = WORLD_ACTOR_KINDS) {
 			content: "<p>What kind of actor do you want to create?</p>",
 			buttons,
 			close: () => resolve(null)
-		}).render(true);
+		}, { classes: ["armor-astir"] }).render(true);
 	});
 }
 

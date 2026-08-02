@@ -401,11 +401,23 @@ export function availableMoveTraits(actor, move) {
 // the call, keeps this one place responsible for turning "what's offerable" into "what was
 // checked".
 //
+// astirPartSpends (see PlaybookActorSheet#_astirPartSpends) is the same idea for an Astir Part's
+// `spend` field rather than an equipment tag's — rendered in its own dialog section (see
+// move-roll-dialog.hbs) since it isn't tied to any one equipment entry. A checked part can set
+// either axis: `spend.effect` slots into the same precedence as an equipment tag's spend, and
+// `spend.advantage` (new — nothing overrode the Advantage axis before Artifact) wins over
+// whatever the Dice select reports, the same way a spent effect already wins over the Effect
+// select.
+//
 // guided (see PlaybookActorSheet#_weaponIsGuided) adds a third "Take 7-9 (Guided)" button
 // alongside Roll/Cancel — Guided's "take a 7-9 rather than rolling, if you wish" is the player's
 // choice at the moment of rolling, not a pre-filtered option, so every field above stays exactly
 // as offered; picking it just resolves without ever reading any of them.
-export async function configureMoveRoll(move, traits, { lockedEffect = null, equipmentSpends = [], guided = false } = {}) {
+export async function configureMoveRoll(
+	move,
+	traits,
+	{ lockedEffect = null, equipmentSpends = [], astirPartSpends = [], guided = false } = {}
+) {
 	const content = await renderTemplate(MOVE_ROLL_DIALOG_TEMPLATE, {
 		traits,
 		intents: move.intents,
@@ -414,6 +426,7 @@ export async function configureMoveRoll(move, traits, { lockedEffect = null, equ
 		effectStates: EFFECT_STATES,
 		lockedEffect,
 		equipmentSpends,
+		astirPartSpends,
 		guided
 	});
 
@@ -425,8 +438,9 @@ export async function configureMoveRoll(move, traits, { lockedEffect = null, equ
 				roll: {
 					label: "Roll",
 					// intent/conditions keys are only added for moves that define them (Help or
-					// Hinder); spentTags is only added when there was equipment to offer in the
-					// first place — every other roll's resolved shape is untouched.
+					// Hinder); spentTags/spentParts are only added when there was equipment/an
+					// Astir Part to offer in the first place — every other roll's resolved shape
+					// is untouched.
 					callback: (html) => {
 						const spentTags = equipmentSpends.length
 							? html.find("[name='equipment-tag']:checked").map((_, el) => el.value).get()
@@ -435,6 +449,12 @@ export async function configureMoveRoll(move, traits, { lockedEffect = null, equ
 									return { equipmentId, tagKey };
 								})
 							: [];
+						const spentParts = astirPartSpends.length
+							? html.find("[name='astir-part-spend']:checked").map((_, el) => el.value).get()
+							: [];
+						const spentPartSpends = spentParts
+							.map((partKey) => astirPartSpends.find((spend) => spend.partKey === partKey))
+							.filter(Boolean);
 						// A checked spend's effect (e.g. Blitz -> confidence) sets the roll's
 						// Effect directly, the same way lockedEffect does — checking the tag IS
 						// the player choosing to act with confidence, so it can't require also
@@ -449,18 +469,21 @@ export async function configureMoveRoll(move, traits, { lockedEffect = null, equ
 							))
 							.filter(Boolean)
 							.at(-1)?.effect;
+						const spentPartEffect = spentPartSpends.filter((spend) => spend.effect).at(-1)?.effect;
+						const spentPartAdvantage = spentPartSpends.filter((spend) => spend.advantage).at(-1)?.advantage;
 
 						resolve({
 							trait: traits.find((t) => t.key === html.find("[name='trait']").val()),
-							advantage: html.find("[name='advantage']").val(),
-							effect: lockedEffect ?? spentEffect ?? html.find("[name='effect']").val(),
+							advantage: spentPartAdvantage ?? html.find("[name='advantage']").val(),
+							effect: lockedEffect ?? spentEffect ?? spentPartEffect ?? html.find("[name='effect']").val(),
 							...(move.intents && {
 								intent: move.intents.find((i) => i.key === html.find("[name='intent']").val())
 							}),
 							...(move.conditions && {
 								conditions: html.find("[name='condition']:checked").map((_, el) => el.value).get()
 							}),
-							...(equipmentSpends.length && { spentTags })
+							...(equipmentSpends.length && { spentTags }),
+							...(astirPartSpends.length && { spentParts })
 						});
 					}
 				},
@@ -548,6 +571,12 @@ export async function rollMove(actor, move, trait, options = {}) {
 		.filter(Boolean)
 		.map(({ key, label }) => ({ key, label }));
 
+	// A spent Astir Part (Warding, Artifact — see astir.js) is the same kind of "why the total is
+	// what it is" badge as a spent equipment tag, so it rides in the same conditions list. Passed
+	// in pre-resolved (rather than a partKey this module would have to look up) so moves.js never
+	// needs to import astir.js — see PlaybookActorSheet#_rollMove.
+	const astirPartConditions = options.spentPartLabels ?? [];
+
 	// options.reroll (see PlaybookActorSheet#_availableReroll) is only ever set for a usesWeapon
 	// move whose chosen weapon still has an unspent Decisive/Defensive/Versatile tag matching this
 	// move — but the reroll itself (Decisive: "reroll a failed strike decisively") only ever
@@ -592,7 +621,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 		tierLabel: MOVE_RESULT_LABELS[tier],
 		resultText: move.results[tier],
 		reminders: tier === "failure" ? FAILURE_REMINDERS : null,
-		conditions: [...rollConditions(advantage, effect), ...moveConditions, ...equipmentConditions],
+		conditions: [...rollConditions(advantage, effect), ...moveConditions, ...equipmentConditions, ...astirPartConditions],
 		dice,
 		hold,
 		questionPrompt: move.questionPrompts?.[tier] ?? null,
@@ -600,11 +629,16 @@ export async function rollMove(actor, move, trait, options = {}) {
 		reroll: Boolean(rerollOffer)
 	});
 
-	return roll.toMessage({
+	const message = await roll.toMessage({
 		speaker: ChatMessage.getSpeaker({ actor }),
 		flavor,
 		...(rerollOffer && { flags: { "armor-astir": { reroll: rerollOffer } } })
 	});
+
+	// dice is returned alongside the chat message so PlaybookActorSheet#_rollMove can check for
+	// Flourish Component's "regain Power on doubles" (see roll-effects.js#rolledDoubles) without
+	// this module needing to know anything about Astir Parts.
+	return { message, dice };
 }
 
 // Guided's "take a 7-9 rather than rolling, if you wish" (see equipment.js's EQUIPMENT_TAGS

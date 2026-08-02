@@ -1,6 +1,7 @@
 import { APPROACHES } from "./approaches.js";
 
-export const TAG_VALUE_MIN = -2;
+// -3 exists solely for Drain 3 (see EQUIPMENT_TAGS below) — every other tag stays within -2..+2.
+export const TAG_VALUE_MIN = -3;
 export const TAG_VALUE_MAX = 2;
 
 // The one group of mutually-exclusive tags this module currently has (Melee/Ranged/Sniper —
@@ -9,12 +10,19 @@ export const TAG_VALUE_MAX = 2;
 // since it's the only group that needs one.
 export const WEAPON_RANGE_GROUP = "weapon-range";
 
+// The second exclusiveGroup: Drain 1/2/3 (see EQUIPMENT_TAGS below) behave like a radio button
+// the same way Melee/Ranged/Sniper do, so an item can't carry more than one Drain tier at once.
+// Unlike WEAPON_RANGE_GROUP, membership in this group does NOT exempt a tag from MAX_TAGS below —
+// Drain still carries a real negative value (it's a drawback pick, not a pure classifier), so
+// each tier costs one regular tag slot like any other tag.
+export const DRAIN_GROUP = "drain";
+
 // Applies to every equipment entry (weapon or gear), and — like WEAPON_RANGE_GROUP above — never
-// counts a tag's `exclusiveGroup` membership (Melee/Ranged/Sniper) against the cap, since those
+// counts a tag's WEAPON_RANGE_GROUP membership (Melee/Ranged/Sniper) against the cap, since those
 // are a classifier rather than a regular tag pick. Enforced only at Save, same as the blank-name
 // and weapon-range checks in configureEquipment. Flat across every tier (not scaled by TIER_MIN/
 // TIER_MAX) — Ashstaff I in EQUIPMENT_CATALOG needs 4 regular tags despite being Tier I, which is
-// what set this cap.
+// what pushed this cap to 4.
 export const MAX_TAGS = 4;
 
 export const TIER_MIN = 1;
@@ -72,7 +80,30 @@ export const WEAPON_SCALES = [
 // that group is checked. That's a single hardcoded weapon-only check, not a generic "required
 // groups" system, since it's the only group that needs one.
 export const EQUIPMENT_TAGS = [
+	// -3: Drain 3, the most severe Drain tier — see the Drain 1/2/3 trio below (-1 and -2 bands)
+	// for the shared exclusiveGroup/MAX_TAGS explanation. No other tag currently needs this band.
+	{
+		key: "drain-3",
+		label: "Drain 3",
+		value: -3,
+		exclusiveGroup: DRAIN_GROUP,
+		// "Reduces Power by N while equipped" is wired for real, but only for a weapon actually
+		// mounted on an Astir (kind: "weapon", astir: true — see astir.js#astirWeaponDrainTotal/
+		// astirMaxPower). A Drain tag on gear or a mundane (Foot-scale) weapon can still be picked
+		// here — the editor doesn't forbid it — but it stays inert prose, since neither draws on an
+		// Astir's own Power.
+		description: "This object draws excessive power from an Astir, and reduces the Astir's Power by 3 " +
+			"while equipped."
+	},
 	// -2: heavy drawbacks that largely restrict an object's usefulness or availability.
+	{
+		key: "drain-2",
+		label: "Drain 2",
+		value: -2,
+		exclusiveGroup: DRAIN_GROUP,
+		description: "This object draws excessive power from an Astir, and reduces the Astir's Power by 2 " +
+			"while equipped."
+	},
 	{
 		key: "cursed",
 		label: "Cursed",
@@ -142,17 +173,12 @@ export const EQUIPMENT_TAGS = [
 		description: "Large (relative to tier) and difficult or awkward to move around."
 	},
 	{
-		key: "drain",
-		label: "Drain",
+		key: "drain-1",
+		label: "Drain 1",
 		value: -1,
-		// "Reduces Power by 1 while equipped" needs an equipped/unequipped state this module
-		// doesn't track (Power is a plain stepper with no computed max — see claude.md). Left as
-		// prose; the player adjusts the Power stepper themselves. "Multiple times" already works
-		// with no extra code: a repeated key in one entry's tags array resolves to duplicate tag
-		// objects and sums normally (see equipmentValue), so stacking Drain just means listing the
-		// key more than once.
+		exclusiveGroup: DRAIN_GROUP,
 		description: "This object draws excessive power from an Astir, and reduces the Astir's Power by 1 " +
-			"while equipped. Objects can have this tag multiple times, increasing the reduction."
+			"while equipped."
 	},
 	{
 		key: "distinct",
@@ -698,6 +724,7 @@ export function equipmentValue(keys = [], tags = EQUIPMENT_TAGS) {
 }
 
 const TAG_VALUE_GROUPS = [
+	{ value: -3, label: "Severe Drawbacks (-3)" },
 	{ value: -2, label: "Heavy Drawbacks (-2)" },
 	{ value: -1, label: "Minor Drawbacks (-1)" },
 	{ value: 0, label: "No Effect (0)" },
@@ -763,7 +790,7 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 // `{ kind }` with no `id`, and that still reads as "Add".
 //
 // scale/tier are only ever present on the resolved object when Kind is Weapon at submit time —
-// Gear never carries them, regardless of what the Scale/Tier fields currently show (Kind changing
+// Gear never carries them, regardless of what the Kind/Tier fields currently show (Kind changing
 // live doesn't hide them — the Tags total below is this dialog's only live-reactive wiring so
 // far, kept intentionally narrow rather than extended to every field).
 //
@@ -780,20 +807,24 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 // weapon is always a weapon, always Astir scale (Carriers are never Foot scale), and always
 // Tier 5 — but unlike an Astir weapon, there's nothing else for it to inherit those from, so
 // Tier stays a visible, disabled field (fixed at TIER_MAX) rather than being hidden outright.
+//
+// Scale itself is never a player-facing choice, for any caller: it now drives real behavior (see
+// PlaybookActorSheet's Piloted mutual-exclusivity between Astir and mundane weapons), so letting a
+// plain custom weapon be labeled Astir Scale without actually being flagged `astir: true` would be
+// actively misleading — it would render as Astir Scale but behave as a mundane weapon. The neither-
+// astirWeapon-nor-carrierWeapon ("mundane") path is always resolved as `"foot"`; `carrierWeapon` is
+// always `"astir"`; `astirWeapon` never stores a scale at all. There's no `<select name="scale">`
+// left in the template for any of the three.
 export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, { note, astirWeapon = false, carrierWeapon = false } = {}) {
 	const content = await renderTemplate(EQUIPMENT_EDITOR_TEMPLATE, {
 		note,
 		astirWeapon,
 		carrierWeapon,
-		// Kind and Scale are hidden for the same two callers — only Tier's treatment differs
-		// between them (hidden for Astir, shown-but-disabled for Carrier) — so one combined flag
-		// keeps the template from needing doubly-nested {{#unless}} blocks.
-		hideKindAndScale: astirWeapon || carrierWeapon,
+		// Kind is hidden for the same two callers that force Scale/Tier — see the doc comment above.
+		hideKind: astirWeapon || carrierWeapon,
 		name: initial?.name ?? "",
 		description: initial?.description ?? "",
 		isWeapon: astirWeapon || carrierWeapon || (initial?.kind ?? "weapon") === "weapon",
-		scale: carrierWeapon ? "astir" : (initial?.scale ?? WEAPON_SCALES[0].key),
-		scales: WEAPON_SCALES,
 		tier: carrierWeapon ? TIER_MAX : (initial?.tier ?? TIER_MIN),
 		tierMin: TIER_MIN,
 		tierMax: TIER_MAX,
@@ -858,11 +889,13 @@ export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, 
 						const kind = (astirWeapon || carrierWeapon) ? "weapon" : html.find("[name='kind']").val();
 						const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
 						// Every checked key is a real tag — it was rendered from `tags` in the first
-						// place — so findEquipmentTag can't miss in either check below.
-						const regularTagCount = checkedKeys.filter((key) => !findEquipmentTag(key, tags).exclusiveGroup).length;
-						// Applies to weapons and gear alike, and never counts an exclusiveGroup tag
-						// (Melee/Ranged/Sniper) against the cap — see MAX_TAGS. Feedback rather than a
-						// silent no-op, same reasoning as the weapon-range check below.
+						// place — so findEquipmentTag can't miss in either check below. Only
+						// WEAPON_RANGE_GROUP is exempt from the count (a pure classifier, not a Value
+						// modifier) — DRAIN_GROUP tags still count, since Drain carries a real value.
+						const regularTagCount = checkedKeys.filter((key) => findEquipmentTag(key, tags).exclusiveGroup !== WEAPON_RANGE_GROUP).length;
+						// Applies to weapons and gear alike, and never counts a Melee/Ranged/Sniper tag
+						// against the cap — see MAX_TAGS. Feedback rather than a silent no-op, same
+						// reasoning as the weapon-range check below.
 						if (regularTagCount > MAX_TAGS) {
 							ui.notifications.warn(`Equipment can have at most ${MAX_TAGS} tags, not counting Melee/Ranged/Sniper.`);
 							resolve(null);
@@ -882,10 +915,11 @@ export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, 
 							tags: checkedKeys,
 							// scale/tier are never resolved for an Astir weapon — both are inherited from
 							// the Astir itself (see PlaybookActorSheet#_equipmentEntry) rather than stored.
-							// A Carrier weapon does store both, but always as the fixed astir/TIER_MAX pair
-							// rather than whatever the (disabled, for tier; absent, for scale) DOM fields show.
+							// A Carrier weapon does store both, but always as the fixed astir/TIER_MAX pair.
+							// A mundane weapon is always Foot Scale — there's no DOM field to read (see the
+							// doc comment above configureEquipment).
 							...(kind === "weapon" && !astirWeapon && {
-								scale: carrierWeapon ? "astir" : html.find("[name='scale']").val(),
+								scale: carrierWeapon ? "astir" : "foot",
 								tier: carrierWeapon
 									? TIER_MAX
 									: Math.min(TIER_MAX, Math.max(TIER_MIN, Number(html.find("[name='tier']").val()) || TIER_MIN))

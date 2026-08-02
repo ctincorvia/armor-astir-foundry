@@ -11,6 +11,7 @@ import {
 	rollMove
 } from "./moves.js";
 import { TRAITS } from "./traits.js";
+import { rolledDoubles } from "./roll-effects.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "./advancements.js";
 import { ALL_PLAYBOOK_MOVES, choosePlaybookMove, resolvePlaybookMoves } from "./playbook-moves.js";
 import {
@@ -37,10 +38,12 @@ import {
 	ASTIR_TIER_MIN,
 	astirCoreApproaches,
 	astirMaxPower,
+	astirMaxWeaponPower,
 	chooseAstirMove,
 	chooseAstirPart,
 	chooseAstirWeapon,
 	findAstirMove,
+	findAstirPart,
 	resolveAstirParts
 } from "./astir.js";
 import { chooseCarrier, findCarrierActors } from "./carrier-actor-sheet.js";
@@ -152,10 +155,11 @@ export class PlaybookActorSheet extends ActorSheet {
 		// per-actor set picked via the "+" button, so it's the only group that renders add/remove
 		// controls (see the template's addable/removable branches). All three run through the same
 		// _moveGroupMoves, so a picked move gets trait filtering, gating, hold tracking and its
-		// Roll/Activate/Description buttons with no extra handling.
+		// Roll/Activate/Description buttons with no extra handling. Display order is basic, then
+		// playbook, then Astir (if any), then special — the character's own moves read before the
+		// fixed reference lists, moveGroups[0] staying Basic for existing tests.
 		data.moveGroups = [
 			{ label: "Basic Moves", moves: this._moveGroupMoves(BASIC_MOVES) },
-			{ label: "Special Moves", moves: this._moveGroupMoves(SPECIAL_MOVES) },
 			{
 				label: "Playbook Moves",
 				moves: this._moveGroupMoves(resolvePlaybookMoves(this._playbookMoves())),
@@ -166,15 +170,25 @@ export class PlaybookActorSheet extends ActorSheet {
 		// Astir Parts read as moves, and the Astir's one unique move joins them under the same
 		// group — both are picked/removed only from the Astir tab (see _onAstirPartAdd/
 		// _onAstirMoveAdd), so unlike Playbook Moves this group renders no add/remove controls of
-		// its own. Appended, rather than inserted, so moveGroups[0..2] stay positionally stable for
-		// existing tests, and only pushed when there's something to show — a character with no
-		// Astir (or an empty one) leaves moveGroups exactly as it was before this feature existed.
-		const astirParts = resolveAstirParts(astir?.parts ?? []);
+		// its own. Inserted here (rather than always pushed) so it lands between Playbook and
+		// Special per the ordering above, and only when there's something to show — a character
+		// with no Astir (or an empty one) leaves moveGroups exactly as it was before this feature
+		// existed.
+		const astirParts = this._astirParts();
 		const astirMove = astir?.move ? findAstirMove(astir.move) : null;
 		const astirMoves = [...astirParts, ...(astirMove ? [astirMove] : [])];
+		const piloted = this._astirPiloted();
 		if (astirMoves.length) {
-			data.moveGroups.push({ label: "Astir Moves", moves: this._moveGroupMoves(astirMoves) });
+			// Every entry in this group — parts and the Astir's own unique move alike — only does
+			// anything while piloted (see claude.md's Piloted note), so `gated` is forced on top of
+			// whatever gating a part already has, the same disabled-Roll/Activate treatment
+			// channelGated already gives b-plot.
+			data.moveGroups.push({
+				label: "Astir Moves",
+				moves: this._moveGroupMoves(astirMoves).map((move) => ({ ...move, gated: move.gated || !piloted }))
+			});
 		}
+		data.moveGroups.push({ label: "Special Moves", moves: this._moveGroupMoves(SPECIAL_MOVES) });
 		// Custom-made equipment (see claude.md, "Domain conventions") — never picked from a list,
 		// so unlike moves there's no shared catalog of equipment itself, only of the Tags that can
 		// be attached to it (see equipment.js). One array partitioned by `kind` (and, for weapons,
@@ -188,7 +202,15 @@ export class PlaybookActorSheet extends ActorSheet {
 		// `../equipment.weaponMoves` template lookup. Reusing _moveGroupMoves (rather than
 		// hand-rolling gating) means these buttons inherit the exact same, already-tested `gated`
 		// semantics as the Moves tab's own Roll buttons for free.
-		const weaponMoves = this._moveGroupMoves(WEAPON_MOVES).map(({ key, name, gated }) => ({ key, name, gated }));
+		// Astir and mundane weapons are mutually exclusive by Piloted state (see claude.md's Piloted
+		// note): while piloted, only Astir weapons' quick-roll buttons work; while not, only mundane
+		// weapons' do. Both are derived independently from the same ungated base — deriving one from
+		// the other (e.g. astirWeaponMoves as weaponMoves.map(... || !piloted)) would compound both
+		// conditions together and leave it permanently gated, since `piloted || !piloted` is always
+		// true.
+		const baseWeaponMoves = this._moveGroupMoves(WEAPON_MOVES).map(({ key, name, gated }) => ({ key, name, gated }));
+		const weaponMoves = baseWeaponMoves.map((move) => ({ ...move, gated: move.gated || piloted }));
+		const astirWeaponMoves = baseWeaponMoves.map((move) => ({ ...move, gated: move.gated || !piloted }));
 		// The "+ Choose Starting Gear" button (see _onStartingGearAdd) only shows up once its
 		// playbook's pool actually has something to offer — same "drop when empty" treatment
 		// playbookMoveSections gives an empty pool, so Commander/Impostor stay hidden until their
@@ -203,7 +225,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		// and data.astir.weapons (Astir tab) below, so there's only one place resolving them.
 		const astirWeapons = equipment
 			.filter((item) => item.kind === "weapon" && item.astir)
-			.map((item) => this._equipmentEntry(item, weaponMoves, astir));
+			.map((item) => this._equipmentEntry(item, astirWeaponMoves, astir));
 		data.equipment = {
 			tierMin: TIER_MIN,
 			tierMax: TIER_MAX,
@@ -238,10 +260,38 @@ export class PlaybookActorSheet extends ActorSheet {
 				approach: astir.approach ?? "",
 				tier: astir.tier ?? ASTIR_TIER_MIN,
 				overheating: astir.overheating ?? false,
-				// max is always derived from the current parts, never stored — same reasoning as
-				// equipmentValue/advancements.topCount — so it can't drift after a part changes.
-				power: { value: astir.power ?? 0, max: astirMaxPower(astir.parts ?? []) },
-				parts: astirParts.map((part) => ({ key: part.key, name: part.name, powerCost: part.powerCost })),
+				// Gates every part/Astir-weapon benefit (see claude.md's Piloted note) — unchecked
+				// by default (see _onAstirCreate). Managing the loadout itself (add/remove/edit
+				// Parts, the Astir Move, Astir weapons) is never gated by this.
+				piloted,
+				// max is always derived from the current parts and equipment, never stored — same
+				// reasoning as equipmentValue/advancements.topCount — so it can't drift after a part
+				// or weapon changes. negative flags Weapon Drain having outstripped max Power (see
+				// claude.md's Piloted note) so the template can call it out visually, not just via
+				// the one-time warning toast the mutation handlers raise.
+				power: { value: astir.power ?? 0, max: astirMaxPower(astir.parts ?? [], equipment), negative: (astir.power ?? 0) < 0 },
+				// A second, Weapon-Conduit-only Power pool — 0/0 (and hidden by the template) for
+				// every Astir that doesn't have it.
+				weaponPower: { value: astir.weaponPower ?? 0, max: astirMaxWeaponPower(astir.parts ?? [], equipment) },
+				// Both only appear once a part actually grants them — an object (even one holding
+				// 0) rather than a bare number, so the template's {{#if}} doesn't mistake a
+				// legitimate 0 count for "not present".
+				potions: astirParts.some((part) => part.grantsPotionsOnLeadASortie)
+					? {
+						red: astir.potions?.red ?? 0,
+						blue: astir.potions?.blue ?? 0,
+						yellow: astir.potions?.yellow ?? 0
+					}
+					: null,
+				repairTokens: astirParts.some((part) => part.grantsRepairTokens)
+					? { value: astir.repairTokens ?? 0 }
+					: null,
+				parts: astirParts.map((part) => ({
+					key: part.key,
+					name: part.name,
+					powerCost: part.powerCost,
+					partType: part.partType
+				})),
 				move: astirMove ? { key: astirMove.key, name: astirMove.name } : null,
 				weapons: astirWeapons
 			})
@@ -316,6 +366,21 @@ export class PlaybookActorSheet extends ActorSheet {
 		return this.actor.system.attributes?.astir ?? null;
 	}
 
+	// Every installed part, resolved from its stored keys — purely "what's installed," used for
+	// display (the Parts list, Weapon Power's max) regardless of whether the Astir is currently
+	// piloted. Effect sites (guided, +CHANNEL, spends, doubles regen, potions) each check
+	// _astirPiloted() themselves rather than this returning [] when unpiloted, since the Parts
+	// list itself still needs to show installed-but-inactive parts.
+	_astirParts() {
+		return resolveAstirParts(this._astir()?.parts ?? []);
+	}
+
+	// Whether a part's/Astir weapon's benefits currently apply at all — see claude.md's "A part's
+	// benefits only apply while the Astir is actually being piloted."
+	_astirPiloted() {
+		return Boolean(this._astir()?.piloted);
+	}
+
 	// Shared by getData (render shape) and _equipmentSpends (roll dialog offers) so a tag's
 	// current definition is only ever resolved from the catalog in one place. Value is always the
 	// live sum of the entry's current tags (see equipmentValue in equipment.js), never stored, so
@@ -378,8 +443,15 @@ export class PlaybookActorSheet extends ActorSheet {
 	// more than one weapon in hand.
 	_equipmentSpends(lockedEffect, weapon) {
 		const scoped = weapon !== undefined;
+		const piloted = this._astirPiloted();
 		const spends = [];
 		for (const entry of this._equipment()) {
+			// Astir/mundane weapons are mutually exclusive by Piloted state (see claude.md's Piloted
+			// note) — a weapon on the wrong side never offers its tags, regardless of `weapon`/scoped
+			// (this is the one spot that isn't already reached through _onMoveRoll's own piloted
+			// filter, since a non-usesWeapon move leaves `weapon` undefined and scoped false). Gear
+			// is untouched.
+			if (entry.kind === "weapon" && Boolean(entry.astir) !== piloted) continue;
 			if (scoped && entry.kind === "weapon" && entry.id !== weapon?.id) continue;
 			const spent = entry.spent ?? [];
 			for (const tagKey of entry.tags ?? []) {
@@ -399,6 +471,29 @@ export class PlaybookActorSheet extends ActorSheet {
 					disabled: Boolean(lockedEffect)
 				});
 			}
+		}
+		return spends;
+	}
+
+	// The Astir Parts equivalent of _equipmentSpends above — every installed part with a `spend`
+	// field (Warding, Artifact — see astir.js) that isn't already Expended, offered in the roll
+	// dialog's own Astir Parts section (see configureMoveRoll/move-roll-dialog.hbs). Returns []
+	// outright when not piloted (see claude.md's Piloted note) — unlike _equipmentSpends, parts
+	// aren't scoped by weapon, since none of them are weapon-specific.
+	_astirPartSpends(lockedEffect) {
+		if (!this._astirPiloted()) return [];
+		const spends = [];
+		for (const part of this._astirParts()) {
+			if (!part.spend) continue;
+			if (this.actor.system.attributes?.moveUses?.[part.key]?.expended) continue;
+			spends.push({
+				partKey: part.key,
+				partName: part.name,
+				description: part.spend.description,
+				effect: part.spend.effect ?? null,
+				advantage: part.spend.advantage ?? null,
+				disabled: Boolean(lockedEffect && part.spend.effect)
+			});
 		}
 		return spends;
 	}
@@ -463,8 +558,10 @@ export class PlaybookActorSheet extends ActorSheet {
 				// conditions by design (Subsystems, B-Plot) shows no Roll button at all.
 				rollable: move.traits.length > 0 || Boolean(move.conditions),
 				// Moves with a flat hold grant (B-Plot) show an Activate button in place of Roll —
-				// see the template's rollable/activatable branch and _onMoveActivate.
-				activatable: Boolean(move.flatHold),
+				// see the template's rollable/activatable branch and _onMoveActivate. Divination
+				// Codex's showsReadTheRoomQuestions gets the same button, for the same reason: no
+				// dice, just an action to take.
+				activatable: Boolean(move.flatHold) || Boolean(move.showsReadTheRoomQuestions),
 				// Weave Magic's description stays readable even while its Roll button is gated —
 				// you can still learn what the move does. B-Plot is different: being "in the
 				// b-plot" isn't something a Channel-enabled character can do at all, so its
@@ -507,6 +604,20 @@ export class PlaybookActorSheet extends ActorSheet {
 			label: trait.label,
 			value: this.actor.system.stats?.[trait.key]?.value ?? 0
 		}));
+		// Input Channel (see astir.js) offers +CHANNEL on any move, bypassing both that move's own
+		// traits list and Channel's disabled gate — only while piloted, and only added once (a
+		// move that already rolls +CHANNEL, e.g. Weave Magic, isn't given a second entry).
+		if (this._astirPiloted() && !actorTraits.some((trait) => trait.key === "channel")
+			&& this._astirParts().some((part) => part.grantsChannelOnAnyMove)) {
+			// TRAITS is a fixed, six-entry constant (see traits.js) that always includes channel —
+			// no fallback needed for a lookup that can't fail.
+			const channel = TRAITS.find((trait) => trait.key === "channel");
+			actorTraits.push({
+				key: channel.key,
+				label: channel.label,
+				value: this.actor.system.stats?.channel?.value ?? 0
+			});
+		}
 		const fixedTraits = (move.fixedTraits ?? []).map((trait) => (
 			trait.key === "crew" ? { ...trait, value: this._crewFixedTraitValue() } : trait
 		));
@@ -556,7 +667,10 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".astir-approach-select").on("change", this._onAstirApproachChange.bind(this));
 		html.find(".astir-tier-step").on("click", this._onAstirTierStep.bind(this));
 		html.find(".astir-power-step").on("click", this._onAstirPowerStep.bind(this));
+		html.find(".astir-weapon-power-step").on("click", this._onAstirWeaponPowerStep.bind(this));
 		html.find(".astir-overheating-checkbox").on("change", this._onAstirOverheatingToggle.bind(this));
+		html.find(".astir-piloted-checkbox").on("change", this._onAstirPilotedToggle.bind(this));
+		html.find(".astir-potion-use").on("click", this._onAstirPotionUse.bind(this));
 		html.find(".astir-part-add").on("click", this._onAstirPartAdd.bind(this));
 		html.find(".astir-part-remove").on("click", this._onAstirPartRemove.bind(this));
 		html.find(".astir-move-add").on("click", this._onAstirMoveAdd.bind(this));
@@ -630,6 +744,9 @@ export class PlaybookActorSheet extends ActorSheet {
 				tier: ASTIR_TIER_MIN,
 				power: ASTIR_POWER_BASE,
 				overheating: false,
+				// Unchecked by default — a player isn't always in their Astir, and every part/Astir
+				// weapon benefit is inert until this is checked (see claude.md's Piloted note).
+				piloted: false,
 				parts: [],
 				move: null
 			}
@@ -681,10 +798,23 @@ export class PlaybookActorSheet extends ActorSheet {
 		if (!astir) return;
 		const { delta } = event.currentTarget.dataset;
 		const current = astir.power ?? 0;
-		const max = astirMaxPower(astir.parts ?? []);
+		const max = astirMaxPower(astir.parts ?? [], this._equipment());
 		const next = Math.min(max, Math.max(ASTIR_POWER_MIN, current + Number(delta)));
 		if (next === current) return;
 		this.actor.update({ "system.attributes.astir.power": next });
+	}
+
+	// Bounded by astirMaxWeaponPower rather than a fixed constant, since only Weapon Conduit grants
+	// this pool at all — see getData's weaponPower.max.
+	_onAstirWeaponPowerStep(event) {
+		const astir = this._astir();
+		if (!astir) return;
+		const { delta } = event.currentTarget.dataset;
+		const current = astir.weaponPower ?? 0;
+		const max = astirMaxWeaponPower(astir.parts ?? [], this._equipment());
+		const next = Math.min(max, Math.max(ASTIR_POWER_MIN, current + Number(delta)));
+		if (next === current) return;
+		this.actor.update({ "system.attributes.astir.weaponPower": next });
 	}
 
 	_onAstirOverheatingToggle(event) {
@@ -692,8 +822,54 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({ "system.attributes.astir.overheating": event.currentTarget.checked });
 	}
 
-	// Adding a Part can lower max Power below the current value, so both are written in the same
-	// update — see astirMaxPower.
+	// Blocks manually re-checking Piloted while Power is negative (see claude.md's Piloted note) —
+	// mirrors _astirPowerUpdates' own auto-uncheck-on-mutation guard, for the case where the player
+	// tries to flip it back on directly instead of changing their loadout first.
+	_onAstirPilotedToggle(event) {
+		const astir = this._astir();
+		if (!astir) return;
+		const checked = event.currentTarget.checked;
+		if (checked && (astir.power ?? 0) < 0) {
+			event.currentTarget.checked = false;
+			ui.notifications.warn("This Astir's Power is negative — it can't be piloted until the loadout changes.");
+			return;
+		}
+		this.actor.update({ "system.attributes.astir.piloted": checked });
+	}
+
+	// Alchemical Suite's Potions (see getData/astir.js) — a plain decrement-only "Use" button, min
+	// 0, the same manual-spend model this module gives every other consumable resource.
+	_onAstirPotionUse(event) {
+		const astir = this._astir();
+		if (!astir) return;
+		const { potion: color } = event.currentTarget.dataset;
+		const current = astir.potions?.[color] ?? 0;
+		if (current <= 0) return;
+		this.actor.update({ [`system.attributes.astir.potions.${color}`]: current - 1 });
+	}
+
+	// Recomputes Power/Weapon Power against a prospective parts/equipment state and, when the result
+	// is negative, forces Piloted off with a warning — an Astir with negative Power represents an
+	// unsustainable loadout and can't be piloted (see claude.md's Piloted note; mirrors
+	// _onAstirPilotedToggle's own guard against manually re-checking it in that state). Returns the
+	// patch to spread into whatever update call triggered the recompute (a part or Astir weapon
+	// add/edit/remove).
+	_astirPowerUpdates(astir, { parts = astir.parts ?? [], equipment = this._equipment() } = {}) {
+		const power = Math.min(astir.power ?? 0, astirMaxPower(parts, equipment));
+		const weaponPower = Math.min(astir.weaponPower ?? 0, astirMaxWeaponPower(parts, equipment));
+		const updates = {
+			"system.attributes.astir.power": power,
+			"system.attributes.astir.weaponPower": weaponPower
+		};
+		if (power < 0 && astir.piloted) {
+			updates["system.attributes.astir.piloted"] = false;
+			ui.notifications.warn("This Astir's Power is negative — Piloted has been turned off.");
+		}
+		return updates;
+	}
+
+	// Adding a Part can lower max Power below the current value (and, for Weapon Conduit, raise
+	// max Weapon Power above 0) — all written in the same update, via _astirPowerUpdates.
 	async _onAstirPartAdd() {
 		const astir = this._astir();
 		if (!astir) return;
@@ -703,7 +879,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		const parts = [...current, key];
 		this.actor.update({
 			"system.attributes.astir.parts": parts,
-			"system.attributes.astir.power": Math.min(astir.power ?? 0, astirMaxPower(parts))
+			...this._astirPowerUpdates(astir, { parts })
 		});
 	}
 
@@ -716,7 +892,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		const parts = current.filter((k) => k !== key);
 		this.actor.update({
 			"system.attributes.astir.parts": parts,
-			"system.attributes.astir.power": Math.min(astir.power ?? 0, astirMaxPower(parts))
+			...this._astirPowerUpdates(astir, { parts })
 		});
 	}
 
@@ -740,18 +916,26 @@ export class PlaybookActorSheet extends ActorSheet {
 	// editor _onEquipmentCatalogAdd uses, with the astirWeapon option suppressing the fields an
 	// Astir weapon doesn't need — see configureEquipment.
 	async _onAstirWeaponAdd() {
-		if (!this._astir()) return;
+		const astir = this._astir();
+		if (!astir) return;
 		const template = await chooseAstirWeapon();
 		if (!template) return;
 
 		const result = await configureEquipment(template, undefined, { astirWeapon: true });
 		if (!result) return;
 
+		// A new Astir weapon can carry Drain, which lowers max Power (see astir.js's
+		// astirWeaponDrainTotal) — recompute via _astirPowerUpdates alongside saving it.
+		const equipment = [
+			...this._equipment(),
+			// familiar: true (see astir.js's ASTIR_WEAPON_CATALOG) carries the same way astir: true
+			// does — configureEquipment has no concept of either flag, only of hiding fields for
+			// astirWeapon, so both are added here from the picked template rather than `result`.
+			{ id: foundry.utils.randomID(), spent: [], astir: true, ...(template.familiar && { familiar: true }), ...result }
+		];
 		this.actor.update({
-			"system.attributes.equipment": [
-				...this._equipment(),
-				{ id: foundry.utils.randomID(), spent: [], astir: true, ...result }
-			]
+			"system.attributes.equipment": equipment,
+			...this._astirPowerUpdates(astir, { equipment })
 		});
 	}
 
@@ -949,23 +1133,40 @@ export class PlaybookActorSheet extends ActorSheet {
 			: await configureEquipment(entry);
 		if (!result) return;
 
-		// Replaces the entry wholesale (keeping only id/spent/astir) rather than merging onto the
-		// old one — editing a weapon down to Gear should drop its stale scale/tier, not leave them
-		// dangling unrendered. astir is carried forward explicitly, last, since result never
-		// includes it (configureEquipment has no concept of the flag, only of hiding fields for it).
-		await this.actor.update({
-			"system.attributes.equipment": current.map((item) => (
-				item.id === equipmentId
-					? { id: item.id, spent: item.spent ?? [], ...result, ...(item.astir && { astir: true }) }
-					: item
-			))
-		});
+		// Replaces the entry wholesale (keeping only id/spent/astir/familiar) rather than merging onto
+		// the old one — editing a weapon down to Gear should drop its stale scale/tier, not leave
+		// them dangling unrendered. astir/familiar are carried forward explicitly, last, since result
+		// never includes either (configureEquipment has no concept of them, only of hiding fields for
+		// astirWeapon).
+		const equipment = current.map((item) => (
+			item.id === equipmentId
+				? {
+					id: item.id,
+					spent: item.spent ?? [],
+					...result,
+					...(item.astir && { astir: true }),
+					...(item.familiar && { familiar: true })
+				}
+				: item
+		));
+		const updates = { "system.attributes.equipment": equipment };
+		// Only an Astir weapon's own tags can move the Weapon Drain total (see astir.js's
+		// astirWeaponDrainTotal) — every other edit (gear, mundane weapons) leaves Power untouched,
+		// so this stays keyed off the pre-edit entry rather than always recomputing.
+		const astir = this._astir();
+		if (entry.astir && astir) Object.assign(updates, this._astirPowerUpdates(astir, { equipment }));
+		await this.actor.update(updates);
 	}
 
 	_onEquipmentRemove(event) {
 		const { equipmentId } = event.currentTarget.dataset;
 		const current = this._equipment();
-		this.actor.update({ "system.attributes.equipment": current.filter((item) => item.id !== equipmentId) });
+		const entry = current.find((item) => item.id === equipmentId);
+		const equipment = current.filter((item) => item.id !== equipmentId);
+		const updates = { "system.attributes.equipment": equipment };
+		const astir = this._astir();
+		if (entry?.astir && astir) Object.assign(updates, this._astirPowerUpdates(astir, { equipment }));
+		this.actor.update(updates);
 	}
 
 	_onEquipmentTierStep(event) {
@@ -1035,9 +1236,14 @@ export class PlaybookActorSheet extends ActorSheet {
 		// stays undefined for every other move — the same "not applicable" signal
 		// _equipmentSpends already reads. Skipped entirely when the actor has no weapons at all:
 		// there's nothing to choose between, so Unarmed is simply true.
+		//
+		// Only weapons matching the current Piloted state are offered (see claude.md's Piloted
+		// note): Astir weapons while piloted, mundane weapons while not — never both. A weapon on
+		// the wrong side can never become `weapon` here, so nothing downstream (including the
+		// Familiar +CHANNEL override below) needs to re-check piloted state itself.
 		let weapon;
 		if (move.usesWeapon) {
-			const weapons = this._weapons();
+			const weapons = this._weapons().filter((w) => Boolean(w.astir) === this._astirPiloted());
 			if (weapons.length) {
 				const weaponId = await chooseWeapon(weapons);
 				if (weaponId === null) return;
@@ -1130,6 +1336,16 @@ export class PlaybookActorSheet extends ActorSheet {
 				traits = traits.map((trait) => (trait.key === "crew" ? { ...trait, value: crewValue } : trait));
 			}
 		}
+		// A Familiar weapon (astir.js's familiar: true) rolls Exchange Blows/Strike Decisively with
+		// +CHANNEL instead of the move's usual CLASH/TALK choice — replaces (not adds to) `traits`,
+		// matching the rulebook's "instead," and reads CHANNEL's raw value directly rather than
+		// going through availableMoveTraits/_moveTraits, since CHANNEL was never in either move's own
+		// traits list to begin with. Never reached while unpiloted — a Familiar is always an Astir
+		// weapon, and _onMoveRoll/_onWeaponMoveRoll only ever hand this a weapon matching the current
+		// Piloted state (see claude.md's Piloted note) — so there's nothing to re-check here.
+		if (move.usesWeapon && weapon?.familiar) {
+			traits = [{ key: "channel", label: "CHANNEL", value: this.actor.system.stats?.channel?.value ?? 0 }];
+		}
 		if (!traits.length && !move.conditions) return;
 
 		// bite-the-dust's forcesDesperationAtMaxPerils wins ties over a forced weapon tag — both
@@ -1141,20 +1357,32 @@ export class PlaybookActorSheet extends ActorSheet {
 			?? forced?.effect
 			?? null;
 		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
+		const astirPartSpends = this._astirPartSpends(lockedEffect);
 		// Omitted entirely rather than passed as `false` when not guided — configureMoveRoll
 		// already defaults it to false itself, and this keeps every non-Guided call's options
-		// shape exactly as it was before Guided existed, same treatment `reroll` gets below.
-		const guided = this._weaponIsGuided(weapon);
-		const config = await configureMoveRoll(move, traits, { lockedEffect, equipmentSpends, ...(guided && { guided }) });
+		// shape exactly as it was before Guided existed, same treatment `reroll` gets below. Spell
+		// Routines (see astir.js) grants the same "Take 7-9" option for any move, not just a
+		// weapon carrying the Guided tag — but only while piloted (see claude.md's Piloted note).
+		const guided = this._weaponIsGuided(weapon)
+			|| (this._astirPiloted() && this._astirParts().some((part) => part.grantsGuided));
+		const config = await configureMoveRoll(move, traits, {
+			lockedEffect,
+			equipmentSpends,
+			astirPartSpends,
+			...(guided && { guided })
+		});
 		if (!config) return;
 
 		// Guided's "Take 7-9" button resolves with nothing but this flag — no trait, dice, or
-		// equipment spend was ever read, so there's nothing to mark spent and nothing left to roll.
+		// equipment/Astir Part spend was ever read, so there's nothing to mark spent and nothing
+		// left to roll. Lead a Sortie's Potion grant (see _onMoveResolved) still applies — the
+		// Sortie was led either way — but there's no dice to check for Flourish Component.
 		if (config.takeSeven) {
 			await postGuidedResult(this.actor, move, {
 				weaponLabel: weapon ? weapon.name : "Unarmed",
 				weaponTags: this._weaponTagLabels(weapon)
 			});
+			await this._onMoveResolved(move, null);
 			return;
 		}
 
@@ -1163,6 +1391,14 @@ export class PlaybookActorSheet extends ActorSheet {
 		// Equipment tab (see _equipmentEntry's spendable) as a player-chosen spend.
 		const spends = [...(config.spentTags ?? []), ...(forced ? [{ equipmentId: weapon.id, tagKey: forced.tagKey }] : [])];
 		if (spends.length) await this._spendEquipmentTags(spends);
+		if (config.spentParts?.length) await this._spendAstirParts(config.spentParts);
+
+		// Pre-resolved to a plain {key, label} badge here (rather than passing partKeys into
+		// moves.js) so that module never needs to import astir.js — see moves.js#rollMove.
+		const spentPartLabels = (config.spentParts ?? [])
+			.map((key) => findAstirPart(key))
+			.filter(Boolean)
+			.map((part) => ({ key: part.key, label: part.name }));
 
 		// weapon undefined (not a usesWeapon move) leaves rollMove's options untouched, same as
 		// today, for every move except Exchange Blows/Strike Decisively. null (Unarmed) or a real
@@ -1171,15 +1407,17 @@ export class PlaybookActorSheet extends ActorSheet {
 		// moves.js). reroll is only ever attached for a usesWeapon move too — rollMove itself
 		// decides whether to actually offer it, based on whether this attempt fails (see moves.js).
 		const reroll = this._availableReroll(move, weapon);
+		const baseOptions = { ...config, ...(spentPartLabels.length && { spentPartLabels }) };
 		const options = weapon !== undefined
 			? {
-				...config,
+				...baseOptions,
 				weaponLabel: weapon ? weapon.name : "Unarmed",
 				weaponTags: this._weaponTagLabels(weapon),
 				...(reroll && { reroll })
 			}
-			: config;
-		await rollMove(this.actor, move, config.trait, options);
+			: baseOptions;
+		const result = await rollMove(this.actor, move, config.trait, options);
+		await this._onMoveResolved(move, result.dice);
 	}
 
 	// Marks each checked equipment spend (see configureMoveRoll's Equipment section) as spent on
@@ -1189,18 +1427,87 @@ export class PlaybookActorSheet extends ActorSheet {
 		await this.actor.update({ "system.attributes.equipment": mergeSpentTags(this._equipment(), spentTags) });
 	}
 
+	// The Astir Parts equivalent of _spendEquipmentTags above — marks each checked Astir Part
+	// spend (Warding, Artifact) Expended, the same field the Astir Moves group's own manual
+	// checkbox toggles (see _onMoveUseToggle), so either entry point lands on one shared state.
+	async _spendAstirParts(partKeys) {
+		const updates = {};
+		for (const key of partKeys) updates[`system.attributes.moveUses.${key}.expended`] = true;
+		await this.actor.update(updates);
+	}
+
+	// Runs after a move resolves — whether via a real roll (dice present) or Guided's "Take 7-9"
+	// (dice null) — for the two Astir Part effects that react to a move's outcome rather than
+	// being offered as part of setting it up. Both are scoped to piloted (see claude.md's Piloted
+	// note): a part contributes nothing when the Astir isn't currently being flown.
+	async _onMoveResolved(move, dice) {
+		if (!this._astirPiloted()) return;
+		const parts = this._astirParts();
+		if (move.key === "lead-a-sortie" && parts.some((part) => part.grantsPotionsOnLeadASortie)) {
+			await this._grantPotions();
+		}
+		if (dice && parts.some((part) => part.regainPowerOnDoubles) && rolledDoubles(dice)) {
+			await this._regainAstirPower(1);
+		}
+	}
+
+	// Alchemical Suite's "Take 1 of each Potion when someone leads a Sortie" — scoped to this
+	// actor's own Lead a Sortie roll (see astir.js's grantsPotionsOnLeadASortie comment). No cap:
+	// the rules text never limits how many can stack.
+	async _grantPotions() {
+		const astir = this._astir();
+		if (!astir) return;
+		const potions = astir.potions ?? {};
+		await this.actor.update({
+			"system.attributes.astir.potions": {
+				red: (potions.red ?? 0) + 1,
+				blue: (potions.blue ?? 0) + 1,
+				yellow: (potions.yellow ?? 0) + 1
+			}
+		});
+	}
+
+	// Flourish Component's "regain 1 Power when you roll doubles" — clamped to the derived max the
+	// same way _onAstirPowerStep's manual stepper already is.
+	async _regainAstirPower(amount) {
+		const astir = this._astir();
+		if (!astir) return;
+		const max = astirMaxPower(astir.parts ?? []);
+		const current = astir.power ?? 0;
+		const next = Math.min(max, current + amount);
+		if (next === current) return;
+		await this.actor.update({ "system.attributes.astir.power": next });
+	}
+
 	// Stands in for a roll on moves with a flat hold grant (B-Plot, or a flatHold Soldier Move) —
 	// there's no dice to roll, so clicking Activate just adds the move's flatHold to its own
 	// (separately-tracked, per-move-key) pool, the same field _onFlatHoldStep writes to, clamped
-	// the same way.
+	// the same way. Divination Codex's showsReadTheRoomQuestions gets a different Activate
+	// behavior — no hold to grant, just Read the Room's real question list posted to chat — but
+	// shares the same button per _moveGroupMoves' `activatable`.
 	async _onMoveActivate(event) {
 		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
-		if (!move || !move.flatHold) return;
+		if (!move) return;
 
-		const current = this.actor.system.attributes?.moveHold?.[move.key]?.value ?? 0;
-		const next = Math.min(HOLD_MAX, Math.max(HOLD_MIN, current + move.flatHold));
-		if (next === current) return;
-		await this.actor.update({ [`system.attributes.moveHold.${move.key}.value`]: next });
+		if (move.flatHold) {
+			const current = this.actor.system.attributes?.moveHold?.[move.key]?.value ?? 0;
+			const next = Math.min(HOLD_MAX, Math.max(HOLD_MIN, current + move.flatHold));
+			if (next === current) return;
+			await this.actor.update({ [`system.attributes.moveHold.${move.key}.value`]: next });
+			return;
+		}
+
+		if (move.showsReadTheRoomQuestions) {
+			// BASIC_MOVES is fixed, hardcoded content that always includes read-the-room — no
+			// fallback needed for a lookup that can't fail.
+			const readTheRoom = BASIC_MOVES.find((m) => m.key === "read-the-room");
+			await ChatMessage.create({
+				speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+				flavor: `<h3>${move.name}</h3>`,
+				content: `<ul>${readTheRoom.questions.map((question) => `<li>${question}</li>`).join("")}</ul>`
+			});
+			await this.actor.update({ [`system.attributes.moveUses.${move.key}.expended`]: true });
+		}
 	}
 
 	async _onMoveDescription(event) {

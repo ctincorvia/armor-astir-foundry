@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EFFECT_STATES } from "../scripts/roll-effects.js";
 import {
+	DRAIN_GROUP,
 	EQUIPMENT_CATALOG,
 	EQUIPMENT_TAGS,
 	MAX_TAGS,
@@ -124,7 +125,7 @@ describe("EQUIPMENT_TAGS", () => {
 		expect(new Set(keys).size).toBe(keys.length);
 	});
 
-	it("keeps every tag's value within the -2..+2 range", () => {
+	it("keeps every tag's value within the -3..+2 range", () => {
 		for (const tag of EQUIPMENT_TAGS) {
 			expect(tag.value).toBeGreaterThanOrEqual(TAG_VALUE_MIN);
 			expect(tag.value).toBeLessThanOrEqual(TAG_VALUE_MAX);
@@ -176,6 +177,14 @@ describe("EQUIPMENT_TAGS", () => {
 		for (const key of ["melee", "ranged", "sniper"]) {
 			expect(findEquipmentTag(key).value).toBe(0);
 		}
+	});
+
+	it("gives Drain 1/2/3 DRAIN_GROUP as their exclusiveGroup and escalating negative values", () => {
+		expect(EQUIPMENT_TAGS.filter((tag) => tag.exclusiveGroup === DRAIN_GROUP).map((tag) => tag.key))
+			.toEqual(["drain-3", "drain-2", "drain-1"]);
+		expect(findEquipmentTag("drain-1").value).toBe(-1);
+		expect(findEquipmentTag("drain-2").value).toBe(-2);
+		expect(findEquipmentTag("drain-3").value).toBe(-3);
 	});
 });
 
@@ -278,7 +287,6 @@ describe("configureEquipment", () => {
 			name: "",
 			description: "",
 			isWeapon: true,
-			scale: "foot",
 			tier: TIER_MIN,
 			tierMin: TIER_MIN,
 			tierMax: TIER_MAX,
@@ -327,7 +335,6 @@ describe("configureEquipment", () => {
 			name: "Halberd",
 			description: "A long blade.",
 			isWeapon: true,
-			scale: "astir",
 			tier: 3,
 			// The group holding fixture-negative (already on the entry) opens; the groups holding
 			// only fixture-spendable/fixture-positive (not on the entry) stay closed.
@@ -369,7 +376,7 @@ describe("configureEquipment", () => {
 		await promise;
 	});
 
-	it("resolves a weapon's name, description, kind, tags, scale and tier when Save is clicked", async () => {
+	it("resolves a weapon's name, description, kind, tags and tier when Save is clicked, always as Foot Scale", async () => {
 		const promise = configureEquipment(null, [...FIXTURE_TAGS, FIXTURE_WEAPON_RANGE_TAG]);
 		await Promise.resolve();
 		await Promise.resolve();
@@ -379,7 +386,6 @@ describe("configureEquipment", () => {
 			"[name='name']": "  Halberd  ",
 			"[name='kind']": "weapon",
 			"[name='description']": "  A long blade.  ",
-			"[name='scale']": "astir",
 			"[name='tier']": "3"
 		}, ["fixture-positive", "fixture-negative", "fixture-melee"]));
 
@@ -388,7 +394,7 @@ describe("configureEquipment", () => {
 			description: "A long blade.",
 			kind: "weapon",
 			tags: ["fixture-positive", "fixture-negative", "fixture-melee"],
-			scale: "astir",
+			scale: "foot",
 			tier: 3
 		});
 	});
@@ -703,6 +709,22 @@ describe("configureEquipment", () => {
 
 		expect(await promise).toEqual(expect.objectContaining({ tags: ["blitz", "concealable", "impact", "sniper"] }));
 	});
+
+	it("counts a Drain tag against the MAX_TAGS cap, unlike Melee/Ranged/Sniper", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Rations",
+			"[name='kind']": "gear",
+			"[name='description']": ""
+		}, ["blitz", "concealable", "impact", "infinite", "drain-1"]));
+
+		expect(await promise).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalled();
+	});
 });
 
 describe("configureEquipment - astirWeapon option", () => {
@@ -776,23 +798,22 @@ describe("configureEquipment - astirWeapon option", () => {
 		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
 			"[name='name']": "Lance",
 			"[name='description']": ""
-		}, ["blitz", "concealable", "impact", "infinite", "mounted", "melee"]));
+		}, ["blitz", "concealable", "impact", "infinite", "mounted", "restraining", "melee"]));
 
 		expect(await promise).toBeNull();
 	});
 });
 
 describe("configureEquipment - carrierWeapon option", () => {
-	it("passes carrierWeapon through to the template, hiding Kind/Scale and pre-filling astir/TIER_MAX", async () => {
+	it("passes carrierWeapon through to the template, hiding Kind and pre-filling TIER_MAX", async () => {
 		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true });
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
 			carrierWeapon: true,
-			hideKindAndScale: true,
+			hideKind: true,
 			isWeapon: true,
-			scale: "astir",
 			tier: TIER_MAX
 		}));
 

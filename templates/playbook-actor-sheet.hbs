@@ -322,13 +322,56 @@
 								<input type="checkbox" class="astir-overheating-checkbox" {{#if astir.overheating}}checked{{/if}}/>
 								Overheating
 							</label>
+							<label class="piloted-label">
+								<input type="checkbox" class="astir-piloted-checkbox" {{#if astir.piloted}}checked{{/if}}/>
+								Piloted
+							</label>
+							{{#if astir.power.negative}}
+							<p class="astir-power-negative-note">Power is negative — this Astir cannot be piloted until the loadout changes.</p>
+							{{/if}}
 							<div class="power-control">
 								<label class="power-label">Power</label>
 								<button type="button" class="power-step astir-power-step astir-power-decrement" data-delta="-1">-</button>
-								<span class="power-value">{{astir.power.value}} / {{astir.power.max}}</span>
+								<span class="power-value{{#if astir.power.negative}} power-value-negative{{/if}}">{{astir.power.value}} / {{astir.power.max}}</span>
 								<button type="button" class="power-step astir-power-step astir-power-increment" data-delta="1">+</button>
 							</div>
+							{{#if astir.weaponPower.max}}
+							<div class="power-control">
+								<label class="power-label">Weapon Power</label>
+								<button type="button" class="power-step astir-weapon-power-step astir-weapon-power-decrement" data-delta="-1">-</button>
+								<span class="power-value">{{astir.weaponPower.value}} / {{astir.weaponPower.max}}</span>
+								<button type="button" class="power-step astir-weapon-power-step astir-weapon-power-increment" data-delta="1">+</button>
+							</div>
+							{{/if}}
+							{{#if astir.repairTokens}}
+							<div class="form-group repair-tokens-control">
+								<label>Repair Tokens</label>
+								<input type="number" min="0" name="system.attributes.astir.repairTokens" value="{{astir.repairTokens.value}}"/>
+							</div>
+							{{/if}}
 						</div>
+						{{#if astir.potions}}
+						<div class="section-header">
+							<h3>Potions</h3>
+						</div>
+						<ol class="potion-list">
+							<li class="potion">
+								<span class="potion-label">Red</span>
+								<span class="potion-value">{{astir.potions.red}}</span>
+								<button type="button" class="astir-potion-use" data-potion="red" {{#unless astir.potions.red}}disabled{{/unless}}>Use</button>
+							</li>
+							<li class="potion">
+								<span class="potion-label">Blue</span>
+								<span class="potion-value">{{astir.potions.blue}}</span>
+								<button type="button" class="astir-potion-use" data-potion="blue" {{#unless astir.potions.blue}}disabled{{/unless}}>Use</button>
+							</li>
+							<li class="potion">
+								<span class="potion-label">Yellow</span>
+								<span class="potion-value">{{astir.potions.yellow}}</span>
+								<button type="button" class="astir-potion-use" data-potion="yellow" {{#unless astir.potions.yellow}}disabled{{/unless}}>Use</button>
+							</li>
+						</ol>
+						{{/if}}
 						<div class="section-header">
 							<h3>Parts</h3>
 							<div class="section-header-actions">
@@ -340,7 +383,8 @@
 							<li class="move">
 								<span class="move-name">{{name}}</span>
 								<div class="move-row-controls">
-									<span class="astir-part-power-cost">Power {{powerCost}}</span>
+									<span class="astir-part-type">{{partType}}</span>
+									{{#if powerCost}}<span class="astir-part-power-cost">Power {{powerCost}}</span>{{/if}}
 									<button type="button" class="astir-part-remove" data-part="{{key}}" aria-label="Remove Astir part">✕</button>
 								</div>
 							</li>

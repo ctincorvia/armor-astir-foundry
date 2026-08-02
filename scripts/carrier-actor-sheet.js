@@ -174,7 +174,7 @@ export function chooseCarrier(carriers) {
 			content: "<p>Which Carrier's Crew are you rolling with?</p>",
 			buttons,
 			close: () => resolve(null)
-		}).render(true);
+		}, { classes: ["armor-astir"] }).render(true);
 	});
 }
 

@@ -6,18 +6,12 @@
 		<label>Name</label>
 		<input type="text" name="name" value="{{name}}"/>
 	</div>
-	{{#unless hideKindAndScale}}
+	{{#unless hideKind}}
 	<div class="form-group">
 		<label>Kind</label>
 		<select name="kind">
 			<option value="weapon" {{#if isWeapon}}selected{{/if}}>Weapon</option>
 			<option value="gear" {{#unless isWeapon}}selected{{/unless}}>Gear</option>
-		</select>
-	</div>
-	<div class="form-group equipment-editor-weapon-fields">
-		<label>Scale</label>
-		<select name="scale">
-			{{selectOptions scales selected=scale valueAttr="key" labelAttr="label"}}
 		</select>
 	</div>
 	{{/unless}}
