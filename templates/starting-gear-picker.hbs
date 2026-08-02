@@ -1,4 +1,15 @@
 <form class="armor-astir-starting-gear-picker">
+	{{#if grantedItems.length}}
+	<p class="starting-gear-picker-instructions">You start with these.</p>
+	<ol class="starting-gear-picker-list">
+		{{#each grantedItems}}
+		<li class="starting-gear-picker-item starting-gear-picker-item-granted">
+			<span class="starting-gear-picker-name">{{name}}</span>
+			<div class="starting-gear-picker-description">{{description}}</div>
+		</li>
+		{{/each}}
+	</ol>
+	{{/if}}
 	<p class="starting-gear-picker-instructions">Choose {{chooseCount}}.</p>
 	{{#if items.length}}
 	<ol class="starting-gear-picker-list">

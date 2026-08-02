@@ -30,10 +30,18 @@ const FIXTURE_POOLS = [
 	{
 		playbookName: "Fixture Playbook",
 		poolKey: "fixture-playbook",
+		grantedKeys: ["fixture-playbook:delta"],
 		pickOneKeys: ["fixture-playbook:alpha", "fixture-playbook:beta"],
 		chooseCount: 2
 	},
-	{ playbookName: "Fixture Empty Playbook", poolKey: "fixture-empty", pickOneKeys: [], chooseCount: 0 }
+	{ playbookName: "Fixture Empty Playbook", poolKey: "fixture-empty", grantedKeys: [], pickOneKeys: [], chooseCount: 0 },
+	{
+		playbookName: "Fixture Granted Playbook",
+		poolKey: "fixture-playbook",
+		grantedKeys: ["fixture-playbook:delta"],
+		pickOneKeys: [],
+		chooseCount: 0
+	}
 ];
 
 // Fakes the jQuery chains chooseStartingMoves uses: `.val()` for the pickOne radio, and
@@ -91,6 +99,23 @@ describe("STARTING_MOVE_POOLS", () => {
 		expect(scout.pickOneKeys).toEqual(["the-scout:field-scout", "the-scout:giant-slayer"]);
 		expect(scout.chooseCount).toBe(2);
 	});
+
+	it("names real moves within its own pool for every grantedKeys entry", () => {
+		for (const pool of STARTING_MOVE_POOLS) {
+			const sourceMoveKeys = MOVE_POOLS.find((p) => p.key === pool.poolKey).moves.map((move) => move.key);
+			for (const key of pool.grantedKeys) {
+				expect(sourceMoveKeys).toContain(key);
+			}
+		}
+	});
+
+	it("grants The Impostor exactly Arcane Augments, with nothing to pick", () => {
+		const impostor = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Impostor");
+
+		expect(impostor.grantedKeys).toEqual(["the-impostor:arcane-augments"]);
+		expect(impostor.pickOneKeys).toEqual([]);
+		expect(impostor.chooseCount).toBe(0);
+	});
 });
 
 describe("findStartingMovePool", () => {
@@ -110,11 +135,12 @@ describe("findStartingMovePool", () => {
 });
 
 describe("startingMovePickerData", () => {
-	it("splits a pool's source moves into pickOneMoves and additionalMoves", () => {
+	it("splits a pool's source moves into grantedMoves, pickOneMoves and additionalMoves", () => {
 		const data = startingMovePickerData(FIXTURE_POOLS[0], FIXTURE_MOVE_POOLS);
 
+		expect(data.grantedMoves.map((move) => move.key)).toEqual(["fixture-playbook:delta"]);
 		expect(data.pickOneMoves.map((move) => move.key)).toEqual(["fixture-playbook:alpha", "fixture-playbook:beta"]);
-		expect(data.additionalMoves.map((move) => move.key)).toEqual(["fixture-playbook:gamma", "fixture-playbook:delta"]);
+		expect(data.additionalMoves.map((move) => move.key)).toEqual(["fixture-playbook:gamma"]);
 		expect(data.chooseCount).toBe(2);
 	});
 
@@ -129,26 +155,44 @@ describe("startingMovePickerData", () => {
 		});
 	});
 
+	it("resolves grantedMoves for a pool with nothing to pick, e.g. The Impostor's Arcane Augments", () => {
+		const data = startingMovePickerData(FIXTURE_POOLS[2], FIXTURE_MOVE_POOLS);
+
+		expect(data.grantedMoves.map((move) => move.key)).toEqual(["fixture-playbook:delta"]);
+		expect(data.pickOneMoves).toEqual([]);
+		expect(data.additionalMoves.map((move) => move.key)).toEqual(["fixture-playbook:alpha", "fixture-playbook:beta", "fixture-playbook:gamma"]);
+	});
+
 	it("drops a pickOneKeys entry that no longer matches a move in its source pool", () => {
-		const staleKeyPool = { playbookName: "Fixture Playbook", poolKey: "fixture-playbook", pickOneKeys: ["fixture-playbook:alpha", "fixture-playbook:deleted"], chooseCount: 2 };
+		const staleKeyPool = { playbookName: "Fixture Playbook", poolKey: "fixture-playbook", grantedKeys: [], pickOneKeys: ["fixture-playbook:alpha", "fixture-playbook:deleted"], chooseCount: 2 };
 
 		const data = startingMovePickerData(staleKeyPool, FIXTURE_MOVE_POOLS);
 
 		expect(data.pickOneMoves.map((move) => move.key)).toEqual(["fixture-playbook:alpha"]);
 	});
 
+	it("drops a grantedKeys entry that no longer matches a move in its source pool", () => {
+		const staleKeyPool = { playbookName: "Fixture Playbook", poolKey: "fixture-playbook", grantedKeys: ["fixture-playbook:deleted"], pickOneKeys: [], chooseCount: 0 };
+
+		const data = startingMovePickerData(staleKeyPool, FIXTURE_MOVE_POOLS);
+
+		expect(data.grantedMoves).toEqual([]);
+	});
+
 	it("resolves to empty lists for a pool whose source pool has no moves yet", () => {
 		const data = startingMovePickerData(FIXTURE_POOLS[1], FIXTURE_MOVE_POOLS);
 
+		expect(data.grantedMoves).toEqual([]);
 		expect(data.pickOneMoves).toEqual([]);
 		expect(data.additionalMoves).toEqual([]);
 	});
 
 	it("resolves to empty lists when poolKey doesn't match any MOVE_POOLS entry at all", () => {
-		const orphanPool = { playbookName: "Fixture Playbook", poolKey: "not-a-real-pool", pickOneKeys: [], chooseCount: 0 };
+		const orphanPool = { playbookName: "Fixture Playbook", poolKey: "not-a-real-pool", grantedKeys: [], pickOneKeys: [], chooseCount: 0 };
 
 		const data = startingMovePickerData(orphanPool, FIXTURE_MOVE_POOLS);
 
+		expect(data.grantedMoves).toEqual([]);
 		expect(data.pickOneMoves).toEqual([]);
 		expect(data.additionalMoves).toEqual([]);
 	});
@@ -160,12 +204,13 @@ describe("chooseStartingMoves", () => {
 		expect(Dialog).not.toHaveBeenCalled();
 	});
 
-	it("renders the picker template with the pool's pickOne/additional moves and choose count", async () => {
+	it("renders the picker template with the pool's granted/pickOne/additional moves and choose count", async () => {
 		const promise = chooseStartingMoves("Fixture Playbook", FIXTURE_POOLS, FIXTURE_MOVE_POOLS);
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("starting-move-picker"), {
+			grantedMoves: startingMovePickerData(FIXTURE_POOLS[0], FIXTURE_MOVE_POOLS).grantedMoves,
 			pickOneMoves: startingMovePickerData(FIXTURE_POOLS[0], FIXTURE_MOVE_POOLS).pickOneMoves,
 			additionalMoves: startingMovePickerData(FIXTURE_POOLS[0], FIXTURE_MOVE_POOLS).additionalMoves,
 			chooseCount: 2
@@ -192,14 +237,26 @@ describe("chooseStartingMoves", () => {
 		await Promise.resolve();
 
 		Dialog.mock.calls.at(-1)[0].buttons.add.callback(
-			fakeStartingMoveHtml("fixture-playbook:alpha", ["fixture-playbook:gamma", "fixture-playbook:delta"])
+			fakeStartingMoveHtml("fixture-playbook:alpha", ["fixture-playbook:gamma"])
 		);
 
-		expect(await promise).toEqual(["fixture-playbook:alpha", "fixture-playbook:gamma", "fixture-playbook:delta"]);
+		expect(await promise).toEqual(["fixture-playbook:alpha", "fixture-playbook:gamma"]);
+	});
+
+	it("does not resolve a granted move as a checked Additional Move, since it's no longer offered as one", async () => {
+		const promise = chooseStartingMoves("Fixture Playbook", FIXTURE_POOLS, FIXTURE_MOVE_POOLS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		Dialog.mock.calls.at(-1)[0].buttons.add.callback(
+			fakeStartingMoveHtml(undefined, ["fixture-playbook:delta"])
+		);
+
+		expect(await promise).toEqual([]);
 	});
 
 	it("truncates the checked Additional Move selection to chooseCount, in checkbox order", async () => {
-		const morePool = [{ ...FIXTURE_POOLS[0], chooseCount: 1 }];
+		const morePool = [{ ...FIXTURE_POOLS[0], grantedKeys: [], chooseCount: 1 }];
 		const promise = chooseStartingMoves("Fixture Playbook", morePool, FIXTURE_MOVE_POOLS);
 		await Promise.resolve();
 		await Promise.resolve();

@@ -27,6 +27,29 @@ describe("PLAYBOOK_FLAVOR", () => {
 			expect(question).toBeTruthy();
 		}
 	});
+
+	it("gives The Impostor four LOOK prompts, each with a label and text", () => {
+		for (const entry of PLAYBOOK_FLAVOR["the-impostor"].look) {
+			expect(entry.label).toBeTruthy();
+			expect(entry.text).toBeTruthy();
+		}
+		expect(PLAYBOOK_FLAVOR["the-impostor"].look).toHaveLength(4);
+	});
+
+	it("gives The Impostor ten Consider questions", () => {
+		expect(PLAYBOOK_FLAVOR["the-impostor"].consider).toHaveLength(10);
+		for (const question of PLAYBOOK_FLAVOR["the-impostor"].consider) {
+			expect(question).toBeTruthy();
+		}
+	});
+
+	it("gives The Impostor its two intro paragraphs", () => {
+		expect(PLAYBOOK_FLAVOR["the-impostor"].intro).toHaveLength(2);
+	});
+
+	it("gives The Scout no intro paragraphs", () => {
+		expect(PLAYBOOK_FLAVOR["the-scout"].intro).toBeUndefined();
+	});
 });
 
 describe("defaultLookText", () => {
@@ -48,6 +71,22 @@ describe("defaultConsiderText", () => {
 		for (const question of PLAYBOOK_FLAVOR["the-scout"].consider) {
 			expect(html).toContain(`<li>${question}</li>`);
 		}
+	});
+
+	it("renders no intro paragraphs for The Scout, which doesn't define any", () => {
+		const html = defaultConsiderText("the-scout");
+		expect(html.startsWith("<ul>")).toBe(true);
+	});
+
+	it("renders The Impostor's intro paragraphs ahead of its Consider questions", () => {
+		const html = defaultConsiderText("the-impostor");
+		for (const paragraph of PLAYBOOK_FLAVOR["the-impostor"].intro) {
+			expect(html).toContain(`<p>${paragraph}</p>`);
+		}
+		for (const question of PLAYBOOK_FLAVOR["the-impostor"].consider) {
+			expect(html).toContain(`<li>${question}</li>`);
+		}
+		expect(html.indexOf("<p>")).toBeLessThan(html.indexOf("<ul>"));
 	});
 
 	it("returns an empty string for a playbook with no known flavor", () => {

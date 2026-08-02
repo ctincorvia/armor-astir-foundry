@@ -398,6 +398,20 @@ export function availableMoveTraits(actor, move) {
 // forced into the resolved effect regardless of what the disabled select reports, as a
 // belt-and-suspenders match to the template's disabled attribute.
 //
+// lockedAdvantage (e.g. "advantage" for Don't Follow Me's "lead a Sortie with +DEFY & advantage"
+// — see PlaybookActorSheet#_grantedAdvantageForMove) is the same idea for the Dice select: pre-
+// selects and disables it, and is forced into the resolved advantage the same
+// belt-and-suspenders way, though an Astir Part's own spend.advantage (Artifact) still wins over
+// it — a reactive, player-chosen spend outranks a standing grant, the same precedence a spent
+// equipment/Astir Part effect already takes over lockedEffect.
+//
+// lockedTrait (Don't Follow Me's own +DEFY half — see PlaybookActorSheet#_grantedTraitForMove) is
+// the Trait-select counterpart, but carries the full {key, label, value} option object rather
+// than a bare key: unlike Effect/Advantage, whose possible values are a small fixed catalog
+// (EFFECT_STATES/ADVANTAGE_STATES) this module can resolve a label from, a Trait's value is
+// actor-specific, so the caller (which already resolved `traits` for display) hands over the
+// exact entry to lock rather than a key this function would have to re-look-up.
+//
 // equipmentSpends (see PlaybookActorSheet#_equipmentSpends) is the actor's unspent, spendable
 // equipment tags — not part of the move's own definition, unlike intents/conditions, so it's
 // passed in rather than read off `move`. Offering it here, rather than filtering it down before
@@ -419,10 +433,18 @@ export function availableMoveTraits(actor, move) {
 export async function configureMoveRoll(
 	move,
 	traits,
-	{ lockedEffect = null, equipmentSpends = [], astirPartSpends = [], guided = false } = {}
+	{ lockedEffect = null, lockedAdvantage = null, lockedTrait = null, equipmentSpends = [], astirPartSpends = [], guided = false } = {}
 ) {
 	const content = await renderTemplate(MOVE_ROLL_DIALOG_TEMPLATE, {
 		traits,
+		// The Trait select's own options need each option's numeric value baked into its label
+		// ("CLASH (2)") — a format selectOptions' plain valueAttr/labelAttr can't produce on its
+		// own, which is why this select is hand-rolled rather than using selectOptions the way
+		// Dice/Effect below do. traitOptions carries that pre-formatted label alongside the raw
+		// key, purely for this <select>'s own selectOptions call (see move-roll-dialog.hbs) — kept
+		// separate from `traits` itself so every existing caller reading the `traits` key back off
+		// this template call is unaffected.
+		traitOptions: traits.map((trait) => ({ key: trait.key, label: `${trait.label} (${trait.value})` })),
 		intents: move.intents,
 		conditions: move.conditions,
 		advantageStates: ADVANTAGE_STATES,
@@ -433,6 +455,9 @@ export async function configureMoveRoll(
 		// grantsEffectOnMove — see PlaybookActorSheet#_grantedEffectForMove) as well as the
 		// original "desperation" sources (bite-the-dust at max Perils, a forced weapon tag).
 		lockedEffectLabel: lockedEffect ? effectState(lockedEffect).label : null,
+		lockedAdvantage,
+		lockedAdvantageLabel: lockedAdvantage ? advantageState(lockedAdvantage).label : null,
+		lockedTrait,
 		equipmentSpends,
 		astirPartSpends,
 		guided
@@ -481,8 +506,8 @@ export async function configureMoveRoll(
 						const spentPartAdvantage = spentPartSpends.filter((spend) => spend.advantage).at(-1)?.advantage;
 
 						resolve({
-							trait: traits.find((t) => t.key === html.find("[name='trait']").val()),
-							advantage: spentPartAdvantage ?? html.find("[name='advantage']").val(),
+							trait: lockedTrait ?? traits.find((t) => t.key === html.find("[name='trait']").val()),
+							advantage: spentPartAdvantage ?? lockedAdvantage ?? html.find("[name='advantage']").val(),
 							effect: lockedEffect ?? spentEffect ?? spentPartEffect ?? html.find("[name='effect']").val(),
 							...(move.intents && {
 								intent: move.intents.find((i) => i.key === html.find("[name='intent']").val())
@@ -537,7 +562,13 @@ export async function rollMove(actor, move, trait, options = {}) {
 	const conditionBonus = (move.conditions ?? [])
 		.filter((condition) => options.conditions?.includes(condition.key))
 		.length;
-	const value = statValue + conditionBonus;
+	// A derived Trait bonus (Arcane Augments, Let Loose — see trait-bonuses.js), resolved by
+	// PlaybookActorSheet#_rollMove for whichever trait was actually chosen and passed in as a
+	// plain number — this module has no actor to derive it from itself, and the dialog's own
+	// displayed trait value (see PlaybookActorSheet#_moveTraits) is display-only: an actor-trait
+	// key always re-reads its live stat above rather than trusting `trait.value`, so the bonus has
+	// to reach the roll through this explicit option instead.
+	const value = statValue + conditionBonus + (options.traitBonus ?? 0);
 	const advantage = advantageState(options.advantage);
 	const effect = effectState(options.effect);
 

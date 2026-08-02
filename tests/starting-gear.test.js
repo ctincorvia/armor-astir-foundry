@@ -12,6 +12,7 @@ const FIXTURE_POOLS = [
 		chooseCount: 2,
 		customWeaponNote: "Design a +2 total cost weapon.",
 		freeformNotes: ["Any tier I weapons that feel appropriate.", "Clothes that match your look."],
+		grantedItems: [{ key: "fixture:granted", name: "Granted Item", description: "g" }],
 		items: [
 			{ key: "fixture:alpha", name: "Alpha", description: "a" },
 			{ key: "fixture:bravo", name: "Bravo", description: "b" },
@@ -19,7 +20,7 @@ const FIXTURE_POOLS = [
 			{ key: "fixture:delta", name: "Delta", description: "d" }
 		]
 	},
-	{ playbookName: "Fixture Empty Playbook", chooseCount: 0, items: [] }
+	{ playbookName: "Fixture Empty Playbook", chooseCount: 0, grantedItems: [], items: [] }
 ];
 
 // Fakes the jQuery `.find("[name='starting-gear-item']:checked").map(...).get()` chain
@@ -75,6 +76,54 @@ describe("STARTING_GEAR_POOLS", () => {
 			}
 		}
 	});
+
+	it("names a real Equipment tag on every granted item too", () => {
+		for (const pool of STARTING_GEAR_POOLS) {
+			for (const item of pool.grantedItems.filter((i) => i.tags)) {
+				for (const tagKey of item.tags) {
+					expect(findEquipmentTag(tagKey)).toBeTruthy();
+				}
+			}
+		}
+	});
+
+	it("gives every weapon-kind item (granted or pickable) one of the Melee/Ranged/Sniper tags", () => {
+		for (const pool of STARTING_GEAR_POOLS) {
+			for (const item of [...pool.grantedItems, ...pool.items].filter((i) => i.kind === "weapon")) {
+				expect(item.tags.some((key) => ["melee", "ranged", "sniper"].includes(key))).toBe(true);
+			}
+		}
+	});
+
+	it("grants The Impostor exactly Augments I, a melee/bane weapon", () => {
+		const impostor = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Impostor");
+
+		expect(impostor.grantedItems).toHaveLength(1);
+		expect(impostor.grantedItems[0]).toMatchObject({
+			key: "the-impostor:augments-i",
+			kind: "weapon",
+			tags: ["melee", "bane"]
+		});
+	});
+
+	it("gives The Impostor 2 of 4 Impostor Gear items to choose from", () => {
+		const impostor = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Impostor");
+
+		expect(impostor.chooseCount).toBe(2);
+		expect(impostor.items.map((item) => item.key)).toEqual([
+			"the-impostor:power-focus-i",
+			"the-impostor:nullblade-i",
+			"the-impostor:sidearm-i",
+			"the-impostor:shield-broach-i"
+		]);
+	});
+
+	it("gives Nullblade I the mundane tag", () => {
+		const impostor = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Impostor");
+		const nullblade = impostor.items.find((item) => item.key === "the-impostor:nullblade-i");
+
+		expect(nullblade.tags).toContain("mundane");
+	});
 });
 
 describe("findStartingGearPool", () => {
@@ -99,12 +148,13 @@ describe("chooseStartingGear", () => {
 		expect(Dialog).not.toHaveBeenCalled();
 	});
 
-	it("renders the picker template with the pool's items, choose count and freeform notes", async () => {
+	it("renders the picker template with the pool's granted/pickable items, choose count and freeform notes", async () => {
 		const promise = chooseStartingGear("Fixture Playbook", FIXTURE_POOLS);
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("starting-gear-picker"), {
+			grantedItems: FIXTURE_POOLS[0].grantedItems,
 			items: FIXTURE_POOLS[0].items,
 			chooseCount: 2,
 			freeformNotes: FIXTURE_POOLS[0].freeformNotes

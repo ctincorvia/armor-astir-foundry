@@ -2,10 +2,8 @@
 	{{#if traits.length}}
 	<div class="form-group">
 		<label>Trait</label>
-		<select name="trait">
-			{{#each traits}}
-			<option value="{{key}}">{{label}} ({{value}})</option>
-			{{/each}}
+		<select name="trait" {{#if lockedTrait}}disabled{{/if}}>
+			{{selectOptions traitOptions selected=lockedTrait.key valueAttr="key" labelAttr="label"}}
 		</select>
 	</div>
 	{{/if}}
@@ -65,8 +63,8 @@
 	{{/if}}
 	<div class="form-group">
 		<label>Dice</label>
-		<select name="advantage">
-			{{selectOptions advantageStates valueAttr="key" labelAttr="label"}}
+		<select name="advantage" {{#if lockedAdvantage}}disabled{{/if}}>
+			{{selectOptions advantageStates selected=lockedAdvantage valueAttr="key" labelAttr="label"}}
 		</select>
 	</div>
 	<div class="form-group">
@@ -75,6 +73,12 @@
 			{{selectOptions effectStates selected=lockedEffect valueAttr="key" labelAttr="label"}}
 		</select>
 	</div>
+	{{#if lockedTrait}}
+	<p class="move-roll-locked-note">Locked: {{lockedTrait.label}}</p>
+	{{/if}}
+	{{#if lockedAdvantage}}
+	<p class="move-roll-locked-note">Locked: {{lockedAdvantageLabel}}</p>
+	{{/if}}
 	{{#if lockedEffect}}
 	<p class="move-roll-locked-note">Locked: {{lockedEffectLabel}}</p>
 	{{/if}}

@@ -104,47 +104,93 @@
 }
 
 .armor-astir.sheet .sheet-header {
+	align-items: flex-start;
 	gap: var(--aa-space-4);
 }
 
-.armor-astir.sheet .sheet-header .playbook-swap {
-	display: flex;
-	flex: 0 0 auto;
-	flex-direction: row;
-	align-items: center;
-	align-self: flex-start;
-	gap: var(--aa-space-2);
-	margin-left: auto;
+/* The portrait gets the same bordered-box treatment as every other portrait on the sheet
+   (see .astir-portrait) instead of Foundry's bare default <img>. */
+.armor-astir.sheet .sheet-header .profile-img {
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
 }
 
-.armor-astir.sheet .sheet-header .playbook-swap label {
+/* Name/Callsign stack label above input, matching the label-above-value shape every other field
+   group on the sheet uses (Astir's Core/Approach, the equipment/Astir-part editors) — Foundry's
+   own .form-group default lays label and input side by side, which read as inconsistent with
+   that pattern. Zeroing the margin strips Foundry core's `form .form-group { margin: 3px 0 }`,
+   which otherwise nudges just the first (Name) form-group's top edge 3px below the Playbook/
+   Approach/Tier columns beside it — the gap between Name and Callsign is instead handled by
+   .flex3 below, so it applies only between the two fields, not above the first or below the last. */
+.armor-astir.sheet .sheet-header .form-group {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 2px;
+	margin: 0;
+}
+
+/* Name and Callsign's own two form-groups otherwise touch — .form-group's zeroed margin above
+   strips Foundry core's spacing along with the unwanted top offset, so this puts breathing room
+   back between them specifically (not above/below, which `gap` never adds). */
+.armor-astir.sheet .sheet-header .flex3 {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-2);
+}
+
+/* Matches the select boxes' own height (see .tier-value below) so Name/Callsign's text inputs,
+   Playbook/Approach's dropdowns, and Tier's readout are all the same height, top to bottom. */
+.armor-astir.sheet .sheet-header .form-group input {
+	height: calc(var(--form-field-height) + 1px);
+}
+
+/* Every label in the header — Name, Callsign, Playbook, Approach, Tier — reads as bold and
+   primary-colored, the same treatment section headers (h3) and other acted-on labels already
+   use elsewhere on the sheet. line-height overrides Foundry core's `form .form-group label {
+   line-height: var(--form-field-height) }` (26px) — without it, only the Name/Callsign labels
+   sit inside that tall line box and their text renders visibly lower than Playbook/Approach/
+   Tier's labels, which never match that selector and keep the browser's normal line-height. */
+.armor-astir.sheet .sheet-header label {
+	line-height: 1;
+	font-weight: 700;
+	font-size: 12px;
+	color: var(--aa-primary-dark);
 	white-space: nowrap;
 }
 
-.armor-astir.sheet .sheet-header .approach-swap {
-	display: flex;
-	flex: 0 0 auto;
-	flex-direction: row;
-	align-items: center;
-	align-self: flex-start;
-	gap: var(--aa-space-2);
-}
-
-.armor-astir.sheet .sheet-header .approach-swap label {
-	white-space: nowrap;
-}
-
+.armor-astir.sheet .sheet-header .playbook-swap,
+.armor-astir.sheet .sheet-header .approach-swap,
 .armor-astir.sheet .sheet-header .tier-readout {
 	display: flex;
 	flex: 0 0 auto;
-	flex-direction: row;
-	align-items: center;
-	align-self: flex-start;
-	gap: var(--aa-space-2);
+	flex-direction: column;
+	align-items: flex-start;
+	gap: 2px;
 }
 
-.armor-astir.sheet .sheet-header .tier-readout label {
-	white-space: nowrap;
+.armor-astir.sheet .sheet-header .playbook-swap {
+	margin-left: auto;
+}
+
+/* Tier's readout is a single digit, much narrower than its own "Tier" label above it — unlike
+   Playbook/Approach, whose select boxes are wider than their labels, so left-aligning (the
+   shared rule above) reads fine there but leaves Tier's digit looking stranded under the left
+   edge of its label instead of centered beneath it. */
+.armor-astir.sheet .sheet-header .tier-readout {
+	align-items: center;
+}
+
+/* Playbook/Approach's controls are <select> elements, native height calc(--form-field-height +
+   1px) with their option text vertically centered inside; Tier's control is just a plain <span>,
+   so at the same column top-alignment its text renders visibly higher than the dropdowns' text.
+   Matching the same box height and centering within it (both axes, since the digit is centered
+   horizontally under the label too — see .tier-readout above) lines everything up. */
+.armor-astir.sheet .sheet-header .tier-value {
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	height: calc(var(--form-field-height) + 1px);
 }
 
 .armor-astir.sheet .status-row {
@@ -171,6 +217,7 @@
    .dangers-panel and .controls-panel are the two stacked boxes inside .dangers-column (see
    below) — each gets its own outline rather than the column sharing one, per the Controls
    section being visually distinct from Dangers. */
+.armor-astir.sheet .sheet-header,
 .armor-astir.sheet .traits,
 .armor-astir.sheet .spotlight,
 .armor-astir.sheet .dangers-panel,
@@ -290,19 +337,32 @@
 }
 
 /* One rule for every numeric readout tied to a player-tracked resource (Traits, Power, Hold,
-   Gravity Clock progress) — same reasoning as the remove-button and step-pip consolidations
-   below: these were four byte-identical min-width/text-align rules. Primary, not secondary: these
-   are numerals the player reads at a glance, so they take the same color as the sheet's other
-   "acted on" chrome rather than the quieter tracker color the pips below use. */
+   Gravity Clock progress) or other at-a-glance derived stat (Tier) — same reasoning as the
+   remove-button and step-pip consolidations below: these were four byte-identical min-width/
+   text-align rules. Primary, not secondary: these are numerals the player reads at a glance, so
+   they take the same color as the sheet's other "acted on" chrome rather than the quieter
+   tracker color the pips below use. */
 .armor-astir.sheet .trait-value,
 .armor-astir.sheet .power-value,
 .armor-astir.sheet .hold-value,
 .armor-astir.sheet .gravity-clock-value,
-.armor-astir.sheet .potion-value {
+.armor-astir.sheet .potion-value,
+.armor-astir.sheet .tier-value {
 	min-width: 1.5em;
 	text-align: center;
 	font-weight: 700;
 	color: var(--aa-primary-dark);
+}
+
+/* The derived half of a trait's value (Arcane Augments, Let Loose — see trait-bonuses.js),
+   e.g. "2+1". Deliberately the base primary rather than .trait-value's own --aa-primary-dark, so
+   the bonus reads as visibly distinct from the number the player actually edits with the
+   steppers, while staying in the same role family. Amethyst at full strength is ~8.7:1 on the
+   panel background, well clear of the 4.5:1 floor, so no -dark variant is needed here (see
+   claude.md's contrast note). Nested inside .trait-value rather than a sibling, so it inherits
+   the bold weight and the disabled-trait dimming (.trait.disabled .trait-value) for free. */
+.armor-astir.sheet .trait-bonus {
+	color: var(--aa-primary);
 }
 
 .armor-astir.sheet .spotlight-track {
@@ -513,6 +573,16 @@
 	font-size: 14px;
 }
 
+/* Starting Moves / Starting Gear carry a text label (not just "+"), so they need to grow past
+   the square icon-add-button sizing above instead of clipping their own text. */
+.armor-astir.sheet .icon-add-button.labeled-add-button {
+	width: auto;
+	height: auto;
+	padding: var(--aa-space-1) var(--aa-space-2);
+	font-size: 12px;
+	white-space: nowrap;
+}
+
 /* Static playbook prose, not a tracker — a callout reads better than a structural panel here.
    The secondary color marks it as tied to the player's own Gravity Clocks below it. */
 .armor-astir.sheet .gravity-trigger {
@@ -577,6 +647,23 @@
 	align-items: center;
 	gap: var(--aa-space-1);
 	flex: 0 0 auto;
+}
+
+.armor-astir.sheet .burden-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Grid, not flex — same reasoning as .danger-item/.move above: a variable-length label paired
+   with a fixed remove button lands in the same column on every row. minmax(0, 1fr) lets the
+   input shrink below its content's min-content size instead of overflowing. */
+.armor-astir.sheet .burden-item {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--aa-space-2);
+	padding: var(--aa-space-1) 0;
 }
 
 /* No top margin: .sheet-main lays .dangers-column and .sheet-tabs-column side by side from the
@@ -752,6 +839,12 @@
 	gap: var(--aa-space-1);
 	font-size: 11px;
 	white-space: nowrap;
+}
+
+/* Let Loose's per-actor trait pick (see trait-bonuses.js's chooseTrait) — a plain select on the
+   move's own row, same compact treatment as .move-uses-control beside it. */
+.armor-astir.sheet .move-trait-bonus-control select {
+	font-size: 11px;
 }
 
 .armor-astir.sheet .move-controls {
@@ -980,8 +1073,18 @@
 	gap: var(--aa-space-3);
 }
 
+/* Foundry's core ProseMirror CSS absolutely-positions the active editor's .editor-content to fill
+   .editor-container (inset 0), which leaves the browser's native resize handle nothing to act on.
+   Reverting position to static (per-property override — core's margin/padding/outline for this
+   selector still apply) lets Look/Consider/Backstory/Notes be dragged taller like a textarea,
+   whether the field is being actively edited or just showing its read-only preview. */
 .armor-astir.sheet .cosmetic-field .editor-content {
+	position: static;
+	height: unset;
 	min-height: 120px;
+	overflow-x: hidden;
+	overflow-y: auto;
+	resize: vertical;
 }
 
 .armor-astir.sheet .weapon-move-controls {

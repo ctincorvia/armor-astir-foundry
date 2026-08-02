@@ -49,6 +49,7 @@ import {
 	resolveAstirParts
 } from "./astir.js";
 import { chooseCarrier, findCarrierActors } from "./carrier-actor-sheet.js";
+import { traitBonusesFor } from "./trait-bonuses.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
 
@@ -65,6 +66,13 @@ const HOLD_MAX = 3;
 
 const SPOTLIGHT_MIN = 0;
 const SPOTLIGHT_MAX = 6;
+
+// Downtime Tokens (Downtime tab): a per-Sortie resource refreshed to DOWNTIME_TOKENS_MAX by the
+// Refresh Sortie control (see _onRefreshSortie). Every character caps at 3 today; nothing raises
+// it yet, so this stays a flat constant rather than derived/stored data (contrast Astir Power's
+// Parts-derived max) until a playbook or part actually needs to.
+const DOWNTIME_TOKENS_MIN = 0;
+const DOWNTIME_TOKENS_MAX = 3;
 
 // A character's Tier for all physical-conflict purposes is 1 by default unless a picked playbook
 // move raises it (Field Scout, Giant Slayer — see playbook-moves.js's conflictTier). Deliberately
@@ -159,9 +167,16 @@ export class PlaybookActorSheet extends ActorSheet {
 		// notes: on-foot Tier and Approach are the same kind of "how you fight outside your Astir"
 		// property. Derived fresh every render, not stored — see _conflictTier.
 		data.tier = this._conflictTier();
+		// Derived Trait bonuses (Arcane Augments, Let Loose — see trait-bonuses.js) computed once and
+		// reused for both display (bonus/total below) and every roll dialog opened from this render
+		// (_moveTraits), so a picked bonus move is never evaluated against two different Danger/
+		// Burden counts within the same render pass.
+		const traitBonuses = this._traitBonuses();
 		data.traits = TRAITS.map(({ key, label }) => {
 			const stat = this.actor.system.stats?.[key];
-			return { key, label, value: stat?.value ?? 0, disabled: stat?.disabled ?? false };
+			const value = stat?.value ?? 0;
+			const bonus = traitBonuses[key] ?? 0;
+			return { key, label, value, bonus, total: value + bonus, disabled: stat?.disabled ?? false };
 		});
 		const astir = this._astir();
 		// Spotlight is a single 0-6 counter (system.attributes.spotlight.value) rendered as 6
@@ -171,6 +186,14 @@ export class PlaybookActorSheet extends ActorSheet {
 		data.spotlight = {
 			value: spotlightValue,
 			steps: Array.from({ length: SPOTLIGHT_MAX }, (_, i) => ({ step: i + 1, filled: i + 1 <= spotlightValue }))
+		};
+		// Downtime Tokens live on their own Downtime tab. max is a flat constant for now — no
+		// playbook or Astir part grants a higher one yet — so unlike Astir Power's derived max,
+		// there's nothing to compute here; value defaults to a fresh max, since a new character
+		// starts a Sortie with a full pool.
+		data.downtimeTokens = {
+			value: this.actor.system.attributes?.downtimeTokens?.value ?? DOWNTIME_TOKENS_MAX,
+			max: DOWNTIME_TOKENS_MAX
 		};
 		// Basic and Special moves are the same fixed list for every actor; Playbook Moves is the
 		// per-actor set picked via the "+" button, so it's the only group that renders add/remove
@@ -191,8 +214,9 @@ export class PlaybookActorSheet extends ActorSheet {
 				moves: this._moveGroupMoves(resolvePlaybookMoves(this._playbookMoves())),
 				addable: true,
 				removable: true,
-				startingMovesAvailable: Boolean(startingMovePool?.pickOneKeys?.length || startingMovePool?.chooseCount)
-					&& !this._startingMovesChosen()
+				startingMovesAvailable: Boolean(
+					startingMovePool?.grantedKeys?.length || startingMovePool?.pickOneKeys?.length || startingMovePool?.chooseCount
+				) && !this._startingMovesChosen()
 			}
 		];
 		// Astir Parts read as moves, and the Astir's one unique move joins them under the same
@@ -241,11 +265,11 @@ export class PlaybookActorSheet extends ActorSheet {
 		const astirWeaponMoves = baseWeaponMoves.map((move) => ({ ...move, gated: move.gated || !piloted }));
 		// The "+ Choose Starting Gear" button (see _onStartingGearAdd) only shows up once its
 		// playbook's pool actually has something to offer — same "drop when empty" treatment
-		// playbookMoveSections gives an empty pool, so Commander/Impostor stay hidden until their
-		// pools are filled in (see starting-gear.js) — and disappears for good, on this actor,
-		// the first time it's clicked (system.attributes.startingGearChosen), even if every dialog
-		// it opens is cancelled: it's a one-time chargen step, not a repeatable picker like "+ Add
-		// Playbook Move".
+		// playbookMoveSections gives an empty pool, so The Commander stays hidden until its pool is
+		// filled in (see starting-gear.js) — and disappears for good, on this actor, the first time
+		// it's clicked (system.attributes.startingGearChosen), even if every dialog it opens is
+		// cancelled: it's a one-time chargen step, not a repeatable picker like "+ Add Playbook
+		// Move".
 		const startingGearPool = findStartingGearPool(this.actor.system.playbook?.name);
 		// Astir weapons (equipment entries flagged astir: true — see astir.js) are only ever
 		// added/edited/removed from the Astir tab, but still surface here, read-only, per
@@ -263,8 +287,11 @@ export class PlaybookActorSheet extends ActorSheet {
 			astirWeapons,
 			gear: equipment.filter((item) => item.kind !== "weapon").map((item) => this._equipmentEntry(item)),
 			startingGear: {
-				available: Boolean(startingGearPool?.items?.length || startingGearPool?.customWeaponNote)
-					&& !this._startingGearChosen()
+				available: Boolean(
+					startingGearPool?.grantedItems?.length
+						|| startingGearPool?.items?.length
+						|| startingGearPool?.customWeaponNote
+				) && !this._startingGearChosen()
 			}
 		};
 		// The Astir tab. Gated on CHANNEL exactly like the old overheating/power meters were
@@ -360,6 +387,10 @@ export class PlaybookActorSheet extends ActorSheet {
 				}))
 			}))
 		};
+		// Burdens (see claude.md's Social tab notes) — a plain, uncapped text list (unlike Dangers'
+		// DANGER_MAX/type select), so getData just exposes the stored list as-is; there's no derived
+		// per-entry shape to build the way Gravity Clocks' progressSteps needs.
+		data.burdens = { list: this._burdens() };
 		// The bottom four Advancement options unlock once at least ADVANCEMENT_UNLOCK_THRESHOLD of
 		// the top six are checked. `checked` for bottom items is always read from stored data
 		// regardless of `locked` — locking only blocks new checkbox interaction in the template,
@@ -384,6 +415,27 @@ export class PlaybookActorSheet extends ActorSheet {
 
 	_dangers() {
 		return this.actor.system.attributes?.dangers ?? [];
+	}
+
+	// Plain-text entries (see claude.md's Social tab notes) — bite-the-dust's own text is the only
+	// thing that ever grants one ("take a burden..."), and nothing in this module auto-clears them,
+	// same manual-tracking model as Dangers/Advancement. No max, unlike Dangers' DANGER_MAX —
+	// nothing in the rulebook caps how many a character can carry.
+	_burdens() {
+		return this.actor.system.attributes?.burdens ?? [];
+	}
+
+	// Sums every picked playbook move's declarative traitBonus (Arcane Augments, Let Loose) against
+	// this actor's current Danger/Burden counts and stored per-move trait choices — see
+	// trait-bonuses.js. Derived fresh every call, never stored, same stance as
+	// equipmentValue/_conflictTier, so it can't drift after a Danger/Burden/choice changes.
+	_traitBonuses() {
+		const moves = resolvePlaybookMoves(this._playbookMoves());
+		return traitBonusesFor(moves, {
+			dangerCount: this._dangers().length,
+			burdenCount: this._burdens().length,
+			choices: this.actor.system.attributes?.traitBonusChoices ?? {}
+		});
 	}
 
 	_gravityClocks() {
@@ -569,6 +621,32 @@ export class PlaybookActorSheet extends ActorSheet {
 		return granting?.grantsEffectOnMove.effect ?? null;
 	}
 
+	// Don't Follow Me's "lead a Sortie with +DEFY & advantage" (see playbook-moves.js's
+	// grantsTraitOnMove) — the trait-key half of the same pair _grantedEffectForMove already
+	// resolves for Effect. Returns a bare key (mirroring _grantedEffectForMove/
+	// _grantedAdvantageForMove's own return shape); _rollMove resolves it against this move's own
+	// already-computed `traits` list to get a real {key, label, value} option to lock, rather than
+	// duplicating that lookup here. Applied unconditionally whenever the granting move is picked
+	// and the target move is rolled — same "always" treatment grantsEffectOnMove already gives
+	// Field Scout, rather than gating on the move's own "you may" framing (Downtime Scenes and
+	// their tokens aren't tracked anywhere in this module — see claude.md's "systems that do not
+	// exist yet").
+	_grantedTraitForMove(move) {
+		const granting = resolvePlaybookMoves(this._playbookMoves())
+			.find((m) => m.grantsTraitOnMove?.moveKey === move.key);
+		return granting?.grantsTraitOnMove.trait ?? null;
+	}
+
+	// The Advantage-axis counterpart to _grantedEffectForMove — Don't Follow Me additionally locks
+	// the roll dialog's Dice select the same way a lockedEffect locks Effect (see
+	// PlaybookActorSheet#_rollMove/moves.js#configureMoveRoll), though an Astir Part's own reactive
+	// spend.advantage (Artifact) still wins over it.
+	_grantedAdvantageForMove(move) {
+		const granting = resolvePlaybookMoves(this._playbookMoves())
+			.find((m) => m.grantsAdvantageOnMove?.moveKey === move.key);
+		return granting?.grantsAdvantageOnMove.advantage ?? null;
+	}
+
 	// Whether "+ Choose Starting Gear" has already been clicked on this actor (see getData's
 	// startingGear.available and _onStartingGearAdd) — resets naturally on a playbook swap, since
 	// swapActorPlaybook (actor-creation.js) replaces system.attributes wholesale from the new
@@ -661,7 +739,15 @@ export class PlaybookActorSheet extends ActorSheet {
 					key: use.key,
 					label: use.label,
 					checked: Boolean(this.actor.system.attributes?.moveUses?.[move.key]?.[use.key])
-				}))
+				})),
+				// Let Loose's per-actor trait pick (see trait-bonuses.js's chooseTrait) — a small
+				// select rendered on the move's own row (see the template) rather than a separate
+				// dialog, the same "plain bound field, no picker" treatment the Cosmetic tab's
+				// freeform fields get. Stored at system.attributes.traitBonusChoices.<moveKey>, kept
+				// distinct from moveUses/moveHold the same way those two stay distinct from each
+				// other — a different kind of per-move state.
+				traitBonusChoosable: Boolean(move.traitBonus?.chooseTrait),
+				traitBonusChoice: this.actor.system.attributes?.traitBonusChoices?.[move.key] ?? ""
 			};
 		});
 	}
@@ -675,10 +761,16 @@ export class PlaybookActorSheet extends ActorSheet {
 	// 0 for display purposes; a roll in progress resolves the ambiguous multiple-Carrier case for
 	// real via a prompt (see _rollMove).
 	_moveTraits(move) {
+		// Folded straight into each entry's `value` (rather than a separate field) so the roll
+		// dialog's own trait select shows the real, bonus-inclusive number a player would actually
+		// roll with — the same total getData's own Traits panel displays (see "Trait bonus
+		// display"). An actor with no traitBonus moves picked resolves every bonus to 0, leaving
+		// this identical to before the feature existed.
+		const traitBonuses = this._traitBonuses();
 		const actorTraits = availableMoveTraits(this.actor, move).map((trait) => ({
 			key: trait.key,
 			label: trait.label,
-			value: this.actor.system.stats?.[trait.key]?.value ?? 0
+			value: (this.actor.system.stats?.[trait.key]?.value ?? 0) + (traitBonuses[trait.key] ?? 0)
 		}));
 		// Input Channel (see astir.js) offers +CHANNEL on any move, bypassing both that move's own
 		// traits list and Channel's disabled gate — only while piloted, and only added once (a
@@ -691,7 +783,7 @@ export class PlaybookActorSheet extends ActorSheet {
 			actorTraits.push({
 				key: channel.key,
 				label: channel.label,
-				value: this.actor.system.stats?.channel?.value ?? 0
+				value: (this.actor.system.stats?.channel?.value ?? 0) + (traitBonuses.channel ?? 0)
 			});
 		}
 		const fixedTraits = (move.fixedTraits ?? []).map((trait) => (
@@ -740,10 +832,14 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".hold-step").on("click", this._onHoldStep.bind(this));
 		html.find(".flat-hold-step").on("click", this._onFlatHoldStep.bind(this));
 		html.find(".spotlight-step").on("click", this._onSpotlightStep.bind(this));
+		html.find(".downtime-tokens-step").on("click", this._onDowntimeTokensStep.bind(this));
 		html.find(".advancement-checkbox").on("change", this._onAdvancementToggle.bind(this));
 		html.find(".danger-add-toggle").on("click", this._onDangerAddToggle.bind(this));
 		html.find(".danger-add").on("click", this._onDangerAdd.bind(this));
 		html.find(".danger-remove").on("click", this._onDangerRemove.bind(this));
+		html.find(".burden-add").on("click", this._onBurdenAdd.bind(this));
+		html.find(".burden-remove").on("click", this._onBurdenRemove.bind(this));
+		html.find(".burden-label-input").on("change", this._onBurdenLabelChange.bind(this));
 		html.find(".gravity-clock-add").on("click", this._onGravityClockAdd.bind(this));
 		html.find(".gravity-clock-remove").on("click", this._onGravityClockRemove.bind(this));
 		html.find(".gravity-clock-label-input").on("change", this._onGravityClockLabelChange.bind(this));
@@ -753,6 +849,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".playbook-move-add").on("click", this._onPlaybookMoveAdd.bind(this));
 		html.find(".playbook-move-remove").on("click", this._onPlaybookMoveRemove.bind(this));
 		html.find(".move-use-checkbox").on("change", this._onMoveUseToggle.bind(this));
+		html.find(".trait-bonus-select").on("change", this._onTraitBonusChoiceChange.bind(this));
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
 		html.find(".move-activate").on("click", this._onMoveActivate.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
@@ -836,6 +933,16 @@ export class PlaybookActorSheet extends ActorSheet {
 		const clamped = Math.min(SPOTLIGHT_MAX, Math.max(SPOTLIGHT_MIN, next));
 		if (clamped === current) return;
 		this.actor.update({ "system.attributes.spotlight.value": clamped });
+	}
+
+	// Bounded by DOWNTIME_TOKENS_MAX — see getData's downtimeTokens for why this is a flat
+	// constant rather than derived data.
+	_onDowntimeTokensStep(event) {
+		const { delta } = event.currentTarget.dataset;
+		const current = this.actor.system.attributes?.downtimeTokens?.value ?? DOWNTIME_TOKENS_MAX;
+		const next = Math.min(DOWNTIME_TOKENS_MAX, Math.max(DOWNTIME_TOKENS_MIN, current + Number(delta)));
+		if (next === current) return;
+		this.actor.update({ "system.attributes.downtimeTokens.value": next });
 	}
 
 	// "+ Create Astir" on an available-but-empty Astir tab. Every player may have at most one —
@@ -1031,6 +1138,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		if (this._astirParts().some((part) => part.grantsPotionsOnLeadASortie)) {
 			updates["system.attributes.astir.potions"] = { red: 0, blue: 0, yellow: 0 };
 		}
+		updates["system.attributes.downtimeTokens.value"] = DOWNTIME_TOKENS_MAX;
 		this.actor.update(updates);
 	}
 
@@ -1173,6 +1281,30 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({ "system.attributes.dangers": current.filter((danger) => danger.id !== dangerId) });
 	}
 
+	// Burdens (see claude.md's Social tab notes, _burdens above) — plain text entries, no max, no
+	// type select: a blank one is appended immediately (unlike Dangers' add-controls row, which
+	// collects a label first) since there's nothing else to configure.
+	_onBurdenAdd() {
+		this.actor.update({
+			"system.attributes.burdens": [...this._burdens(), { id: foundry.utils.randomID(), label: "" }]
+		});
+	}
+
+	_onBurdenRemove(event) {
+		const { burdenId } = event.currentTarget.dataset;
+		const current = this._burdens();
+		this.actor.update({ "system.attributes.burdens": current.filter((burden) => burden.id !== burdenId) });
+	}
+
+	_onBurdenLabelChange(event) {
+		const { burdenId } = event.currentTarget.dataset;
+		const label = event.currentTarget.value.trim();
+		const current = this._burdens();
+		this.actor.update({
+			"system.attributes.burdens": current.map((burden) => (burden.id === burdenId ? { ...burden, label } : burden))
+		});
+	}
+
 	_onGravityClockAdd(event) {
 		const current = this._gravityClocks();
 		if (current.length >= GRAVITY_CLOCK_MAX) return;
@@ -1259,40 +1391,54 @@ export class PlaybookActorSheet extends ActorSheet {
 		await this._saveNewEquipment(result);
 	}
 
+	// Turns a starting-gear pool entry (granted or picked — see starting-gear.js) into a real
+	// equipment.js-shaped entry, the same snapshot treatment a catalog pick already gets. Only a
+	// weapon-kind item carries scale/tier at all (mirrors _equipmentEntry's own weapon-only
+	// spread) — scale defaults to "foot" and tier to TIER_MIN, since every current weapon item
+	// here is Tier I and none are Astir-scale (those are only ever added from the Astir tab).
+	_startingGearEntry(item) {
+		return {
+			id: foundry.utils.randomID(),
+			spent: [],
+			kind: item.kind ?? "gear",
+			name: item.name,
+			description: item.description,
+			tags: item.tags ?? [],
+			...(item.kind === "weapon" && { scale: item.scale ?? "foot", tier: item.tier ?? TIER_MIN })
+		};
+	}
+
 	// The "+ Choose Starting Gear" button (see getData's startingGear.available). Chains two
 	// independent dialogs the same way _onEquipmentCatalogAdd and _onMoveRoll already chain
 	// theirs: chooseStartingGear's hard-capped subset pick (see starting-gear.js), then
 	// configureEquipment for the pool's custom weapon (skipped entirely for a pool with no
-	// customWeaponNote, e.g. Commander/Impostor before their pools are filled in). Each half
-	// resolves null independently on cancel — cancelling one still saves the other if it was
-	// completed — and picked gear items are saved as ordinary snapshot equipment entries, same
-	// treatment as a catalog pick (see claude.md, "Equipment").
+	// customWeaponNote, e.g. The Commander before its pool is filled in). Each half resolves null
+	// independently on cancel — cancelling one still saves the other if it was completed — and
+	// picked gear items are saved as ordinary snapshot equipment entries, same treatment as a
+	// catalog pick (see claude.md, "Equipment").
 	//
 	// startingGearChosen is always set, even if both dialogs are cancelled — clicking the button
 	// is what spends the one-time allowance, not what gets picked from it, so the button
-	// disappears for good (see getData) whether or not anything was actually added.
+	// disappears for good (see getData) whether or not anything was actually added. Granted items
+	// (Augments I) are added unconditionally, regardless of what chooseStartingGear resolves —
+	// same treatment starting-moves.js's own grantedKeys get from _onStartingMovesAdd.
 	async _onStartingGearAdd() {
 		const playbookName = this.actor.system.playbook?.name;
 		const pool = findStartingGearPool(playbookName);
-		// Mirrors getData's startingGear.available gate — a pool with nothing to offer (e.g.
-		// Commander/Impostor today) never reaches the button in the first place, but guarding
-		// here too keeps this a true no-op rather than spending the one-time flag for nothing.
-		if (!pool || (!pool.items.length && !pool.customWeaponNote)) return;
+		// Mirrors getData's startingGear.available gate — a pool with nothing to offer (e.g. The
+		// Commander today) never reaches the button in the first place, but guarding here too
+		// keeps this a true no-op rather than spending the one-time flag for nothing.
+		if (!pool || (!pool.grantedItems.length && !pool.items.length && !pool.customWeaponNote)) return;
 
-		const newEntries = [];
+		const newEntries = pool.grantedItems.map((item) => this._startingGearEntry(item));
 
-		if (pool.items.length) {
+		// The dialog opens whenever there's anything to show — items to pick from, or just the
+		// granted items' own read-only "You start with" block (see starting-gear-picker.hbs) — the
+		// same "always confirm, even with nothing to pick" treatment _onStartingMovesAdd gives
+		// Arcane Augments.
+		if (pool.grantedItems.length || pool.items.length) {
 			const picked = await chooseStartingGear(playbookName);
-			if (picked) {
-				newEntries.push(...picked.map((item) => ({
-					id: foundry.utils.randomID(),
-					spent: [],
-					kind: "gear",
-					name: item.name,
-					description: item.description,
-					tags: item.tags ?? []
-				})));
-			}
+			if (picked) newEntries.push(...picked.map((item) => this._startingGearEntry(item)));
 		}
 
 		if (pool.customWeaponNote) {
@@ -1313,19 +1459,23 @@ export class PlaybookActorSheet extends ActorSheet {
 	async _onStartingMovesAdd() {
 		const playbookName = this.actor.system.playbook?.name;
 		const pool = findStartingMovePool(playbookName);
-		// Mirrors getData's startingMovesAvailable gate — a pool with nothing to offer (e.g.
-		// Commander/Impostor today) never reaches the button in the first place, but guarding here
-		// too keeps this a true no-op rather than spending the one-time flag for nothing.
-		if (!pool || (!pool.pickOneKeys.length && !pool.chooseCount)) return;
+		// Mirrors getData's startingMovesAvailable gate — a pool with nothing to offer at all (e.g.
+		// The Commander today) never reaches the button in the first place, but guarding here too
+		// keeps this a true no-op rather than spending the one-time flag for nothing.
+		if (!pool || (!pool.grantedKeys.length && !pool.pickOneKeys.length && !pool.chooseCount)) return;
 
+		// The dialog always opens once there's anything at all to show (guarded above) — even a
+		// grantedKeys-only pool (Arcane Augments) still gets a confirmation screen naming what the
+		// player is receiving, rather than silently writing it the moment the button is clicked.
+		// Granted moves are added unconditionally regardless of what the dialog resolves — clicking
+		// the button is what spends this one-time allowance, not what's picked from it, same as
+		// chooseStartingGear's own granted items below.
 		const picked = await chooseStartingMoves(playbookName);
+		const current = this._playbookMoves();
+		const additions = [...pool.grantedKeys, ...(picked ?? [])].filter((key) => !current.includes(key));
 
 		const updates = { "system.attributes.startingMovesChosen": true };
-		if (picked?.length) {
-			const current = this._playbookMoves();
-			const additions = picked.filter((key) => !current.includes(key));
-			if (additions.length) updates["system.attributes.playbookMoves"] = [...current, ...additions];
-		}
+		if (additions.length) updates["system.attributes.playbookMoves"] = [...current, ...additions];
 
 		await this.actor.update(updates);
 	}
@@ -1446,6 +1596,14 @@ export class PlaybookActorSheet extends ActorSheet {
 	_onMoveUseToggle(event) {
 		const { move: moveKey, use: useKey } = event.currentTarget.dataset;
 		this.actor.update({ [`system.attributes.moveUses.${moveKey}.${useKey}`]: event.currentTarget.checked });
+	}
+
+	// Let Loose's per-actor trait pick (see _moveGroupMoves' traitBonusChoosable/traitBonusChoice
+	// and trait-bonuses.js's chooseTrait) — every option in the select is a real TRAITS key or the
+	// blank "—" option, so nothing here needs to validate the value before writing it.
+	_onTraitBonusChoiceChange(event) {
+		const { move: moveKey } = event.currentTarget.dataset;
+		this.actor.update({ [`system.attributes.traitBonusChoices.${moveKey}`]: event.currentTarget.value });
 	}
 
 	async _onMoveRoll(event) {
@@ -1580,6 +1738,14 @@ export class PlaybookActorSheet extends ActorSheet {
 			?? forced?.effect
 			?? this._grantedEffectForMove(move)
 			?? null;
+		// Don't Follow Me's own pair — see _grantedTraitForMove/_grantedAdvantageForMove. The
+		// granted trait key is resolved against this roll's own final `traits` list (rather than
+		// TRAITS directly) so the locked option carries the same live, bonus-inclusive value every
+		// other entry in the dialog does; a key that isn't actually offered here (e.g. the trait is
+		// disabled for this actor) resolves to no lock at all.
+		const grantedTraitKey = this._grantedTraitForMove(move);
+		const lockedTrait = grantedTraitKey ? traits.find((t) => t.key === grantedTraitKey) ?? null : null;
+		const lockedAdvantage = this._grantedAdvantageForMove(move);
 		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
 		const astirPartSpends = this._astirPartSpends(lockedEffect);
 		// Omitted entirely rather than passed as `false` when not guided — configureMoveRoll
@@ -1591,6 +1757,8 @@ export class PlaybookActorSheet extends ActorSheet {
 			|| (this._astirPiloted() && this._astirParts().some((part) => part.grantsGuided));
 		const config = await configureMoveRoll(move, traits, {
 			lockedEffect,
+			lockedAdvantage,
+			lockedTrait,
 			equipmentSpends,
 			astirPartSpends,
 			...(guided && { guided })
@@ -1631,7 +1799,17 @@ export class PlaybookActorSheet extends ActorSheet {
 		// moves.js). reroll is only ever attached for a usesWeapon move too — rollMove itself
 		// decides whether to actually offer it, based on whether this attempt fails (see moves.js).
 		const reroll = this._availableReroll(move, weapon);
-		const baseOptions = { ...config, ...(spentPartLabels.length && { spentPartLabels }) };
+		// The derived Trait bonus for whichever trait the player actually chose (see
+		// trait-bonuses.js) — moves.js#rollMove re-reads an actor trait's live stat value directly
+		// rather than trusting config.trait.value (see its own comment), so the bonus has to reach
+		// it as an explicit option instead. 0 for a fixedTrait (CREW) or an actor with no
+		// traitBonus moves picked, same as every other actor with nothing to contribute here.
+		const traitBonus = config.trait ? this._traitBonuses()[config.trait.key] ?? 0 : 0;
+		const baseOptions = {
+			...config,
+			...(traitBonus && { traitBonus }),
+			...(spentPartLabels.length && { spentPartLabels })
+		};
 		const options = weapon !== undefined
 			? {
 				...baseOptions,

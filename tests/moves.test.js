@@ -275,6 +275,71 @@ describe("configureMoveRoll - lockedEffect", () => {
 	});
 });
 
+describe("configureMoveRoll - lockedAdvantage", () => {
+	const clash = { key: "clash", label: "CLASH", value: 1 };
+
+	it("passes a null lockedAdvantage and lockedAdvantageLabel to the dialog template by default", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			lockedAdvantage: null,
+			lockedAdvantageLabel: null
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("passes the given lockedAdvantage and its display label to the dialog template", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { lockedAdvantage: "advantage" });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			lockedAdvantage: "advantage",
+			lockedAdvantageLabel: "Advantage"
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("forces the resolved advantage to lockedAdvantage regardless of what the (disabled) select reports", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { lockedAdvantage: "advantage" });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}));
+
+		expect((await promise).advantage).toBe("advantage");
+	});
+
+	it("lets a spent Astir Part's advantage (Artifact) win over lockedAdvantage", async () => {
+		const spend = {
+			partKey: "astir-part:artifact", partName: "Artifact", description: "d", effect: null, advantage: "advantage2", disabled: false
+		};
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { lockedAdvantage: "advantage", astirPartSpends: [spend] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], ["astir-part:artifact"]));
+
+		expect((await promise).advantage).toBe("advantage2");
+	});
+});
+
 describe("configureMoveRoll - intents and conditions", () => {
 	it("passes the move's intents and conditions to the dialog template", async () => {
 		const promise = configureMoveRoll(HELP_OR_HINDER, []);
@@ -725,6 +790,26 @@ describe("rollMove", () => {
 		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
 
 		await rollMove(actor, EXCHANGE_BLOWS, clash);
+
+		expect(Roll).toHaveBeenCalledWith(`2d${DIE_FACES} + @mod`, { mod: 2 });
+	});
+
+	it("adds a derived trait bonus (Arcane Augments, Let Loose) on top of the trait's own value", async () => {
+		const actor = { system: { stats: { clash: { value: 2 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { traitBonus: 3 });
+
+		expect(Roll).toHaveBeenCalledWith(`2d${DIE_FACES} + @mod`, { mod: 5 });
+	});
+
+	it("defaults the trait bonus to 0 when omitted", async () => {
+		const actor = { system: { stats: { clash: { value: 2 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, {});
 
 		expect(Roll).toHaveBeenCalledWith(`2d${DIE_FACES} + @mod`, { mod: 2 });
 	});

@@ -1,4 +1,18 @@
 <form class="armor-astir-starting-move-picker">
+	{{#if grantedMoves.length}}
+	<p class="starting-move-picker-instructions">You start with these.</p>
+	<ol class="starting-move-picker-list">
+		{{#each grantedMoves}}
+		<li class="starting-move-picker-item starting-move-picker-item-granted">
+			<span class="starting-move-picker-name">{{name}}</span>
+			{{#each traitLabels}}
+			<span class="starting-move-picker-trait">+{{this}}</span>
+			{{/each}}
+			<div class="starting-move-picker-description">{{{description}}}</div>
+		</li>
+		{{/each}}
+	</ol>
+	{{/if}}
 	{{#if pickOneMoves.length}}
 	<p class="starting-move-picker-instructions">Pick one.</p>
 	<ol class="starting-move-picker-list">

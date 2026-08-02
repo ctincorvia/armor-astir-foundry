@@ -13,15 +13,29 @@ export const STARTING_MOVE_PICKER_TEMPLATE = "modules/armor-astir/templates/star
 // this file carrying its own copy of the moves — same reasoning STARTING_GEAR_POOLS' `items` are
 // snapshotted (equipment) while playbookMoves are not: a move's definition already lives in
 // exactly one place (playbook-moves.js), so edited rules text reaches every actor.
+//
+// `grantedKeys` (The Impostor's Arcane Augments) are moves every character of that playbook just
+// starts with — no pick involved, unlike pickOneKeys/chooseCount. They're shown read-only in the
+// picker (see startingMovePickerData's grantedMoves) so the player can see what they're getting,
+// but PlaybookActorSheet#_onStartingMovesAdd adds them to playbookMoves unconditionally, the same
+// "clicking the button spends the one-time allowance regardless of what the dialog resolves"
+// treatment _onStartingGearAdd already gives starting-gear.js's own grantedItems.
 export const STARTING_MOVE_POOLS = [
 	{
 		playbookName: "The Scout",
 		poolKey: "the-scout",
+		grantedKeys: [],
 		pickOneKeys: ["the-scout:field-scout", "the-scout:giant-slayer"],
 		chooseCount: 2
 	},
-	{ playbookName: "The Commander", poolKey: "the-commander", pickOneKeys: [], chooseCount: 0 },
-	{ playbookName: "The Impostor", poolKey: "the-impostor", pickOneKeys: [], chooseCount: 0 }
+	{ playbookName: "The Commander", poolKey: "the-commander", grantedKeys: [], pickOneKeys: [], chooseCount: 0 },
+	{
+		playbookName: "The Impostor",
+		poolKey: "the-impostor",
+		grantedKeys: ["the-impostor:arcane-augments"],
+		pickOneKeys: [],
+		chooseCount: 0
+	}
 ];
 
 export function findStartingMovePool(playbookName, pools = STARTING_MOVE_POOLS) {
@@ -36,11 +50,17 @@ export function findStartingMovePool(playbookName, pools = STARTING_MOVE_POOLS) 
 export function startingMovePickerData(pool, movePools = MOVE_POOLS) {
 	const sourceMoves = movePools.find((p) => p.key === pool.poolKey)?.moves ?? [];
 	return {
+		grantedMoves: pool.grantedKeys
+			.map((key) => sourceMoves.find((move) => move.key === key))
+			.filter(Boolean)
+			.map(pickerMove),
 		pickOneMoves: pool.pickOneKeys
 			.map((key) => sourceMoves.find((move) => move.key === key))
 			.filter(Boolean)
 			.map(pickerMove),
-		additionalMoves: sourceMoves.filter((move) => !pool.pickOneKeys.includes(move.key)).map(pickerMove),
+		additionalMoves: sourceMoves
+			.filter((move) => !pool.pickOneKeys.includes(move.key) && !pool.grantedKeys.includes(move.key))
+			.map(pickerMove),
 		chooseCount: pool.chooseCount
 	};
 }
@@ -54,8 +74,8 @@ export async function chooseStartingMoves(playbookName, pools = STARTING_MOVE_PO
 	const pool = findStartingMovePool(playbookName, pools);
 	if (!pool) return null;
 
-	const { pickOneMoves, additionalMoves, chooseCount } = startingMovePickerData(pool, movePools);
-	const content = await renderTemplate(STARTING_MOVE_PICKER_TEMPLATE, { pickOneMoves, additionalMoves, chooseCount });
+	const { grantedMoves, pickOneMoves, additionalMoves, chooseCount } = startingMovePickerData(pool, movePools);
+	const content = await renderTemplate(STARTING_MOVE_PICKER_TEMPLATE, { grantedMoves, pickOneMoves, additionalMoves, chooseCount });
 
 	return new Promise((resolve) => {
 		new Dialog({

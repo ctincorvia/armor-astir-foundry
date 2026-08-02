@@ -98,11 +98,16 @@ import {
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 const STRIKE_DECISIVELY = BASIC_MOVES.find((m) => m.key === "strike-decisively");
 const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertainties");
+const WEAVE_MAGIC = BASIC_MOVES.find((m) => m.key === "weave-magic");
 const BITE_THE_DUST = BASIC_MOVES.find((m) => m.key === "bite-the-dust");
 const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
 const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:bullheaded");
+const ARCANE_AUGMENTS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:arcane-augments");
+const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loose");
+const DONT_FOLLOW_ME = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:dont-follow-me");
+const FACE_TO_FACE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:face-to-face");
 const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
 const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
 const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
@@ -530,13 +535,15 @@ describe("PlaybookActorSheet#_onPlaybookChange", () => {
 });
 
 describe("PlaybookActorSheet#getData - traits", () => {
-	it("defaults every trait to value 0 and enabled when system.stats is empty", () => {
+	it("defaults every trait to value 0, no bonus, and enabled when system.stats is empty", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: {} } };
 
 		const data = sheet.getData();
 
-		expect(data.traits).toEqual(TRAITS.map(({ key, label }) => ({ key, label, value: 0, disabled: false })));
+		expect(data.traits).toEqual(
+			TRAITS.map(({ key, label }) => ({ key, label, value: 0, bonus: 0, total: 0, disabled: false }))
+		);
 	});
 
 	it("reflects each trait's stored value and disabled flag", () => {
@@ -552,8 +559,48 @@ describe("PlaybookActorSheet#getData - traits", () => {
 
 		const data = sheet.getData();
 
-		expect(data.traits.find((t) => t.key === "defy")).toEqual({ key: "defy", label: "DEFY", value: 2, disabled: false });
-		expect(data.traits.find((t) => t.key === "channel")).toEqual({ key: "channel", label: "CHANNEL", value: 0, disabled: true });
+		expect(data.traits.find((t) => t.key === "defy")).toEqual({ key: "defy", label: "DEFY", value: 2, bonus: 0, total: 2, disabled: false });
+		expect(data.traits.find((t) => t.key === "channel")).toEqual({ key: "channel", label: "CHANNEL", value: 0, bonus: 0, total: 0, disabled: true });
+	});
+
+	it("adds Arcane Augments' +1 CHANNEL per Danger into bonus/total, capped at +3", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 1 } },
+				attributes: {
+					playbookMoves: [ARCANE_AUGMENTS.key],
+					dangers: [
+						{ id: "1", type: "risk", label: "Exposed" },
+						{ id: "2", type: "peril", label: "Cornered" },
+						{ id: "3", type: "risk", label: "Followed" },
+						{ id: "4", type: "risk", label: "Watched" }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.traits.find((t) => t.key === "channel")).toEqual({ key: "channel", label: "CHANNEL", value: 1, bonus: 3, total: 4, disabled: false });
+	});
+
+	it("adds Let Loose's uncapped per-Burden bonus to whichever Trait the player chose", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { sense: { value: 0 } },
+				attributes: {
+					playbookMoves: [LET_LOOSE.key],
+					burdens: [{ id: "1", label: "A" }, { id: "2", label: "B" }],
+					traitBonusChoices: { [LET_LOOSE.key]: "sense" }
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.traits.find((t) => t.key === "sense")).toEqual({ key: "sense", label: "SENSE", value: 0, bonus: 2, total: 2, disabled: false });
 	});
 });
 
@@ -2030,6 +2077,88 @@ describe("PlaybookActorSheet#_onSpotlightStep", () => {
 	});
 });
 
+describe("PlaybookActorSheet#getData - downtimeTokens", () => {
+	it("defaults value to the flat max (3) when attributes is empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.downtimeTokens).toEqual({ value: 3, max: 3 });
+	});
+
+	it("reflects the actor's stored value against the flat max", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { downtimeTokens: { value: 1 } } } };
+
+		const data = sheet.getData();
+
+		expect(data.downtimeTokens).toEqual({ value: 1, max: 3 });
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - downtime tokens step", () => {
+	it("binds a click handler to the downtime tokens step buttons", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".downtime-tokens-step");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onDowntimeTokensStep", () => {
+	it("increments the value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { downtimeTokens: { value: 1 } } }, update: vi.fn() };
+
+		sheet._onDowntimeTokensStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.downtimeTokens.value": 2 });
+	});
+
+	it("decrements the value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { downtimeTokens: { value: 1 } } }, update: vi.fn() };
+
+		sheet._onDowntimeTokensStep({ currentTarget: { dataset: { delta: "-1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.downtimeTokens.value": 0 });
+	});
+
+	it("clamps at DOWNTIME_TOKENS_MAX", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { downtimeTokens: { value: 3 } } }, update: vi.fn() };
+
+		sheet._onDowntimeTokensStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at DOWNTIME_TOKENS_MIN", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { downtimeTokens: { value: 0 } } }, update: vi.fn() };
+
+		sheet._onDowntimeTokensStep({ currentTarget: { dataset: { delta: "-1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing downtimeTokens value as starting at the max", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onDowntimeTokensStep({ currentTarget: { dataset: { delta: "-1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.downtimeTokens.value": 2 });
+	});
+});
+
 describe("PlaybookActorSheet#getData - dangers", () => {
 	it("defaults to an empty list, not at max, and able to add when attributes is empty", () => {
 		const sheet = new PlaybookActorSheet();
@@ -2296,6 +2425,127 @@ describe("PlaybookActorSheet#_onDangerRemove", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.dangers": [{ id: "1", type: "risk", label: "a" }]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#getData - burdens", () => {
+	it("defaults to an empty list when attributes is empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet.getData().burdens).toEqual({ list: [] });
+	});
+
+	it("exposes the actor's stored burdens as-is, with no derived per-entry shape", () => {
+		const sheet = new PlaybookActorSheet();
+		const burdens = [{ id: "1", label: "A lingering injury" }, { id: "2", label: "A promise made" }];
+		sheet.actor = { system: { attributes: { burdens } } };
+
+		expect(sheet.getData().burdens).toEqual({ list: burdens });
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - burdens", () => {
+	it("binds handlers to the add, remove and label controls", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".burden-add");
+		expect(html.find).toHaveBeenCalledWith(".burden-remove");
+		expect(html.find).toHaveBeenCalledWith(".burden-label-input");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onBurdenAdd", () => {
+	it("appends a new burden with a generated id and blank label", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { burdens: [] } }, update: vi.fn() };
+
+		sheet._onBurdenAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.burdens": [{ id: "test-id", label: "" }]
+		});
+	});
+
+	it("appends to, rather than replaces, existing burdens", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { burdens: [{ id: "existing", label: "Existing" }] } },
+			update: vi.fn()
+		};
+
+		sheet._onBurdenAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.burdens": [{ id: "existing", label: "Existing" }, { id: "test-id", label: "" }]
+		});
+	});
+
+	it("treats a missing burdens array as starting empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onBurdenAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.burdens": [{ id: "test-id", label: "" }]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onBurdenRemove", () => {
+	it("removes the burden matching the clicked button's id", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { burdens: [{ id: "1", label: "A" }, { id: "2", label: "B" }] }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onBurdenRemove({ currentTarget: { dataset: { burdenId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.burdens": [{ id: "2", label: "B" }]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onBurdenLabelChange", () => {
+	it("writes the trimmed label to the matching burden", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { burdens: [{ id: "1", label: "" }] } },
+			update: vi.fn()
+		};
+
+		sheet._onBurdenLabelChange({ currentTarget: { dataset: { burdenId: "1" }, value: "  A lingering injury  " } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.burdens": [{ id: "1", label: "A lingering injury" }]
+		});
+	});
+
+	it("leaves every other burden untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { burdens: [{ id: "1", label: "A" }, { id: "2", label: "B" }] } },
+			update: vi.fn()
+		};
+
+		sheet._onBurdenLabelChange({ currentTarget: { dataset: { burdenId: "2" }, value: "Changed" } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.burdens": [{ id: "1", label: "A" }, { id: "2", label: "Changed" }]
 		});
 	});
 });
@@ -3217,6 +3467,87 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.startingGearChosen": true });
 	});
+
+	describe("granted items and weapon-kind items (The Impostor)", () => {
+		const impostorPool = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Impostor");
+		const augmentsI = impostorPool.grantedItems.find((item) => item.key === "the-impostor:augments-i");
+		const powerFocusI = impostorPool.items.find((item) => item.key === "the-impostor:power-focus-i");
+		const shieldBroachI = impostorPool.items.find((item) => item.key === "the-impostor:shield-broach-i");
+
+		it("adds Augments I unconditionally, as a Tier I foot-scale weapon", async () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = { system: { playbook: { name: "The Impostor" }, attributes: { equipment: [] } }, update: vi.fn() };
+			chooseStartingGear.mockResolvedValue([]);
+
+			await sheet._onStartingGearAdd();
+
+			expect(chooseStartingGear).toHaveBeenCalledWith("The Impostor");
+			expect(sheet.actor.update).toHaveBeenCalledWith({
+				"system.attributes.startingGearChosen": true,
+				"system.attributes.equipment": [{
+					id: "test-id",
+					spent: [],
+					kind: "weapon",
+					name: augmentsI.name,
+					description: augmentsI.description,
+					tags: augmentsI.tags,
+					scale: "foot",
+					tier: 1
+				}]
+			});
+		});
+
+		it("still adds Augments I even if the gear picker is cancelled", async () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = { system: { playbook: { name: "The Impostor" }, attributes: { equipment: [] } }, update: vi.fn() };
+			chooseStartingGear.mockResolvedValue(null);
+
+			await sheet._onStartingGearAdd();
+
+			expect(sheet.actor.update).toHaveBeenCalledWith({
+				"system.attributes.startingGearChosen": true,
+				"system.attributes.equipment": [expect.objectContaining({ name: "Augments I" })]
+			});
+		});
+
+		it("saves a picked weapon-kind item (Power Focus I) with its own scale/tier defaults", async () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = { system: { playbook: { name: "The Impostor" }, attributes: { equipment: [] } }, update: vi.fn() };
+			chooseStartingGear.mockResolvedValue([powerFocusI]);
+
+			await sheet._onStartingGearAdd();
+
+			const equipment = sheet.actor.update.mock.calls[0][0]["system.attributes.equipment"];
+			expect(equipment.find((e) => e.name === "Power Focus I")).toEqual({
+				id: "test-id",
+				spent: [],
+				kind: "weapon",
+				name: powerFocusI.name,
+				description: powerFocusI.description,
+				tags: powerFocusI.tags,
+				scale: "foot",
+				tier: 1
+			});
+		});
+
+		it("saves a picked gear-kind item (Shield Broach I) with no scale/tier at all", async () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = { system: { playbook: { name: "The Impostor" }, attributes: { equipment: [] } }, update: vi.fn() };
+			chooseStartingGear.mockResolvedValue([shieldBroachI]);
+
+			await sheet._onStartingGearAdd();
+
+			const equipment = sheet.actor.update.mock.calls[0][0]["system.attributes.equipment"];
+			expect(equipment.find((e) => e.name === "Shield Broach I")).toEqual({
+				id: "test-id",
+				spent: [],
+				kind: "gear",
+				name: shieldBroachI.name,
+				description: shieldBroachI.description,
+				tags: shieldBroachI.tags
+			});
+		});
+	});
 });
 
 describe("PlaybookActorSheet#_onStartingMovesAdd", () => {
@@ -3295,6 +3626,46 @@ describe("PlaybookActorSheet#_onStartingMovesAdd", () => {
 	it("still marks startingMovesChosen, without touching playbookMoves, when nothing was picked", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: {} }, update: vi.fn() };
+		chooseStartingMoves.mockResolvedValue([]);
+
+		await sheet._onStartingMovesAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.startingMovesChosen": true });
+	});
+
+	it("opens the picker and grants Arcane Augments for The Impostor, which has nothing to pick", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Impostor" }, attributes: {} }, update: vi.fn() };
+		chooseStartingMoves.mockResolvedValue([]);
+
+		await sheet._onStartingMovesAdd();
+
+		expect(chooseStartingMoves).toHaveBeenCalledWith("The Impostor");
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.startingMovesChosen": true,
+			"system.attributes.playbookMoves": [ARCANE_AUGMENTS.key]
+		});
+	});
+
+	it("still grants Arcane Augments even if The Impostor's (empty) picker is cancelled", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Impostor" }, attributes: {} }, update: vi.fn() };
+		chooseStartingMoves.mockResolvedValue(null);
+
+		await sheet._onStartingMovesAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.startingMovesChosen": true,
+			"system.attributes.playbookMoves": [ARCANE_AUGMENTS.key]
+		});
+	});
+
+	it("does not duplicate a granted key the actor already has", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { playbook: { name: "The Impostor" }, attributes: { playbookMoves: [ARCANE_AUGMENTS.key] } },
+			update: vi.fn()
+		};
 		chooseStartingMoves.mockResolvedValue([]);
 
 		await sheet._onStartingMovesAdd();
@@ -3693,7 +4064,9 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0,
-						uses: []
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: ""
 					},
 					{
 						key: "weather-the-storm",
@@ -3710,7 +4083,9 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0,
-						uses: []
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: ""
 					},
 					{
 						key: "read-the-room",
@@ -3725,7 +4100,9 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackHold: true,
 						separateHoldPool: false,
 						hold: 0,
-						uses: []
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: ""
 					},
 					{
 						key: "dispel-uncertainties",
@@ -3740,7 +4117,9 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0,
-						uses: []
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: ""
 					},
 					{
 						key: "help-or-hinder",
@@ -3753,7 +4132,9 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0,
-						uses: []
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: ""
 					},
 					{
 						key: "weave-magic",
@@ -3770,7 +4151,9 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0,
-						uses: []
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: ""
 					},
 					{
 						key: "cool-off",
@@ -3790,7 +4173,9 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0,
-						uses: []
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: ""
 					},
 					{
 						key: "strike-decisively",
@@ -3806,7 +4191,9 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0,
-						uses: []
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: ""
 					},
 					{
 						key: "bite-the-dust",
@@ -3821,7 +4208,9 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0,
-						uses: []
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: ""
 					}
 				]
 			},
@@ -3852,7 +4241,9 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0,
-						uses: []
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: ""
 					},
 					{
 						key: "subsystems",
@@ -3865,7 +4256,9 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackHold: false,
 						separateHoldPool: false,
 						hold: 0,
-						uses: []
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: ""
 					},
 					{
 						key: "b-plot",
@@ -3880,7 +4273,9 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackHold: true,
 						separateHoldPool: true,
 						hold: 0,
-						uses: []
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: ""
 					}
 				]
 			}
@@ -3933,6 +4328,13 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 		expect(playbookGroup(sheet.getData()).startingMovesAvailable).toBe(false);
 	});
 
+	it("makes starting moves available for The Impostor, which grants Arcane Augments with nothing to pick", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Impostor" } } };
+
+		expect(playbookGroup(sheet.getData()).startingMovesAvailable).toBe(true);
+	});
+
 	it("hides starting moves for good once startingMovesChosen is set", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { startingMovesChosen: true } } };
@@ -3977,8 +4379,31 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 			trackHold: false,
 			separateHoldPool: false,
 			hold: 0,
-			uses: []
+			uses: [],
+			traitBonusChoosable: false,
+			traitBonusChoice: ""
 		});
+	});
+
+	it("marks a chooseTrait traitBonus move (Let Loose) as traitBonusChoosable, defaulting choice to blank", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [LET_LOOSE.key] } } };
+
+		const move = playbookGroup(sheet.getData()).moves[0];
+
+		expect(move.traitBonusChoosable).toBe(true);
+		expect(move.traitBonusChoice).toBe("");
+	});
+
+	it("reflects a stored traitBonus choice for that move", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { playbookMoves: [LET_LOOSE.key], traitBonusChoices: { [LET_LOOSE.key]: "sense" } }
+			}
+		};
+
+		expect(playbookGroup(sheet.getData()).moves[0].traitBonusChoice).toBe("sense");
 	});
 
 	it("shows no Roll button for a picked move that rolls nothing", () => {
@@ -4200,6 +4625,19 @@ describe("PlaybookActorSheet#activateListeners - move uses", () => {
 		expect(html.find).toHaveBeenCalledWith(".move-use-checkbox");
 		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
 	});
+
+	it("binds a change handler to the trait bonus select", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {} };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".trait-bonus-select");
+		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
+	});
 });
 
 describe("PlaybookActorSheet#_onMoveUseToggle", () => {
@@ -4226,6 +4664,34 @@ describe("PlaybookActorSheet#_onMoveUseToggle", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			[`system.attributes.moveUses.${PERSONAL_FAMILIAR.key}.downtime`]: false
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onTraitBonusChoiceChange", () => {
+	it("writes the selected trait key to the actor, keyed by move", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		sheet._onTraitBonusChoiceChange({
+			currentTarget: { dataset: { move: "the-impostor:let-loose" }, value: "clash" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.traitBonusChoices.the-impostor:let-loose": "clash"
+		});
+	});
+
+	it("writes an empty string back when the blank option is chosen", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		sheet._onTraitBonusChoiceChange({
+			currentTarget: { dataset: { move: "the-impostor:let-loose" }, value: "" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.traitBonusChoices.the-impostor:let-loose": ""
 		});
 	});
 });
@@ -4714,7 +5180,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			BASIC_MOVES.find((m) => m.key === "help-or-hinder"),
 			[],
-			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 
@@ -4733,12 +5199,28 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "clash", label: "CLASH", value: 1 },
 				{ key: "talk", label: "TALK", value: 0 }
 			],
-			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 		// exchange-blows is usesWeapon (see moves.js) and the actor has no equipment at all here,
 		// so the weapon-choice step is skipped straight to "Unarmed" — see
 		// "PlaybookActorSheet#_onMoveRoll - weapon choice" for the chooseWeapon-driven paths.
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, talk, { ...config, weaponLabel: "Unarmed", weaponTags: null });
+	});
+
+	it("rolls a no-trait move (Help or Hinder) through to completion with no traitBonus option", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+		const config = { conditions: ["hook"], advantage: "none", effect: "none" };
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "help-or-hinder" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor,
+			BASIC_MOVES.find((m) => m.key === "help-or-hinder"),
+			undefined,
+			config
+		);
 	});
 
 	it("finds a special move (lead a sortie) by key, same as a basic move", async () => {
@@ -4755,7 +5237,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 
@@ -4775,7 +5257,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 2 }
 			],
-			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 
@@ -4798,7 +5280,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: -1 }
 			],
-			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 
@@ -4831,7 +5313,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 
@@ -4854,7 +5336,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 
@@ -4900,7 +5382,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: "desperation", astirPartSpends: [], equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] });
 	});
 
 	it("does not lock Desperation when at max Dangers but the types are mixed", async () => {
@@ -4921,7 +5403,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, astirPartSpends: [], equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] });
 	});
 
 	it("does not lock Desperation when below max Dangers, even if all are Perils", async () => {
@@ -4941,7 +5423,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, astirPartSpends: [], equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] });
 	});
 
 	it("never locks Desperation for a move without forcesDesperationAtMaxPerils, even at max Perils", async () => {
@@ -4968,7 +5450,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 				{ key: "clash", label: "CLASH", value: 0 },
 				{ key: "talk", label: "TALK", value: 0 }
 			],
-			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
 		);
 	});
 });
@@ -5008,7 +5490,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			DISPEL_UNCERTAINTIES,
 			[{ key: "know", label: "KNOW", value: 1 }],
-			{ lockedEffect: null, astirPartSpends: [], equipmentSpends: [blitzSpend] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [blitzSpend] }
 		);
 	});
 
@@ -5027,7 +5509,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: []
 		});
 	});
@@ -5047,7 +5529,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: [blitzSpend]
 		});
 	});
@@ -5067,7 +5549,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: []
 		});
 	});
@@ -5087,7 +5569,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: []
 		});
 	});
@@ -5108,7 +5590,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: []
 		});
 	});
@@ -5132,7 +5614,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })]
 		});
 	});
@@ -5153,7 +5635,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })]
 		});
 	});
@@ -5173,7 +5655,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: []
 		});
 	});
@@ -5199,7 +5681,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], {
-			lockedEffect: "desperation",
+			lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: [{ ...blitzSpend, disabled: true }]
 		});
 	});
@@ -5297,7 +5779,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [wardingSpend],
 			equipmentSpends: []
 		});
@@ -5316,7 +5798,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [],
 			equipmentSpends: []
 		});
@@ -5338,7 +5820,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [],
 			equipmentSpends: []
 		});
@@ -5357,7 +5839,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [],
 			equipmentSpends: []
 		});
@@ -5386,7 +5868,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], {
-			lockedEffect: "desperation",
+			lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [{
 				partKey: ARTIFACT.key,
 				partName: "Artifact",
@@ -5520,7 +6002,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: []
 		});
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
@@ -5540,7 +6022,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: armed.id, tagKey: "blitz" })]
 		});
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz" });
@@ -5593,7 +6075,7 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 
 		expect(chooseWeapon).not.toHaveBeenCalled();
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })]
 		});
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz" });
@@ -5631,7 +6113,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: "desperation",
+			lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: []
 		});
 	});
@@ -5648,7 +6130,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: []
 		});
 	});
@@ -5665,7 +6147,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
-			lockedEffect: "desperation"
+			lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null
 		}));
 	});
 
@@ -5703,7 +6185,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
-			lockedEffect: null
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null
 		}));
 	});
 
@@ -5719,7 +6201,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
-			lockedEffect: null
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null
 		}));
 	});
 
@@ -5735,7 +6217,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
-			lockedEffect: null
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null
 		}));
 	});
 });
@@ -5752,7 +6234,7 @@ describe("PlaybookActorSheet#_rollMove - Field Scout's grantsEffectOnMove", () =
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(READ_THE_ROOM, expect.any(Array), expect.objectContaining({
-			lockedEffect: "confidence"
+			lockedEffect: "confidence", lockedAdvantage: null, lockedTrait: null
 		}));
 	});
 
@@ -5767,7 +6249,7 @@ describe("PlaybookActorSheet#_rollMove - Field Scout's grantsEffectOnMove", () =
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(READ_THE_ROOM, expect.any(Array), expect.objectContaining({
-			lockedEffect: null
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null
 		}));
 	});
 
@@ -5782,8 +6264,135 @@ describe("PlaybookActorSheet#_rollMove - Field Scout's grantsEffectOnMove", () =
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), expect.objectContaining({
-			lockedEffect: null
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null
 		}));
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - Don't Follow Me's grantsTraitOnMove/grantsAdvantageOnMove", () => {
+	it("locks Lead a Sortie's Trait to DEFY and its Dice to Advantage when picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 }, defy: { value: 2 } },
+				attributes: { playbookMoves: [DONT_FOLLOW_ME.key] }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(LEAD_A_SORTIE, expect.any(Array), expect.objectContaining({
+			lockedTrait: { key: "defy", label: "DEFY", value: 2 },
+			lockedAdvantage: "advantage"
+		}));
+	});
+
+	it("leaves Lead a Sortie's Trait and Dice unlocked without Don't Follow Me picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { know: { value: 1 }, defy: { value: 2 } }, attributes: { playbookMoves: [] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(LEAD_A_SORTIE, expect.any(Array), expect.objectContaining({
+			lockedTrait: null,
+			lockedAdvantage: null
+		}));
+	});
+
+	it("does not lock a different move's Trait/Dice just because Don't Follow Me is picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { know: { value: 0 } }, attributes: { playbookMoves: [DONT_FOLLOW_ME.key] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), expect.objectContaining({
+			lockedTrait: null,
+			lockedAdvantage: null
+		}));
+	});
+
+	it("does not lock the granted trait when it's disabled for this actor", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 }, defy: { value: 0, disabled: true } },
+				attributes: { playbookMoves: [DONT_FOLLOW_ME.key] }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(LEAD_A_SORTIE, expect.any(Array), expect.objectContaining({
+			lockedTrait: null
+		}));
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - derived Trait bonuses (Arcane Augments, Let Loose)", () => {
+	it("adds a picked Arcane Augments-style bonus into the trait's dialog value and the roll's traitBonus option", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 1 } },
+				attributes: {
+					playbookMoves: [ARCANE_AUGMENTS.key],
+					dangers: [{ id: "1", type: "risk", label: "Exposed" }, { id: "2", type: "peril", label: "Cornered" }]
+				}
+			},
+			update: vi.fn()
+		};
+		const trait = { key: "channel", label: "CHANNEL", value: 3 };
+		configureMoveRoll.mockResolvedValue({ trait, advantage: "none", effect: "none" });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "weave-magic" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(WEAVE_MAGIC, [trait], expect.any(Object));
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, WEAVE_MAGIC, trait, expect.objectContaining({ traitBonus: 2 }));
+	});
+
+	it("omits traitBonus entirely when the chosen trait has no bonus", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { clash: { value: 1 } } }, update: vi.fn() };
+		const trait = { key: "clash", label: "CLASH", value: 1 };
+		configureMoveRoll.mockResolvedValue({ trait, advantage: "none", effect: "none" });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(rollMove.mock.calls.at(-1)[3]).not.toHaveProperty("traitBonus");
+	});
+
+	it("lets a Let Loose player pick which Trait its per-burden bonus applies to", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 0 } },
+				attributes: {
+					playbookMoves: [LET_LOOSE.key],
+					burdens: [{ id: "1", label: "A lingering injury" }],
+					traitBonusChoices: { [LET_LOOSE.key]: "channel" }
+				}
+			},
+			update: vi.fn()
+		};
+		const trait = { key: "channel", label: "CHANNEL", value: 1 };
+		configureMoveRoll.mockResolvedValue({ trait, advantage: "none", effect: "none" });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "weave-magic" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(WEAVE_MAGIC, [trait], expect.any(Object));
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, WEAVE_MAGIC, trait, expect.objectContaining({ traitBonus: 1 }));
 	});
 });
 
@@ -5999,7 +6608,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: [],
 			guided: true
 		});
@@ -6016,7 +6625,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, astirPartSpends: [], equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] });
 	});
 
 	it("treats a missing tags array as not Guided", async () => {
@@ -6030,7 +6639,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, astirPartSpends: [], equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] });
 	});
 
 	it("is never Guided for Unarmed", async () => {
@@ -6043,7 +6652,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, astirPartSpends: [], equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] });
 	});
 
 	it("posts a guided result and never rolls when Take 7-9 is chosen", async () => {
@@ -6091,7 +6700,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on any move)", (
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [],
 			equipmentSpends: [],
 			guided: true
@@ -6112,7 +6721,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on any move)", (
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null,
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [],
 			equipmentSpends: []
 		});
@@ -6848,7 +7457,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.b-plot.value": 0,
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
-			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0
+			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.downtimeTokens.value": 3
 		});
 	});
 
@@ -6873,7 +7483,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.b-plot.value": 0,
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
-			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0
+			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.downtimeTokens.value": 3
 		});
 	});
 
@@ -6891,7 +7502,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.b-plot.value": 0,
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
-			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0
+			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.downtimeTokens.value": 3
 		});
 	});
 
@@ -6913,7 +7525,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.b-plot.value": 0,
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
-			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0
+			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.downtimeTokens.value": 3
 		});
 	});
 
@@ -6938,7 +7551,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.b-plot.value": 0,
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
-			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0
+			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.downtimeTokens.value": 3
 		});
 	});
 });

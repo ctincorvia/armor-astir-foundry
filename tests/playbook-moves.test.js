@@ -16,6 +16,7 @@ const BULLHEADED = "the-impostor:bullheaded";
 // placeholder cantrip did (rolls +CHANNEL, disabled by default for The Scout).
 const DENY = "cantrips:deny";
 const SCOUT_KEYS = MOVE_POOLS.find((pool) => pool.key === "the-scout").moves.map((move) => move.key);
+const IMPOSTOR_KEYS = MOVE_POOLS.find((pool) => pool.key === "the-impostor").moves.map((move) => move.key);
 const CANTRIP_KEYS = MOVE_POOLS.find((pool) => pool.key === "cantrips").moves.map((move) => move.key);
 const SOLDIER_KEYS = MOVE_POOLS.find((pool) => pool.key === "soldier").moves.map((move) => move.key);
 
@@ -134,6 +135,45 @@ describe("MOVE_POOLS", () => {
 
 		expect(fieldScout.starting).toBe(true);
 		expect(giantSlayer.starting).toBe(true);
+	});
+
+	it("marks Arcane Augments as The Impostor's Starting Move", () => {
+		expect(findPlaybookMove("the-impostor:arcane-augments").starting).toBe(true);
+	});
+
+	it("gives Arcane Augments a +1 CHANNEL per Danger traitBonus, capped at +3", () => {
+		expect(findPlaybookMove("the-impostor:arcane-augments").traitBonus).toEqual({
+			trait: "channel",
+			per: "danger",
+			max: 3
+		});
+	});
+
+	it("gives Let Loose an uncapped, per-actor-chosen traitBonus scaled by burdens", () => {
+		expect(findPlaybookMove("the-impostor:let-loose").traitBonus).toEqual({ per: "burden", chooseTrait: true });
+	});
+
+	it("gives Hot-blooded a flat, unscoped (no period) hold grant", () => {
+		const hotBlooded = findPlaybookMove("the-impostor:hot-blooded");
+
+		expect(hotBlooded.flatHold).toBe(1);
+		expect(hotBlooded.period).toBeUndefined();
+	});
+
+	it("gives Don't Follow Me a standing +DEFY & advantage grant on Lead a Sortie", () => {
+		const dontFollowMe = findPlaybookMove("the-impostor:dont-follow-me");
+
+		expect(dontFollowMe.grantsTraitOnMove).toEqual({ moveKey: "lead-a-sortie", trait: "defy" });
+		expect(dontFollowMe.grantsAdvantageOnMove).toEqual({ moveKey: "lead-a-sortie", advantage: "advantage" });
+	});
+
+	it("rolls Face To Face with +TALK, with a mixed-success choose-one menu", () => {
+		const faceToFace = findPlaybookMove("the-impostor:face-to-face");
+
+		expect(faceToFace.traits).toEqual(["talk"]);
+		expect(faceToFace.results.success).toBeTruthy();
+		expect(faceToFace.results.failure).toBeNull();
+		expect(faceToFace.questions).toHaveLength(3);
 	});
 });
 
@@ -278,11 +318,12 @@ describe("playbookMoveSections", () => {
 		expect(first.moves.map((move) => move.key)).toEqual(SCOUT_KEYS);
 	});
 
-	it("offers The Impostor's Bullheaded from the real pools", () => {
+	it("offers The Impostor's own moves from the real pools", () => {
 		const [first] = playbookMoveSections("The Impostor");
 
 		expect(first.key).toBe("the-impostor");
-		expect(first.moves.map((move) => move.key)).toEqual([BULLHEADED]);
+		expect(first.moves.map((move) => move.key)).toEqual(IMPOSTOR_KEYS);
+		expect(first.moves.map((move) => move.key)).toContain(BULLHEADED);
 	});
 
 	it("offers the real universal pools to every playbook", () => {

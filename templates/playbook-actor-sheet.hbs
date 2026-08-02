@@ -37,7 +37,7 @@
 					<label class="trait-label">{{label}}</label>
 					<div class="trait-control">
 						<button type="button" class="trait-step trait-decrement" data-trait="{{key}}" data-delta="-1" {{#if disabled}}disabled{{/if}}>-</button>
-						<span class="trait-value">{{value}}</span>
+						<span class="trait-value">{{value}}{{#if bonus}}<span class="trait-bonus">+{{bonus}}</span>{{/if}}</span>
 						<button type="button" class="trait-step trait-increment" data-trait="{{key}}" data-delta="1" {{#if disabled}}disabled{{/if}}>+</button>
 					</div>
 				</li>
@@ -107,6 +107,7 @@
 				<a class="item{{#unless astir.available}} disabled{{/unless}}" data-tab="astir">Astir</a>
 				<a class="item" data-tab="social">Social</a>
 				<a class="item" data-tab="advancement">Advancement</a>
+				<a class="item" data-tab="downtime">Downtime</a>
 				<a class="item" data-tab="cosmetic">Cosmetic</a>
 			</nav>
 			<section class="sheet-body">
@@ -118,7 +119,7 @@
 							{{#if addable}}
 							<div class="section-header-actions">
 								{{#if startingMovesAvailable}}
-								<button type="button" class="starting-moves-add icon-add-button" title="Choose Starting Moves" aria-label="Choose Starting Moves">+</button>
+								<button type="button" class="starting-moves-add icon-add-button labeled-add-button" title="Choose Starting Moves" aria-label="Choose Starting Moves">+ Starting Moves</button>
 								{{else}}
 								<button type="button" class="playbook-move-add icon-add-button" title="Add a Playbook Move" aria-label="Add a Playbook Move">+</button>
 								{{/if}}
@@ -147,6 +148,13 @@
 										{{/each}}
 									</div>
 									{{/if}}
+									{{#if traitBonusChoosable}}
+									<div class="move-trait-bonus-control">
+										<select class="trait-bonus-select" data-move="{{key}}">
+											{{selectOptions @root.traits selected=traitBonusChoice valueAttr="key" labelAttr="label" blank="—"}}
+										</select>
+									</div>
+									{{/if}}
 									<div class="move-controls">
 										{{#if rollable}}
 										<button type="button" class="move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Roll</button>
@@ -171,7 +179,7 @@
 							<h3>Weapons</h3>
 							<div class="section-header-actions">
 								{{#if equipment.startingGear.available}}
-								<button type="button" class="starting-gear-add icon-add-button" title="Choose Starting Gear" aria-label="Choose Starting Gear">+</button>
+								<button type="button" class="starting-gear-add icon-add-button labeled-add-button" title="Choose Starting Gear" aria-label="Choose Starting Gear">+ Starting Equipment</button>
 								{{else}}
 								<button type="button" class="equipment-add icon-add-button" data-kind="weapon" title="Add Weapon" aria-label="Add Weapon">+</button>
 								<button type="button" class="equipment-catalog-add icon-add-button" data-kind="weapon" title="Pick Weapon from Catalog" aria-label="Pick Weapon from Catalog">O</button>
@@ -533,6 +541,22 @@
 							{{/each}}
 						</ol>
 					</section>
+					<section class="burdens">
+						<div class="section-header">
+							<h3>Burdens</h3>
+							<div class="section-header-actions">
+								<button type="button" class="burden-add icon-add-button" title="Add a Burden" aria-label="Add a Burden">+</button>
+							</div>
+						</div>
+						<ol class="burden-list">
+							{{#each burdens.list}}
+							<li class="burden-item" data-burden-id="{{id}}">
+								<input type="text" class="burden-label-input" data-burden-id="{{id}}" value="{{label}}" placeholder="Describe the burden…"/>
+								<button type="button" class="burden-remove" data-burden-id="{{id}}" aria-label="Remove burden">✕</button>
+							</li>
+							{{/each}}
+						</ol>
+					</section>
 				</div>
 				<div class="tab" data-group="primary" data-tab="advancement">
 					<section class="advancement">
@@ -560,6 +584,16 @@
 							</li>
 							{{/each}}
 						</ol>
+					</section>
+				</div>
+				<div class="tab" data-group="primary" data-tab="downtime">
+					<section class="downtime">
+						<div class="power-control downtime-tokens-control">
+							<label class="power-label">Downtime Tokens</label>
+							<button type="button" class="power-step downtime-tokens-step downtime-tokens-decrement" data-delta="-1">-</button>
+							<span class="power-value">{{downtimeTokens.value}} / {{downtimeTokens.max}}</span>
+							<button type="button" class="power-step downtime-tokens-step downtime-tokens-increment" data-delta="1">+</button>
+						</div>
 					</section>
 				</div>
 				<div class="tab" data-group="primary" data-tab="cosmetic">
