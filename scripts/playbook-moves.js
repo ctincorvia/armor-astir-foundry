@@ -132,7 +132,7 @@ export const MOVE_POOLS = [
 				period: "Sortie",
 				description:
 					"<p>At the beginning of a Sortie, hold 3. You may spend 1 hold to change your approach for a " +
-					"single move — set it via the Approach select in the header and explain to your Director " +
+					"single move — explain to your Director " +
 					"what you did or used to do this.</p>"
 			},
 			{

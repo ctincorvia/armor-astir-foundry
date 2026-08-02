@@ -317,6 +317,19 @@ describe("configureEquipment", () => {
 		await promise;
 	});
 
+	it("hides Drain 1/2/3 from the mundane (non-astirWeapon) flow's tag checkboxes", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { tagGroups } = renderTemplate.mock.calls.at(-1)[1];
+		const renderedKeys = tagGroups.flatMap((group) => group.tags.map((tag) => tag.key));
+		expect(renderedKeys).not.toEqual(expect.arrayContaining(["drain-1", "drain-2", "drain-3"]));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
 	it("pre-fills the editor and titles it to Edit when given an existing entry", async () => {
 		const entry = {
 			id: "abc",
@@ -802,6 +815,19 @@ describe("configureEquipment - astirWeapon option", () => {
 
 		expect(await promise).toBeNull();
 	});
+
+	it("still offers Drain 1/2/3 in the tag checkboxes", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { tagGroups } = renderTemplate.mock.calls.at(-1)[1];
+		const renderedKeys = tagGroups.flatMap((group) => group.tags.map((tag) => tag.key));
+		expect(renderedKeys).toEqual(expect.arrayContaining(["drain-1", "drain-2", "drain-3"]));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
 });
 
 describe("configureEquipment - carrierWeapon option", () => {
@@ -871,6 +897,19 @@ describe("configureEquipment - carrierWeapon option", () => {
 
 		expect(await promise).toBeNull();
 		expect(ui.notifications.warn).toHaveBeenCalled();
+	});
+
+	it("hides Drain 1/2/3 from the tag checkboxes — a Carrier weapon is never an Astir weapon", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { tagGroups } = renderTemplate.mock.calls.at(-1)[1];
+		const renderedKeys = tagGroups.flatMap((group) => group.tags.map((tag) => tag.key));
+		expect(renderedKeys).not.toEqual(expect.arrayContaining(["drain-1", "drain-2", "drain-3"]));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
 	});
 });
 

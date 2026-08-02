@@ -15,6 +15,11 @@ export const WEAPON_RANGE_GROUP = "weapon-range";
 // Unlike WEAPON_RANGE_GROUP, membership in this group does NOT exempt a tag from MAX_TAGS below —
 // Drain still carries a real negative value (it's a drawback pick, not a pure classifier), so
 // each tier costs one regular tag slot like any other tag.
+//
+// Drain only ever does anything on a weapon actually mounted on an Astir (astirWeapon: true — see
+// astir.js#astirWeaponDrainTotal), so configureEquipment hides Drain's checkboxes from every other
+// flow (mundane/foot-scale weapons, gear, Carrier weapons) rather than offering a pick that would
+// stay permanently inert.
 export const DRAIN_GROUP = "drain";
 
 // Applies to every equipment entry (weapon or gear), and — like WEAPON_RANGE_GROUP above — never
@@ -89,9 +94,9 @@ export const EQUIPMENT_TAGS = [
 		exclusiveGroup: DRAIN_GROUP,
 		// "Reduces Power by N while equipped" is wired for real, but only for a weapon actually
 		// mounted on an Astir (kind: "weapon", astir: true — see astir.js#astirWeaponDrainTotal/
-		// astirMaxPower). A Drain tag on gear or a mundane (Foot-scale) weapon can still be picked
-		// here — the editor doesn't forbid it — but it stays inert prose, since neither draws on an
-		// Astir's own Power.
+		// astirMaxPower). configureEquipment only offers Drain's checkboxes on the astirWeapon
+		// flow (see DRAIN_GROUP's doc comment above) — gear and mundane (Foot-scale) weapons can
+		// never pick it up in the first place.
 		description: "This object draws excessive power from an Astir, and reduces the Astir's Power by 3 " +
 			"while equipped."
 	},
@@ -803,6 +808,9 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 // entirely: an Astir weapon is always a weapon, and always inherits its Astir's own tier and the
 // "astir" WEAPON_SCALES entry rather than storing either — everything else (tags, MAX_TAGS, the
 // required weapon-range group, the live Value readout) applies exactly as it does for any weapon.
+// It's also the only flow that renders Drain's checkboxes at all (see DRAIN_GROUP's doc comment
+// above) — every other caller (mundane weapons, gear, Carrier weapons) filters them out of the
+// tag list before rendering.
 //
 // `carrierWeapon` (see carrier-actor-sheet.js) is a lighter version of the same idea: a Carrier
 // weapon is always a weapon, always Astir scale (Carriers are never Foot scale), and always
@@ -817,6 +825,9 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 // always `"astir"`; `astirWeapon` never stores a scale at all. There's no `<select name="scale">`
 // left in the template for any of the three.
 export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, { note, astirWeapon = false, carrierWeapon = false } = {}) {
+	// Drain only means anything on an Astir weapon (see DRAIN_GROUP's doc comment) — every other
+	// flow hides its checkboxes so it can't be picked somewhere it would stay permanently inert.
+	const pickableTags = astirWeapon ? tags : tags.filter((tag) => tag.exclusiveGroup !== DRAIN_GROUP);
 	const content = await renderTemplate(EQUIPMENT_EDITOR_TEMPLATE, {
 		note,
 		astirWeapon,
@@ -837,7 +848,7 @@ export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, 
 		// has grown too long to scan otherwise. Each group starts open only if it already holds one
 		// of `initial`'s current tags, so editing a tagged item lands with the relevant group(s)
 		// visibly expanded; a blank new item starts with every group collapsed.
-		tagGroups: groupEquipmentTags(tags.map((tag) => ({
+		tagGroups: groupEquipmentTags(pickableTags.map((tag) => ({
 			key: tag.key,
 			label: tag.label,
 			value: tag.value,
