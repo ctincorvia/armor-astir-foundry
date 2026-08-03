@@ -139,18 +139,11 @@
 	gap: var(--aa-space-2);
 }
 
-/* Sized at 80% of the select boxes' own height (see .tier-value below) — matching it exactly
-   read as too tall once seen next to Playbook/Approach's dropdowns, so this is deliberately a
-   little shorter rather than equal. line-height matches height for the same reason .tier-value
-   centers via flexbox and .sheet-header label sets line-height: 1 below — a <select>'s text is
-   centered natively regardless of line-height, but core's own input[type="text"] rule sets
-   line-height: inherit, so without this the text sits wherever the inherited line-height happens
-   to put it instead of centered in the box. padding-left overrides core's default 3px (~1
-   character of breathing room instead of text sitting flush against the border); the other three
-   padding sides are left at core's default. */
+/* Does not work with hardcoded px values or percentage values
+   Because calc in this version of CSS doesn't support percentage-based calculations */
 .armor-astir.sheet .sheet-header .form-group input {
-	height: calc((var(--form-field-height) + 1px) * 0.9);
-	line-height: calc((var(--form-field-height) + 1px) * 0.9);
+	height: calc((var(--form-field-height) + 1px) * 1);
+	line-height: calc((var(--form-field-height) + 1px) * 1);
 	padding-left: 0.25em;
 }
 
