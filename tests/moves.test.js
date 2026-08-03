@@ -1071,6 +1071,95 @@ describe("rollMove - reroll (Decisive/Defensive/Versatile)", () => {
 	});
 });
 
+describe("rollMove - automatic success offer (Hot-blooded/Once the War's Over/The Arity Method)", () => {
+	const HOT_BLOODED_SOURCE = { key: "the-impostor:hot-blooded", name: "Hot-blooded", cost: 3 };
+
+	it("offers automatic success, and records everything needed to spend it, on a Mixed result", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [3, 4] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { automaticSuccess: [HOT_BLOODED_SOURCE] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ automaticSuccess: [HOT_BLOODED_SOURCE] })
+		);
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(rollInstance.toMessage).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			flavor: "",
+			flags: {
+				"armor-astir": {
+					automaticSuccess: {
+						actorId: "actor1",
+						moveKey: "exchange-blows",
+						flavorArgs: expect.objectContaining({ tier: "mixed", automaticSuccess: [HOT_BLOODED_SOURCE] }),
+						sources: [HOT_BLOODED_SOURCE]
+					}
+				}
+			}
+		});
+	});
+
+	it("offers automatic success on a failure the same way", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { automaticSuccess: [HOT_BLOODED_SOURCE] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ automaticSuccess: [HOT_BLOODED_SOURCE] })
+		);
+	});
+
+	it("does not offer automatic success once the roll already succeeded", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [6, 6] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { automaticSuccess: [HOT_BLOODED_SOURCE] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ automaticSuccess: [] }));
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(rollInstance.toMessage).toHaveBeenCalledWith({ speaker: { actor: "speaker" }, flavor: "" });
+	});
+
+	it("does not offer automatic success on a failing roll when nothing was passed", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ automaticSuccess: [] }));
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(rollInstance.toMessage).toHaveBeenCalledWith({ speaker: { actor: "speaker" }, flavor: "" });
+	});
+
+	it("carries both a reroll offer and an automatic success offer on the same failed weapon roll", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, {
+			weaponLabel: "Halberd",
+			reroll: { equipmentId: "eq1", tagKey: "defensive" },
+			automaticSuccess: [HOT_BLOODED_SOURCE]
+		});
+
+		const rollInstance = Roll.mock.results.at(-1).value;
+		const flags = rollInstance.toMessage.mock.calls.at(-1)[0].flags["armor-astir"];
+		expect(flags.reroll).toBeDefined();
+		expect(flags.automaticSuccess.sources).toEqual([HOT_BLOODED_SOURCE]);
+	});
+});
+
 describe("rollMove - dispel uncertainties and weave magic", () => {
 	it("rolls 2d6 plus the KNOW value for dispel uncertainties", async () => {
 		const actor = { system: { stats: { know: { value: 2 } } } };

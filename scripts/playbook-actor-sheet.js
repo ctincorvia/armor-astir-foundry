@@ -4,6 +4,8 @@ import { gravityTriggerForPlaybook } from "./gravity-triggers.js";
 import { defaultConsiderText, defaultLookText } from "./playbook-flavor.js";
 import {
 	BASIC_MOVES,
+	MOVE_CHAT_TEMPLATE,
+	MOVE_RESULT_LABELS,
 	SPECIAL_MOVES,
 	availableMoveTraits,
 	configureMoveRoll,
@@ -285,7 +287,14 @@ export class PlaybookActorSheet extends ActorSheet {
 		// another, so mounting frame A can never accidentally leave frame B's buttons enabled too.
 		const baseWeaponMoves = this._moveGroupMoves(WEAPON_MOVES).map(({ key, name, gated }) => ({ key, name, gated }));
 		const mountedFrameId = mountedFrame?.id ?? null;
-		const frameWeaponMoves = (frameId) => baseWeaponMoves.map((move) => ({ ...move, gated: move.gated || mountedFrameId !== frameId }));
+		const frameWeaponMoves = (frameId) => baseWeaponMoves.map((move) => {
+			const frameMismatch = mountedFrameId !== frameId;
+			return {
+				...move,
+				gated: move.gated || frameMismatch,
+				tooltip: frameMismatch ? this._weaponGateTooltip(frameId, mountedFrameId) : null
+			};
+		});
 		const weaponMoves = frameWeaponMoves(null);
 		const astirWeaponMoves = frameWeaponMoves("astir");
 		// The "+ Choose Starting Gear" button (see _onStartingGearAdd) only shows up once its
@@ -583,6 +592,19 @@ export class PlaybookActorSheet extends ActorSheet {
 		if (entry.astir) return "astir";
 		if (entry.ardent) return entry.ardent;
 		return null;
+	}
+
+	// Explains why a weapon's quick-roll buttons are gated by frame mismatch (see
+	// frameWeaponMoves in getData) — only called once a mismatch is already known to exist, so
+	// frameId and mountedFrameId are never equal here.
+	_weaponGateTooltip(frameId, mountedFrameId) {
+		if (frameId === null) {
+			return "Personal weapons are disabled when mounted. Dismount to use this weapon.";
+		}
+		if (mountedFrameId === null) {
+			return "Astir and Ardent weapons are disabled while unmounted. Mount up to use this weapon.";
+		}
+		return "This weapon's frame isn't mounted. Dismount your current frame and mount this one to use this weapon.";
 	}
 
 	// This character's Tier for all physical-conflict purposes (see claude.md's Character Tier
@@ -1996,6 +2018,28 @@ export class PlaybookActorSheet extends ActorSheet {
 		return null;
 	}
 
+	// Every move flagged grantsAutomaticSuccess (Hot-blooded, Once the War's Over, The Arity
+	// Method — see playbook-moves.js) can spend its own hold pool or `uses` checkbox to treat the
+	// move currently being rolled as a success, matching each move's own "succeed as if you'd
+	// rolled a 10+" text. Unlike a reroll tag or an equipment spend, this isn't tied to the weapon
+	// being used — it's actor-wide, so every flagged move (not just ones on this actor's picked
+	// pools — a hold/uses value can only be non-zero if the move was actually picked and activated,
+	// so there's nothing to additionally check there) is considered fresh for every roll. `moves`
+	// (The Arity Method) restricts the offer to specific move keys, the same field/meaning as
+	// equipment.js's own reroll.moves.
+	_availableAutomaticSuccess(move) {
+		return ALL_MOVES
+			.filter((m) => m.grantsAutomaticSuccess)
+			.filter((m) => !m.grantsAutomaticSuccess.moves || m.grantsAutomaticSuccess.moves.includes(move.key))
+			.filter((m) => {
+				const { cost, useKey } = m.grantsAutomaticSuccess;
+				return useKey
+					? !this.actor.system.attributes?.moveUses?.[m.key]?.[useKey]
+					: (this.actor.system.attributes?.moveHold?.[m.key]?.value ?? 0) >= cost;
+			})
+			.map((m) => ({ key: m.key, name: m.name, ...m.grantsAutomaticSuccess }));
+	}
+
 	// Whether the chosen weapon has a live Guided tag (see equipment.js's EQUIPMENT_TAGS comment).
 	// Unlike a spend or a reroll, Guided has no "once per period" limit and nothing to mark spent
 	// — it's just always offerable as long as the weapon carries the tag.
@@ -2124,10 +2168,14 @@ export class PlaybookActorSheet extends ActorSheet {
 		// it as an explicit option instead. 0 for a fixedTrait (CREW) or an actor with no
 		// traitBonus moves picked, same as every other actor with nothing to contribute here.
 		const traitBonus = config.trait ? this._traitBonuses()[config.trait.key] ?? 0 : 0;
+		// See _availableAutomaticSuccess — unlike reroll, this isn't scoped to a usesWeapon move, so
+		// it's folded into baseOptions rather than the weapon-only branch below.
+		const automaticSuccess = this._availableAutomaticSuccess(move);
 		const baseOptions = {
 			...config,
 			...(traitBonus && { traitBonus }),
-			...(spentPartLabels.length && { spentPartLabels })
+			...(spentPartLabels.length && { spentPartLabels }),
+			...(automaticSuccess.length && { automaticSuccess })
 		};
 		const options = weapon !== undefined
 			? {
@@ -2290,6 +2338,39 @@ async function handleReroll(reroll) {
 	await rollMove(actor, move, reroll.trait, reroll.options);
 }
 
+// Spends an automatic-success source (see _availableAutomaticSuccess/moves.js#rollMove) and edits
+// the already-posted card in place, rather than posting a fresh message the way handleReroll does
+// — there's no re-roll here, just a display change, so there's no Roll to re-serialize.
+// Roll.toMessage keeps a card's dice display in `content` and this module's own HTML in a separate
+// `flavor` field (confirmed against the installed client's toMessage), so re-rendering only
+// `flavor` leaves the original dice/content untouched.
+async function handleAutomaticSuccess(message, offer, sourceKey) {
+	const actor = game.actors.get(offer.actorId);
+	const move = ALL_MOVES.find((m) => m.key === offer.moveKey);
+	const source = offer.sources.find((s) => s.key === sourceKey);
+	if (!actor || !move || !source) return;
+
+	if (source.useKey) {
+		await actor.update({ [`system.attributes.moveUses.${source.key}.${source.useKey}`]: true });
+	} else {
+		const current = actor.system.attributes?.moveHold?.[source.key]?.value ?? 0;
+		await actor.update({
+			[`system.attributes.moveHold.${source.key}.value`]: Math.max(HOLD_MIN, current - source.cost)
+		});
+	}
+
+	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
+		...offer.flavorArgs,
+		tier: "success",
+		tierLabel: MOVE_RESULT_LABELS.success,
+		resultText: move.results.success,
+		reminders: null,
+		conditions: [...offer.flavorArgs.conditions, { key: "automatic-success", label: `Automatic Success (${source.name})` }],
+		automaticSuccess: []
+	});
+	await message.update({ flavor });
+}
+
 // Reads a rendered chat message's reroll offer (see moves.js#rollMove) and wires its Reroll
 // button, if the card has one, to redo the roll. Exported as a standalone function — rather than
 // only existing as an inline Hooks.on callback — so it's callable directly from tests: Hooks.on
@@ -2299,15 +2380,26 @@ async function handleReroll(reroll) {
 // Dialog's own (also stubbed) render.
 export function onRenderMoveChat(message, html) {
 	const reroll = message.flags?.["armor-astir"]?.reroll;
-	if (!reroll) return;
+	if (reroll) {
+		html.find(".move-reroll").on("click", (event) => {
+			// Disables the button immediately so the same card can't be clicked for a second reroll —
+			// the tag itself is also marked spent in handleReroll, but that only shows up on the
+			// Equipment tab, not on this already-rendered card.
+			event.currentTarget.disabled = true;
+			handleReroll(reroll);
+		});
+	}
 
-	html.find(".move-reroll").on("click", (event) => {
-		// Disables the button immediately so the same card can't be clicked for a second reroll —
-		// the tag itself is also marked spent in handleReroll, but that only shows up on the
-		// Equipment tab, not on this already-rendered card.
-		event.currentTarget.disabled = true;
-		handleReroll(reroll);
-	});
+	const automaticSuccess = message.flags?.["armor-astir"]?.automaticSuccess;
+	if (automaticSuccess) {
+		html.find(".move-automatic-success").on("click", (event) => {
+			// Same immediate-disable reasoning as the reroll button above — the regenerated card
+			// (once handleAutomaticSuccess's message.update lands) has no automaticSuccess buttons
+			// left at all, but that update is async.
+			event.currentTarget.disabled = true;
+			handleAutomaticSuccess(message, automaticSuccess, event.currentTarget.dataset.source);
+		});
+	}
 }
 
 export function registerMoveChatListeners() {

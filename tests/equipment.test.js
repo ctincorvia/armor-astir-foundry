@@ -59,22 +59,19 @@ const FIXTURE_EXCLUSIVE_TAGS = [
 	{ key: "fixture-exclusive-b", label: "Fixture Exclusive B", value: 0, description: "c", exclusiveGroup: "fixture-group" }
 ];
 
-// configureEquipment's Save validation checks a checked tag's exclusiveGroup against the real
-// WEAPON_RANGE_GROUP constant, not an injectable one, so a "kind: weapon" Save test needs an
-// actual WEAPON_RANGE_GROUP-tagged fixture to succeed — added ad hoc to FIXTURE_TAGS below rather
-// than into FIXTURE_TAGS itself, for the same reason FIXTURE_EXCLUSIVE_TAGS stays separate.
-const FIXTURE_WEAPON_RANGE_TAG = {
-	key: "fixture-melee", label: "Fixture Melee", value: 0, description: "d", exclusiveGroup: WEAPON_RANGE_GROUP
-};
-
 // Fakes the jQuery `.find(selector)` chain configureEquipment uses: plain fields resolve via
-// `.val()`, and the checked-tag checkboxes resolve via `.map(...).get()`, mirroring fakeRollHtml
-// in tests/moves.test.js and fakePickerHtml in tests/playbook-moves.test.js.
-function fakeEquipmentHtml(values, checkedTags = []) {
+// `.val()`, the checked-tag checkboxes resolve via `.map(...).get()`, and the Range radio group
+// resolves via `.val()` on its own selector — mirroring fakeRollHtml in tests/moves.test.js and
+// fakePickerHtml in tests/playbook-moves.test.js. `weaponRange` mimics whichever
+// Melee/Ranged/Sniper radio is checked (undefined when none is, the defensive-fallback case).
+function fakeEquipmentHtml(values, checkedTags = [], weaponRange) {
 	return {
 		find: (selector) => {
 			if (selector === "[name='tag']:checked") {
 				return { map: (fn) => ({ get: () => checkedTags.map((value, index) => fn(index, { value })) }) };
+			}
+			if (selector === "[name='weapon-range']:checked") {
+				return { val: () => weaponRange };
 			}
 			return { val: () => values[selector] };
 		}
@@ -330,6 +327,82 @@ describe("configureEquipment", () => {
 		await promise;
 	});
 
+	it("excludes Melee/Ranged/Sniper from the checkbox tag groups entirely — they render as their own radio group instead", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { tagGroups } = renderTemplate.mock.calls.at(-1)[1];
+		const renderedKeys = tagGroups.flatMap((group) => group.tags.map((tag) => tag.key));
+		expect(renderedKeys).not.toEqual(expect.arrayContaining(["melee", "ranged", "sniper"]));
+		// Melee/Ranged/Sniper were the only value: 0 tags, so the whole band disappears.
+		expect(tagGroups.map((group) => group.label)).not.toContain("No Effect (0)");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults weaponRangeOptions to Melee checked when creating blank", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { weaponRangeOptions } = renderTemplate.mock.calls.at(-1)[1];
+		expect(weaponRangeOptions).toEqual([
+			expect.objectContaining({ key: "melee", checked: true }),
+			expect.objectContaining({ key: "ranged", checked: false }),
+			expect.objectContaining({ key: "sniper", checked: false })
+		]);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("pre-checks the entry's existing range tag when editing, instead of the default", async () => {
+		const entry = { id: "abc", name: "Rayrifle", tags: ["sniper"] };
+		const promise = configureEquipment(entry, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { weaponRangeOptions } = renderTemplate.mock.calls.at(-1)[1];
+		expect(weaponRangeOptions).toEqual([
+			expect.objectContaining({ key: "melee", checked: false }),
+			expect.objectContaining({ key: "ranged", checked: false }),
+			expect.objectContaining({ key: "sniper", checked: true })
+		]);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("falls back to the default range option when editing an entry with no range tag at all", async () => {
+		// Covers a Gear item being reconfigured, or old/stale data — either way `tags` carries none
+		// of Melee/Ranged/Sniper, so the same first-group-member fallback as a blank create applies.
+		const entry = { id: "abc", name: "Rations", tags: [] };
+		const promise = configureEquipment(entry, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { weaponRangeOptions } = renderTemplate.mock.calls.at(-1)[1];
+		expect(weaponRangeOptions.find((option) => option.key === "melee").checked).toBe(true);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("renders no weaponRangeOptions when the injected tag catalog has none", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			weaponRangeOptions: []
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
 	it("pre-fills the editor and titles it to Edit when given an existing entry", async () => {
 		const entry = {
 			id: "abc",
@@ -390,7 +463,7 @@ describe("configureEquipment", () => {
 	});
 
 	it("resolves a weapon's name, description, kind, tags and tier when Save is clicked, always as Foot Scale", async () => {
-		const promise = configureEquipment(null, [...FIXTURE_TAGS, FIXTURE_WEAPON_RANGE_TAG]);
+		const promise = configureEquipment(null, FIXTURE_TAGS);
 		await Promise.resolve();
 		await Promise.resolve();
 
@@ -400,13 +473,13 @@ describe("configureEquipment", () => {
 			"[name='kind']": "weapon",
 			"[name='description']": "  A long blade.  ",
 			"[name='tier']": "3"
-		}, ["fixture-positive", "fixture-negative", "fixture-melee"]));
+		}, ["fixture-positive", "fixture-negative"], "fixture-melee"));
 
 		expect(await promise).toEqual({
 			name: "Halberd",
 			description: "A long blade.",
 			kind: "weapon",
-			tags: ["fixture-positive", "fixture-negative", "fixture-melee"],
+			tags: ["fixture-melee", "fixture-positive", "fixture-negative"],
 			scale: "foot",
 			tier: 3
 		});
@@ -428,7 +501,7 @@ describe("configureEquipment", () => {
 	});
 
 	it("clamps tier to the 1-5 range", async () => {
-		const promise = configureEquipment(null, [...FIXTURE_TAGS, FIXTURE_WEAPON_RANGE_TAG]);
+		const promise = configureEquipment(null, FIXTURE_TAGS);
 		await Promise.resolve();
 		await Promise.resolve();
 
@@ -439,13 +512,13 @@ describe("configureEquipment", () => {
 			"[name='description']": "",
 			"[name='scale']": "foot",
 			"[name='tier']": "99"
-		}, ["fixture-melee"]));
+		}, [], "fixture-melee"));
 
 		expect((await promise).tier).toBe(TIER_MAX);
 	});
 
 	it("defaults a non-numeric tier to the minimum", async () => {
-		const promise = configureEquipment(null, [...FIXTURE_TAGS, FIXTURE_WEAPON_RANGE_TAG]);
+		const promise = configureEquipment(null, FIXTURE_TAGS);
 		await Promise.resolve();
 		await Promise.resolve();
 
@@ -456,7 +529,7 @@ describe("configureEquipment", () => {
 			"[name='description']": "",
 			"[name='scale']": "foot",
 			"[name='tier']": ""
-		}, ["fixture-melee"]));
+		}, [], "fixture-melee"));
 
 		expect((await promise).tier).toBe(TIER_MIN);
 	});
@@ -625,7 +698,7 @@ describe("configureEquipment", () => {
 		await promise;
 	});
 
-	it("resolves null and warns when a weapon is saved with none of Melee/Ranged/Sniper checked", async () => {
+	it("resolves null and warns when a weapon is saved with no Range radio checked (defensive fallback — the radio always has a default in normal use)", async () => {
 		const promise = configureEquipment(null, EQUIPMENT_TAGS);
 		await Promise.resolve();
 		await Promise.resolve();
@@ -643,7 +716,7 @@ describe("configureEquipment", () => {
 		expect(ui.notifications.warn).toHaveBeenCalled();
 	});
 
-	it("saves a weapon once one of Melee/Ranged/Sniper is checked", async () => {
+	it("saves a weapon once one of Melee/Ranged/Sniper is selected", async () => {
 		const promise = configureEquipment(null, EQUIPMENT_TAGS);
 		await Promise.resolve();
 		await Promise.resolve();
@@ -655,7 +728,7 @@ describe("configureEquipment", () => {
 			"[name='description']": "",
 			"[name='scale']": "foot",
 			"[name='tier']": "1"
-		}, ["sniper"]));
+		}, [], "sniper"));
 
 		expect(await promise).toEqual(expect.objectContaining({ tags: ["sniper"] }));
 	});
@@ -671,6 +744,21 @@ describe("configureEquipment", () => {
 			"[name='kind']": "gear",
 			"[name='description']": ""
 		}, ["blitz"]));
+
+		expect(await promise).toEqual(expect.objectContaining({ tags: ["blitz"] }));
+	});
+
+	it("never merges the Range radio's value into Gear's tags, even though the field is always rendered in the DOM", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Rations",
+			"[name='kind']": "gear",
+			"[name='description']": ""
+		}, ["blitz"], "melee"));
 
 		expect(await promise).toEqual(expect.objectContaining({ tags: ["blitz"] }));
 	});
@@ -704,23 +792,6 @@ describe("configureEquipment", () => {
 		}, ["blitz", "concealable", "impact", "infinite"]));
 
 		expect(await promise).toEqual(expect.objectContaining({ tags: ["blitz", "concealable", "impact", "infinite"] }));
-	});
-
-	it("never counts a Melee/Ranged/Sniper tag against the MAX_TAGS cap", async () => {
-		const promise = configureEquipment(null, EQUIPMENT_TAGS);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
-			"[name='name']": "Cannon",
-			"[name='kind']": "weapon",
-			"[name='description']": "",
-			"[name='scale']": "foot",
-			"[name='tier']": "1"
-		}, ["blitz", "concealable", "impact", "sniper"]));
-
-		expect(await promise).toEqual(expect.objectContaining({ tags: ["blitz", "concealable", "impact", "sniper"] }));
 	});
 
 	it("counts a Drain tag against the MAX_TAGS cap, unlike Melee/Ranged/Sniper", async () => {
@@ -764,7 +835,7 @@ describe("configureEquipment - astirWeapon option", () => {
 		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
 			"[name='name']": "Lance",
 			"[name='description']": "A long spear."
-		}, ["melee"]));
+		}, [], "melee"));
 
 		expect(await promise).toEqual({ name: "Lance", description: "A long spear.", kind: "weapon", tags: ["melee"] });
 	});
@@ -780,14 +851,14 @@ describe("configureEquipment - astirWeapon option", () => {
 			"[name='description']": "",
 			"[name='scale']": "foot",
 			"[name='tier']": "5"
-		}, ["melee"]));
+		}, [], "melee"));
 
 		const result = await promise;
 		expect(result.scale).toBeUndefined();
 		expect(result.tier).toBeUndefined();
 	});
 
-	it("still requires one of the Melee/Ranged/Sniper tags", async () => {
+	it("still requires one of the Melee/Ranged/Sniper tags (defensive fallback)", async () => {
 		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true });
 		await Promise.resolve();
 		await Promise.resolve();
@@ -811,7 +882,7 @@ describe("configureEquipment - astirWeapon option", () => {
 		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
 			"[name='name']": "Lance",
 			"[name='description']": ""
-		}, ["blitz", "concealable", "impact", "infinite", "mounted", "restraining", "melee"]));
+		}, ["blitz", "concealable", "impact", "infinite", "mounted", "restraining"], "melee"));
 
 		expect(await promise).toBeNull();
 	});
@@ -857,7 +928,7 @@ describe("configureEquipment - carrierWeapon option", () => {
 			"[name='name']": "Ram Cannon",
 			"[name='description']": "A hull-mounted cannon.",
 			"[name='tier']": "3"
-		}, ["melee"]));
+		}, [], "melee"));
 
 		expect(await promise).toEqual({
 			name: "Ram Cannon",
@@ -879,12 +950,12 @@ describe("configureEquipment - carrierWeapon option", () => {
 			"[name='name']": "Ram Cannon",
 			"[name='description']": "",
 			"[name='tier']": "1"
-		}, ["melee"]));
+		}, [], "melee"));
 
 		expect((await promise).tier).toBe(TIER_MAX);
 	});
 
-	it("still requires one of the Melee/Ranged/Sniper tags", async () => {
+	it("still requires one of the Melee/Ranged/Sniper tags (defensive fallback)", async () => {
 		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true });
 		await Promise.resolve();
 		await Promise.resolve();
@@ -938,7 +1009,7 @@ describe("configureEquipment - ardentWeapon option", () => {
 		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
 			"[name='name']": "Spear",
 			"[name='description']": "A long spear."
-		}, ["melee"]));
+		}, [], "melee"));
 
 		expect(await promise).toEqual({ name: "Spear", description: "A long spear.", kind: "weapon", tags: ["melee"] });
 	});
@@ -954,14 +1025,14 @@ describe("configureEquipment - ardentWeapon option", () => {
 			"[name='description']": "",
 			"[name='scale']": "foot",
 			"[name='tier']": "5"
-		}, ["melee"]));
+		}, [], "melee"));
 
 		const result = await promise;
 		expect(result.scale).toBeUndefined();
 		expect(result.tier).toBeUndefined();
 	});
 
-	it("still requires one of the Melee/Ranged/Sniper tags", async () => {
+	it("still requires one of the Melee/Ranged/Sniper tags (defensive fallback)", async () => {
 		const promise = configureEquipment(null, EQUIPMENT_TAGS, { ardentWeapon: true });
 		await Promise.resolve();
 		await Promise.resolve();

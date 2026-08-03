@@ -252,6 +252,12 @@ export const MOVE_POOLS = [
 				// moves, nothing in this move's own text scopes the hold to a Sortie or Scene, so it
 				// isn't cleared by either Refresh button — same treatment as Path-finding's hold.
 				flatHold: 1,
+				// "Succeed at a move as if you had rolled a 10+" — the automatic-success chat-card
+				// button (see PlaybookActorSheet#_availableAutomaticSuccess/moves.js#rollMove),
+				// spending 3 from this move's own moveHold pool. The move's other spend option
+				// ("attempt something uncanny...") has no mechanical effect to hook, so it stays
+				// descriptive only.
+				grantsAutomaticSuccess: { cost: 3 },
 				description:
 					"<p>When you heat up, hold 1. You may spend 3 hold gained in this way to;</p>" +
 					"<ul>" +
@@ -828,6 +834,15 @@ export const MOVE_POOLS = [
 				name: "The Arity Method",
 				traits: [],
 				uses: [{ key: "sortie", label: "Used this Sortie", period: "Sortie" }],
+				// "Succeed as if you'd rolled a 10+" — same automatic-success button Hot-blooded/Once
+				// the War's Over grant, but paid from this move's own `uses` checkbox above (via
+				// useKey, rather than a hold cost) and restricted to bite-the-dust only, matching
+				// "when you would bite the dust" — see PlaybookActorSheet#_availableAutomaticSuccess.
+				// The second sentence (confidence + advantage on the *next* Exchange Blows/Strike
+				// Decisively roll) is a distinct one-shot buff-for-a-future-roll mechanic this module
+				// has no hook for yet, so it stays descriptive only — see claude.md's "systems that do
+				// not exist yet".
+				grantsAutomaticSuccess: { useKey: "sortie", moves: ["bite-the-dust"] },
 				description:
 					"<p>Once per Sortie, when you would bite the dust, succeed as if you'd rolled a 10+. Act " +
 					"with confidence and advantage the next time you would exchange blows or strike " +
@@ -851,6 +866,10 @@ export const MOVE_POOLS = [
 				// Same flat-hold shape as Get Out of My Way! above — its own independently-tracked pool.
 				flatHold: 3,
 				period: "Sortie",
+				// "Spend your hold 1-for-1 to automatically succeed on any move as if you had rolled a
+				// 10+" — same automatic-success button as Hot-blooded, at a 1-hold cost per use rather
+				// than Hot-blooded's flat 3 — see PlaybookActorSheet#_availableAutomaticSuccess.
+				grantsAutomaticSuccess: { cost: 1 },
 				description:
 					"<p>When you talk about what's waiting for you after the fighting's over, hold 3.</p>" +
 					"<p>You may spend your hold 1-for-1 to automatically succeed on any move as if you had " +

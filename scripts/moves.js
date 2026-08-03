@@ -650,7 +650,18 @@ export async function rollMove(actor, move, trait, options = {}) {
 		}
 		: null;
 
-	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
+	// options.automaticSuccess (see PlaybookActorSheet#_availableAutomaticSuccess) is the actor's
+	// full list of currently-qualifying "spend hold/a use to treat this roll as a 10+" sources
+	// (Hot-blooded, Once the War's Over, The Arity Method) — offered on the chat card only when
+	// there's actually room to improve the result; an already-successful roll has nothing to spend
+	// toward.
+	const automaticSuccessOffer = tier !== "success" ? (options.automaticSuccess ?? []) : [];
+
+	// Pulled into its own variable (rather than inlined into the renderTemplate call, as before)
+	// so the exact args used for this render can also ride along on the message's flags — see
+	// PlaybookActorSheet#handleAutomaticSuccess, which reuses it to regenerate the flavor with only
+	// the tier-dependent fields changed, instead of re-deriving every display field from scratch.
+	const flavorArgs = {
 		name: move.name,
 		traitLabel: trait?.label ?? null,
 		intentLabel: options.intent?.label ?? null,
@@ -673,13 +684,23 @@ export async function rollMove(actor, move, trait, options = {}) {
 		hold,
 		questionPrompt: move.questionPrompts?.[tier] ?? null,
 		questions: move.questions ?? null,
-		reroll: Boolean(rerollOffer)
-	});
+		reroll: Boolean(rerollOffer),
+		automaticSuccess: automaticSuccessOffer
+	};
+	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, flavorArgs);
 
+	// Both offers ride in the same flags namespace so a single card (e.g. a failed usesWeapon roll)
+	// can carry a reroll tag offer and an automatic-success spend offer at once.
+	const cardFlags = {
+		...(rerollOffer && { reroll: rerollOffer }),
+		...(automaticSuccessOffer.length && {
+			automaticSuccess: { actorId: actor.id, moveKey: move.key, flavorArgs, sources: automaticSuccessOffer }
+		})
+	};
 	const message = await roll.toMessage({
 		speaker: ChatMessage.getSpeaker({ actor }),
 		flavor,
-		...(rerollOffer && { flags: { "armor-astir": { reroll: rerollOffer } } })
+		...(Object.keys(cardFlags).length && { flags: { "armor-astir": cardFlags } })
 	});
 
 	// dice is returned alongside the chat message so PlaybookActorSheet#_rollMove can check for

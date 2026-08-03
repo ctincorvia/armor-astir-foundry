@@ -21,6 +21,22 @@
 		<input type="number" name="tier" value="{{tier}}" min="{{tierMin}}" max="{{tierMax}}" {{#if carrierWeapon}}disabled{{/if}}/>
 	</div>
 	{{/unless}}
+	{{#if weaponRangeOptions.length}}
+	<div class="form-group equipment-editor-weapon-range-field">
+		<label>Range</label>
+		<div class="equipment-editor-weapon-range-list">
+			{{#each weaponRangeOptions}}
+			<div class="equipment-editor-weapon-range-item">
+				<label class="equipment-editor-weapon-range-option">
+					<input type="radio" name="weapon-range" value="{{key}}" {{#if checked}}checked{{/if}}/>
+					<span class="equipment-editor-weapon-range-label">{{label}}</span>
+				</label>
+				{{#if description}}<div class="equipment-editor-weapon-range-description">{{description}}</div>{{/if}}
+			</div>
+			{{/each}}
+		</div>
+	</div>
+	{{/if}}
 	<div class="form-group">
 		<label>Description</label>
 		<textarea name="description">{{description}}</textarea>

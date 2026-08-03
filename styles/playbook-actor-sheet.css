@@ -1134,6 +1134,37 @@
 	background: var(--aa-primary-tint);
 }
 
+/* CSS-only tooltip explaining why a gated weapon button is disabled (mount/dismount state) — this
+   module's only tooltip beyond native title attributes, so it gets its own styled look rather
+   than the plain unstyled convention used elsewhere. Primary-dark since this is UI chrome, not
+   player-tracked state, and -dark because it carries white text (see the role-token note above). */
+.armor-astir.sheet .weapon-move-roll.disabled[data-tooltip] {
+	position: relative;
+}
+
+.armor-astir.sheet .weapon-move-roll.disabled[data-tooltip]:hover::after {
+	content: attr(data-tooltip);
+	position: absolute;
+	bottom: 100%;
+	left: 50%;
+	transform: translateX(-50%);
+	margin-bottom: var(--aa-space-1);
+	width: max-content;
+	max-width: 200px;
+	padding: var(--aa-space-1) var(--aa-space-2);
+	background: var(--aa-primary-dark);
+	color: #fff;
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 1.3;
+	text-align: center;
+	border-radius: var(--aa-radius);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+	z-index: 10;
+	pointer-events: none;
+	white-space: normal;
+}
+
 /* Foundry's chat-message.html renders our whole flavor (this entire .armor-astir-move-chat tree)
    inside <span class="flavor-text"> in the card's <header>, while its own dice-roll box (the
    "2d6 + 2" formula pill + total) is a separate sibling <div class="message-content"> right after
@@ -1232,8 +1263,10 @@
 
 /* Same solid-primary treatment as the sheet's own Roll/Activate buttons (see the sheet's
    .move-roll rule) — this is chrome the player acts on too, just rendered on a chat card instead
-   of the sheet, so it can't share that rule's `.armor-astir.sheet` scope. */
-.armor-astir-move-chat .move-reroll {
+   of the sheet, so it can't share that rule's `.armor-astir.sheet` scope. Shared by every chat-card
+   action button (Reroll, Automatic Success) — they're styled identically. */
+.armor-astir-move-chat .move-reroll,
+.armor-astir-move-chat .move-automatic-success {
 	margin-top: var(--aa-space-1);
 	padding: var(--aa-space-1) var(--aa-space-2);
 	border: 1px solid var(--aa-primary);
@@ -1244,13 +1277,15 @@
 	cursor: pointer;
 }
 
-.armor-astir-move-chat .move-reroll:hover {
+.armor-astir-move-chat .move-reroll:hover,
+.armor-astir-move-chat .move-automatic-success:hover {
 	background: var(--aa-primary-dark);
 }
 
 /* Same tint/-dark swap as the sheet's own solid disabled buttons (see .move-roll.disabled) —
    opacity alone faded the primary fill and white text to unreadable gray-on-gray. */
-.armor-astir-move-chat .move-reroll:disabled {
+.armor-astir-move-chat .move-reroll:disabled,
+.armor-astir-move-chat .move-automatic-success:disabled {
 	background: var(--aa-primary-tint);
 	border-color: var(--aa-primary-tint);
 	color: var(--aa-primary-dark);
@@ -1463,6 +1498,35 @@
 }
 
 .armor-astir.equipment-editor .equipment-editor-tag-description {
+	margin-left: 22px;
+	font-size: 11px;
+	opacity: 0.8;
+}
+
+/* The Range field (Melee/Ranged/Sniper) is a native radio group, not a tag checkbox — see
+   WEAPON_RANGE_GROUP's doc comment in equipment.js — but reuses the exact same row/description
+   shape as .equipment-editor-tag/-tag-option/-tag-description above. */
+.armor-astir.equipment-editor .equipment-editor-weapon-range-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+}
+
+.armor-astir.equipment-editor .equipment-editor-weapon-range-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+	font-size: 12px;
+}
+
+.armor-astir.equipment-editor .equipment-editor-weapon-range-label {
+	font-weight: bold;
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir.equipment-editor .equipment-editor-weapon-range-description {
 	margin-left: 22px;
 	font-size: 11px;
 	opacity: 0.8;

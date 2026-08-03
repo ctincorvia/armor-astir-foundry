@@ -4,17 +4,22 @@ import { APPROACHES } from "./approaches.js";
 export const TAG_VALUE_MIN = -3;
 export const TAG_VALUE_MAX = 2;
 
-// The one group of mutually-exclusive tags this module currently has (Melee/Ranged/Sniper —
-// see EQUIPMENT_TAGS' `exclusiveGroup` doc below). Weapons additionally require one of these
-// specifically; this is a single hardcoded check rather than a generic "required groups" system,
-// since it's the only group that needs one.
+// The classifier for Melee/Ranged/Sniper (see EQUIPMENT_TAGS' `exclusiveGroup` doc below). Unlike
+// DRAIN_GROUP below, these three never render as checkboxes — configureEquipment renders them as
+// their own native radio group (equipment-editor.hbs) instead, since a weapon must always carry
+// exactly one and a radio group can have a default, structurally preventing "none selected". The
+// exclusiveGroup marker is still used to filter them out of the checkbox tag list and to identify
+// them for the default-selection logic (see configureEquipment).
 export const WEAPON_RANGE_GROUP = "weapon-range";
 
-// The second exclusiveGroup: Drain 1/2/3 (see EQUIPMENT_TAGS below) behave like a radio button
-// the same way Melee/Ranged/Sniper do, so an item can't carry more than one Drain tier at once.
-// Unlike WEAPON_RANGE_GROUP, membership in this group does NOT exempt a tag from MAX_TAGS below —
-// Drain still carries a real negative value (it's a drawback pick, not a pure classifier), so
-// each tier costs one regular tag slot like any other tag.
+// The second exclusiveGroup: Drain 1/2/3 (see EQUIPMENT_TAGS below) render as checkboxes with
+// JS-enforced radio-button behavior — configureEquipment's render wiring unchecks every other tag
+// sharing the same exclusiveGroup, the mechanism WEAPON_RANGE_GROUP used before it became a native
+// radio group (see its own doc comment above). Drain stays a checkbox group rather than following
+// suit because it's optional, not required — an item may carry none of the three. Unlike
+// WEAPON_RANGE_GROUP, membership in this group does NOT exempt a tag from MAX_TAGS below — Drain
+// still carries a real negative value (it's a drawback pick, not a pure classifier), so each tier
+// costs one regular tag slot like any other tag.
 //
 // Drain only ever does anything on a weapon actually mounted on an Astir (astirWeapon: true — see
 // astir.js#astirWeaponDrainTotal), so configureEquipment hides Drain's checkboxes from every other
@@ -22,12 +27,13 @@ export const WEAPON_RANGE_GROUP = "weapon-range";
 // stay permanently inert.
 export const DRAIN_GROUP = "drain";
 
-// Applies to every equipment entry (weapon or gear), and — like WEAPON_RANGE_GROUP above — never
-// counts a tag's WEAPON_RANGE_GROUP membership (Melee/Ranged/Sniper) against the cap, since those
-// are a classifier rather than a regular tag pick. Enforced only at Save, same as the blank-name
-// and weapon-range checks in configureEquipment. Flat across every tier (not scaled by TIER_MIN/
-// TIER_MAX) — Ashstaff I in EQUIPMENT_CATALOG needs 4 regular tags despite being Tier I, which is
-// what pushed this cap to 4.
+// Applies to every equipment entry (weapon or gear). Melee/Ranged/Sniper never count against this
+// cap — they're a classifier, not a regular tag pick — but that's now structural rather than
+// something this cap has to account for: WEAPON_RANGE_GROUP tags are never rendered as checkboxes
+// at all (see WEAPON_RANGE_GROUP's own doc comment), so they can never appear among the checked
+// tag keys this cap counts. Enforced only at Save, same as the blank-name and weapon-range checks
+// in configureEquipment. Flat across every tier (not scaled by TIER_MIN/TIER_MAX) — Ashstaff I in
+// EQUIPMENT_CATALOG needs 4 regular tags despite being Tier I, which is what pushed this cap to 4.
 export const MAX_TAGS = 4;
 
 export const TIER_MIN = 1;
@@ -76,14 +82,20 @@ export const WEAPON_SCALES = [
 // once per period (see PlaybookActorSheet's reroll chat-button handling). `guided` (Guided) is
 // the "skip rolling, take a 7-9" option, offered for any usesWeapon move.
 //
-// `exclusiveGroup` makes a tag's checkbox behave like a radio button within that group value —
-// configureEquipment's render wiring unchecks every other tag sharing the same `exclusiveGroup`
-// the moment one is checked, resolved off the `tags` array already in scope rather than new
-// template data attributes. WEAPON_RANGE_GROUP (Melee/Ranged/Sniper, all `value: 0` — a pure
-// classifier, not a Value modifier) is the only group so far, and is additionally *required*:
-// configureEquipment's Save blocks (via ui.notifications.warn) when Kind is Weapon and none of
-// that group is checked. That's a single hardcoded weapon-only check, not a generic "required
-// groups" system, since it's the only group that needs one.
+// `exclusiveGroup` marks a tag as belonging to a mutually-exclusive set. DRAIN_GROUP renders as
+// checkboxes with JS-enforced radio-button behavior — configureEquipment's render wiring unchecks
+// every other tag sharing the same `exclusiveGroup` the moment one is checked, resolved off the
+// `tags` array already in scope rather than new template data attributes. WEAPON_RANGE_GROUP
+// (Melee/Ranged/Sniper, all `value: 0` — a pure classifier, not a Value modifier) instead renders
+// as its own native radio group, since — unlike Drain — a weapon must always have exactly one:
+// a checkbox trio validated only at Save time meant a player who forgot to check one got a warning
+// toast after the dialog had already closed, discarding everything else they'd entered (Foundry's
+// Dialog always closes after a button callback runs, regardless of what the callback does). A
+// native radio group with a default selected (see configureEquipment) can't end up with nothing
+// checked through normal use, so configureEquipment's Save-time weapon-range check is now a
+// defensive fallback rather than the primary safeguard. That's still a single hardcoded
+// weapon-only check, not a generic "required groups" system, since it's the only group that needs
+// one.
 export const EQUIPMENT_TAGS = [
 	// -3: Drain 3, the most severe Drain tier — see the Drain 1/2/3 trio below (-1 and -2 bands)
 	// for the shared exclusiveGroup/MAX_TAGS explanation. No other tag currently needs this band.
@@ -829,6 +841,12 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 // astirWeapon-nor-carrierWeapon-nor-ardentWeapon ("mundane") path is always resolved as `"foot"`;
 // `carrierWeapon` is always `"astir"`; neither `astirWeapon` nor `ardentWeapon` ever stores a scale
 // at all. There's no `<select name="scale">` left in the template for any of the four.
+//
+// The Range field (Melee/Ranged/Sniper — see WEAPON_RANGE_GROUP) follows the same non-reactive
+// convention as Tier: always rendered when the injected `tags` catalog has range tags, regardless
+// of Kind, rather than being hidden/shown live as Kind changes — kept intentionally narrow rather
+// than extended to every field, same as Tier's own precedent. Its value is only read into the
+// resolved result when Kind is Weapon at Save time.
 export async function configureEquipment(
 	initial = null,
 	tags = EQUIPMENT_TAGS,
@@ -836,8 +854,18 @@ export async function configureEquipment(
 ) {
 	// Drain only means anything on an Astir weapon (see DRAIN_GROUP's doc comment) — every other
 	// flow, including ardentWeapon (an Ardent has no Power for Drain to reduce), hides its
-	// checkboxes so it can't be picked somewhere it would stay permanently inert.
-	const pickableTags = astirWeapon ? tags : tags.filter((tag) => tag.exclusiveGroup !== DRAIN_GROUP);
+	// checkboxes so it can't be picked somewhere it would stay permanently inert. WEAPON_RANGE_GROUP
+	// is excluded unconditionally — it's never a checkbox anymore, see weaponRangeTags below.
+	const pickableTags = tags.filter((tag) =>
+		tag.exclusiveGroup !== WEAPON_RANGE_GROUP && (astirWeapon || tag.exclusiveGroup !== DRAIN_GROUP));
+	// Melee/Ranged/Sniper render as their own native radio group (see equipment-editor.hbs) rather
+	// than as checkboxes in the tag list — a radio group can always have a default, which a
+	// checkbox trio validated only at Save time couldn't. Editing an entry pre-selects whichever
+	// range tag it already has; a brand-new entry, or one with no range tag at all (a Gear item
+	// being reconfigured, or stale data), falls back to the first group member ("melee").
+	const weaponRangeTags = tags.filter((tag) => tag.exclusiveGroup === WEAPON_RANGE_GROUP);
+	const defaultWeaponRangeKey = weaponRangeTags.find((tag) => initial?.tags?.includes(tag.key))?.key
+		?? weaponRangeTags[0]?.key;
 	const content = await renderTemplate(EQUIPMENT_EDITOR_TEMPLATE, {
 		note,
 		astirWeapon,
@@ -867,7 +895,16 @@ export async function configureEquipment(
 			value: tag.value,
 			description: tag.description,
 			checked: Boolean(initial?.tags?.includes(tag.key))
-		}))).map((group) => ({ ...group, open: group.tags.some((tag) => tag.checked) }))
+		}))).map((group) => ({ ...group, open: group.tags.some((tag) => tag.checked) })),
+		// Always rendered, not gated by Kind — same "kept intentionally narrow rather than extended
+		// to every field" non-reactivity Tier already has above. Empty when the injected `tags`
+		// catalog carries no WEAPON_RANGE_GROUP entries at all (e.g. a fixture catalog in tests).
+		weaponRangeOptions: weaponRangeTags.map((tag) => ({
+			key: tag.key,
+			label: tag.label,
+			description: tag.description,
+			checked: tag.key === defaultWeaponRangeKey
+		}))
 	});
 
 	return new Promise((resolve) => {
@@ -913,13 +950,13 @@ export async function configureEquipment(
 						// from the DOM here for any of them.
 						const kind = (astirWeapon || carrierWeapon || ardentWeapon) ? "weapon" : html.find("[name='kind']").val();
 						const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
-						// Every checked key is a real tag — it was rendered from `tags` in the first
-						// place — so findEquipmentTag can't miss in either check below. Only
-						// WEAPON_RANGE_GROUP is exempt from the count (a pure classifier, not a Value
-						// modifier) — DRAIN_GROUP tags still count, since Drain carries a real value.
-						const regularTagCount = checkedKeys.filter((key) => findEquipmentTag(key, tags).exclusiveGroup !== WEAPON_RANGE_GROUP).length;
-						// Applies to weapons and gear alike, and never counts a Melee/Ranged/Sniper tag
-						// against the cap — see MAX_TAGS. Feedback rather than a silent no-op, same
+						const weaponRangeKey = html.find("[name='weapon-range']:checked").val();
+						// Every checked key is a real regular tag — WEAPON_RANGE_GROUP keys can no longer
+						// appear here at all, since they're never rendered as checkboxes (see
+						// weaponRangeTags above) — so, unlike before, nothing needs filtering out of this
+						// count. DRAIN_GROUP tags still count, since Drain carries a real value.
+						const regularTagCount = checkedKeys.length;
+						// Applies to weapons and gear alike. Feedback rather than a silent no-op, same
 						// reasoning as the weapon-range check below.
 						if (regularTagCount > MAX_TAGS) {
 							ui.notifications.warn(`Equipment can have at most ${MAX_TAGS} tags, not counting Melee/Ranged/Sniper.`);
@@ -927,8 +964,11 @@ export async function configureEquipment(
 							return;
 						}
 						// Weapons specifically must carry one of WEAPON_RANGE_GROUP's tags (Melee/Ranged/
-						// Sniper) — see the exclusiveGroup doc comment above.
-						if (kind === "weapon" && !checkedKeys.some((key) => findEquipmentTag(key, tags).exclusiveGroup === WEAPON_RANGE_GROUP)) {
+						// Sniper) — see the exclusiveGroup doc comment above. In practice this is a
+						// defensive fallback rather than the primary safeguard now: the radio group
+						// always renders with a default checked (see weaponRangeOptions above), so a
+						// player can no longer reach Save with none selected through normal use.
+						if (kind === "weapon" && !weaponRangeKey) {
 							ui.notifications.warn("A weapon needs one of the Melee, Ranged or Sniper tags.");
 							resolve(null);
 							return;
@@ -937,7 +977,12 @@ export async function configureEquipment(
 							name,
 							description: html.find("[name='description']").val().trim(),
 							kind,
-							tags: checkedKeys,
+							// Prepended to match EQUIPMENT_CATALOG's own convention of listing the range
+							// tag first (e.g. tags: ["melee", "intimate", "concealable"]). Only merged in
+							// for weapons — Gear never carries a range tag, even though the radio group
+							// (always rendered, per weaponRangeOptions above) still has some default value
+							// in the DOM regardless of Kind.
+							tags: kind === "weapon" ? [weaponRangeKey, ...checkedKeys] : checkedKeys,
 							// scale/tier are never resolved for an Astir or Ardent weapon — both are
 							// inherited from the owning frame itself (see
 							// PlaybookActorSheet#_equipmentEntry) rather than stored. A Carrier weapon does

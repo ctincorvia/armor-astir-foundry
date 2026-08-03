@@ -69,7 +69,16 @@ vi.mock("../scripts/ardent.js", async (importOriginal) => ({
 }));
 
 import { PLAYBOOKS, swapActorPlaybook } from "../scripts/actor-creation.js";
-import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postGuidedResult, postMoveDescription, rollMove } from "../scripts/moves.js";
+import {
+	BASIC_MOVES,
+	MOVE_CHAT_TEMPLATE,
+	MOVE_RESULT_LABELS,
+	SPECIAL_MOVES,
+	configureMoveRoll,
+	postGuidedResult,
+	postMoveDescription,
+	rollMove
+} from "../scripts/moves.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../scripts/advancements.js";
 import { ALL_PLAYBOOK_MOVES, choosePlaybookMove } from "../scripts/playbook-moves.js";
 import { UNARMED, chooseEquipmentCatalogItem, chooseWeapon, configureEquipment } from "../scripts/equipment.js";
@@ -193,11 +202,15 @@ describe("registerPlaybookActorSheet", () => {
 });
 
 function fakeChatHtml() {
-	const state = { handler: null };
+	const state = { handler: null, automaticSuccessHandler: null };
 	state.html = {
-		find: (selector) => (selector === ".move-reroll"
-			? { on: (event, handler) => { state.handler = handler; } }
-			: {})
+		find: (selector) => {
+			if (selector === ".move-reroll") return { on: (event, handler) => { state.handler = handler; } };
+			if (selector === ".move-automatic-success") {
+				return { on: (event, handler) => { state.automaticSuccessHandler = handler; } };
+			}
+			return {};
+		}
 	};
 	return state;
 }
@@ -299,6 +312,179 @@ describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
 		await Promise.resolve();
 
 		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.equipment": [] });
+	});
+});
+
+describe("onRenderMoveChat/handleAutomaticSuccess (Hot-blooded/Once the War's Over/The Arity Method)", () => {
+	const HOT_BLOODED_SOURCE = { key: "the-impostor:hot-blooded", name: "Hot-blooded", cost: 3 };
+	const ARITY_METHOD_SOURCE = { key: "soldier:the-arity-method", name: "The Arity Method", useKey: "sortie", moves: ["bite-the-dust"] };
+
+	beforeEach(() => {
+		renderTemplate.mockClear();
+		renderTemplate.mockResolvedValue("<div>updated</div>");
+	});
+
+	it("does nothing for a message with no automatic success offer", () => {
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat({ flags: {} }, fake.html);
+
+		expect(fake.automaticSuccessHandler).toBeNull();
+	});
+
+	it("wires the button, disabling it on click, spending hold, and updating the message flavor", async () => {
+		const actor = {
+			id: "actor1",
+			system: { attributes: { moveHold: { "the-impostor:hot-blooded": { value: 3 } } } },
+			update: vi.fn()
+		};
+		game.actors.get.mockReturnValue(actor);
+		const offer = {
+			actorId: "actor1",
+			moveKey: "exchange-blows",
+			flavorArgs: { tier: "mixed", conditions: [{ key: "confidence", label: "Confidence" }] },
+			sources: [HOT_BLOODED_SOURCE]
+		};
+		const message = { flags: { "armor-astir": { automaticSuccess: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		const button = { disabled: false, dataset: { source: "the-impostor:hot-blooded" } };
+		fake.automaticSuccessHandler({ currentTarget: button });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(button.disabled).toBe(true);
+		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.the-impostor:hot-blooded.value": 0 });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, {
+			tier: "success",
+			conditions: [
+				{ key: "confidence", label: "Confidence" },
+				{ key: "automatic-success", label: "Automatic Success (Hot-blooded)" }
+			],
+			tierLabel: MOVE_RESULT_LABELS.success,
+			resultText: EXCHANGE_BLOWS.results.success,
+			reminders: null,
+			automaticSuccess: []
+		});
+		expect(message.update).toHaveBeenCalledWith({ flavor: "<div>updated</div>" });
+	});
+
+	it("clamps the spend at HOLD_MIN rather than going negative", async () => {
+		const actor = {
+			id: "actor1",
+			system: { attributes: { moveHold: { "soldier:once-the-wars-over": { value: 1 } } } },
+			update: vi.fn()
+		};
+		game.actors.get.mockReturnValue(actor);
+		const source = { key: "soldier:once-the-wars-over", name: "Once the War's Over", cost: 1 };
+		const offer = {
+			actorId: "actor1",
+			moveKey: "exchange-blows",
+			flavorArgs: { tier: "failure", conditions: [] },
+			sources: [source]
+		};
+		const message = { flags: { "armor-astir": { automaticSuccess: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.automaticSuccessHandler({ currentTarget: { disabled: false, dataset: { source: source.key } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.soldier:once-the-wars-over.value": 0 });
+	});
+
+	it("treats a missing moveHold pool as 0 when spending a cost-based source", async () => {
+		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const offer = {
+			actorId: "actor1",
+			moveKey: "exchange-blows",
+			flavorArgs: { tier: "failure", conditions: [] },
+			sources: [HOT_BLOODED_SOURCE]
+		};
+		const message = { flags: { "armor-astir": { automaticSuccess: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.automaticSuccessHandler({ currentTarget: { disabled: false, dataset: { source: HOT_BLOODED_SOURCE.key } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.the-impostor:hot-blooded.value": 0 });
+	});
+
+	it("spends a useKey source via its own moveUses checkbox instead of hold", async () => {
+		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const offer = {
+			actorId: "actor1",
+			moveKey: "bite-the-dust",
+			flavorArgs: { tier: "mixed", conditions: [] },
+			sources: [ARITY_METHOD_SOURCE]
+		};
+		const message = { flags: { "armor-astir": { automaticSuccess: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.automaticSuccessHandler({ currentTarget: { disabled: false, dataset: { source: ARITY_METHOD_SOURCE.key } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.moveUses.soldier:the-arity-method.sortie": true });
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ resultText: BITE_THE_DUST.results.success })
+		);
+		expect(message.update).toHaveBeenCalledWith({ flavor: "<div>updated</div>" });
+	});
+
+	it("does nothing when the actor no longer exists", async () => {
+		game.actors.get.mockReturnValue(undefined);
+		const offer = { actorId: "gone", moveKey: "exchange-blows", flavorArgs: {}, sources: [HOT_BLOODED_SOURCE] };
+		const message = { flags: { "armor-astir": { automaticSuccess: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.automaticSuccessHandler({ currentTarget: { disabled: false, dataset: { source: HOT_BLOODED_SOURCE.key } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).not.toHaveBeenCalled();
+		expect(message.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the rolled move no longer resolves", async () => {
+		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const offer = { actorId: "actor1", moveKey: "not-a-real-move", flavorArgs: {}, sources: [HOT_BLOODED_SOURCE] };
+		const message = { flags: { "armor-astir": { automaticSuccess: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.automaticSuccessHandler({ currentTarget: { disabled: false, dataset: { source: HOT_BLOODED_SOURCE.key } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).not.toHaveBeenCalled();
+		expect(renderTemplate).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the clicked source key no longer matches any offered source", async () => {
+		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const offer = { actorId: "actor1", moveKey: "exchange-blows", flavorArgs: {}, sources: [HOT_BLOODED_SOURCE] };
+		const message = { flags: { "armor-astir": { automaticSuccess: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.automaticSuccessHandler({ currentTarget: { disabled: false, dataset: { source: "not-a-real-source" } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).not.toHaveBeenCalled();
+		expect(renderTemplate).not.toHaveBeenCalled();
 	});
 });
 
@@ -3927,8 +4113,8 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 				scaleLabel: "Astir Scale",
 				tier: 3,
 				weaponMoves: [
-					{ key: "exchange-blows", name: "Exchange Blows", gated: false },
-					{ key: "strike-decisively", name: "Strike Decisively", gated: false }
+					{ key: "exchange-blows", name: "Exchange Blows", gated: false, tooltip: null },
+					{ key: "strike-decisively", name: "Strike Decisively", gated: false, tooltip: null }
 				],
 				isAstir: false
 			}
@@ -7506,6 +7692,127 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 	});
 });
 
+describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/Once the War's Over/The Arity Method)", () => {
+	const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none" };
+
+	it("offers Hot-blooded once its own hold pool reaches its cost", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { equipment: [], moveHold: { "the-impostor:hot-blooded": { value: 3 } } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, {
+			...config,
+			weaponLabel: "Unarmed",
+			weaponTags: null,
+			automaticSuccess: [{ key: "the-impostor:hot-blooded", name: "Hot-blooded", cost: 3 }]
+		});
+	});
+
+	it("does not offer Hot-blooded below its cost", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { equipment: [], moveHold: { "the-impostor:hot-blooded": { value: 2 } } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
+	});
+
+	it("treats a missing moveHold pool as 0, offering nothing", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
+	});
+
+	it("offers a useKey source (The Arity Method) when its own uses checkbox is unchecked, restricted to bite-the-dust", async () => {
+		const sheet = new PlaybookActorSheet();
+		const defy = { key: "defy", label: "DEFY", value: 0 };
+		sheet.actor = { system: { stats: { defy: { value: 0 } }, attributes: {} } };
+		configureMoveRoll.mockResolvedValue({ ...config, trait: defy });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, BITE_THE_DUST, defy, {
+			...config,
+			trait: defy,
+			automaticSuccess: [{ key: "soldier:the-arity-method", name: "The Arity Method", useKey: "sortie", moves: ["bite-the-dust"] }]
+		});
+	});
+
+	it("does not offer The Arity Method once its Sortie use is already checked", async () => {
+		const sheet = new PlaybookActorSheet();
+		const defy = { key: "defy", label: "DEFY", value: 0 };
+		sheet.actor = {
+			system: { stats: { defy: { value: 0 } }, attributes: { moveUses: { "soldier:the-arity-method": { sortie: true } } } }
+		};
+		configureMoveRoll.mockResolvedValue({ ...config, trait: defy });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, BITE_THE_DUST, defy, { ...config, trait: defy });
+	});
+
+	it("does not offer The Arity Method for a move other than bite-the-dust, even with its use unchecked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
+	});
+
+	it("offers every qualifying source at once", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					equipment: [],
+					moveHold: {
+						"the-impostor:hot-blooded": { value: 3 },
+						"soldier:once-the-wars-over": { value: 1 }
+					}
+				}
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		const options = rollMove.mock.calls.at(-1)[3];
+		expect(options.automaticSuccess.map((source) => source.key)).toEqual(
+			expect.arrayContaining(["the-impostor:hot-blooded", "soldier:once-the-wars-over"])
+		);
+		expect(options.automaticSuccess).toHaveLength(2);
+	});
+});
+
 describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 	it("passes guided: true to configureMoveRoll when the weapon has a live Guided tag", async () => {
 		const sheet = new PlaybookActorSheet();
@@ -7879,8 +8186,8 @@ describe("PlaybookActorSheet#getData - weaponMoves", () => {
 		const data = sheet.getData();
 
 		expect(data.equipment.weapons[0].weaponMoves).toEqual([
-			{ key: "exchange-blows", name: "Exchange Blows", gated: false },
-			{ key: "strike-decisively", name: "Strike Decisively", gated: false }
+			{ key: "exchange-blows", name: "Exchange Blows", gated: false, tooltip: null },
+			{ key: "strike-decisively", name: "Strike Decisively", gated: false, tooltip: null }
 		]);
 	});
 
@@ -7898,8 +8205,8 @@ describe("PlaybookActorSheet#getData - weaponMoves", () => {
 		const data = sheet.getData();
 
 		expect(data.equipment.weapons[0].weaponMoves).toEqual([
-			{ key: "exchange-blows", name: "Exchange Blows", gated: true },
-			{ key: "strike-decisively", name: "Strike Decisively", gated: true }
+			{ key: "exchange-blows", name: "Exchange Blows", gated: true, tooltip: null },
+			{ key: "strike-decisively", name: "Strike Decisively", gated: true, tooltip: null }
 		]);
 	});
 
@@ -7918,8 +8225,8 @@ describe("PlaybookActorSheet#getData - weaponMoves", () => {
 		const data = sheet.getData();
 
 		expect(data.equipment.weapons[0].weaponMoves).toEqual([
-			{ key: "exchange-blows", name: "Exchange Blows", gated: true },
-			{ key: "strike-decisively", name: "Strike Decisively", gated: true }
+			{ key: "exchange-blows", name: "Exchange Blows", gated: true, tooltip: "Personal weapons are disabled when mounted. Dismount to use this weapon." },
+			{ key: "strike-decisively", name: "Strike Decisively", gated: true, tooltip: "Personal weapons are disabled when mounted. Dismount to use this weapon." }
 		]);
 	});
 
@@ -7956,8 +8263,8 @@ describe("PlaybookActorSheet#getData - weaponMoves", () => {
 		const data = sheet.getData();
 
 		expect(data.astir.weapons[0].weaponMoves).toEqual([
-			{ key: "exchange-blows", name: "Exchange Blows", gated: true },
-			{ key: "strike-decisively", name: "Strike Decisively", gated: true }
+			{ key: "exchange-blows", name: "Exchange Blows", gated: true, tooltip: "Astir and Ardent weapons are disabled while unmounted. Mount up to use this weapon." },
+			{ key: "strike-decisively", name: "Strike Decisively", gated: true, tooltip: "Astir and Ardent weapons are disabled while unmounted. Mount up to use this weapon." }
 		]);
 	});
 
@@ -7978,8 +8285,31 @@ describe("PlaybookActorSheet#getData - weaponMoves", () => {
 		const data = sheet.getData();
 
 		expect(data.astir.weapons[0].weaponMoves).toEqual([
-			{ key: "exchange-blows", name: "Exchange Blows", gated: false },
-			{ key: "strike-decisively", name: "Strike Decisively", gated: false }
+			{ key: "exchange-blows", name: "Exchange Blows", gated: false, tooltip: null },
+			{ key: "strike-decisively", name: "Strike Decisively", gated: false, tooltip: null }
+		]);
+	});
+
+	it("explains cross-frame gating when an Ardent weapon is disabled because the Astir is piloted instead", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					astir: { id: "a1", tier: 3, parts: [], move: null, piloted: true },
+					ardents: [{ id: "ar1", tier: 3, parts: [], piloted: false }],
+					equipment: [
+						{ id: "eq1", kind: "weapon", ardent: "ar1", name: "Spear", description: "", tags: [], spent: [] }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.equipment.ardentWeapons[0].weaponMoves).toEqual([
+			{ key: "exchange-blows", name: "Exchange Blows", gated: true, tooltip: "This weapon's frame isn't mounted. Dismount your current frame and mount this one to use this weapon." },
+			{ key: "strike-decisively", name: "Strike Decisively", gated: true, tooltip: "This weapon's frame isn't mounted. Dismount your current frame and mount this one to use this weapon." }
 		]);
 	});
 });

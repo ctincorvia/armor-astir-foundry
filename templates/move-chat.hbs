@@ -48,6 +48,9 @@
 	{{#if reroll}}
 	<button type="button" class="move-reroll">Reroll (Decisive/Defensive/Versatile)</button>
 	{{/if}}
+	{{#each automaticSuccess}}
+	<button type="button" class="move-automatic-success" data-source="{{key}}">Automatic success from {{name}}</button>
+	{{/each}}
 	{{else}}
 	<div class="move-description">{{{description}}}</div>
 	{{/if}}

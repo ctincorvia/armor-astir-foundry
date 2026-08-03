@@ -160,6 +160,16 @@ describe("MOVE_POOLS", () => {
 		expect(hotBlooded.period).toBeUndefined();
 	});
 
+	it("gives Hot-blooded, Once the War's Over and The Arity Method their own automatic-success grant", () => {
+		const hotBlooded = findPlaybookMove("the-impostor:hot-blooded");
+		const onceTheWarsOver = findPlaybookMove("soldier:once-the-wars-over");
+		const arityMethod = findPlaybookMove("soldier:the-arity-method");
+
+		expect(hotBlooded.grantsAutomaticSuccess).toEqual({ cost: 3 });
+		expect(onceTheWarsOver.grantsAutomaticSuccess).toEqual({ cost: 1 });
+		expect(arityMethod.grantsAutomaticSuccess).toEqual({ useKey: "sortie", moves: ["bite-the-dust"] });
+	});
+
 	it("gives Don't Follow Me a standing +DEFY & advantage grant on Lead a Sortie", () => {
 		const dontFollowMe = findPlaybookMove("the-impostor:dont-follow-me");
 
