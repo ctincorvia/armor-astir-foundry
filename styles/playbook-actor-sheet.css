@@ -149,9 +149,9 @@
    character of breathing room instead of text sitting flush against the border); the other three
    padding sides are left at core's default. */
 .armor-astir.sheet .sheet-header .form-group input {
-	height: calc((var(--form-field-height) + 1px) * 0.8);
-	line-height: calc((var(--form-field-height) + 1px) * 0.8);
-	padding-left: 1em;
+	height: calc((var(--form-field-height) + 1px) * 0.9);
+	line-height: calc((var(--form-field-height) + 1px) * 0.9);
+	padding-left: 0.25em;
 }
 
 /* Every label in the header — Name, Callsign, Playbook, Approach, Tier — reads as bold and
