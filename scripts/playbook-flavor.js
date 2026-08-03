@@ -61,6 +61,23 @@ export const PLAYBOOK_FLAVOR = {
 			"How often is the term Impostor used, if at all? Is it formal or informal? Do you have " +
 				"another word for yourself? Are there others who control Astirs in a similar way?"
 		]
+	},
+	"the-diplomat": {
+		look: [
+			{ label: "You look:", text: "noble, refined, experienced, naive or slick" },
+			{ label: "You wear:", text: "military dress, mostly disguises, luxury fashion, recognisable uniform" },
+			{ label: "You have a reputation for being:", text: "fair and trustworthy, sly and wily, unpredictable, bold and pushy" }
+		],
+		consider: [
+			"Are you actually a diplomat? Do you hold any official office?",
+			"How long have you been with the Cause? Were you part of it before joining this crew?",
+			"What's your stance on violence?",
+			"What is your network of connections like? Do you have one?",
+			"What motivates you during this conflict? What are your goals?",
+			"What's the most danger you've been in before?",
+			"What does diplomacy mean to you? How do you go about it?",
+			"Have you ever negotiated with the Authority before?"
+		]
 	}
 };
 

@@ -10,19 +10,21 @@
 		{{/each}}
 	</ol>
 	{{/if}}
-	<p class="starting-gear-picker-instructions">Choose {{chooseCount}}.</p>
-	{{#if items.length}}
+	{{#if groups.length}}
+	{{#each groups}}
+	<p class="starting-gear-picker-instructions">{{label}}</p>
 	<ol class="starting-gear-picker-list">
 		{{#each items}}
 		<li class="starting-gear-picker-item">
 			<label class="starting-gear-picker-option">
-				<input type="checkbox" name="starting-gear-item" value="{{key}}"/>
+				<input type="checkbox" name="starting-gear-item-{{../key}}" value="{{key}}"/>
 				<span class="starting-gear-picker-name">{{name}}</span>
 			</label>
 			<div class="starting-gear-picker-description">{{description}}</div>
 		</li>
 		{{/each}}
 	</ol>
+	{{/each}}
 	{{else}}
 	<p class="starting-gear-picker-empty">There is no starting equipment list for this playbook yet.</p>
 	{{/if}}

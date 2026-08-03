@@ -61,6 +61,13 @@ vi.mock("../scripts/carrier-actor-sheet.js", async (importOriginal) => ({
 	chooseCarrier: vi.fn()
 }));
 
+// Only the Mount Up picker dialog is mocked — ardentParts/ardentWeapons/buildArdent/
+// ardentLoadoutCount and the constants stay real, same reasoning as astir.js above.
+vi.mock("../scripts/ardent.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	chooseFrame: vi.fn()
+}));
+
 import { PLAYBOOKS, swapActorPlaybook } from "../scripts/actor-creation.js";
 import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postGuidedResult, postMoveDescription, rollMove } from "../scripts/moves.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../scripts/advancements.js";
@@ -86,6 +93,7 @@ import {
 	chooseAstirWeapon
 } from "../scripts/astir.js";
 import { findCarrierActors, chooseCarrier } from "../scripts/carrier-actor-sheet.js";
+import { ARDENT_TIER_MAX, ARDENT_TIER_MIN, ardentParts, ardentWeapons, chooseFrame } from "../scripts/ardent.js";
 import {
 	PlaybookActorSheet,
 	registerPlaybookActorSheet,
@@ -107,6 +115,8 @@ const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:bullhe
 const ARCANE_AUGMENTS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:arcane-augments");
 const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loose");
 const DONT_FOLLOW_ME = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:dont-follow-me");
+const FACILITATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:facilitator");
+const BUREAUCRAT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:bureaucrat");
 const FACE_TO_FACE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:face-to-face");
 const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
 const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
@@ -144,6 +154,7 @@ beforeEach(() => {
 	findCarrierActors.mockClear();
 	findCarrierActors.mockReturnValue([]);
 	chooseCarrier.mockClear();
+	chooseFrame.mockClear();
 });
 
 describe("PlaybookActorSheet", () => {
@@ -380,7 +391,7 @@ describe("PlaybookActorSheet#getData", () => {
 
 		const data = sheet.getData();
 
-		expect(data.tier).toEqual({ base: 1, effective: 1, fromAstir: false });
+		expect(data.tier).toEqual({ base: 1, effective: 1, fromFrame: false });
 	});
 
 	it("raises base Tier off a picked move's conflictTier, e.g. Field Scout", () => {
@@ -389,7 +400,7 @@ describe("PlaybookActorSheet#getData", () => {
 
 		const data = sheet.getData();
 
-		expect(data.tier).toEqual({ base: 2, effective: 2, fromAstir: false });
+		expect(data.tier).toEqual({ base: 2, effective: 2, fromFrame: false });
 	});
 
 	it("takes the higher of two conflictTier moves rather than the last one picked", () => {
@@ -406,6 +417,7 @@ describe("PlaybookActorSheet#getData", () => {
 	it("reads Tier off the Astir instead of base while piloted", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
+			name: "Vanguard",
 			system: {
 				attributes: {
 					playbookMoves: ["the-scout:field-scout"],
@@ -416,7 +428,24 @@ describe("PlaybookActorSheet#getData", () => {
 
 		const data = sheet.getData();
 
-		expect(data.tier).toEqual({ base: 2, effective: 4, fromAstir: true });
+		expect(data.tier).toEqual({ base: 2, effective: 4, fromFrame: true, frameName: "Vanguard" });
+	});
+
+	it("reads Tier off an Ardent instead of base while it's the mounted frame", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			name: "Vanguard",
+			system: {
+				attributes: {
+					playbookMoves: ["the-scout:field-scout"],
+					ardents: [{ id: "ar1", name: "Warhound", tier: 3, piloted: true }]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.tier).toEqual({ base: 2, effective: 3, fromFrame: true, frameName: "Warhound" });
 	});
 
 	it("reverts to base Tier once dismounted", () => {
@@ -432,7 +461,7 @@ describe("PlaybookActorSheet#getData", () => {
 
 		const data = sheet.getData();
 
-		expect(data.tier).toEqual({ base: 2, effective: 2, fromAstir: false });
+		expect(data.tier).toEqual({ base: 2, effective: 2, fromFrame: false });
 	});
 });
 
@@ -1815,6 +1844,819 @@ describe("PlaybookActorSheet#_onAstirWeaponAdd", () => {
 	});
 });
 
+describe("PlaybookActorSheet#getData - ardents", () => {
+	it("defaults to an empty list when there are no Ardents", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet.getData().ardents).toEqual([]);
+	});
+
+	it("exposes the Ardent tier bounds", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.ardentTierMin).toBe(ARDENT_TIER_MIN);
+		expect(data.ardentTierMax).toBe(ARDENT_TIER_MAX);
+	});
+
+	it("resolves an Ardent's own fields, defaulting name and offering the full Approach list", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", approach: "elemental", tier: 3, piloted: true, parts: [] }] } }
+		};
+
+		const [ardent] = sheet.getData().ardents;
+
+		expect(ardent.id).toBe("ar1");
+		expect(ardent.name).toBe("Ardent");
+		expect(ardent.approach).toBe("elemental");
+		expect(ardent.approachOptions.map((a) => a.key)).toEqual(["mundane", "arcane", "divine", "profane", "elemental"]);
+		expect(ardent.tier).toBe(3);
+		expect(ardent.piloted).toBe(true);
+	});
+
+	it("uses a stored name when present", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", name: "Warhound", parts: [] }] } } };
+
+		expect(sheet.getData().ardents[0].name).toBe("Warhound");
+	});
+
+	it("resolves parts to name/partType, without a Power cost field", () => {
+		const sheet = new PlaybookActorSheet();
+		const part = WARDING;
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [part.key] }] } } };
+
+		expect(sheet.getData().ardents[0].parts).toEqual([{ key: part.key, name: part.name, partType: part.partType }]);
+	});
+
+	it("reports Repair Tokens once Standardised Parts is installed, defaulting to 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [STANDARDISED_PARTS.key] }] } } };
+
+		expect(sheet.getData().ardents[0].repairTokens).toEqual({ value: 0 });
+	});
+
+	it("reports no Repair Tokens without Standardised Parts installed", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }] } } };
+
+		expect(sheet.getData().ardents[0].repairTokens).toBeNull();
+	});
+
+	it("surfaces only this Ardent's own ardent-flagged weapons, with the Ardent's own tier and Astir scale", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", tier: 4, parts: [] }, { id: "ar2", tier: 2, parts: [] }],
+					equipment: [
+						{ id: "1", kind: "weapon", ardent: "ar1", name: "Spear", description: "", tags: [], spent: [] },
+						{ id: "2", kind: "weapon", ardent: "ar2", name: "Axe", description: "", tags: [], spent: [] }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.ardents[0].weapons.map((w) => w.id)).toEqual(["1"]);
+		expect(data.ardents[0].weapons[0].tier).toBe(4);
+		expect(data.ardents[0].weapons[0].scaleLabel).toBe("Astir Scale");
+		expect(data.ardents[1].weapons.map((w) => w.id)).toEqual(["2"]);
+		expect(data.equipment.ardentWeapons.map((w) => w.id)).toEqual(["1", "2"]);
+	});
+
+	it("flags loadoutFull once parts+weapons reach ARDENT_MAX_LOADOUT", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", parts: [WARDING.key] }],
+					equipment: [{ id: "1", kind: "weapon", ardent: "ar1", name: "Spear", description: "", tags: [], spent: [] }]
+				}
+			}
+		};
+
+		expect(sheet.getData().ardents[0].loadoutFull).toBe(true);
+	});
+
+	it("leaves loadoutFull false below the cap", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }] } } };
+
+		expect(sheet.getData().ardents[0].loadoutFull).toBe(false);
+	});
+});
+
+describe("PlaybookActorSheet#getData - ardent moves group", () => {
+	it("adds no group for an Ardent with no parts", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", name: "Warhound", parts: [] }] } } };
+
+		expect(sheet.getData().moveGroups.some((g) => g.label === "Warhound Moves")).toBe(false);
+	});
+
+	it("lists an Ardent's own installed parts under a group named after it", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", name: "Warhound", parts: [WARDING.key] }] } }
+		};
+
+		const group = sheet.getData().moveGroups.find((g) => g.label === "Warhound Moves");
+
+		expect(group.moves.map((m) => m.key)).toEqual([WARDING.key]);
+		expect(group.addable).toBeUndefined();
+	});
+
+	it("defaults an unnamed Ardent's group label to Ardent Moves", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [WARDING.key] }] } } };
+
+		expect(sheet.getData().moveGroups.some((g) => g.label === "Ardent Moves")).toBe(true);
+	});
+
+	it("gates the group unless this Ardent specifically is the mounted frame", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [
+						{ id: "ar1", name: "Warhound", parts: [WARDING.key], piloted: true },
+						{ id: "ar2", name: "Kestrel", parts: [WARDING.key], piloted: false }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups.find((g) => g.label === "Warhound Moves").moves[0].gated).toBe(false);
+		expect(data.moveGroups.find((g) => g.label === "Kestrel Moves").moves[0].gated).toBe(true);
+	});
+
+	it("gates every Ardent's group when the Astir is mounted instead", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", piloted: true, parts: [] },
+					ardents: [{ id: "ar1", name: "Warhound", parts: [WARDING.key], piloted: false }]
+				}
+			}
+		};
+
+		const group = sheet.getData().moveGroups.find((g) => g.label === "Warhound Moves");
+
+		expect(group.moves[0].gated).toBe(true);
+	});
+});
+
+describe("PlaybookActorSheet#getData - controls with Ardents", () => {
+	it("enables Mount Up with an unpiloted Ardent and no Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", piloted: false }] } } };
+
+		expect(sheet.getData().controls).toEqual({ mountUpDisabled: false, dismountDisabled: true });
+	});
+
+	it("disables Mount Up and enables Dismount once an Ardent is piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", piloted: true }] } } };
+
+		expect(sheet.getData().controls).toEqual({ mountUpDisabled: true, dismountDisabled: false });
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - ardent", () => {
+	it("binds every Ardent control to its handler", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		const bound = [
+			".ardent-create",
+			".ardent-delete",
+			".ardent-name-input",
+			".ardent-approach-select",
+			".ardent-tier-step",
+			".ardent-piloted-checkbox",
+			".ardent-repair-tokens-input",
+			".ardent-part-add",
+			".ardent-part-remove",
+			".ardent-weapon-catalog-add"
+		];
+		for (const selector of bound) {
+			expect(html.find).toHaveBeenCalledWith(selector);
+		}
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentCreate", () => {
+	it("appends a fresh Ardent to an empty list", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onArdentCreate();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [
+				{ id: "test-id", name: "Ardent", approach: "", tier: ARDENT_TIER_MIN, piloted: false, parts: [], repairTokens: 0 }
+			]
+		});
+	});
+
+	it("appends alongside existing Ardents rather than replacing them", () => {
+		const sheet = new PlaybookActorSheet();
+		const existing = { id: "ar1", name: "Warhound" };
+		sheet.actor = { system: { attributes: { ardents: [existing] } }, update: vi.fn() };
+
+		sheet._onArdentCreate();
+
+		const updated = sheet.actor.update.mock.calls[0][0]["system.attributes.ardents"];
+		expect(updated[0]).toBe(existing);
+		expect(updated).toHaveLength(2);
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentDelete", () => {
+	it("removes the matching Ardent and every weapon it owns", () => {
+		const sheet = new PlaybookActorSheet();
+		const other = { id: "ar2", name: "Kestrel" };
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", name: "Warhound" }, other],
+					equipment: [
+						{ id: "1", kind: "weapon", ardent: "ar1" },
+						{ id: "2", kind: "weapon", ardent: "ar2" },
+						{ id: "3", kind: "gear" }
+					]
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onArdentDelete({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [other],
+			"system.attributes.equipment": [
+				{ id: "2", kind: "weapon", ardent: "ar2" },
+				{ id: "3", kind: "gear" }
+			]
+		});
+	});
+
+	it("does nothing for an id that doesn't match any Ardent", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		sheet._onArdentDelete({ currentTarget: { dataset: { ardentId: "not-a-real-id" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentNameChange", () => {
+	it("trims and writes the new name, leaving other Ardents untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const other = { id: "ar2", name: "Kestrel" };
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", name: "Old" }, other] } }, update: vi.fn() };
+
+		sheet._onArdentNameChange({ currentTarget: { dataset: { ardentId: "ar1" }, value: "  Warhound  " } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [{ id: "ar1", name: "Warhound" }, other]
+		});
+	});
+
+	it("does nothing for an unknown Ardent id", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		sheet._onArdentNameChange({ currentTarget: { dataset: { ardentId: "nope" }, value: "x" } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentApproachChange", () => {
+	it("writes the chosen Approach, unrestricted by any Core, leaving other Ardents untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const other = { id: "ar2", approach: "mundane" };
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", approach: "" }, other] } }, update: vi.fn() };
+
+		sheet._onArdentApproachChange({ currentTarget: { dataset: { ardentId: "ar1" }, value: "elemental" } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [{ id: "ar1", approach: "elemental" }, other]
+		});
+	});
+
+	it("does nothing for an unknown Ardent id", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		sheet._onArdentApproachChange({ currentTarget: { dataset: { ardentId: "nope" }, value: "elemental" } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentTierStep", () => {
+	it("increments within the 2-4 band, leaving other Ardents untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const other = { id: "ar2", tier: 3 };
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", tier: 2 }, other] } }, update: vi.fn() };
+
+		sheet._onArdentTierStep({ currentTarget: { dataset: { ardentId: "ar1", delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.ardents": [{ id: "ar1", tier: 3 }, other] });
+	});
+
+	it("treats a missing tier as ARDENT_TIER_DEFAULT", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1" }] } }, update: vi.fn() };
+
+		sheet._onArdentTierStep({ currentTarget: { dataset: { ardentId: "ar1", delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.ardents": [{ id: "ar1", tier: ARDENT_TIER_MIN + 1 }] });
+	});
+
+	it("clamps at ARDENT_TIER_MAX", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", tier: ARDENT_TIER_MAX }] } }, update: vi.fn() };
+
+		sheet._onArdentTierStep({ currentTarget: { dataset: { ardentId: "ar1", delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at ARDENT_TIER_MIN", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", tier: ARDENT_TIER_MIN }] } }, update: vi.fn() };
+
+		sheet._onArdentTierStep({ currentTarget: { dataset: { ardentId: "ar1", delta: "-1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for an unknown Ardent id", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		sheet._onArdentTierStep({ currentTarget: { dataset: { ardentId: "nope", delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentPilotedToggle", () => {
+	it("mounts this Ardent and dismounts the Astir/any other Ardent", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", piloted: true },
+					ardents: [{ id: "ar1", piloted: false }, { id: "ar2", piloted: false }]
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onArdentPilotedToggle({ currentTarget: { dataset: { ardentId: "ar1" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.astir.piloted": false,
+			"system.attributes.ardents": [{ id: "ar1", piloted: true }, { id: "ar2", piloted: false }]
+		});
+	});
+
+	it("dismounts when unchecked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", piloted: true }] } }, update: vi.fn() };
+
+		sheet._onArdentPilotedToggle({ currentTarget: { dataset: { ardentId: "ar1" }, checked: false } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.ardents": [{ id: "ar1", piloted: false }] });
+	});
+
+	it("does nothing for an unknown Ardent id", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		sheet._onArdentPilotedToggle({ currentTarget: { dataset: { ardentId: "nope" }, checked: true } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentRepairTokensChange", () => {
+	it("writes the entered value, leaving other Ardents untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const other = { id: "ar2", repairTokens: 1 };
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", repairTokens: 0 }, other] } }, update: vi.fn() };
+
+		sheet._onArdentRepairTokensChange({ currentTarget: { dataset: { ardentId: "ar1" }, value: "3" } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [{ id: "ar1", repairTokens: 3 }, other]
+		});
+	});
+
+	it("clamps a negative value to 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", repairTokens: 2 }] } }, update: vi.fn() };
+
+		sheet._onArdentRepairTokensChange({ currentTarget: { dataset: { ardentId: "ar1" }, value: "-5" } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [{ id: "ar1", repairTokens: 0 }]
+		});
+	});
+
+	it("clamps a non-numeric value to 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", repairTokens: 2 }] } }, update: vi.fn() };
+
+		sheet._onArdentRepairTokensChange({ currentTarget: { dataset: { ardentId: "ar1" }, value: "" } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [{ id: "ar1", repairTokens: 0 }]
+		});
+	});
+
+	it("does nothing for an unknown Ardent id", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		sheet._onArdentRepairTokensChange({ currentTarget: { dataset: { ardentId: "nope" }, value: "3" } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentPartAdd", () => {
+	it("offers the Ardent-eligible catalog and adds the chosen part, leaving other Ardents untouched", async () => {
+		const sheet = new PlaybookActorSheet();
+		const other = { id: "ar2", parts: [ARTIFACT.key] };
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }, other] } }, update: vi.fn() };
+		chooseAstirPart.mockResolvedValue(WARDING.key);
+
+		await sheet._onArdentPartAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(chooseAstirPart).toHaveBeenCalledWith([], ardentParts(), { title: "Add an Ardent Part" });
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [{ id: "ar1", parts: [WARDING.key] }, other]
+		});
+	});
+
+	it("treats a missing parts array as empty", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1" }] } }, update: vi.fn() };
+		chooseAstirPart.mockResolvedValue(WARDING.key);
+
+		await sheet._onArdentPartAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(chooseAstirPart).toHaveBeenCalledWith([], ardentParts(), { title: "Add an Ardent Part" });
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [{ id: "ar1", parts: [WARDING.key] }]
+		});
+	});
+
+	it("refuses once the combined loadout is already at ARDENT_MAX_LOADOUT", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", parts: [WARDING.key] }],
+					equipment: [{ id: "1", kind: "weapon", ardent: "ar1" }]
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._onArdentPartAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(chooseAstirPart).not.toHaveBeenCalled();
+		expect(ui.notifications.warn).toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the picker is cancelled", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }] } }, update: vi.fn() };
+		chooseAstirPart.mockResolvedValue(null);
+
+		await sheet._onArdentPartAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for an already-picked part", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [WARDING.key] } ] } }, update: vi.fn() };
+		chooseAstirPart.mockResolvedValue(WARDING.key);
+
+		await sheet._onArdentPartAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for an unknown Ardent id", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		await sheet._onArdentPartAdd({ currentTarget: { dataset: { ardentId: "nope" } } });
+
+		expect(chooseAstirPart).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentPartRemove", () => {
+	it("removes the matching part, leaving other Ardents untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const other = { id: "ar2", parts: [ARTIFACT.key] };
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [WARDING.key] }, other] } }, update: vi.fn() };
+
+		sheet._onArdentPartRemove({ currentTarget: { dataset: { ardentId: "ar1", part: WARDING.key } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.ardents": [{ id: "ar1", parts: [] }, other] });
+	});
+
+	it("does nothing for a part that isn't installed", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }] } }, update: vi.fn() };
+
+		sheet._onArdentPartRemove({ currentTarget: { dataset: { ardentId: "ar1", part: WARDING.key } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing parts array as empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1" }] } }, update: vi.fn() };
+
+		sheet._onArdentPartRemove({ currentTarget: { dataset: { ardentId: "ar1", part: WARDING.key } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for an unknown Ardent id", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		sheet._onArdentPartRemove({ currentTarget: { dataset: { ardentId: "nope", part: WARDING.key } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentWeaponAdd", () => {
+	it("chains the catalog picker into configureEquipment with ardentWeapon, then saves flagged for this Ardent", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }], equipment: [] } }, update: vi.fn() };
+		const template = { key: "placeholder-astir-weapon", name: "Placeholder Astir Weapon", description: "", tags: ["melee"] };
+		chooseAstirWeapon.mockResolvedValue(template);
+		configureEquipment.mockResolvedValue({ name: "Spear", description: "", kind: "weapon", tags: ["melee"] });
+
+		await sheet._onArdentWeaponAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(chooseAstirWeapon).toHaveBeenCalledWith(ardentWeapons(), { title: "Pick an Ardent Weapon" });
+		expect(configureEquipment).toHaveBeenCalledWith(template, undefined, { ardentWeapon: true });
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{ id: "test-id", spent: [], ardent: "ar1", name: "Spear", description: "", kind: "weapon", tags: ["melee"] }
+			]
+		});
+	});
+
+	it("refuses once the combined loadout is already at ARDENT_MAX_LOADOUT", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", parts: [WARDING.key] }],
+					equipment: [{ id: "1", kind: "weapon", ardent: "ar1" }]
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._onArdentWeaponAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(chooseAstirWeapon).not.toHaveBeenCalled();
+		expect(ui.notifications.warn).toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the catalog picker is cancelled", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }], equipment: [] } }, update: vi.fn() };
+		chooseAstirWeapon.mockResolvedValue(null);
+
+		await sheet._onArdentWeaponAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(configureEquipment).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the editor is dismissed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }], equipment: [] } }, update: vi.fn() };
+		chooseAstirWeapon.mockResolvedValue({ key: "x", name: "x", description: "", tags: [] });
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onArdentWeaponAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for an unknown Ardent id", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		await sheet._onArdentWeaponAdd({ currentTarget: { dataset: { ardentId: "nope" } } });
+
+		expect(chooseAstirWeapon).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onMountUp - multiple frames", () => {
+	it("prompts chooseFrame with every unmounted frame and mounts the chosen one", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", piloted: false },
+					ardents: [{ id: "ar1", name: "Warhound", piloted: false }]
+				}
+			},
+			update: vi.fn()
+		};
+		chooseFrame.mockResolvedValue({ kind: "ardent", id: "ar1" });
+
+		await sheet._onMountUp();
+
+		expect(chooseFrame).toHaveBeenCalledWith([
+			expect.objectContaining({ kind: "astir", id: "astir" }),
+			expect.objectContaining({ kind: "ardent", id: "ar1", name: "Warhound" })
+		]);
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.astir.piloted": false,
+			"system.attributes.ardents": [{ id: "ar1", name: "Warhound", piloted: true }]
+		});
+	});
+
+	it("does nothing when the picker is dismissed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", piloted: false }, ardents: [{ id: "ar1", piloted: false }] } },
+			update: vi.fn()
+		};
+		chooseFrame.mockResolvedValue(null);
+
+		await sheet._onMountUp();
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("mounts an Ardent directly with no prompt when it's the only frame", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", piloted: false }] } }, update: vi.fn() };
+
+		await sheet._onMountUp();
+
+		expect(chooseFrame).not.toHaveBeenCalled();
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.ardents": [{ id: "ar1", piloted: true }] });
+	});
+});
+
+describe("PlaybookActorSheet#_onDismount - with Ardents", () => {
+	it("clears whichever Ardent is mounted, leaving the rest untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", piloted: true }, { id: "ar2", piloted: false }] } },
+			update: vi.fn()
+		};
+
+		sheet._onDismount();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [{ id: "ar1", piloted: false }, { id: "ar2", piloted: false }]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onEquipmentEdit - Ardent weapons", () => {
+	it("reopens an Ardent weapon with the ardentWeapon option and carries the ardent flag forward", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", ardent: "ar1", name: "Spear", description: "", tags: ["melee"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Spear II", description: "", kind: "weapon", tags: ["melee"] });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { ardentWeapon: true });
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{ id: "1", spent: [], name: "Spear II", description: "", kind: "weapon", tags: ["melee"], ardent: "ar1" }
+			]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onEquipmentRemove - Ardent weapons", () => {
+	it("removes an Ardent weapon without touching Astir Power", () => {
+		const sheet = new PlaybookActorSheet();
+		const weapon = { id: "1", kind: "weapon", ardent: "ar1" };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, parts: [] }, equipment: [weapon] } },
+			update: vi.fn()
+		};
+
+		sheet._onEquipmentRemove({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.equipment": [] });
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveRoll - Ardent weapon choice", () => {
+	it("offers only the mounted Ardent's own weapons, excluding the Astir's and other Ardents'", async () => {
+		const sheet = new PlaybookActorSheet();
+		const mine = { id: "eq1", kind: "weapon", ardent: "ar1", name: "Spear", description: "", tags: [], spent: [] };
+		const otherArdent = { id: "eq2", kind: "weapon", ardent: "ar2", name: "Axe", description: "", tags: [], spent: [] };
+		const astirWeapon = { id: "eq3", kind: "weapon", astir: true, name: "Lance", description: "", tags: [], spent: [] };
+		const mundane = { id: "eq4", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [] };
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					astir: { id: "a1", piloted: false },
+					ardents: [{ id: "ar1", piloted: true }, { id: "ar2", piloted: false }],
+					equipment: [mine, otherArdent, astirWeapon, mundane]
+				}
+			}
+		};
+		chooseWeapon.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(chooseWeapon).toHaveBeenCalledWith([mine]);
+	});
+});
+
+describe("PlaybookActorSheet#_moveTraits - Input Channel from a mounted Ardent", () => {
+	it("offers +CHANNEL when Input Channel is installed on the mounted Ardent", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, channel: { value: 2, disabled: true } },
+				attributes: { ardents: [{ id: "ar1", parts: [INPUT_CHANNEL.key], piloted: true }] }
+			}
+		};
+
+		expect(sheet._moveTraits({ traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 },
+			{ key: "channel", label: "CHANNEL", value: 2 }
+		]);
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveRoll - astir part spends from a mounted Ardent", () => {
+	it("offers an Ardent-installed part's spend when it's the mounted frame", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { ardents: [{ id: "ar1", parts: [WARDING.key], piloted: true }] }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
+			astirPartSpends: [{
+				partKey: WARDING.key, partName: "Warding", description: WARDING.spend.description,
+				effect: null, advantage: null, disabled: false
+			}],
+			equipmentSpends: []
+		});
+	});
+});
+
 describe("PlaybookActorSheet#getData - advancements", () => {
 	it("defaults every top and bottom item to unchecked when attributes are missing", () => {
 		const sheet = new PlaybookActorSheet();
@@ -2989,6 +3831,7 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 			tierMax: 5,
 			weapons: [],
 			astirWeapons: [],
+			ardentWeapons: [],
 			gear: [],
 			startingGear: { available: false }
 		});
@@ -3329,7 +4172,8 @@ describe("PlaybookActorSheet#_onEquipmentCatalogAdd", () => {
 
 describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 	const scoutPool = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Scout");
-	const [firstItem, secondItem] = scoutPool.items;
+	const scoutItems = scoutPool.groups.flatMap((group) => group.items);
+	const [firstItem, secondItem] = scoutItems;
 	const weaponResult = { name: "Custom Blade", description: "", kind: "weapon", tags: [], scale: "foot", tier: 1 };
 
 	it("does nothing for a playbook with no starting gear pool", async () => {
@@ -3384,7 +4228,7 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 	});
 
 	it("carries a picked item's own tags onto the new gear entry, e.g. Blades & Bracers' ward", async () => {
-		const bladesAndBracers = scoutPool.items.find((item) => item.key === "the-scout:blades-and-bracers");
+		const bladesAndBracers = scoutItems.find((item) => item.key === "the-scout:blades-and-bracers");
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { equipment: [] } }, update: vi.fn() };
 		chooseStartingGear.mockResolvedValue([bladesAndBracers]);
@@ -3470,9 +4314,10 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 
 	describe("granted items and weapon-kind items (The Impostor)", () => {
 		const impostorPool = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Impostor");
+		const impostorItems = impostorPool.groups.flatMap((group) => group.items);
 		const augmentsI = impostorPool.grantedItems.find((item) => item.key === "the-impostor:augments-i");
-		const powerFocusI = impostorPool.items.find((item) => item.key === "the-impostor:power-focus-i");
-		const shieldBroachI = impostorPool.items.find((item) => item.key === "the-impostor:shield-broach-i");
+		const powerFocusI = impostorItems.find((item) => item.key === "the-impostor:power-focus-i");
+		const shieldBroachI = impostorItems.find((item) => item.key === "the-impostor:shield-broach-i");
 
 		it("adds Augments I unconditionally, as a Tier I foot-scale weapon", async () => {
 			const sheet = new PlaybookActorSheet();
@@ -5125,6 +5970,72 @@ describe("PlaybookActorSheet#_moveTraits", () => {
 		};
 
 		expect(sheet._moveTraits({ traits: ["channel"] })).toEqual([{ key: "channel", label: "CHANNEL", value: 2 }]);
+	});
+
+	it("offers +TALK on Read the Room when Facilitator is picked (addsTraitToMove)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { sense: { value: 1 }, talk: { value: 2 } },
+				attributes: { playbookMoves: [FACILITATOR.key] }
+			}
+		};
+		const readTheRoom = { key: "read-the-room", traits: ["sense"] };
+
+		expect(sheet._moveTraits(readTheRoom)).toEqual([
+			{ key: "sense", label: "SENSE", value: 1 },
+			{ key: "talk", label: "TALK", value: 2 }
+		]);
+	});
+
+	it("does not add +TALK to a different move just because Facilitator is picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, talk: { value: 2 } },
+				attributes: { playbookMoves: [FACILITATOR.key] }
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "exchange-blows", traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 }
+		]);
+	});
+
+	it("leaves Read the Room's traits untouched without Facilitator picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { sense: { value: 1 }, talk: { value: 2 } }, attributes: { playbookMoves: [] } }
+		};
+		const readTheRoom = { key: "read-the-room", traits: ["sense"] };
+
+		expect(sheet._moveTraits(readTheRoom)).toEqual([{ key: "sense", label: "SENSE", value: 1 }]);
+	});
+
+	it("does not add a second TALK entry when the target move already rolls it", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { talk: { value: 2 } },
+				attributes: { playbookMoves: [FACILITATOR.key] }
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "read-the-room", traits: ["talk"] })).toEqual([
+			{ key: "talk", label: "TALK", value: 2 }
+		]);
+	});
+
+	it("treats a missing talk stat value as 0 for an added trait", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { sense: { value: 1 } }, attributes: { playbookMoves: [FACILITATOR.key] } }
+		};
+
+		expect(sheet._moveTraits({ key: "read-the-room", traits: ["sense"] })).toEqual([
+			{ key: "sense", label: "SENSE", value: 1 },
+			{ key: "talk", label: "TALK", value: 0 }
+		]);
 	});
 });
 
@@ -7166,6 +8077,23 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 			[`system.attributes.moveUses.${DIVINATION_CODEX.key}.expended`]: true
 		});
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, DIVINATION_CODEX);
+	});
+
+	it("posts the move's own prompt and options to chat for an activateChoices move (Bureaucrat)", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: BUREAUCRAT.key } } });
+
+		expect(ChatMessage.create).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			flavor: "<h3>Bureaucrat</h3>",
+			content: `<p>${BUREAUCRAT.activateChoices.prompt}</p>` +
+				`<ul>${BUREAUCRAT.activateChoices.options.map((option) => `<li>${option}</li>`).join("")}</ul>`
+		});
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, BUREAUCRAT);
 	});
 });
 

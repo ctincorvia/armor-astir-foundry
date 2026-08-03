@@ -15,7 +15,7 @@
 		</select>
 	</div>
 	{{/unless}}
-	{{#unless astirWeapon}}
+	{{#unless hideTier}}
 	<div class="form-group equipment-editor-weapon-fields">
 		<label>Tier</label>
 		<input type="number" name="tier" value="{{tier}}" min="{{tierMin}}" max="{{tierMax}}" {{#if carrierWeapon}}disabled{{/if}}/>

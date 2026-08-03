@@ -8,14 +8,18 @@ export const STARTING_GEAR_PICKER_TEMPLATE = "modules/armor-astir/templates/star
 // already get, since that array is always freely editable afterward regardless of where an entry
 // came from.
 //
-// `chooseCount` is a hard cap enforced by chooseStartingGear below — unlike MOVE_POOLS/
-// EQUIPMENT_CATALOG's deliberate non-enforcement of pool membership and prerequisites, a starting
-// gear allowance is a real chargen budget, not a loose fictional guideline. `customWeaponNote` is
-// shown as non-blocking guidance text on the weapon editor (see equipment.js's configureEquipment
-// `note` option) — the tag-value budget it describes is never enforced. `freeformNotes` are
-// narrative-only lines with no mechanical hook (e.g. "Any tier I weapons that feel appropriate"),
-// transcribed as prose per claude.md's "systems that do not exist yet" guidance rather than
-// modeled.
+// Pickable items live in `groups`, each with its own `chooseCount` — a hard cap enforced per group
+// by chooseStartingGear below. Unlike MOVE_POOLS/EQUIPMENT_CATALOG's deliberate non-enforcement of
+// pool membership and prerequisites, a starting gear allowance is a real chargen budget, not a
+// loose fictional guideline. Most playbooks need only one group; The Diplomat has two independent
+// budgets ("1 Diplomacy 'Tool'" and "3 'Diplomacy' Tools"), which a single mixed chooseCount
+// couldn't express — it would let a player take four gear and no weapon.
+//
+// `customWeaponNote` is shown as non-blocking guidance text on the weapon editor (see equipment.js's
+// configureEquipment `note` option) — the tag-value budget it describes is never enforced.
+// `freeformNotes` are narrative-only lines with no mechanical hook (e.g. "Any tier I weapons that
+// feel appropriate"), transcribed as prose per claude.md's "systems that do not exist yet" guidance
+// rather than modeled.
 //
 // `grantedItems` (The Impostor's Augments I) are equipment every character of that playbook just
 // starts with — no pick involved, same "always added, shown read-only in the picker" treatment
@@ -35,37 +39,43 @@ export const STARTING_GEAR_POOLS = [
 			"Clothes that match your look."
 		],
 		grantedItems: [],
-		items: [
+		groups: [
 			{
-				key: "the-scout:maps-and-tools",
-				name: "Maps & Tools",
-				description: "You can always find a way through or past."
-			},
-			{
-				key: "the-scout:aid-and-repair-kit",
-				name: "Aid & Repair Kit",
-				description: "You can tend to minor injuries or damages."
-			},
-			{
-				key: "the-scout:traps-and-wards",
-				name: "Traps & Wards",
-				description: "You can always set up a defence given time."
-			},
-			{
-				key: "the-scout:blades-and-bracers",
-				name: "Blades & Bracers",
-				description: "You can always produce a basic weapon, +ward.",
-				// The "+ward" in the description above is a real Equipment tag (see
-				// equipment.js's EQUIPMENT_TAGS), not just prose — carried here so
-				// PlaybookActorSheet#_onStartingGearAdd can attach it to the picked entry.
-				tags: ["ward"]
+				key: "the-scout:gear",
+				label: "Choose 2.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-scout:maps-and-tools",
+						name: "Maps & Tools",
+						description: "You can always find a way through or past."
+					},
+					{
+						key: "the-scout:aid-and-repair-kit",
+						name: "Aid & Repair Kit",
+						description: "You can tend to minor injuries or damages."
+					},
+					{
+						key: "the-scout:traps-and-wards",
+						name: "Traps & Wards",
+						description: "You can always set up a defence given time."
+					},
+					{
+						key: "the-scout:blades-and-bracers",
+						name: "Blades & Bracers",
+						description: "You can always produce a basic weapon, +ward.",
+						// The "+ward" in the description above is a real Equipment tag (see
+						// equipment.js's EQUIPMENT_TAGS), not just prose — carried here so
+						// PlaybookActorSheet#_onStartingGearAdd can attach it to the picked entry.
+						tags: ["ward"]
+					}
+				]
 			}
 		]
 	},
-	{ playbookName: "The Commander", chooseCount: 0, grantedItems: [], items: [] },
+	{ playbookName: "The Commander", grantedItems: [], groups: [] },
 	{
 		playbookName: "The Impostor",
-		chooseCount: 2,
 		freeformNotes: ["Clothes that match your look."],
 		// Augments I — always melee, always Tier I, the augmentations that let an Impostor pilot
 		// an Astir at all (see moves.js's Arcane Augments). No customWeaponNote: unlike The Scout,
@@ -79,36 +89,121 @@ export const STARTING_GEAR_POOLS = [
 				tags: ["melee", "bane"]
 			}
 		],
-		items: [
+		groups: [
 			{
-				key: "the-impostor:power-focus-i",
-				name: "Power Focus I",
-				description: "A focus that channels and directs magical energy into a ranged blast.",
-				kind: "weapon",
-				tags: ["ranged", "blitz"]
+				key: "the-impostor:gear",
+				label: "Choose 2.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-impostor:power-focus-i",
+						name: "Power Focus I",
+						description: "A focus that channels and directs magical energy into a ranged blast.",
+						kind: "weapon",
+						tags: ["ranged", "blitz"]
+					},
+					{
+						key: "the-impostor:nullblade-i",
+						name: "Nullblade I",
+						description: "A plain, unenchanted blade — no different from one anybody else might " +
+							"carry.",
+						kind: "weapon",
+						tags: ["melee", "mundane"]
+					},
+					{
+						key: "the-impostor:sidearm-i",
+						name: "Sidearm I",
+						description: "The typical protections afforded to Astir pilots: a reliable tool " +
+							"capable of firing bursts of light arcane energy.",
+						kind: "weapon",
+						tags: ["ranged", "defensive"]
+					},
+					{
+						key: "the-impostor:shield-broach-i",
+						name: "Shield Broach I",
+						description: "A small worn charm that flares to ward off harm.",
+						// The "ward" tag is a real Equipment tag (see equipment.js) — same treatment
+						// Blades & Bracers gets above.
+						tags: ["ward"]
+					}
+				]
+			}
+		]
+	},
+	{
+		playbookName: "The Diplomat",
+		grantedItems: [],
+		freeformNotes: ["Clothing that matches your look."],
+		groups: [
+			{
+				key: "the-diplomat:tools",
+				label: "Choose 1 Diplomacy 'Tool'.",
+				chooseCount: 1,
+				items: [
+					{
+						key: "the-diplomat:spyglass-ray-i",
+						name: "Spyglass Ray I",
+						description: "A precision weapon disguised as an optic instrument.",
+						kind: "weapon",
+						tags: ["sniper", "bane", "elemental"]
+					},
+					{
+						key: "the-diplomat:fencing-blade-i",
+						name: "Fencing Blade I",
+						description: "A light, quick blade suited to formal duels as much as self-defence.",
+						kind: "weapon",
+						tags: ["melee", "defensive", "blitz"]
+					},
+					{
+						key: "the-diplomat:arcane-dagger-i",
+						name: "Arcane Dagger I",
+						description: "A small, concealable blade humming with destructive magic.",
+						kind: "weapon",
+						tags: ["melee", "ruin", "intimate", "arcane"]
+					}
+				]
 			},
 			{
-				key: "the-impostor:nullblade-i",
-				name: "Nullblade I",
-				description: "A plain, unenchanted blade — no different from one anybody else might carry.",
-				kind: "weapon",
-				tags: ["melee", "mundane"]
-			},
-			{
-				key: "the-impostor:sidearm-i",
-				name: "Sidearm I",
-				description: "The typical protections afforded to Astir pilots: a reliable tool capable of " +
-					"firing bursts of light arcane energy.",
-				kind: "weapon",
-				tags: ["ranged", "defensive"]
-			},
-			{
-				key: "the-impostor:shield-broach-i",
-				name: "Shield Broach I",
-				description: "A small worn charm that flares to ward off harm.",
-				// The "ward" tag is a real Equipment tag (see equipment.js) — same treatment
-				// Blades & Bracers gets above.
-				tags: ["ward"]
+				key: "the-diplomat:gear",
+				label: "Choose 3 'Diplomacy' Tools.",
+				chooseCount: 3,
+				items: [
+					{
+						key: "the-diplomat:listenbugs",
+						name: "Listenbugs",
+						description: "Overhear anyone during Downtime near a bug you've hidden—they're fragile.",
+						// The "fragile" tag is a real Equipment tag (see equipment.js's EQUIPMENT_TAGS) —
+						// same treatment Blades & Bracers/Shield Broach I give their own tag reference.
+						tags: ["fragile"]
+					},
+					{
+						key: "the-diplomat:lockpicks",
+						name: "Lockpicks",
+						description: "Useful for picking locks, unsurprisingly."
+					},
+					{
+						key: "the-diplomat:silencing-matrix",
+						name: "Silencing Matrix",
+						description: "Removes all noise from a tier I weapon."
+					},
+					{
+						key: "the-diplomat:shimmershape-clothing",
+						name: "Shimmershape Clothing",
+						description: "Clothing can magically change colour and design."
+					},
+					{
+						key: "the-diplomat:agents",
+						name: "Agents",
+						description: "Once per Downtime, report on intel they've gathered: the Director will " +
+							"reveal something useful about the Sortie."
+					},
+					{
+						key: "the-diplomat:transport",
+						name: "Transport",
+						description: "You have a mount or vehicle that's fast and quiet—probably something " +
+							"tier II."
+					}
+				]
 			}
 		]
 	}
@@ -123,19 +218,21 @@ export function findStartingGearPool(playbookName, pools = STARTING_GEAR_POOLS) 
 // entry, same as a catalog pick), or null if the dialog was dismissed. Mirrors
 // chooseEquipmentCatalogItem's promise/Dialog shape (equipment.js).
 //
-// The checked selection is truncated to pool.chooseCount before resolving, in checkbox order —
-// the hard-cap enforcement point. This mirrors configureEquipment's existing tier-clamp idiom
-// (normalize the result rather than reject the dialog) instead of blocking Add or disabling
-// checkboxes live, which would need the kind of reactive-form wiring claude.md notes this
-// module's Dialogs have no precedent for.
+// Each group's checked selection is truncated to its own chooseCount before resolving, in
+// checkbox order — the hard-cap enforcement point, applied independently per group so (e.g.) The
+// Diplomat's 1 weapon and 3 gear budgets can't bleed into each other. Checkbox `name` is
+// group-scoped (see starting-gear-picker.hbs) so one group's checked boxes never leak into
+// another's count. This mirrors configureEquipment's existing tier-clamp idiom (normalize the
+// result rather than reject the dialog) instead of blocking Add or disabling checkboxes live,
+// which would need the kind of reactive-form wiring claude.md notes this module's Dialogs have no
+// precedent for.
 export async function chooseStartingGear(playbookName, pools = STARTING_GEAR_POOLS) {
 	const pool = findStartingGearPool(playbookName, pools);
 	if (!pool) return null;
 
 	const content = await renderTemplate(STARTING_GEAR_PICKER_TEMPLATE, {
 		grantedItems: pool.grantedItems,
-		items: pool.items,
-		chooseCount: pool.chooseCount,
+		groups: pool.groups,
 		freeformNotes: pool.freeformNotes ?? []
 	});
 
@@ -147,11 +244,14 @@ export async function chooseStartingGear(playbookName, pools = STARTING_GEAR_POO
 				add: {
 					label: "Add",
 					callback: (html) => {
-						const checkedKeys = html.find("[name='starting-gear-item']:checked").map((_, el) => el.value).get();
-						const picked = checkedKeys
-							.slice(0, pool.chooseCount)
-							.map((key) => pool.items.find((item) => item.key === key))
-							.filter(Boolean);
+						const picked = pool.groups.flatMap((group) => {
+							const checkedKeys = html.find(`[name='starting-gear-item-${group.key}']:checked`)
+								.map((_, el) => el.value).get();
+							return checkedKeys
+								.slice(0, group.chooseCount)
+								.map((key) => group.items.find((item) => item.key === key))
+								.filter(Boolean);
+						});
 						resolve(picked);
 					}
 				},

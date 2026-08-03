@@ -15,7 +15,8 @@ export const APPROACHES = [
 export const PLAYBOOK_APPROACHES = {
 	"the-scout": ["mundane"],
 	"the-commander": ["mundane"],
-	"the-impostor": ["arcane", "elemental"]
+	"the-impostor": ["arcane", "elemental"],
+	"the-diplomat": ["mundane"]
 };
 
 export function availableApproaches(playbookSlug) {

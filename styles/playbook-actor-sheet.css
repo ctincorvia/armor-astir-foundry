@@ -139,10 +139,19 @@
 	gap: var(--aa-space-2);
 }
 
-/* Matches the select boxes' own height (see .tier-value below) so Name/Callsign's text inputs,
-   Playbook/Approach's dropdowns, and Tier's readout are all the same height, top to bottom. */
+/* Sized at 80% of the select boxes' own height (see .tier-value below) — matching it exactly
+   read as too tall once seen next to Playbook/Approach's dropdowns, so this is deliberately a
+   little shorter rather than equal. line-height matches height for the same reason .tier-value
+   centers via flexbox and .sheet-header label sets line-height: 1 below — a <select>'s text is
+   centered natively regardless of line-height, but core's own input[type="text"] rule sets
+   line-height: inherit, so without this the text sits wherever the inherited line-height happens
+   to put it instead of centered in the box. padding-left overrides core's default 3px (~1
+   character of breathing room instead of text sitting flush against the border); the other three
+   padding sides are left at core's default. */
 .armor-astir.sheet .sheet-header .form-group input {
-	height: calc(var(--form-field-height) + 1px);
+	height: calc((var(--form-field-height) + 1px) * 0.8);
+	line-height: calc((var(--form-field-height) + 1px) * 0.8);
+	padding-left: 1em;
 }
 
 /* Every label in the header — Name, Callsign, Playbook, Approach, Tier — reads as bold and
@@ -697,13 +706,6 @@
 	color: var(--aa-primary-dark);
 }
 
-/* The Astir tab nav item while CHANNEL is disabled — still clickable (that's how a player finds
-   the locked note explaining why, see .astir-locked below) so this dims rather than disabling the
-   click the way a real disabled control would. */
-.armor-astir.sheet .sheet-tabs .item.disabled {
-	opacity: 0.5;
-}
-
 /* Core/Approach/Tier sit in one row on the Astir tab's identity section — each select keeps its
    own label above it via .form-group (pbta's own styling, same as the header's Name/Callsign
    fields), this just lays the three fields out side by side. */
@@ -741,6 +743,25 @@
 	display: flex;
 	justify-content: center;
 	padding: var(--aa-space-4) 0;
+}
+
+/* One block per Ardent, divided the same way .gravity-clock-item separates its own list entries —
+   Ardents share the Astir's .astir-identity-fields/.trait-meters/.move-list/.equipment-list rules
+   wholesale (a character may have several, each rendering the same panel shape the Astir's own
+   section does), so only the per-Ardent wrapper and its name field need rules of their own. */
+.armor-astir.sheet .ardent {
+	padding: var(--aa-space-3) 0;
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.sheet .ardent:last-child {
+	border-bottom: none;
+}
+
+.armor-astir.sheet .ardent-name-input {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-weight: 700;
 }
 
 /* Foundry's core CSS hides an inactive tab with `.tab[data-tab]:not(.active) { display: none }`;

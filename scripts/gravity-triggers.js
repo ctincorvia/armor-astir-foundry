@@ -7,7 +7,9 @@ export const GRAVITY_TRIGGERS = {
 	"the-commander":
 		"Whenever you or your crew are physically injured in service of someone else, advance a GRAVITY clock with them if you have one.",
 	"the-impostor":
-		"When someone you have GRAVITY with sees you be put in peril, advance it."
+		"When someone you have GRAVITY with sees you be put in peril, advance it.",
+	"the-diplomat":
+		"When you successfully negotiate or advocate for something important to you, advance a GRAVITY clock of your choice."
 };
 
 export function gravityTriggerForPlaybook(playbookSlug) {

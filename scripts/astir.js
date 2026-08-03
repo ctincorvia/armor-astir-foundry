@@ -641,14 +641,15 @@ export function findCatalogAstirWeapon(key, catalog = ASTIR_WEAPON_CATALOG) {
 // or nothing was selected — same promise/Dialog/resolve-null shape as choosePlaybookMove, and the
 // same "already-picked options drop out" treatment (a part, like a playbook move, only makes sense
 // picked once). Reuses the equipment catalog picker template: {key, name, description} is exactly
-// what it renders.
-export async function chooseAstirPart(selectedKeys = [], catalog = ASTIR_PART_CATALOG) {
+// what it renders. `title` is overridable so ardent.js can reuse this same picker (against a
+// filtered catalog — see ardentParts) with Ardent-appropriate copy, rather than a second dialog.
+export async function chooseAstirPart(selectedKeys = [], catalog = ASTIR_PART_CATALOG, { title = "Add an Astir Part" } = {}) {
 	const items = catalog.filter((part) => !selectedKeys.includes(part.key));
 	const content = await renderTemplate(EQUIPMENT_CATALOG_PICKER_TEMPLATE, { items });
 
 	return new Promise((resolve) => {
 		new Dialog({
-			title: "Add an Astir Part",
+			title,
 			content,
 			buttons: {
 				add: {
@@ -666,13 +667,14 @@ export async function chooseAstirPart(selectedKeys = [], catalog = ASTIR_PART_CA
 // Opens the "O" catalog picker for an Astir weapon and resolves the chosen template (for passing
 // into configureEquipment, same as chooseEquipmentCatalogItem's own callers), or null. Unlike
 // chooseAstirPart, nothing is excluded — an Astir can carry more than one of the same weapon
-// template, same as regular equipment.
-export async function chooseAstirWeapon(catalog = ASTIR_WEAPON_CATALOG) {
+// template, same as regular equipment. `title` is overridable for the same reason chooseAstirPart's
+// is — see ardent.js's ardentWeapons.
+export async function chooseAstirWeapon(catalog = ASTIR_WEAPON_CATALOG, { title = "Pick an Astir Weapon" } = {}) {
 	const content = await renderTemplate(EQUIPMENT_CATALOG_PICKER_TEMPLATE, { items: catalog });
 
 	return new Promise((resolve) => {
 		new Dialog({
-			title: "Pick an Astir Weapon",
+			title,
 			content,
 			buttons: {
 				add: {

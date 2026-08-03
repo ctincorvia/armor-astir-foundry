@@ -817,26 +817,39 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 // Tier 5 — but unlike an Astir weapon, there's nothing else for it to inherit those from, so
 // Tier stays a visible, disabled field (fixed at TIER_MAX) rather than being hidden outright.
 //
+// `ardentWeapon` (see ardent.js/PlaybookActorSheet) is the Ardent counterpart to `astirWeapon`:
+// always a weapon, hides Kind and Tier the same way (an Ardent weapon inherits its owning Ardent's
+// Tier rather than storing one), but — unlike `astirWeapon` — never renders Drain's checkboxes
+// (`pickableTags` below stays filtered), since an Ardent has no Power for Drain to reduce.
+//
 // Scale itself is never a player-facing choice, for any caller: it now drives real behavior (see
 // PlaybookActorSheet's Piloted mutual-exclusivity between Astir and mundane weapons), so letting a
 // plain custom weapon be labeled Astir Scale without actually being flagged `astir: true` would be
 // actively misleading — it would render as Astir Scale but behave as a mundane weapon. The neither-
-// astirWeapon-nor-carrierWeapon ("mundane") path is always resolved as `"foot"`; `carrierWeapon` is
-// always `"astir"`; `astirWeapon` never stores a scale at all. There's no `<select name="scale">`
-// left in the template for any of the three.
-export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, { note, astirWeapon = false, carrierWeapon = false } = {}) {
+// astirWeapon-nor-carrierWeapon-nor-ardentWeapon ("mundane") path is always resolved as `"foot"`;
+// `carrierWeapon` is always `"astir"`; neither `astirWeapon` nor `ardentWeapon` ever stores a scale
+// at all. There's no `<select name="scale">` left in the template for any of the four.
+export async function configureEquipment(
+	initial = null,
+	tags = EQUIPMENT_TAGS,
+	{ note, astirWeapon = false, carrierWeapon = false, ardentWeapon = false } = {}
+) {
 	// Drain only means anything on an Astir weapon (see DRAIN_GROUP's doc comment) — every other
-	// flow hides its checkboxes so it can't be picked somewhere it would stay permanently inert.
+	// flow, including ardentWeapon (an Ardent has no Power for Drain to reduce), hides its
+	// checkboxes so it can't be picked somewhere it would stay permanently inert.
 	const pickableTags = astirWeapon ? tags : tags.filter((tag) => tag.exclusiveGroup !== DRAIN_GROUP);
 	const content = await renderTemplate(EQUIPMENT_EDITOR_TEMPLATE, {
 		note,
 		astirWeapon,
 		carrierWeapon,
-		// Kind is hidden for the same two callers that force Scale/Tier — see the doc comment above.
-		hideKind: astirWeapon || carrierWeapon,
+		// Kind is hidden for every caller that forces Scale/Tier — see the doc comment above.
+		hideKind: astirWeapon || carrierWeapon || ardentWeapon,
+		// Tier is hidden (rather than shown-disabled like carrierWeapon's) for both callers whose
+		// weapon inherits Tier from elsewhere instead of storing it — see the doc comment above.
+		hideTier: astirWeapon || ardentWeapon,
 		name: initial?.name ?? "",
 		description: initial?.description ?? "",
-		isWeapon: astirWeapon || carrierWeapon || (initial?.kind ?? "weapon") === "weapon",
+		isWeapon: astirWeapon || carrierWeapon || ardentWeapon || (initial?.kind ?? "weapon") === "weapon",
 		tier: carrierWeapon ? TIER_MAX : (initial?.tier ?? TIER_MIN),
 		tierMin: TIER_MIN,
 		tierMax: TIER_MAX,
@@ -895,10 +908,10 @@ export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, 
 							resolve(null);
 							return;
 						}
-						// Neither an Astir nor a Carrier weapon dialog renders the Kind select at all (see
-						// the template) — both are always weapons, so there's nothing to read from the DOM
-						// here for either.
-						const kind = (astirWeapon || carrierWeapon) ? "weapon" : html.find("[name='kind']").val();
+						// None of the Astir/Carrier/Ardent weapon dialogs render the Kind select at all
+						// (see the template) — all three are always weapons, so there's nothing to read
+						// from the DOM here for any of them.
+						const kind = (astirWeapon || carrierWeapon || ardentWeapon) ? "weapon" : html.find("[name='kind']").val();
 						const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
 						// Every checked key is a real tag — it was rendered from `tags` in the first
 						// place — so findEquipmentTag can't miss in either check below. Only
@@ -925,12 +938,13 @@ export async function configureEquipment(initial = null, tags = EQUIPMENT_TAGS, 
 							description: html.find("[name='description']").val().trim(),
 							kind,
 							tags: checkedKeys,
-							// scale/tier are never resolved for an Astir weapon — both are inherited from
-							// the Astir itself (see PlaybookActorSheet#_equipmentEntry) rather than stored.
-							// A Carrier weapon does store both, but always as the fixed astir/TIER_MAX pair.
-							// A mundane weapon is always Foot Scale — there's no DOM field to read (see the
-							// doc comment above configureEquipment).
-							...(kind === "weapon" && !astirWeapon && {
+							// scale/tier are never resolved for an Astir or Ardent weapon — both are
+							// inherited from the owning frame itself (see
+							// PlaybookActorSheet#_equipmentEntry) rather than stored. A Carrier weapon does
+							// store both, but always as the fixed astir/TIER_MAX pair. A mundane weapon is
+							// always Foot Scale — there's no DOM field to read (see the doc comment above
+							// configureEquipment).
+							...(kind === "weapon" && !astirWeapon && !ardentWeapon && {
 								scale: carrierWeapon ? "astir" : "foot",
 								tier: carrierWeapon
 									? TIER_MAX

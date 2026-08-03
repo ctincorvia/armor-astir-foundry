@@ -1,5 +1,5 @@
 import { PLAYBOOKS, swapActorPlaybook } from "./actor-creation.js";
-import { availableApproaches } from "./approaches.js";
+import { APPROACHES, availableApproaches } from "./approaches.js";
 import { gravityTriggerForPlaybook } from "./gravity-triggers.js";
 import { defaultConsiderText, defaultLookText } from "./playbook-flavor.js";
 import {
@@ -48,6 +48,18 @@ import {
 	findAstirPart,
 	resolveAstirParts
 } from "./astir.js";
+import {
+	ARDENT_DEFAULT_NAME,
+	ARDENT_MAX_LOADOUT,
+	ARDENT_TIER_DEFAULT,
+	ARDENT_TIER_MAX,
+	ARDENT_TIER_MIN,
+	ardentLoadoutCount,
+	ardentParts,
+	ardentWeapons,
+	buildArdent,
+	chooseFrame
+} from "./ardent.js";
 import { chooseCarrier, findCarrierActors } from "./carrier-actor-sheet.js";
 import { traitBonusesFor } from "./trait-bonuses.js";
 
@@ -225,19 +237,31 @@ export class PlaybookActorSheet extends ActorSheet {
 		// its own. Inserted here (rather than always pushed) so it lands between Playbook and
 		// Special per the ordering above, and only when there's something to show — a character
 		// with no Astir (or an empty one) leaves moveGroups exactly as it was before this feature
-		// existed.
+		// existed. Each Ardent's own installed parts get the same read-only treatment in their own
+		// "<name> Moves" group, right after the Astir's — Ardents grant no unique Move (see
+		// claude.md's Ardents section), so an Ardent's group is parts-only.
 		const astirParts = this._astirParts();
 		const astirMove = astir?.move ? findAstirMove(astir.move) : null;
 		const astirMoves = [...astirParts, ...(astirMove ? [astirMove] : [])];
-		const piloted = this._astirPiloted();
+		const frames = this._frames();
+		const mountedFrame = frames.find((frame) => frame.piloted) ?? null;
 		if (astirMoves.length) {
 			// Every entry in this group — parts and the Astir's own unique move alike — only does
-			// anything while piloted (see claude.md's Piloted note), so `gated` is forced on top of
-			// whatever gating a part already has, the same disabled-Roll/Activate treatment
-			// channelGated already gives b-plot.
+			// anything while the Astir specifically is the mounted frame (see claude.md's Piloted
+			// note), so `gated` is forced on top of whatever gating a part already has, the same
+			// disabled-Roll/Activate treatment channelGated already gives b-plot.
 			data.moveGroups.push({
 				label: "Astir Moves",
-				moves: this._moveGroupMoves(astirMoves).map((move) => ({ ...move, gated: move.gated || !piloted }))
+				moves: this._moveGroupMoves(astirMoves).map((move) => ({ ...move, gated: move.gated || mountedFrame?.id !== "astir" }))
+			});
+		}
+		const ardents = this._ardents();
+		for (const ardent of ardents) {
+			const parts = resolveAstirParts(ardent.parts ?? []);
+			if (!parts.length) continue;
+			data.moveGroups.push({
+				label: `${ardent.name || ARDENT_DEFAULT_NAME} Moves`,
+				moves: this._moveGroupMoves(parts).map((move) => ({ ...move, gated: move.gated || mountedFrame?.id !== ardent.id }))
 			});
 		}
 		data.moveGroups.push({ label: "Special Moves", moves: this._moveGroupMoves(SPECIAL_MOVES) });
@@ -254,15 +278,16 @@ export class PlaybookActorSheet extends ActorSheet {
 		// `../equipment.weaponMoves` template lookup. Reusing _moveGroupMoves (rather than
 		// hand-rolling gating) means these buttons inherit the exact same, already-tested `gated`
 		// semantics as the Moves tab's own Roll buttons for free.
-		// Astir and mundane weapons are mutually exclusive by Piloted state (see claude.md's Piloted
-		// note): while piloted, only Astir weapons' quick-roll buttons work; while not, only mundane
-		// weapons' do. Both are derived independently from the same ungated base — deriving one from
-		// the other (e.g. astirWeaponMoves as weaponMoves.map(... || !piloted)) would compound both
-		// conditions together and leave it permanently gated, since `piloted || !piloted` is always
-		// true.
+		// A weapon's quick-roll buttons only work while its own owning frame is the one currently
+		// mounted (see claude.md's Piloted note and _weaponFrameId) — a mundane weapon's frame id is
+		// null, so `frameWeaponMoves(null)` gates it whenever anything at all is mounted. Every
+		// frame's set is derived independently from the same ungated base rather than negating one
+		// another, so mounting frame A can never accidentally leave frame B's buttons enabled too.
 		const baseWeaponMoves = this._moveGroupMoves(WEAPON_MOVES).map(({ key, name, gated }) => ({ key, name, gated }));
-		const weaponMoves = baseWeaponMoves.map((move) => ({ ...move, gated: move.gated || piloted }));
-		const astirWeaponMoves = baseWeaponMoves.map((move) => ({ ...move, gated: move.gated || !piloted }));
+		const mountedFrameId = mountedFrame?.id ?? null;
+		const frameWeaponMoves = (frameId) => baseWeaponMoves.map((move) => ({ ...move, gated: move.gated || mountedFrameId !== frameId }));
+		const weaponMoves = frameWeaponMoves(null);
+		const astirWeaponMoves = frameWeaponMoves("astir");
 		// The "+ Choose Starting Gear" button (see _onStartingGearAdd) only shows up once its
 		// playbook's pool actually has something to offer — same "drop when empty" treatment
 		// playbookMoveSections gives an empty pool, so The Commander stays hidden until its pool is
@@ -274,22 +299,33 @@ export class PlaybookActorSheet extends ActorSheet {
 		// Astir weapons (equipment entries flagged astir: true — see astir.js) are only ever
 		// added/edited/removed from the Astir tab, but still surface here, read-only, per
 		// claude.md — same computed entries feed both data.equipment.astirWeapons (Equipment tab)
-		// and data.astir.weapons (Astir tab) below, so there's only one place resolving them.
+		// and data.astir.weapons (Astir tab) below, so there's only one place resolving them. Each
+		// Ardent's own weapons (equipment entries flagged ardent: "<ardentId>") get the same
+		// treatment, grouped per Ardent — see ardentWeaponEntriesById below, shared between
+		// data.equipment.ardentWeapons (flattened, Equipment tab) and each entry in data.ardents'
+		// own .weapons (Astir & Ardents tab).
 		const astirWeapons = equipment
 			.filter((item) => item.kind === "weapon" && item.astir)
 			.map((item) => this._equipmentEntry(item, astirWeaponMoves, astir));
+		const ardentWeaponEntriesById = new Map(ardents.map((ardent) => [
+			ardent.id,
+			equipment
+				.filter((item) => item.kind === "weapon" && item.ardent === ardent.id)
+				.map((item) => this._equipmentEntry(item, frameWeaponMoves(ardent.id), ardent))
+		]));
 		data.equipment = {
 			tierMin: TIER_MIN,
 			tierMax: TIER_MAX,
 			weapons: equipment
-				.filter((item) => item.kind === "weapon" && !item.astir)
+				.filter((item) => item.kind === "weapon" && !item.astir && !item.ardent)
 				.map((item) => this._equipmentEntry(item, weaponMoves)),
 			astirWeapons,
+			ardentWeapons: ardents.flatMap((ardent) => ardentWeaponEntriesById.get(ardent.id)),
 			gear: equipment.filter((item) => item.kind !== "weapon").map((item) => this._equipmentEntry(item)),
 			startingGear: {
 				available: Boolean(
 					startingGearPool?.grantedItems?.length
-						|| startingGearPool?.items?.length
+						|| startingGearPool?.groups?.some((group) => group.items.length)
 						|| startingGearPool?.customWeaponNote
 				) && !this._startingGearChosen()
 			}
@@ -318,7 +354,7 @@ export class PlaybookActorSheet extends ActorSheet {
 				// Gates every part/Astir-weapon benefit (see claude.md's Piloted note) — unchecked
 				// by default (see _onAstirCreate). Managing the loadout itself (add/remove/edit
 				// Parts, the Astir Move, Astir weapons) is never gated by this.
-				piloted,
+				piloted: Boolean(astir.piloted),
 				// max is always derived from the current parts and equipment, never stored — same
 				// reasoning as equipmentValue/advancements.topCount — so it can't drift after a part
 				// or weapon changes. negative flags Weapon Drain having outstripped max Power (see
@@ -351,13 +387,39 @@ export class PlaybookActorSheet extends ActorSheet {
 				weapons: astirWeapons
 			})
 		};
+		// Ardents (see ardent.js/claude.md's Ardents section) — unlike the Astir, never gated on
+		// CHANNEL, and there can be several. Each one's approachOptions is the full APPROACHES
+		// list (not narrowed by a Core — Ardents have none), its parts read the same way the
+		// Astir's own do (drawn from the same catalog — see ardentParts), and loadoutFull disables
+		// both the Parts and Weapons "+" buttons at once, since the two combine into one cap.
+		data.ardentTierMin = ARDENT_TIER_MIN;
+		data.ardentTierMax = ARDENT_TIER_MAX;
+		data.ardents = ardents.map((ardent) => {
+			const parts = resolveAstirParts(ardent.parts ?? []);
+			return {
+				id: ardent.id,
+				name: ardent.name || ARDENT_DEFAULT_NAME,
+				approach: ardent.approach ?? "",
+				approachOptions: APPROACHES,
+				tier: ardent.tier ?? ARDENT_TIER_DEFAULT,
+				piloted: Boolean(ardent.piloted),
+				parts: parts.map((part) => ({ key: part.key, name: part.name, partType: part.partType })),
+				// Never falls back — ardentWeaponEntriesById is built from this same `ardents` list, so
+				// every Ardent's id already has an entry (possibly an empty array).
+				weapons: ardentWeaponEntriesById.get(ardent.id),
+				// Only appears once a part actually grants it (Standardised Parts — see astir.js), same
+				// object-not-bare-number treatment the Astir's own repairTokens gets in getData above.
+				repairTokens: parts.some((part) => part.grantsRepairTokens) ? { value: ardent.repairTokens ?? 0 } : null,
+				loadoutFull: ardentLoadoutCount(ardent, equipment) >= ARDENT_MAX_LOADOUT
+			};
+		});
 		// The Controls section (see the template's dangers-column) — Mount Up/Dismount just drive
-		// the same piloted flag the Astir tab's own checkbox does (see _setAstirPiloted), so their
-		// disabled state mirrors exactly what claude.md's Piloted note and the feature ask require:
-		// no Astir at all, or already in the target state.
+		// the same mounted-frame state every frame's own Piloted checkbox does (see
+		// _setMountedFrame), so their disabled state mirrors exactly what claude.md's Piloted note
+		// and the feature ask require: no frame at all to mount, or one already mounted.
 		data.controls = {
-			mountUpDisabled: !astir || piloted,
-			dismountDisabled: !astir || !piloted
+			mountUpDisabled: !frames.length || Boolean(mountedFrame),
+			dismountDisabled: !mountedFrame
 		};
 		// Dangers sit in their own left column beside the tab area (see the template) rather than
 		// inside a tab, since DEFENSELESS and the Danger list matter regardless of which tab is
@@ -457,35 +519,89 @@ export class PlaybookActorSheet extends ActorSheet {
 	// Every installed part, resolved from its stored keys — purely "what's installed," used for
 	// display (the Parts list, Weapon Power's max) regardless of whether the Astir is currently
 	// piloted. Effect sites (guided, +CHANNEL, spends, doubles regen, potions) each check
-	// _astirPiloted() themselves rather than this returning [] when unpiloted, since the Parts
+	// _mountedParts() themselves rather than this returning [] when unpiloted, since the Parts
 	// list itself still needs to show installed-but-inactive parts.
 	_astirParts() {
 		return resolveAstirParts(this._astir()?.parts ?? []);
 	}
 
-	// Whether a part's/Astir weapon's benefits currently apply at all — see claude.md's "A part's
-	// benefits only apply while the Astir is actually being piloted."
-	_astirPiloted() {
-		return Boolean(this._astir()?.piloted);
+	_ardents() {
+		return this.actor.system.attributes?.ardents ?? [];
+	}
+
+	// Every pilotable frame this character has — the Astir (if created) first, then each Ardent in
+	// stored order — normalized to one shape so Mount Up/Dismount, weapon ownership (see
+	// _weaponFrameId), and per-frame move gating (see getData) can all be generic rather than
+	// special-casing the Astir. `id` is the literal string "astir" for the Astir, since there's
+	// only ever one; an Ardent's own stored id otherwise. `name` mirrors getData's own Astir naming
+	// (the character's Callsign, falling back to its own name) for the Astir, or the Ardent's own
+	// stored name (falling back to ARDENT_DEFAULT_NAME) for an Ardent.
+	_frames() {
+		const frames = [];
+		const astir = this._astir();
+		if (astir) {
+			frames.push({
+				kind: "astir",
+				id: "astir",
+				name: this.actor.system.details?.callsign?.value || this.actor.name,
+				tier: astir.tier ?? ASTIR_TIER_MIN,
+				piloted: Boolean(astir.piloted),
+				parts: astir.parts ?? []
+			});
+		}
+		for (const ardent of this._ardents()) {
+			frames.push({
+				kind: "ardent",
+				id: ardent.id,
+				name: ardent.name || ARDENT_DEFAULT_NAME,
+				tier: ardent.tier ?? ARDENT_TIER_DEFAULT,
+				piloted: Boolean(ardent.piloted),
+				parts: ardent.parts ?? []
+			});
+		}
+		return frames;
+	}
+
+	// The single currently-mounted frame (the Astir or one Ardent), or null when nothing is —
+	// _setMountedFrame is the only write path, so at most one frame's `piloted` is ever true.
+	_mountedFrame() {
+		return this._frames().find((frame) => frame.piloted) ?? null;
+	}
+
+	// The mounted frame's installed parts, resolved to definitions — [] when nothing is mounted.
+	// Every reactive part effect (guided, +CHANNEL, spends, doubles regen, potions) reads this
+	// rather than checking piloted state and _astirParts() separately, since an Ardent's own parts
+	// (drawn from the same catalog — see ardent.js) work identically to the Astir's once mounted.
+	_mountedParts() {
+		return resolveAstirParts(this._mountedFrame()?.parts ?? []);
+	}
+
+	// Which frame (by _frames' own id shape) an equipment entry belongs to, or null for a mundane
+	// weapon that belongs to none — the generalization of the old Astir/mundane piloted-boolean
+	// split (see claude.md's Piloted note) to cover Ardent-owned weapons too.
+	_weaponFrameId(entry) {
+		if (entry.astir) return "astir";
+		if (entry.ardent) return entry.ardent;
+		return null;
 	}
 
 	// This character's Tier for all physical-conflict purposes (see claude.md's Character Tier
-	// notes) — derived fresh every call, never stored, so Mount Up/Dismount and the Astir tab's
-	// own Piloted checkbox all move it for free through the single _setAstirPiloted write path,
-	// with nothing to re-sync (same reasoning equipmentValue/advancements.topCount already
-	// establish for other always-derived numbers). `base` is CHARACTER_TIER_DEFAULT unless a
-	// picked playbook move raises it via conflictTier (Field Scout II, Giant Slayer III) — max
-	// wins if somehow both are picked, since "pick either" is exactly as unenforced as every other
-	// pool restriction in this module (see playbook-moves.js's own top comment). While piloting an
-	// Astir, `effective` is the Astir's own Tier instead of `base` — on dismount it reverts.
+	// notes) — derived fresh every call, never stored, so Mount Up/Dismount and every frame's own
+	// Piloted checkbox all move it for free through the single _setMountedFrame write path, with
+	// nothing to re-sync (same reasoning equipmentValue/advancements.topCount already establish for
+	// other always-derived numbers). `base` is CHARACTER_TIER_DEFAULT unless a picked playbook move
+	// raises it via conflictTier (Field Scout II, Giant Slayer III) — max wins if somehow both are
+	// picked, since "pick either" is exactly as unenforced as every other pool restriction in this
+	// module (see playbook-moves.js's own top comment). While a frame is mounted, `effective` is
+	// that frame's own Tier instead of `base` — on dismount it reverts.
 	_conflictTier() {
 		const picked = resolvePlaybookMoves(this._playbookMoves());
 		const base = picked.reduce((max, move) => Math.max(max, move.conflictTier ?? 0), CHARACTER_TIER_DEFAULT);
-		const astir = this._astir();
-		if (this._astirPiloted() && astir) {
-			return { base, effective: astir.tier ?? ASTIR_TIER_MIN, fromAstir: true };
+		const frame = this._mountedFrame();
+		if (frame) {
+			return { base, effective: frame.tier, fromFrame: true, frameName: frame.name };
 		}
-		return { base, effective: base, fromAstir: false };
+		return { base, effective: base, fromFrame: false };
 	}
 
 	// Shared by getData (render shape) and _equipmentSpends (roll dialog offers) so a tag's
@@ -495,11 +611,13 @@ export class PlaybookActorSheet extends ActorSheet {
 	// present for weapons — gear never carries them. weaponMoves is precomputed once in getData
 	// and passed in here rather than recomputed per entry — see getData's own comment.
 	//
-	// `astir` (the actor's raw Astir data, or null) is only ever needed for an entry flagged
-	// astir: true (see astir.js) — such an entry never stores its own scale/tier, inheriting the
-	// Astir's Tier and the "astir" WEAPON_SCALES entry instead, so isAstir tells the template to
-	// render that as read-only text rather than a stepper/select.
-	_equipmentEntry(entry, weaponMoves = [], astir = null) {
+	// `frame` (the owning Astir's raw data, or an Ardent's — either just needs a `.tier` — or null)
+	// is only ever needed for an entry flagged astir: true or ardent: "<id>" (see astir.js/
+	// ardent.js) — such an entry never stores its own scale/tier, inheriting its frame's Tier and
+	// the "astir" WEAPON_SCALES entry instead (an Ardent weapon is Astir-scale too — see claude.md's
+	// Ardents section), so isAstir tells the template to render that as read-only text rather than
+	// a stepper/select.
+	_equipmentEntry(entry, weaponMoves = [], frame = null) {
 		const tags = resolveEquipmentTags(entry.tags ?? []).map((tag) => ({
 			key: tag.key,
 			label: tag.label,
@@ -523,11 +641,11 @@ export class PlaybookActorSheet extends ActorSheet {
 			tags,
 			value: equipmentValue(entry.tags ?? []),
 			...(entry.kind === "weapon" && {
-				scale: entry.astir ? "astir" : entry.scale,
-				scaleLabel: entry.astir
+				scale: (entry.astir || entry.ardent) ? "astir" : entry.scale,
+				scaleLabel: (entry.astir || entry.ardent)
 					? WEAPON_SCALES.find((s) => s.key === "astir")?.label
 					: WEAPON_SCALES.find((s) => s.key === entry.scale)?.label ?? entry.scale,
-				tier: entry.astir ? astir?.tier : entry.tier,
+				tier: (entry.astir || entry.ardent) ? frame?.tier : entry.tier,
 				weaponMoves,
 				isAstir: Boolean(entry.astir)
 			})
@@ -550,15 +668,15 @@ export class PlaybookActorSheet extends ActorSheet {
 	// more than one weapon in hand.
 	_equipmentSpends(lockedEffect, weapon) {
 		const scoped = weapon !== undefined;
-		const piloted = this._astirPiloted();
+		const mountedFrameId = this._mountedFrame()?.id ?? null;
 		const spends = [];
 		for (const entry of this._equipment()) {
-			// Astir/mundane weapons are mutually exclusive by Piloted state (see claude.md's Piloted
-			// note) — a weapon on the wrong side never offers its tags, regardless of `weapon`/scoped
-			// (this is the one spot that isn't already reached through _onMoveRoll's own piloted
-			// filter, since a non-usesWeapon move leaves `weapon` undefined and scoped false). Gear
-			// is untouched.
-			if (entry.kind === "weapon" && Boolean(entry.astir) !== piloted) continue;
+			// A weapon belonging to a frame other than the one currently mounted (or, for a mundane
+			// weapon, any frame being mounted at all — see claude.md's Piloted note) never offers its
+			// tags, regardless of `weapon`/scoped (this is the one spot that isn't already reached
+			// through _onMoveRoll's own frame filter, since a non-usesWeapon move leaves `weapon`
+			// undefined and scoped false). Gear is untouched.
+			if (entry.kind === "weapon" && this._weaponFrameId(entry) !== mountedFrameId) continue;
 			if (scoped && entry.kind === "weapon" && entry.id !== weapon?.id) continue;
 			const spent = entry.spent ?? [];
 			for (const tagKey of entry.tags ?? []) {
@@ -582,15 +700,15 @@ export class PlaybookActorSheet extends ActorSheet {
 		return spends;
 	}
 
-	// The Astir Parts equivalent of _equipmentSpends above — every installed part with a `spend`
-	// field (Warding, Artifact — see astir.js) that isn't already Expended, offered in the roll
-	// dialog's own Astir Parts section (see configureMoveRoll/move-roll-dialog.hbs). Returns []
-	// outright when not piloted (see claude.md's Piloted note) — unlike _equipmentSpends, parts
-	// aren't scoped by weapon, since none of them are weapon-specific.
+	// The Astir/Ardent Parts equivalent of _equipmentSpends above — every part installed on the
+	// currently mounted frame with a `spend` field (Warding, Artifact — see astir.js) that isn't
+	// already Expended, offered in the roll dialog's own Astir Parts section (see
+	// configureMoveRoll/move-roll-dialog.hbs). Empty when nothing is mounted (see claude.md's
+	// Piloted note) — unlike _equipmentSpends, parts aren't scoped by weapon, since none of them
+	// are weapon-specific.
 	_astirPartSpends(lockedEffect) {
-		if (!this._astirPiloted()) return [];
 		const spends = [];
-		for (const part of this._astirParts()) {
+		for (const part of this._mountedParts()) {
 			if (!part.spend) continue;
 			if (this.actor.system.attributes?.moveUses?.[part.key]?.expended) continue;
 			spends.push({
@@ -712,9 +830,12 @@ export class PlaybookActorSheet extends ActorSheet {
 				rollable: move.traits.length > 0 || Boolean(move.conditions),
 				// Moves with a flat hold grant (B-Plot) show an Activate button in place of Roll —
 				// see the template's rollable/activatable branch and _onMoveActivate. Divination
-				// Codex's showsReadTheRoomQuestions gets the same button, for the same reason: no
-				// dice, just an action to take.
-				activatable: Boolean(move.flatHold) || Boolean(move.showsReadTheRoomQuestions),
+				// Codex's showsReadTheRoomQuestions and a move's own activateChoices (Bureaucrat,
+				// Shree Klime) get the same button, for the same reason: no dice, just an action to
+				// take.
+				activatable: Boolean(move.flatHold)
+					|| Boolean(move.showsReadTheRoomQuestions)
+					|| Boolean(move.activateChoices),
 				// Weave Magic's description stays readable even while its Roll button is gated —
 				// you can still learn what the move does. B-Plot is different: being "in the
 				// b-plot" isn't something a Channel-enabled character can do at all, so its
@@ -773,10 +894,11 @@ export class PlaybookActorSheet extends ActorSheet {
 			value: (this.actor.system.stats?.[trait.key]?.value ?? 0) + (traitBonuses[trait.key] ?? 0)
 		}));
 		// Input Channel (see astir.js) offers +CHANNEL on any move, bypassing both that move's own
-		// traits list and Channel's disabled gate — only while piloted, and only added once (a
-		// move that already rolls +CHANNEL, e.g. Weave Magic, isn't given a second entry).
-		if (this._astirPiloted() && !actorTraits.some((trait) => trait.key === "channel")
-			&& this._astirParts().some((part) => part.grantsChannelOnAnyMove)) {
+		// traits list and Channel's disabled gate — only while installed on the currently mounted
+		// frame (Astir or Ardent alike — see _mountedParts), and only added once (a move that
+		// already rolls +CHANNEL, e.g. Weave Magic, isn't given a second entry).
+		if (!actorTraits.some((trait) => trait.key === "channel")
+			&& this._mountedParts().some((part) => part.grantsChannelOnAnyMove)) {
 			// TRAITS is a fixed, six-entry constant (see traits.js) that always includes channel —
 			// no fallback needed for a lookup that can't fail.
 			const channel = TRAITS.find((trait) => trait.key === "channel");
@@ -784,6 +906,24 @@ export class PlaybookActorSheet extends ActorSheet {
 				key: channel.key,
 				label: channel.label,
 				value: (this.actor.system.stats?.channel?.value ?? 0) + (traitBonuses.channel ?? 0)
+			});
+		}
+		// Facilitator's "you may read the room with +TALK" (see playbook-moves.js's addsTraitToMove).
+		// The counterpart to _grantedTraitForMove, and deliberately the opposite operation:
+		// grantsTraitOnMove *locks* the roll dialog to a trait the target move already offers, so it
+		// can only ever narrow an existing choice; this *adds* an option the move never had, matching
+		// the rulebook's "you may" framing. Same resolve-off-picked-moves shape as the grants* trio,
+		// and the same add-once guard the Input Channel block above uses.
+		const addedTraitKey = resolvePlaybookMoves(this._playbookMoves())
+			.find((m) => m.addsTraitToMove?.moveKey === move.key)?.addsTraitToMove.trait ?? null;
+		if (addedTraitKey && !actorTraits.some((trait) => trait.key === addedTraitKey)) {
+			// TRAITS is a fixed, six-entry constant (see traits.js), and playbook-moves.test.js
+			// asserts every addsTraitToMove names a real key — no fallback needed here.
+			const added = TRAITS.find((trait) => trait.key === addedTraitKey);
+			actorTraits.push({
+				key: added.key,
+				label: added.label,
+				value: (this.actor.system.stats?.[added.key]?.value ?? 0) + (traitBonuses[added.key] ?? 0)
 			});
 		}
 		const fixedTraits = (move.fixedTraits ?? []).map((trait) => (
@@ -876,6 +1016,16 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".astir-move-add").on("click", this._onAstirMoveAdd.bind(this));
 		html.find(".astir-move-remove").on("click", this._onAstirMoveRemove.bind(this));
 		html.find(".astir-weapon-catalog-add").on("click", this._onAstirWeaponAdd.bind(this));
+		html.find(".ardent-create").on("click", this._onArdentCreate.bind(this));
+		html.find(".ardent-delete").on("click", this._onArdentDelete.bind(this));
+		html.find(".ardent-name-input").on("change", this._onArdentNameChange.bind(this));
+		html.find(".ardent-approach-select").on("change", this._onArdentApproachChange.bind(this));
+		html.find(".ardent-tier-step").on("click", this._onArdentTierStep.bind(this));
+		html.find(".ardent-piloted-checkbox").on("change", this._onArdentPilotedToggle.bind(this));
+		html.find(".ardent-repair-tokens-input").on("change", this._onArdentRepairTokensChange.bind(this));
+		html.find(".ardent-part-add").on("click", this._onArdentPartAdd.bind(this));
+		html.find(".ardent-part-remove").on("click", this._onArdentPartRemove.bind(this));
+		html.find(".ardent-weapon-catalog-add").on("click", this._onArdentWeaponAdd.bind(this));
 		html.find(".controls-mount-up").on("click", this._onMountUp.bind(this));
 		html.find(".controls-dismount").on("click", this._onDismount.bind(this));
 		html.find(".controls-refresh-scene").on("click", this._onRefreshScene.bind(this));
@@ -1036,42 +1186,66 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({ "system.attributes.astir.overheating": event.currentTarget.checked });
 	}
 
-	// Shared by the Astir tab's own Piloted checkbox and the Controls section's Mount Up/Dismount
-	// buttons — blocks setting Piloted true while Power is negative (see claude.md's Piloted note),
-	// mirroring _astirPowerUpdates' own auto-uncheck-on-mutation guard. Returns whether the update
-	// actually applied, so a caller with something to revert (the checkbox) can do so. Every caller
-	// already checks for an Astir before reaching this (see _onAstirPilotedToggle/_onMountUp/
-	// _onDismount), so this doesn't re-check.
-	_setAstirPiloted(checked) {
+	// The single write path enforcing "only one frame mounted at a time" (see claude.md's Piloted
+	// note) — every frame's own Piloted checkbox (_onAstirPilotedToggle/_onArdentPilotedToggle) and
+	// Mount Up/Dismount all funnel through this. `kind`/`id` name the frame to mount (see _frames'
+	// own id shape, "astir" or an Ardent's stored id); pass kind: null (id ignored) to dismount
+	// whatever's currently mounted. Blocks mounting the Astir while its Power is negative (see
+	// claude.md's Piloted note, mirroring _astirPowerUpdates' own auto-uncheck-on-mutation guard) —
+	// an Ardent has no Power to gate on, so mounting one always succeeds. Returns whether the
+	// update actually applied, so a caller with something to revert (a checkbox) can do so.
+	_setMountedFrame(kind, id) {
 		const astir = this._astir();
-		if (checked && (astir.power ?? 0) < 0) {
+		if (kind === "astir" && (astir?.power ?? 0) < 0) {
 			ui.notifications.warn("This Astir's Power is negative — it can't be piloted until the loadout changes.");
 			return false;
 		}
-		this.actor.update({ "system.attributes.astir.piloted": checked });
+		const updates = {};
+		if (astir) updates["system.attributes.astir.piloted"] = kind === "astir";
+		const ardents = this._ardents();
+		if (ardents.length) {
+			updates["system.attributes.ardents"] = ardents.map((ardent) => (
+				{ ...ardent, piloted: kind === "ardent" && ardent.id === id }
+			));
+		}
+		this.actor.update(updates);
 		return true;
 	}
 
 	_onAstirPilotedToggle(event) {
 		if (!this._astir()) return;
 		const checked = event.currentTarget.checked;
-		if (!this._setAstirPiloted(checked)) {
-			event.currentTarget.checked = !checked;
-		}
+		const applied = checked ? this._setMountedFrame("astir", "astir") : this._setMountedFrame(null, null);
+		if (!applied) event.currentTarget.checked = !checked;
 	}
 
-	// Disabled in the template whenever there's no Astir or it's already piloted (see getData's
-	// data.controls), but guarded here too in case a click still lands.
-	_onMountUp() {
-		const astir = this._astir();
-		if (!astir || astir.piloted) return;
-		this._setAstirPiloted(true);
+	// Mounting an Ardent never fails (no Power to gate on — see _setMountedFrame), so unlike
+	// _onAstirPilotedToggle there's no revert case to handle.
+	_onArdentPilotedToggle(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		if (!this._ardents().some((ardent) => ardent.id === ardentId)) return;
+		const checked = event.currentTarget.checked;
+		this._setMountedFrame(checked ? "ardent" : null, checked ? ardentId : null);
+	}
+
+	// Disabled in the template whenever there's no frame to mount or one's already mounted (see
+	// getData's data.controls), but guarded here too in case a click still lands. Prompts via
+	// chooseFrame only when there's a real choice to make; mounts directly with exactly one.
+	async _onMountUp() {
+		const frames = this._frames().filter((frame) => !frame.piloted);
+		if (!frames.length) return;
+		if (frames.length === 1) {
+			this._setMountedFrame(frames[0].kind, frames[0].id);
+			return;
+		}
+		const chosen = await chooseFrame(frames);
+		if (!chosen) return;
+		this._setMountedFrame(chosen.kind, chosen.id);
 	}
 
 	_onDismount() {
-		const astir = this._astir();
-		if (!astir || !astir.piloted) return;
-		this._setAstirPiloted(false);
+		if (!this._mountedFrame()) return;
+		this._setMountedFrame(null, null);
 	}
 
 	// The generic, data-driven half of both Refresh buttons (see _onRefreshScene/_onRefreshSortie)
@@ -1241,6 +1415,140 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({
 			"system.attributes.equipment": equipment,
 			...this._astirPowerUpdates(astir, { equipment })
+		});
+	}
+
+	// "+ Add Ardent" — unlike the Astir, a character may have any number of Ardents, so this always
+	// appends rather than being a one-shot Create/Delete pair.
+	_onArdentCreate() {
+		this.actor.update({ "system.attributes.ardents": [...this._ardents(), buildArdent()] });
+	}
+
+	// Also drops every equipment entry this Ardent owns (see _onAstirDelete's own equivalent
+	// cascade) — an orphaned ardent: "<id>" weapon with no Ardent to inherit Tier from would have
+	// nothing to render.
+	_onArdentDelete(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		const current = this._ardents();
+		if (!current.some((ardent) => ardent.id === ardentId)) return;
+		this.actor.update({
+			"system.attributes.ardents": current.filter((ardent) => ardent.id !== ardentId),
+			"system.attributes.equipment": this._equipment().filter((item) => item.ardent !== ardentId)
+		});
+	}
+
+	_onArdentNameChange(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		const current = this._ardents();
+		if (!current.some((ardent) => ardent.id === ardentId)) return;
+		const name = event.currentTarget.value.trim();
+		this.actor.update({
+			"system.attributes.ardents": current.map((ardent) => (ardent.id === ardentId ? { ...ardent, name } : ardent))
+		});
+	}
+
+	// Unlike the Astir's Core-narrowed pair, an Ardent picks freely from the full Approach list
+	// (see claude.md's Ardents section) — no dependent field to clear alongside this one.
+	_onArdentApproachChange(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		const current = this._ardents();
+		if (!current.some((ardent) => ardent.id === ardentId)) return;
+		const approach = event.currentTarget.value;
+		this.actor.update({
+			"system.attributes.ardents": current.map((ardent) => (ardent.id === ardentId ? { ...ardent, approach } : ardent))
+		});
+	}
+
+	// Ardents run Tier 2-4, defaulting to 2 — its own band, distinct from both the Astir's 3-4 and
+	// equipment's 1-5 (see ardent.js).
+	_onArdentTierStep(event) {
+		const { ardentId, delta } = event.currentTarget.dataset;
+		const current = this._ardents();
+		const ardent = current.find((a) => a.id === ardentId);
+		if (!ardent) return;
+		const tier = ardent.tier ?? ARDENT_TIER_DEFAULT;
+		const next = Math.min(ARDENT_TIER_MAX, Math.max(ARDENT_TIER_MIN, tier + Number(delta)));
+		if (next === tier) return;
+		this.actor.update({
+			"system.attributes.ardents": current.map((a) => (a.id === ardentId ? { ...a, tier: next } : a))
+		});
+	}
+
+	// The "+" on an Ardent's own Parts section — offers only the Astir catalog's Ardent-eligible
+	// subset (see ardent.js's ardentParts: no Power cost, no Weapon Power bonus), and refuses once
+	// this Ardent's combined parts+weapons loadout is already at ARDENT_MAX_LOADOUT.
+	async _onArdentPartAdd(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		const current = this._ardents();
+		const ardent = current.find((a) => a.id === ardentId);
+		if (!ardent) return;
+		if (ardentLoadoutCount(ardent, this._equipment()) >= ARDENT_MAX_LOADOUT) {
+			ui.notifications.warn(`An Ardent can carry at most ${ARDENT_MAX_LOADOUT} parts and weapons combined.`);
+			return;
+		}
+		const picked = ardent.parts ?? [];
+		const key = await chooseAstirPart(picked, ardentParts(), { title: "Add an Ardent Part" });
+		if (!key || picked.includes(key)) return;
+		this.actor.update({
+			"system.attributes.ardents": current.map((a) => (
+				a.id === ardentId ? { ...a, parts: [...picked, key] } : a
+			))
+		});
+	}
+
+	// Repair Tokens (Standardised Parts — see astir.js) is a plain number input, same treatment the
+	// Astir's own gets — Downtime isn't a tracked phase anywhere in this module, so the player edits
+	// the count themselves. Handled manually, rather than a plain name-bound field, since Ardents
+	// live in an array (see claude.md's Ardents section) the same way Dangers/Gravity Clocks do —
+	// consistent with how every other per-entry field in one of those lists is wired.
+	_onArdentRepairTokensChange(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		const current = this._ardents();
+		if (!current.some((ardent) => ardent.id === ardentId)) return;
+		const value = Math.max(0, Number(event.currentTarget.value) || 0);
+		this.actor.update({
+			"system.attributes.ardents": current.map((a) => (a.id === ardentId ? { ...a, repairTokens: value } : a))
+		});
+	}
+
+	_onArdentPartRemove(event) {
+		const { ardentId, part: key } = event.currentTarget.dataset;
+		const current = this._ardents();
+		const ardent = current.find((a) => a.id === ardentId);
+		if (!ardent) return;
+		const picked = ardent.parts ?? [];
+		if (!picked.includes(key)) return;
+		this.actor.update({
+			"system.attributes.ardents": current.map((a) => (
+				a.id === ardentId ? { ...a, parts: picked.filter((k) => k !== key) } : a
+			))
+		});
+	}
+
+	// The "O" catalog picker for an Ardent weapon (see ardent.js's ardentWeapons: no Drain-tagged
+	// entries — an Ardent has no Power for Drain to reduce), then the same editor _onAstirWeaponAdd
+	// uses, with the ardentWeapon option suppressing the fields an Ardent weapon doesn't need — see
+	// configureEquipment. Refuses once this Ardent's combined loadout is already at
+	// ARDENT_MAX_LOADOUT, same guard _onArdentPartAdd applies to its own half of the same cap.
+	async _onArdentWeaponAdd(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		const ardent = this._ardents().find((a) => a.id === ardentId);
+		if (!ardent) return;
+		if (ardentLoadoutCount(ardent, this._equipment()) >= ARDENT_MAX_LOADOUT) {
+			ui.notifications.warn(`An Ardent can carry at most ${ARDENT_MAX_LOADOUT} parts and weapons combined.`);
+			return;
+		}
+		const template = await chooseAstirWeapon(ardentWeapons(), { title: "Pick an Ardent Weapon" });
+		if (!template) return;
+
+		const result = await configureEquipment(template, undefined, { ardentWeapon: true });
+		if (!result) return;
+
+		this.actor.update({
+			"system.attributes.equipment": [
+				...this._equipment(),
+				{ id: foundry.utils.randomID(), spent: [], ardent: ardentId, ...result }
+			]
 		});
 	}
 
@@ -1428,7 +1736,8 @@ export class PlaybookActorSheet extends ActorSheet {
 		// Mirrors getData's startingGear.available gate — a pool with nothing to offer (e.g. The
 		// Commander today) never reaches the button in the first place, but guarding here too
 		// keeps this a true no-op rather than spending the one-time flag for nothing.
-		if (!pool || (!pool.grantedItems.length && !pool.items.length && !pool.customWeaponNote)) return;
+		const hasPickableItems = Boolean(pool?.groups?.some((group) => group.items.length));
+		if (!pool || (!pool.grantedItems.length && !hasPickableItems && !pool.customWeaponNote)) return;
 
 		const newEntries = pool.grantedItems.map((item) => this._startingGearEntry(item));
 
@@ -1436,7 +1745,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		// granted items' own read-only "You start with" block (see starting-gear-picker.hbs) — the
 		// same "always confirm, even with nothing to pick" treatment _onStartingMovesAdd gives
 		// Arcane Augments.
-		if (pool.grantedItems.length || pool.items.length) {
+		if (pool.grantedItems.length || hasPickableItems) {
 			const picked = await chooseStartingGear(playbookName);
 			if (picked) newEntries.push(...picked.map((item) => this._startingGearEntry(item)));
 		}
@@ -1495,20 +1804,23 @@ export class PlaybookActorSheet extends ActorSheet {
 		const entry = current.find((item) => item.id === equipmentId);
 		if (!entry) return;
 
-		// An Astir weapon reopens with the same astirWeapon option that hid its Kind/Scale/Tier
-		// fields when it was first added (see _onAstirWeaponAdd/configureEquipment) — it's never
-		// possible to edit one into a non-Astir weapon or into Gear. Every other entry's call is
-		// left byte-for-byte as it was before this option existed.
+		// An Astir or Ardent weapon reopens with the matching option that hid its Kind/Scale/Tier
+		// fields when it was first added (see _onAstirWeaponAdd/_onArdentWeaponAdd/
+		// configureEquipment) — it's never possible to edit one into a mundane weapon or into Gear,
+		// or from one frame's ownership into another's. Every other entry's call is left byte-for-
+		// byte as it was before this option existed.
 		const result = entry.astir
 			? await configureEquipment(entry, undefined, { astirWeapon: true })
-			: await configureEquipment(entry);
+			: entry.ardent
+				? await configureEquipment(entry, undefined, { ardentWeapon: true })
+				: await configureEquipment(entry);
 		if (!result) return;
 
-		// Replaces the entry wholesale (keeping only id/spent/astir/familiar) rather than merging onto
-		// the old one — editing a weapon down to Gear should drop its stale scale/tier, not leave
-		// them dangling unrendered. astir/familiar are carried forward explicitly, last, since result
-		// never includes either (configureEquipment has no concept of them, only of hiding fields for
-		// astirWeapon).
+		// Replaces the entry wholesale (keeping only id/spent/astir/ardent/familiar) rather than
+		// merging onto the old one — editing a weapon down to Gear should drop its stale scale/tier,
+		// not leave them dangling unrendered. astir/ardent/familiar are carried forward explicitly,
+		// last, since result never includes any of them (configureEquipment has no concept of them,
+		// only of hiding fields for astirWeapon/ardentWeapon).
 		const equipment = current.map((item) => (
 			item.id === equipmentId
 				? {
@@ -1516,13 +1828,15 @@ export class PlaybookActorSheet extends ActorSheet {
 					spent: item.spent ?? [],
 					...result,
 					...(item.astir && { astir: true }),
+					...(item.ardent && { ardent: item.ardent }),
 					...(item.familiar && { familiar: true })
 				}
 				: item
 		));
 		const updates = { "system.attributes.equipment": equipment };
 		// Only an Astir weapon's own tags can move the Weapon Drain total (see astir.js's
-		// astirWeaponDrainTotal) — every other edit (gear, mundane weapons) leaves Power untouched,
+		// astirWeaponDrainTotal) — every other edit (gear, mundane weapons, Ardent weapons — an
+		// Ardent weapon can never carry Drain, see ardent.js's ardentWeapons) leaves Power untouched,
 		// so this stays keyed off the pre-edit entry rather than always recomputing.
 		const astir = this._astir();
 		if (entry.astir && astir) Object.assign(updates, this._astirPowerUpdates(astir, { equipment }));
@@ -1616,13 +1930,15 @@ export class PlaybookActorSheet extends ActorSheet {
 		// _equipmentSpends already reads. Skipped entirely when the actor has no weapons at all:
 		// there's nothing to choose between, so Unarmed is simply true.
 		//
-		// Only weapons matching the current Piloted state are offered (see claude.md's Piloted
-		// note): Astir weapons while piloted, mundane weapons while not — never both. A weapon on
-		// the wrong side can never become `weapon` here, so nothing downstream (including the
-		// Familiar +CHANNEL override below) needs to re-check piloted state itself.
+		// Only weapons belonging to the currently mounted frame are offered (see claude.md's Piloted
+		// note): the Astir's own weapons while it's mounted, one specific Ardent's while that Ardent
+		// is mounted, mundane weapons while nothing is — never more than one of the three. A weapon
+		// on the wrong side can never become `weapon` here, so nothing downstream (including the
+		// Familiar +CHANNEL override below) needs to re-check mounted state itself.
 		let weapon;
 		if (move.usesWeapon) {
-			const weapons = this._weapons().filter((w) => Boolean(w.astir) === this._astirPiloted());
+			const mountedFrameId = this._mountedFrame()?.id ?? null;
+			const weapons = this._weapons().filter((w) => this._weaponFrameId(w) === mountedFrameId);
 			if (weapons.length) {
 				const weaponId = await chooseWeapon(weapons);
 				if (weaponId === null) return;
@@ -1752,9 +2068,12 @@ export class PlaybookActorSheet extends ActorSheet {
 		// already defaults it to false itself, and this keeps every non-Guided call's options
 		// shape exactly as it was before Guided existed, same treatment `reroll` gets below. Spell
 		// Routines (see astir.js) grants the same "Take 7-9" option for any move, not just a
-		// weapon carrying the Guided tag — but only while piloted (see claude.md's Piloted note).
-		const guided = this._weaponIsGuided(weapon)
-			|| (this._astirPiloted() && this._astirParts().some((part) => part.grantsGuided));
+		// weapon carrying the Guided tag — but only while installed on the currently mounted frame
+		// (see claude.md's Piloted note). Spell Routines carries a powerCost, so it can only ever
+		// be installed on the Astir, never an Ardent (see ardent.js's ardentParts) — but this reads
+		// generically off _mountedParts() rather than special-casing the Astir, the same convention
+		// every other reactive part effect in this file follows.
+		const guided = this._weaponIsGuided(weapon) || this._mountedParts().some((part) => part.grantsGuided);
 		const config = await configureMoveRoll(move, traits, {
 			lockedEffect,
 			lockedAdvantage,
@@ -1840,11 +2159,14 @@ export class PlaybookActorSheet extends ActorSheet {
 
 	// Runs after a move resolves — whether via a real roll (dice present) or Guided's "Take 7-9"
 	// (dice null) — for the two Astir Part effects that react to a move's outcome rather than
-	// being offered as part of setting it up. Both are scoped to piloted (see claude.md's Piloted
-	// note): a part contributes nothing when the Astir isn't currently being flown.
+	// being offered as part of setting it up. Both are scoped to the mounted frame's own parts (see
+	// claude.md's Piloted note): a part contributes nothing when no frame is currently mounted.
+	// Both grantsPotionsOnLeadASortie and regainPowerOnDoubles carry a powerCost, so — like
+	// grantsGuided above — neither can ever be installed on an Ardent; this still reads generically
+	// off _mountedParts() rather than special-casing the Astir.
 	async _onMoveResolved(move, dice) {
-		if (!this._astirPiloted()) return;
-		const parts = this._astirParts();
+		if (!this._mountedFrame()) return;
+		const parts = this._mountedParts();
 		if (move.key === "lead-a-sortie" && parts.some((part) => part.grantsPotionsOnLeadASortie)) {
 			await this._grantPotions();
 		}
@@ -1914,6 +2236,22 @@ export class PlaybookActorSheet extends ActorSheet {
 				content: `<ul>${readTheRoom.questions.map((question) => `<li>${question}</li>`).join("")}</ul>`
 			});
 			await this.actor.update({ [`system.attributes.moveUses.${move.key}.expended`]: true });
+			await postMoveDescription(this.actor, move);
+			return;
+		}
+
+		// A roll-less "choose N" menu (Facilitator's clandestine meeting, Bureaucrat, Shree Klime —
+		// see playbook-moves.js's activateChoices). Same post-a-list-to-chat shape as
+		// showsReadTheRoomQuestions above, but carrying the move's own prompt and options rather
+		// than borrowing Read the Room's questions, and with no moveUses write: none of these moves
+		// is capped per period, so there's nothing to expend.
+		if (move.activateChoices) {
+			const { prompt, options } = move.activateChoices;
+			await ChatMessage.create({
+				speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+				flavor: `<h3>${move.name}</h3>`,
+				content: `<p>${prompt}</p><ul>${options.map((option) => `<li>${option}</li>`).join("")}</ul>`
+			});
 			await postMoveDescription(this.actor, move);
 		}
 	}

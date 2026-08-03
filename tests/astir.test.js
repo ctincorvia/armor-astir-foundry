@@ -409,6 +409,22 @@ describe("chooseAstirPart", () => {
 
 		expect(await promise).toBeNull();
 	});
+
+	it("defaults the dialog title to Add an Astir Part", async () => {
+		chooseAstirPart([], FIXTURE_PARTS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[0].title).toBe("Add an Astir Part");
+	});
+
+	it("takes an overridable title, so ardent.js can reuse this same picker", async () => {
+		chooseAstirPart([], FIXTURE_PARTS, { title: "Add an Ardent Part" });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[0].title).toBe("Add an Ardent Part");
+	});
 });
 
 describe("chooseAstirWeapon", () => {
@@ -460,6 +476,22 @@ describe("chooseAstirWeapon", () => {
 		Dialog.mock.calls.at(-1)[0].close();
 
 		expect(await promise).toBeNull();
+	});
+
+	it("defaults the dialog title to Pick an Astir Weapon", async () => {
+		chooseAstirWeapon(FIXTURE_CATALOG);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[0].title).toBe("Pick an Astir Weapon");
+	});
+
+	it("takes an overridable title, so ardent.js can reuse this same picker", async () => {
+		chooseAstirWeapon(FIXTURE_CATALOG, { title: "Pick an Ardent Weapon" });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[0].title).toBe("Pick an Ardent Weapon");
 	});
 });
 

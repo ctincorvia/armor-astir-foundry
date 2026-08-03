@@ -913,6 +913,83 @@ describe("configureEquipment - carrierWeapon option", () => {
 	});
 });
 
+describe("configureEquipment - ardentWeapon option", () => {
+	it("hides Kind and Tier in the template, forcing isWeapon true", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { ardentWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			hideKind: true,
+			hideTier: true,
+			isWeapon: true
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves kind: weapon without ever reading a Kind field from the DOM", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { ardentWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Spear",
+			"[name='description']": "A long spear."
+		}, ["melee"]));
+
+		expect(await promise).toEqual({ name: "Spear", description: "A long spear.", kind: "weapon", tags: ["melee"] });
+	});
+
+	it("never resolves scale or tier, even if somehow present in the DOM", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { ardentWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Spear",
+			"[name='description']": "",
+			"[name='scale']": "foot",
+			"[name='tier']": "5"
+		}, ["melee"]));
+
+		const result = await promise;
+		expect(result.scale).toBeUndefined();
+		expect(result.tier).toBeUndefined();
+	});
+
+	it("still requires one of the Melee/Ranged/Sniper tags", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { ardentWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Spear",
+			"[name='description']": ""
+		}, ["blitz"]));
+
+		expect(await promise).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalled();
+	});
+
+	it("hides Drain 1/2/3 from the tag checkboxes — an Ardent has no Power for Drain to reduce", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { ardentWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { tagGroups } = renderTemplate.mock.calls.at(-1)[1];
+		const renderedKeys = tagGroups.flatMap((group) => group.tags.map((tag) => tag.key));
+		expect(renderedKeys).not.toEqual(expect.arrayContaining(["drain-1", "drain-2", "drain-3"]));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+});
+
 describe("EQUIPMENT_CATALOG", () => {
 	it("gives every item a unique key", () => {
 		const keys = EQUIPMENT_CATALOG.map((item) => item.key);

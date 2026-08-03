@@ -35,6 +35,16 @@ export const STARTING_MOVE_POOLS = [
 		grantedKeys: ["the-impostor:arcane-augments"],
 		pickOneKeys: [],
 		chooseCount: 0
+	},
+	{
+		playbookName: "The Diplomat",
+		poolKey: "the-diplomat",
+		// "You start with the facilitator move as well as two others from your Additional Moves" —
+		// Facilitator is always granted (no pick involved), same treatment The Impostor's own
+		// grantedKeys gives Arcane Augments.
+		grantedKeys: ["the-diplomat:facilitator"],
+		pickOneKeys: [],
+		chooseCount: 2
 	}
 ];
 
