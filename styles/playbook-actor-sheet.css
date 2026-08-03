@@ -139,11 +139,14 @@
 	gap: var(--aa-space-2);
 }
 
-/* Does not work with hardcoded px values or percentage values
-   Because calc in this version of CSS doesn't support percentage-based calculations */
+/* Due to CSS quirks with calc, has to be hardcoded with lots of styling overrides */
 .armor-astir.sheet .sheet-header .form-group input {
-	height: calc((var(--form-field-height) + 1px) * 1);
-	line-height: calc((var(--form-field-height) + 1px) * 1);
+	min-height: 0;
+	max-height: none;
+	box-sizing: border-box;
+	flex:  0 0 auto;
+	height: 28px;
+	line-height: 19px;
 	padding-left: 0.25em;
 }
 
