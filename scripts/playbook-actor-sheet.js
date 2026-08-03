@@ -18,8 +18,6 @@ import { rolledDoubles } from "./roll-effects.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "./advancements.js";
 import { ALL_PLAYBOOK_MOVES, choosePlaybookMove, resolvePlaybookMoves } from "./playbook-moves.js";
 import {
-	TIER_MAX,
-	TIER_MIN,
 	UNARMED,
 	WEAPON_SCALES,
 	chooseEquipmentCatalogItem,
@@ -216,10 +214,12 @@ export class PlaybookActorSheet extends ActorSheet {
 		// Roll/Activate/Description buttons with no extra handling. Display order is basic, then
 		// playbook, then Astir (if any), then special — the character's own moves read before the
 		// fixed reference lists, moveGroups[0] staying Basic for existing tests.
-		// The "+ Choose Starting Moves" button (see _onStartingMovesAdd) — same "drop when empty,
-		// disappear for good once clicked" treatment equipment's startingGear.available already
-		// gets, so Commander/Impostor stay hidden until their pools are filled in (see
-		// starting-moves.js).
+		// The "+ Choose Starting Moves" button (see _onStartingMovesAdd) shows up whenever its
+		// playbook's pool has something to offer AND the actor currently has no playbook moves at
+		// all — same "drop when empty" treatment equipment's startingGear.available already gets,
+		// so Commander/Impostor stay hidden until their pools are filled in (see starting-moves.js).
+		// This is a live emptiness check, not a one-time flag: cancelling the picker leaves the
+		// button available to retry, and removing every playbook move via "-" brings it back.
 		const startingMovePool = findStartingMovePool(this.actor.system.playbook?.name);
 		data.moveGroups = [
 			{ label: "Basic Moves", moves: this._moveGroupMoves(BASIC_MOVES) },
@@ -230,7 +230,7 @@ export class PlaybookActorSheet extends ActorSheet {
 				removable: true,
 				startingMovesAvailable: Boolean(
 					startingMovePool?.grantedKeys?.length || startingMovePool?.pickOneKeys?.length || startingMovePool?.chooseCount
-				) && !this._startingMovesChosen()
+				) && this._playbookMoves().length === 0
 			}
 		];
 		// Astir Parts read as moves, and the Astir's one unique move joins them under the same
@@ -298,12 +298,12 @@ export class PlaybookActorSheet extends ActorSheet {
 		const weaponMoves = frameWeaponMoves(null);
 		const astirWeaponMoves = frameWeaponMoves("astir");
 		// The "+ Choose Starting Gear" button (see _onStartingGearAdd) only shows up once its
-		// playbook's pool actually has something to offer — same "drop when empty" treatment
-		// playbookMoveSections gives an empty pool, so The Commander stays hidden until its pool is
-		// filled in (see starting-gear.js) — and disappears for good, on this actor, the first time
-		// it's clicked (system.attributes.startingGearChosen), even if every dialog it opens is
-		// cancelled: it's a one-time chargen step, not a repeatable picker like "+ Add Playbook
-		// Move".
+		// playbook's pool actually has something to offer AND the actor's equipment is currently
+		// empty — same "drop when empty" treatment playbookMoveSections gives an empty pool, so The
+		// Commander stays hidden until its pool is filled in (see starting-gear.js). This is a live
+		// emptiness check, not a one-time flag: cancelling every dialog it opens leaves the button
+		// available to retry, and removing every equipment entry brings it back — unlike "+ Add
+		// Playbook Move"/"+ Add Weapon"/"+ Add Gear", which are always offered regardless.
 		const startingGearPool = findStartingGearPool(this.actor.system.playbook?.name);
 		// Astir weapons (equipment entries flagged astir: true — see astir.js) are only ever
 		// added/edited/removed from the Astir tab, but still surface here, read-only, per
@@ -323,8 +323,6 @@ export class PlaybookActorSheet extends ActorSheet {
 				.map((item) => this._equipmentEntry(item, frameWeaponMoves(ardent.id), ardent))
 		]));
 		data.equipment = {
-			tierMin: TIER_MIN,
-			tierMax: TIER_MAX,
 			weapons: equipment
 				.filter((item) => item.kind === "weapon" && !item.astir && !item.ardent)
 				.map((item) => this._equipmentEntry(item, weaponMoves)),
@@ -336,7 +334,7 @@ export class PlaybookActorSheet extends ActorSheet {
 					startingGearPool?.grantedItems?.length
 						|| startingGearPool?.groups?.some((group) => group.items.length)
 						|| startingGearPool?.customWeaponNote
-				) && !this._startingGearChosen()
+				) && equipment.length === 0
 			}
 		};
 		// The Astir tab. Gated on CHANNEL exactly like the old overheating/power meters were
@@ -386,11 +384,15 @@ export class PlaybookActorSheet extends ActorSheet {
 				repairTokens: astirParts.some((part) => part.grantsRepairTokens)
 					? { value: astir.repairTokens ?? 0 }
 					: null,
+				// tier is derived from the Astir's own Tier, not stored on the part — every part
+				// installed here is installed on this Astir specifically (see claude.md's Astir
+				// section), so there's only ever one frame's Tier for it to reflect.
 				parts: astirParts.map((part) => ({
 					key: part.key,
 					name: part.name,
 					powerCost: part.powerCost,
-					partType: part.partType
+					partType: part.partType,
+					tier: astir.tier ?? ASTIR_TIER_MIN
 				})),
 				move: astirMove ? { key: astirMove.key, name: astirMove.name } : null,
 				weapons: astirWeapons
@@ -412,7 +414,14 @@ export class PlaybookActorSheet extends ActorSheet {
 				approachOptions: APPROACHES,
 				tier: ardent.tier ?? ARDENT_TIER_DEFAULT,
 				piloted: Boolean(ardent.piloted),
-				parts: parts.map((part) => ({ key: part.key, name: part.name, partType: part.partType })),
+				// tier is derived from this Ardent's own Tier, not stored on the part — same
+				// reasoning as the Astir's own parts mapping above, just per-Ardent instead.
+				parts: parts.map((part) => ({
+					key: part.key,
+					name: part.name,
+					partType: part.partType,
+					tier: ardent.tier ?? ARDENT_TIER_DEFAULT
+				})),
 				// Never falls back — ardentWeaponEntriesById is built from this same `ardents` list, so
 				// every Ardent's id already has an entry (possibly an empty array).
 				weapons: ardentWeaponEntriesById.get(ardent.id),
@@ -638,7 +647,10 @@ export class PlaybookActorSheet extends ActorSheet {
 	// ardent.js) — such an entry never stores its own scale/tier, inheriting its frame's Tier and
 	// the "astir" WEAPON_SCALES entry instead (an Ardent weapon is Astir-scale too — see claude.md's
 	// Ardents section), so isAstir tells the template to render that as read-only text rather than
-	// a stepper/select.
+	// a stepper/select. A mundane weapon likewise never stores its own tier — it derives from
+	// _conflictTier().base, the character's own on-foot Tier, rather than the frame's (`.effective`
+	// would read as whichever frame is currently mounted, which is meaningless here: a mundane
+	// weapon is already gated off entirely while mounted — see _weaponGateTooltip).
 	_equipmentEntry(entry, weaponMoves = [], frame = null) {
 		const tags = resolveEquipmentTags(entry.tags ?? []).map((tag) => ({
 			key: tag.key,
@@ -667,7 +679,7 @@ export class PlaybookActorSheet extends ActorSheet {
 				scaleLabel: (entry.astir || entry.ardent)
 					? WEAPON_SCALES.find((s) => s.key === "astir")?.label
 					: WEAPON_SCALES.find((s) => s.key === entry.scale)?.label ?? entry.scale,
-				tier: (entry.astir || entry.ardent) ? frame?.tier : entry.tier,
+				tier: (entry.astir || entry.ardent) ? frame?.tier : this._conflictTier().base,
 				weaponMoves,
 				isAstir: Boolean(entry.astir)
 			})
@@ -723,15 +735,18 @@ export class PlaybookActorSheet extends ActorSheet {
 	}
 
 	// The Astir/Ardent Parts equivalent of _equipmentSpends above — every part installed on the
-	// currently mounted frame with a `spend` field (Warding, Artifact — see astir.js) that isn't
-	// already Expended, offered in the roll dialog's own Astir Parts section (see
+	// currently mounted frame with a `spend.effect` or `spend.advantage` (Artifact — see astir.js)
+	// that isn't already Expended, offered in the roll dialog's own Astir Parts section (see
 	// configureMoveRoll/move-roll-dialog.hbs). Empty when nothing is mounted (see claude.md's
 	// Piloted note) — unlike _equipmentSpends, parts aren't scoped by weapon, since none of them
-	// are weapon-specific.
+	// are weapon-specific. A part whose `spend` sets neither (Warding, formerly) doesn't actually
+	// modify a roll, so it's excluded here the same way _equipmentSpends excludes an effect-less
+	// equipment tag (Ward, Vorpal, Refresh, ...) — its only interaction point is its own
+	// `uses`/Expended checkbox, not this dialog.
 	_astirPartSpends(lockedEffect) {
 		const spends = [];
 		for (const part of this._mountedParts()) {
-			if (!part.spend) continue;
+			if (!part.spend?.effect && !part.spend?.advantage) continue;
 			if (this.actor.system.attributes?.moveUses?.[part.key]?.expended) continue;
 			spends.push({
 				partKey: part.key,
@@ -785,20 +800,6 @@ export class PlaybookActorSheet extends ActorSheet {
 		const granting = resolvePlaybookMoves(this._playbookMoves())
 			.find((m) => m.grantsAdvantageOnMove?.moveKey === move.key);
 		return granting?.grantsAdvantageOnMove.advantage ?? null;
-	}
-
-	// Whether "+ Choose Starting Gear" has already been clicked on this actor (see getData's
-	// startingGear.available and _onStartingGearAdd) — resets naturally on a playbook swap, since
-	// swapActorPlaybook (actor-creation.js) replaces system.attributes wholesale from the new
-	// playbook's compendium source, same as playbookMoves.
-	_startingGearChosen() {
-		return Boolean(this.actor.system.attributes?.startingGearChosen);
-	}
-
-	// Same one-shot treatment as _startingGearChosen above, for the "+ Choose Starting Moves"
-	// button (see getData's startingMovesAvailable and _onStartingMovesAdd).
-	_startingMovesChosen() {
-		return Boolean(this.actor.system.attributes?.startingMovesChosen);
 	}
 
 	// Just the picked keys — the move definitions live in playbook-moves.js, so stored data never
@@ -1020,7 +1021,6 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".starting-gear-add").on("click", this._onStartingGearAdd.bind(this));
 		html.find(".equipment-edit").on("click", this._onEquipmentEdit.bind(this));
 		html.find(".equipment-remove").on("click", this._onEquipmentRemove.bind(this));
-		html.find(".equipment-tier-step").on("click", this._onEquipmentTierStep.bind(this));
 		html.find(".equipment-tag-spent-checkbox").on("change", this._onEquipmentTagSpentToggle.bind(this));
 		html.find(".weapon-move-roll").on("click", this._onWeaponMoveRoll.bind(this));
 		html.find(".astir-create").on("click", this._onAstirCreate.bind(this));
@@ -1723,9 +1723,10 @@ export class PlaybookActorSheet extends ActorSheet {
 
 	// Turns a starting-gear pool entry (granted or picked — see starting-gear.js) into a real
 	// equipment.js-shaped entry, the same snapshot treatment a catalog pick already gets. Only a
-	// weapon-kind item carries scale/tier at all (mirrors _equipmentEntry's own weapon-only
-	// spread) — scale defaults to "foot" and tier to TIER_MIN, since every current weapon item
-	// here is Tier I and none are Astir-scale (those are only ever added from the Astir tab).
+	// weapon-kind item carries scale at all (mirrors _equipmentEntry's own weapon-only spread) —
+	// scale defaults to "foot", since none of these are Astir-scale (those are only ever added
+	// from the Astir tab). tier is never stored — it derives from the wielding character (see
+	// _equipmentEntry), same as every other mundane weapon.
 	_startingGearEntry(item) {
 		return {
 			id: foundry.utils.randomID(),
@@ -1734,7 +1735,7 @@ export class PlaybookActorSheet extends ActorSheet {
 			name: item.name,
 			description: item.description,
 			tags: item.tags ?? [],
-			...(item.kind === "weapon" && { scale: item.scale ?? "foot", tier: item.tier ?? TIER_MIN })
+			...(item.kind === "weapon" && { scale: item.scale ?? "foot" })
 		};
 	}
 
@@ -1747,17 +1748,17 @@ export class PlaybookActorSheet extends ActorSheet {
 	// picked gear items are saved as ordinary snapshot equipment entries, same treatment as a
 	// catalog pick (see claude.md, "Equipment").
 	//
-	// startingGearChosen is always set, even if both dialogs are cancelled — clicking the button
-	// is what spends the one-time allowance, not what gets picked from it, so the button
-	// disappears for good (see getData) whether or not anything was actually added. Granted items
-	// (Augments I) are added unconditionally, regardless of what chooseStartingGear resolves —
-	// same treatment starting-moves.js's own grantedKeys get from _onStartingMovesAdd.
+	// Availability is a live emptiness check (see getData's startingGear.available), not a
+	// one-time flag — so a fully-cancelled run leaves the actor untouched and the button available
+	// to try again next render. Granted items (Augments I) are still added unconditionally,
+	// regardless of what chooseStartingGear resolves — same treatment starting-moves.js's own
+	// grantedKeys get from _onStartingMovesAdd.
 	async _onStartingGearAdd() {
 		const playbookName = this.actor.system.playbook?.name;
 		const pool = findStartingGearPool(playbookName);
 		// Mirrors getData's startingGear.available gate — a pool with nothing to offer (e.g. The
 		// Commander today) never reaches the button in the first place, but guarding here too
-		// keeps this a true no-op rather than spending the one-time flag for nothing.
+		// keeps this a true no-op.
 		const hasPickableItems = Boolean(pool?.groups?.some((group) => group.items.length));
 		if (!pool || (!pool.grantedItems.length && !hasPickableItems && !pool.customWeaponNote)) return;
 
@@ -1777,38 +1778,34 @@ export class PlaybookActorSheet extends ActorSheet {
 			if (weapon) newEntries.push({ id: foundry.utils.randomID(), spent: [], ...weapon });
 		}
 
-		const updates = { "system.attributes.startingGearChosen": true };
-		if (newEntries.length) updates["system.attributes.equipment"] = [...this._equipment(), ...newEntries];
-
-		await this.actor.update(updates);
+		// Nothing was granted and every dialog was cancelled — leave the actor untouched so the
+		// button stays available (equipment is still empty) rather than writing a no-op update.
+		if (!newEntries.length) return;
+		await this.actor.update({ "system.attributes.equipment": [...this._equipment(), ...newEntries] });
 	}
 
-	// The "+ Choose Starting Moves" button (see getData's startingMovesAvailable). Same one-time
-	// allowance shape as _onStartingGearAdd: startingMovesChosen is always set, even if the dialog
-	// is cancelled or nothing was picked, since clicking the button is what spends the allowance —
-	// the button disappears for good either way.
+	// The "+ Choose Starting Moves" button (see getData's startingMovesAvailable). Availability is
+	// a live emptiness check, not a one-time flag — cancelling the picker (or picking nothing)
+	// leaves the actor's playbookMoves untouched, so the button stays available to try again.
 	async _onStartingMovesAdd() {
 		const playbookName = this.actor.system.playbook?.name;
 		const pool = findStartingMovePool(playbookName);
 		// Mirrors getData's startingMovesAvailable gate — a pool with nothing to offer at all (e.g.
 		// The Commander today) never reaches the button in the first place, but guarding here too
-		// keeps this a true no-op rather than spending the one-time flag for nothing.
+		// keeps this a true no-op.
 		if (!pool || (!pool.grantedKeys.length && !pool.pickOneKeys.length && !pool.chooseCount)) return;
 
 		// The dialog always opens once there's anything at all to show (guarded above) — even a
 		// grantedKeys-only pool (Arcane Augments) still gets a confirmation screen naming what the
 		// player is receiving, rather than silently writing it the moment the button is clicked.
-		// Granted moves are added unconditionally regardless of what the dialog resolves — clicking
-		// the button is what spends this one-time allowance, not what's picked from it, same as
-		// chooseStartingGear's own granted items below.
+		// Granted moves are added unconditionally regardless of what the dialog resolves, same as
+		// chooseStartingGear's own granted items above.
 		const picked = await chooseStartingMoves(playbookName);
 		const current = this._playbookMoves();
 		const additions = [...pool.grantedKeys, ...(picked ?? [])].filter((key) => !current.includes(key));
 
-		const updates = { "system.attributes.startingMovesChosen": true };
-		if (additions.length) updates["system.attributes.playbookMoves"] = [...current, ...additions];
-
-		await this.actor.update(updates);
+		if (!additions.length) return;
+		await this.actor.update({ "system.attributes.playbookMoves": [...current, ...additions] });
 	}
 
 	// Shared tail of _onEquipmentAdd and _onEquipmentCatalogAdd: appends a resolved
@@ -1874,19 +1871,6 @@ export class PlaybookActorSheet extends ActorSheet {
 		const astir = this._astir();
 		if (entry?.astir && astir) Object.assign(updates, this._astirPowerUpdates(astir, { equipment }));
 		this.actor.update(updates);
-	}
-
-	_onEquipmentTierStep(event) {
-		const { equipmentId, delta } = event.currentTarget.dataset;
-		const current = this._equipment();
-		const entry = current.find((item) => item.id === equipmentId);
-		if (!entry) return;
-		const tier = entry.tier ?? TIER_MIN;
-		const next = Math.min(TIER_MAX, Math.max(TIER_MIN, tier + Number(delta)));
-		if (next === tier) return;
-		this.actor.update({
-			"system.attributes.equipment": current.map((item) => (item.id === equipmentId ? { ...item, tier: next } : item))
-		});
 	}
 
 	// The manual "new Scene" reset for a spent tag — same manual-tracking model as
@@ -2197,8 +2181,8 @@ export class PlaybookActorSheet extends ActorSheet {
 	}
 
 	// The Astir Parts equivalent of _spendEquipmentTags above — marks each checked Astir Part
-	// spend (Warding, Artifact) Expended, the same field the Astir Moves group's own manual
-	// checkbox toggles (see _onMoveUseToggle), so either entry point lands on one shared state.
+	// spend (Artifact) Expended, the same field the Astir Moves group's own manual checkbox
+	// toggles (see _onMoveUseToggle), so either entry point lands on one shared state.
 	async _spendAstirParts(partKeys) {
 		const updates = {};
 		for (const key of partKeys) updates[`system.attributes.moveUses.${key}.expended`] = true;

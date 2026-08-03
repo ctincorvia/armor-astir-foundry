@@ -618,7 +618,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 		.filter(Boolean)
 		.map(({ key, label }) => ({ key, label }));
 
-	// A spent Astir Part (Warding, Artifact — see astir.js) is the same kind of "why the total is
+	// A spent Astir Part (Artifact — see astir.js) is the same kind of "why the total is
 	// what it is" badge as a spent equipment tag, so it rides in the same conditions list. Passed
 	// in pre-resolved (rather than a partKey this module would have to look up) so moves.js never
 	// needs to import astir.js — see PlaybookActorSheet#_rollMove.

@@ -729,6 +729,7 @@
 
 .armor-astir.sheet .astir-locked-note,
 .armor-astir.sheet .astir-part-power-cost,
+.armor-astir.sheet .astir-part-tier,
 .armor-astir.sheet .astir-part-type {
 	font-size: 12px;
 	font-style: italic;
@@ -1137,17 +1138,22 @@
 /* CSS-only tooltip explaining why a gated weapon button is disabled (mount/dismount state) — this
    module's only tooltip beyond native title attributes, so it gets its own styled look rather
    than the plain unstyled convention used elsewhere. Primary-dark since this is UI chrome, not
-   player-tracked state, and -dark because it carries white text (see the role-token note above). */
-.armor-astir.sheet .weapon-move-roll.disabled[data-tooltip] {
+   player-tracked state, and -dark because it carries white text (see the role-token note above).
+   Deliberately named data-gate-tooltip rather than data-tooltip: core Foundry's own TooltipManager
+   (client/core/tooltip.js) activates its own native tooltip on *any* element with a data-tooltip
+   attribute, so reusing that name doubled up with Foundry's own black tooltip. */
+.armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip] {
 	position: relative;
 }
 
-.armor-astir.sheet .weapon-move-roll.disabled[data-tooltip]:hover::after {
-	content: attr(data-tooltip);
+.armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip]:hover::after {
+	content: attr(data-gate-tooltip);
 	position: absolute;
 	bottom: 100%;
-	left: 50%;
-	transform: translateX(-50%);
+	/* Anchored to the button's own left edge rather than centered — a centered bubble on a button
+	   near the left edge of the tab content extends left into the Dangers/Controls sidebar column
+	   and loses out to it there. Left-anchoring keeps the bubble over the tab content instead. */
+	left: 0;
 	margin-bottom: var(--aa-space-1);
 	width: max-content;
 	max-width: 200px;
@@ -1160,7 +1166,7 @@
 	text-align: center;
 	border-radius: var(--aa-radius);
 	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
-	z-index: 10;
+	z-index: 100;
 	pointer-events: none;
 	white-space: normal;
 }

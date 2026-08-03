@@ -26,9 +26,11 @@ export const STARTING_GEAR_PICKER_TEMPLATE = "modules/armor-astir/templates/star
 // starting-moves.js's own grantedKeys gives Arcane Augments. Every item (granted or pickable) may
 // carry `kind` ("weapon" or the default "gear"), and a weapon item may further carry `tags`
 // (needs a WEAPON_RANGE_GROUP entry — see equipment.js — the same requirement configureEquipment
-// enforces for a custom-made weapon), `scale` (default "foot") and `tier` (default TIER_MIN) — see
+// enforces for a custom-made weapon) and `scale` (default "foot") — see
 // PlaybookActorSheet#_startingGearEntry, which turns any of these into an equipment.js-shaped
-// entry the same way a catalog pick already is.
+// entry the same way a catalog pick already is. No item here carries `tier` — a starting weapon's
+// Tier derives from the wielding character, same as any other mundane weapon (see
+// _equipmentEntry).
 export const STARTING_GEAR_POOLS = [
 	{
 		playbookName: "The Scout",

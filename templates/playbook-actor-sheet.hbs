@@ -192,11 +192,7 @@
 								<div class="equipment-header">
 									<span class="equipment-name">{{name}}</span>
 									<span class="equipment-value">Value {{value}}</span>
-									<div class="equipment-tier-control">
-										<button type="button" class="equipment-tier-step equipment-tier-decrement" data-equipment-id="{{id}}" data-delta="-1">-</button>
-										<span class="equipment-tier-value">Tier {{tier}}</span>
-										<button type="button" class="equipment-tier-step equipment-tier-increment" data-equipment-id="{{id}}" data-delta="1">+</button>
-									</div>
+									<span class="equipment-tier-value">Tier {{tier}}</span>
 									<span class="equipment-scale">{{scaleLabel}}</span>
 									<div class="equipment-item-controls">
 										<button type="button" class="equipment-edit" data-equipment-id="{{id}}">Edit</button>
@@ -225,7 +221,7 @@
 								{{#if weaponMoves.length}}
 								<div class="weapon-move-controls">
 									{{#each weaponMoves}}
-									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
+									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-gate-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
 									{{/each}}
 								</div>
 								{{/if}}
@@ -267,7 +263,7 @@
 								{{#if weaponMoves.length}}
 								<div class="weapon-move-controls">
 									{{#each weaponMoves}}
-									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
+									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-gate-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
 									{{/each}}
 								</div>
 								{{/if}}
@@ -310,7 +306,7 @@
 								{{#if weaponMoves.length}}
 								<div class="weapon-move-controls">
 									{{#each weaponMoves}}
-									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
+									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-gate-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
 									{{/each}}
 								</div>
 								{{/if}}
@@ -458,6 +454,7 @@
 							<li class="move">
 								<span class="move-name">{{name}}</span>
 								<div class="move-row-controls">
+									<span class="astir-part-tier">Tier {{tier}}</span>
 									<span class="astir-part-type">{{partType}}</span>
 									{{#if powerCost}}<span class="astir-part-power-cost">Power {{powerCost}}</span>{{/if}}
 									<button type="button" class="astir-part-remove" data-part="{{key}}" aria-label="Remove Astir part">✕</button>
@@ -524,7 +521,7 @@
 								{{#if weaponMoves.length}}
 								<div class="weapon-move-controls">
 									{{#each weaponMoves}}
-									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
+									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-gate-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
 									{{/each}}
 								</div>
 								{{/if}}
@@ -595,6 +592,7 @@
 								<li class="move">
 									<span class="move-name">{{name}}</span>
 									<div class="move-row-controls">
+										<span class="astir-part-tier">Tier {{tier}}</span>
 										<span class="astir-part-type">{{partType}}</span>
 										<button type="button" class="ardent-part-remove" data-ardent-id="{{../id}}" data-part="{{key}}" aria-label="Remove Ardent part">✕</button>
 									</div>
@@ -644,7 +642,7 @@
 									{{#if weaponMoves.length}}
 									<div class="weapon-move-controls">
 										{{#each weaponMoves}}
-										<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
+										<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-gate-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
 										{{/each}}
 									</div>
 									{{/if}}

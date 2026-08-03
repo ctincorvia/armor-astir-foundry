@@ -467,8 +467,7 @@ export const EQUIPMENT_CATALOG = [
 		kind: "weapon",
 		description: "Simple, sturdy weapons like blades and clubs.",
 		tags: ["melee"],
-		scale: "foot",
-		tier: TIER_MIN
+		scale: "foot"
 	},
 	{
 		key: "dagger-i",
@@ -476,8 +475,7 @@ export const EQUIPMENT_CATALOG = [
 		kind: "weapon",
 		description: "A concealable dagger, easily worn beneath clothing and thrown if needed.",
 		tags: ["melee", "intimate", "concealable"],
-		scale: "foot",
-		tier: TIER_MIN
+		scale: "foot"
 	},
 	{
 		key: "greatsword-i",
@@ -485,8 +483,7 @@ export const EQUIPMENT_CATALOG = [
 		kind: "weapon",
 		description: "A large weapon, with good reach and weight, perfect for taking heads. Praxis.",
 		tags: ["melee", "area", "two-handed"],
-		scale: "foot",
-		tier: TIER_MIN
+		scale: "foot"
 	},
 	{
 		key: "armourbane-i",
@@ -494,8 +491,7 @@ export const EQUIPMENT_CATALOG = [
 		kind: "weapon",
 		description: "A thin, pretty blade, good for slipping between armour plates.",
 		tags: ["melee", "fragile", "decisive"],
-		scale: "foot",
-		tier: TIER_MIN
+		scale: "foot"
 	},
 	{
 		key: "enchanted-blade-i",
@@ -503,8 +499,7 @@ export const EQUIPMENT_CATALOG = [
 		kind: "weapon",
 		description: "What was once simple steel now carries the unmistakable sheen of ritual.",
 		tags: ["melee", "distinct", "bane"],
-		scale: "foot",
-		tier: TIER_MIN
+		scale: "foot"
 	},
 	{
 		key: "partisan-i",
@@ -513,8 +508,7 @@ export const EQUIPMENT_CATALOG = [
 		description: "A long spear, perfect for keeping your friends safe and your enemies at a very specific " +
 			"distance, as the saying goes.",
 		tags: ["melee", "defensive", "two-handed"],
-		scale: "foot",
-		tier: TIER_MIN
+		scale: "foot"
 	},
 	{
 		key: "bow-i",
@@ -523,8 +517,7 @@ export const EQUIPMENT_CATALOG = [
 		description: "For when you don't need anything fancy, a bow is perfectly capable of doing the job for " +
 			"as long as you have arrows.",
 		tags: ["ranged", "decisive", "two-handed"],
-		scale: "foot",
-		tier: TIER_MIN
+		scale: "foot"
 	},
 	{
 		key: "sidearm-i",
@@ -533,8 +526,7 @@ export const EQUIPMENT_CATALOG = [
 		description: "The typical protections afforded to Astir pilots: a reliable tool capable of firing " +
 			"bursts of light arcane energy.",
 		tags: ["ranged", "defensive", "weak"],
-		scale: "foot",
-		tier: TIER_MIN
+		scale: "foot"
 	},
 	{
 		key: "raypistol-i",
@@ -542,8 +534,7 @@ export const EQUIPMENT_CATALOG = [
 		kind: "weapon",
 		description: "A powerful but short-lived firebolt wand, fitted with a comfortable grip.",
 		tags: ["ranged", "limited", "bane"],
-		scale: "foot",
-		tier: TIER_MIN
+		scale: "foot"
 	},
 	{
 		key: "boltrifle-i",
@@ -552,8 +543,7 @@ export const EQUIPMENT_CATALOG = [
 		description: "Effectively repeating crossbows fed by lightweight 'barrels' of ammunition, bolt rifles " +
 			"are a common sight among troops of any real armed force.",
 		tags: ["ranged", "blitz", "two-handed"],
-		scale: "foot",
-		tier: TIER_MIN
+		scale: "foot"
 	},
 	{
 		key: "rayrifle-i",
@@ -563,8 +553,7 @@ export const EQUIPMENT_CATALOG = [
 			"bulk, heavy recoil and cost makes them highly uncommon, but not overly so: after all, little " +
 			"else hand-held will put a hole through an Astir.",
 		tags: ["sniper", "reload", "ruin", "two-handed"],
-		scale: "foot",
-		tier: TIER_MIN
+		scale: "foot"
 	},
 	{
 		key: "ashstaff-i",
@@ -576,8 +565,7 @@ export const EQUIPMENT_CATALOG = [
 		// 4 regular tags (area, bane, unreliable, two-handed) despite being Tier I — this is what
 		// pushed MAX_TAGS from 3 to 4 (see its doc comment).
 		tags: ["ranged", "area", "bane", "unreliable", "two-handed"],
-		scale: "foot",
-		tier: TIER_MIN
+		scale: "foot"
 	},
 	{
 		key: "baneblade-ii",
@@ -587,8 +575,7 @@ export const EQUIPMENT_CATALOG = [
 			"these pilots meet very unexpected ends. Also seen as a Blowtorch, Enchanted Broadsword, or Bolt " +
 			"Gauntlets.",
 		tags: ["melee", "bane", "two-handed"],
-		scale: "foot",
-		tier: 2
+		scale: "foot"
 	},
 	{
 		key: "warp-slinger-ii",
@@ -598,8 +585,7 @@ export const EQUIPMENT_CATALOG = [
 			"be triggered by even those not gifted with magic. Also seen as an MG Turret, Point Laser, or " +
 			"Multi-Crossbow.",
 		tags: ["ranged", "blitz", "infinite", "huge"],
-		scale: "foot",
-		tier: 2
+		scale: "foot"
 	},
 	{
 		key: "ardent-rifle-ii",
@@ -609,8 +595,7 @@ export const EQUIPMENT_CATALOG = [
 			"even an Astir's defences. Typically used by ardents, due to its weight. Also seen as an " +
 			"Arbalest, Flame Staff, or Greatbow.",
 		tags: ["ranged", "bane", "two-handed"],
-		scale: "foot",
-		tier: 2
+		scale: "foot"
 	},
 	{
 		key: "seeker-cluster-ii",
@@ -621,8 +606,7 @@ export const EQUIPMENT_CATALOG = [
 			"shatter on impact, resulting in sharp shrapnel. Also seen as Orbiting Motes, a Shock Rod, or " +
 			"Command Bracelets & Drone.",
 		tags: ["ranged", "guided", "defensive", "reload", "messy"],
-		scale: "foot",
-		tier: 2
+		scale: "foot"
 	},
 	{
 		key: "luxury-gift-i",
@@ -807,10 +791,13 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 // pre-selecting a kind for a fresh entry (see PlaybookActorSheet#_onEquipmentAdd) passes
 // `{ kind }` with no `id`, and that still reads as "Add".
 //
-// scale/tier are only ever present on the resolved object when Kind is Weapon at submit time —
-// Gear never carries them, regardless of what the Kind/Tier fields currently show (Kind changing
-// live doesn't hide them — the Tags total below is this dialog's only live-reactive wiring so
-// far, kept intentionally narrow rather than extended to every field).
+// scale is only ever present on the resolved object when Kind is Weapon at submit time — Gear
+// never carries it, regardless of what the Kind field currently shows (Kind changing live doesn't
+// hide it — the Tags total below is this dialog's only live-reactive wiring so far, kept
+// intentionally narrow rather than extended to every field). tier is only ever present for a
+// Carrier weapon (see `carrierWeapon` below) — every other weapon (mundane, Astir, Ardent) derives
+// its Tier from whoever/whatever is wielding it (see PlaybookActorSheet#_equipmentEntry) instead
+// of storing one, so the dialog never even shows a Tier field for them.
 //
 // `note` is optional, purely informational text rendered as a single line above the form (e.g.
 // starting-gear.js's per-playbook custom weapon budget guidance) — never validated or enforced,
@@ -824,10 +811,16 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 // above) — every other caller (mundane weapons, gear, Carrier weapons) filters them out of the
 // tag list before rendering.
 //
-// `carrierWeapon` (see carrier-actor-sheet.js) is a lighter version of the same idea: a Carrier
-// weapon is always a weapon, always Astir scale (Carriers are never Foot scale), and always
-// Tier 5 — but unlike an Astir weapon, there's nothing else for it to inherit those from, so
-// Tier stays a visible, disabled field (fixed at TIER_MAX) rather than being hidden outright.
+// A mundane (plain foot-scale) weapon hides Tier the same way `astirWeapon`/`ardentWeapon` do —
+// it inherits the wielding character's own Tier (see PlaybookActorSheet#_conflictTier) rather than
+// storing one. This is the one caller with no dedicated flag: it's simply whichever weapon isn't
+// astirWeapon, ardentWeapon, or carrierWeapon.
+//
+// `carrierWeapon` (see carrier-actor-sheet.js) is the one caller that still stores its own Tier: a
+// Carrier weapon is always a weapon, always Astir scale (Carriers are never Foot scale), and
+// always Tier 5 — but unlike every other weapon here, there's no wielder for it to inherit Tier
+// from (the Carrier itself has no Tier of its own), so Tier stays a visible, disabled field
+// (fixed at TIER_MAX) rather than being hidden outright.
 //
 // `ardentWeapon` (see ardent.js/PlaybookActorSheet) is the Ardent counterpart to `astirWeapon`:
 // always a weapon, hides Kind and Tier the same way (an Ardent weapon inherits its owning Ardent's
@@ -872,9 +865,10 @@ export async function configureEquipment(
 		carrierWeapon,
 		// Kind is hidden for every caller that forces Scale/Tier — see the doc comment above.
 		hideKind: astirWeapon || carrierWeapon || ardentWeapon,
-		// Tier is hidden (rather than shown-disabled like carrierWeapon's) for both callers whose
-		// weapon inherits Tier from elsewhere instead of storing it — see the doc comment above.
-		hideTier: astirWeapon || ardentWeapon,
+		// Tier is hidden (rather than shown-disabled like carrierWeapon's) for every weapon that
+		// inherits Tier from elsewhere instead of storing it — which today is every weapon except
+		// carrierWeapon's — see the doc comment above.
+		hideTier: !carrierWeapon,
 		name: initial?.name ?? "",
 		description: initial?.description ?? "",
 		isWeapon: astirWeapon || carrierWeapon || ardentWeapon || (initial?.kind ?? "weapon") === "weapon",
@@ -983,17 +977,18 @@ export async function configureEquipment(
 							// (always rendered, per weaponRangeOptions above) still has some default value
 							// in the DOM regardless of Kind.
 							tags: kind === "weapon" ? [weaponRangeKey, ...checkedKeys] : checkedKeys,
-							// scale/tier are never resolved for an Astir or Ardent weapon — both are
-							// inherited from the owning frame itself (see
-							// PlaybookActorSheet#_equipmentEntry) rather than stored. A Carrier weapon does
-							// store both, but always as the fixed astir/TIER_MAX pair. A mundane weapon is
-							// always Foot Scale — there's no DOM field to read (see the doc comment above
-							// configureEquipment).
+							// scale is never resolved for an Astir or Ardent weapon — both are always Astir
+							// scale, inherited from the owning frame itself (see
+							// PlaybookActorSheet#_equipmentEntry) rather than stored. A mundane weapon is
+							// always Foot Scale — there's no DOM field to read either way (see the doc
+							// comment above configureEquipment).
 							...(kind === "weapon" && !astirWeapon && !ardentWeapon && {
 								scale: carrierWeapon ? "astir" : "foot",
-								tier: carrierWeapon
-									? TIER_MAX
-									: Math.min(TIER_MAX, Math.max(TIER_MIN, Number(html.find("[name='tier']").val()) || TIER_MIN))
+								// tier is likewise never resolved for a mundane weapon — it derives from the
+								// wielding character instead (see the doc comment above configureEquipment).
+								// Only carrierWeapon still stores its own, always fixed at TIER_MAX; the DOM
+								// field carrierWeapon renders is disabled, so nothing else can reach here.
+								...(carrierWeapon && { tier: TIER_MAX })
 							})
 						});
 					}

@@ -462,7 +462,7 @@ describe("configureEquipment", () => {
 		await promise;
 	});
 
-	it("resolves a weapon's name, description, kind, tags and tier when Save is clicked, always as Foot Scale", async () => {
+	it("resolves a weapon's name, description, kind and tags when Save is clicked, always as Foot Scale with no stored tier", async () => {
 		const promise = configureEquipment(null, FIXTURE_TAGS);
 		await Promise.resolve();
 		await Promise.resolve();
@@ -471,8 +471,7 @@ describe("configureEquipment", () => {
 		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
 			"[name='name']": "  Halberd  ",
 			"[name='kind']": "weapon",
-			"[name='description']": "  A long blade.  ",
-			"[name='tier']": "3"
+			"[name='description']": "  A long blade.  "
 		}, ["fixture-positive", "fixture-negative"], "fixture-melee"));
 
 		expect(await promise).toEqual({
@@ -480,8 +479,7 @@ describe("configureEquipment", () => {
 			description: "A long blade.",
 			kind: "weapon",
 			tags: ["fixture-melee", "fixture-positive", "fixture-negative"],
-			scale: "foot",
-			tier: 3
+			scale: "foot"
 		});
 	});
 
@@ -498,40 +496,6 @@ describe("configureEquipment", () => {
 		}));
 
 		expect(await promise).toEqual({ name: "Rations", description: "", kind: "gear", tags: [] });
-	});
-
-	it("clamps tier to the 1-5 range", async () => {
-		const promise = configureEquipment(null, FIXTURE_TAGS);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
-			"[name='name']": "Cannon",
-			"[name='kind']": "weapon",
-			"[name='description']": "",
-			"[name='scale']": "foot",
-			"[name='tier']": "99"
-		}, [], "fixture-melee"));
-
-		expect((await promise).tier).toBe(TIER_MAX);
-	});
-
-	it("defaults a non-numeric tier to the minimum", async () => {
-		const promise = configureEquipment(null, FIXTURE_TAGS);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
-			"[name='name']": "Cannon",
-			"[name='kind']": "weapon",
-			"[name='description']": "",
-			"[name='scale']": "foot",
-			"[name='tier']": ""
-		}, [], "fixture-melee"));
-
-		expect((await promise).tier).toBe(TIER_MIN);
 	});
 
 	it("resolves null, without saving, when the name is blank", async () => {
@@ -1073,16 +1037,16 @@ describe("EQUIPMENT_CATALOG", () => {
 		}
 	});
 
-	it("gives every weapon a scale and a tier within range, and gear neither", () => {
+	it("gives every weapon a scale, and no item a tier", () => {
 		for (const item of EQUIPMENT_CATALOG) {
 			if (item.kind === "weapon") {
 				expect(WEAPON_SCALES.some((s) => s.key === item.scale)).toBe(true);
-				expect(item.tier).toBeGreaterThanOrEqual(TIER_MIN);
-				expect(item.tier).toBeLessThanOrEqual(TIER_MAX);
 			} else {
 				expect(item.scale).toBeUndefined();
-				expect(item.tier).toBeUndefined();
 			}
+			// Tier is never stored on a catalog template — every weapon derives it from whoever/
+			// whatever wields it (see PlaybookActorSheet#_equipmentEntry).
+			expect(item.tier).toBeUndefined();
 		}
 	});
 

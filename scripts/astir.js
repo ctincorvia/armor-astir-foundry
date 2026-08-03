@@ -227,18 +227,17 @@ export const ASTIR_PART_CATALOG = [
 		name: "Warding",
 		partType: "Active",
 		traits: [],
-		// No `effect`/`advantage` — offered in the roll dialog's Astir Parts section as a plain
-		// "mark it used" checkbox, mirroring how Ward's own equipment tag has no effect either.
-		// `spend.description` is a short plain-text summary for that checkbox row — the part's own
-		// `description` above is rich HTML flavor text, not fit for the roll dialog.
-		spend: {
-			period: "Sortie",
-			description: "Reduce an incoming source of harm from a peril to a risk, or a risk to nothing."
-		},
+		// No `spend` — this has no `effect`/`advantage` to offer a roll, so (like Ward's own
+		// equipment tag) it never appears in the roll dialog at all, regardless of which move is
+		// being rolled or what weapon/scale is involved. Its only interaction point is the
+		// `uses: EXPENDED_USE` checkbox below, which _moveGroupMoves renders unconditionally (not
+		// gated on the Astir being piloted — see move-use-checkbox in the template), so it can be
+		// marked used any time.
 		uses: EXPENDED_USE,
 		description:
 			"<p>Anything that helps an Astir not explode is a worthwhile investment.</p>" +
-			"<p>+ward.</p>"
+			"<p>You may use this once per Sortie to reduce an incoming source of harm from a peril to " +
+			"a risk, or from a risk to nothing (+ward).</p>"
 	},
 	{
 		key: "astir-part:transmutation-link",
@@ -281,8 +280,9 @@ export const ASTIR_PART_CATALOG = [
 		traits: [],
 		// Offered in the roll dialog's Astir Parts section — checking it forces the roll's
 		// Advantage axis to Advantage, unrestricted by which task it's "designed for" (matching
-		// this module's existing non-enforcement of similar scope text elsewhere). See Warding
-		// above for why `spend.description` exists alongside the part's own rich-text description.
+		// this module's existing non-enforcement of similar scope text elsewhere). `spend.description`
+		// is a short plain-text summary for that dialog row — the part's own `description` above is
+		// rich HTML flavor text, not fit for the roll dialog.
 		spend: { advantage: "advantage", description: "Grants advantage towards a task this Artifact is designed for." },
 		uses: EXPENDED_USE,
 		description:

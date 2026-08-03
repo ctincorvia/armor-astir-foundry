@@ -926,7 +926,7 @@ describe("PlaybookActorSheet#getData - astir", () => {
 		expect(data.astir.power).toEqual({ value: 4, max: astirMaxPower([partKey], []), negative: false });
 	});
 
-	it("resolves parts to their name and power cost", () => {
+	it("resolves parts to their name, power cost, and the Astir's own tier", () => {
 		const sheet = new PlaybookActorSheet();
 		const part = ASTIR_PART_CATALOG[0];
 		sheet.actor = {
@@ -939,8 +939,16 @@ describe("PlaybookActorSheet#getData - astir", () => {
 		};
 
 		expect(sheet.getData().astir.parts).toEqual([
-			{ key: part.key, name: part.name, powerCost: part.powerCost, partType: part.partType }
+			{ key: part.key, name: part.name, powerCost: part.powerCost, partType: part.partType, tier: 3 }
 		]);
+	});
+
+	it("falls back to ASTIR_TIER_MIN for a part's tier when the Astir has no tier stored", () => {
+		const sheet = new PlaybookActorSheet();
+		const part = ASTIR_PART_CATALOG[0];
+		sheet.actor = { system: { stats: {}, attributes: { astir: { id: "a1", parts: [part.key] } } } };
+
+		expect(sheet.getData().astir.parts[0].tier).toBe(ASTIR_TIER_MIN);
 	});
 
 	it("reports the piloted flag", () => {
@@ -2071,12 +2079,14 @@ describe("PlaybookActorSheet#getData - ardents", () => {
 		expect(sheet.getData().ardents[0].name).toBe("Warhound");
 	});
 
-	it("resolves parts to name/partType, without a Power cost field", () => {
+	it("resolves parts to name/partType and this Ardent's own tier, without a Power cost field", () => {
 		const sheet = new PlaybookActorSheet();
 		const part = WARDING;
 		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [part.key] }] } } };
 
-		expect(sheet.getData().ardents[0].parts).toEqual([{ key: part.key, name: part.name, partType: part.partType }]);
+		expect(sheet.getData().ardents[0].parts).toEqual([
+			{ key: part.key, name: part.name, partType: part.partType, tier: ARDENT_TIER_MIN }
+		]);
 	});
 
 	it("reports Repair Tokens once Standardised Parts is installed, defaulting to 0", () => {
@@ -2825,7 +2835,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends from a mounted Arde
 		sheet.actor = {
 			system: {
 				stats: { know: { value: 1 } },
-				attributes: { ardents: [{ id: "ar1", parts: [WARDING.key], piloted: true }] }
+				attributes: { ardents: [{ id: "ar1", parts: [ARTIFACT.key], piloted: true }] }
 			}
 		};
 		configureMoveRoll.mockResolvedValue(null);
@@ -2835,8 +2845,8 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends from a mounted Arde
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [{
-				partKey: WARDING.key, partName: "Warding", description: WARDING.spend.description,
-				effect: null, advantage: null, disabled: false
+				partKey: ARTIFACT.key, partName: "Artifact", description: ARTIFACT.spend.description,
+				effect: null, advantage: "advantage", disabled: false
 			}],
 			equipmentSpends: []
 		});
@@ -4006,15 +4016,13 @@ describe("PlaybookActorSheet#_onGravityClockStep", () => {
 });
 
 describe("PlaybookActorSheet#getData - equipment", () => {
-	it("defaults to empty weapons/gear lists, with tierMin/tierMax, when attributes is empty", () => {
+	it("defaults to empty weapons/gear lists when attributes is empty", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: {} } };
 
 		const data = sheet.getData();
 
 		expect(data.equipment).toEqual({
-			tierMin: 1,
-			tierMax: 5,
 			weapons: [],
 			astirWeapons: [],
 			ardentWeapons: [],
@@ -4041,9 +4049,14 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 		expect(data.equipment.startingGear).toEqual({ available: false });
 	});
 
-	it("hides starting gear for good once startingGearChosen is set, even if the pool still has content", () => {
+	it("hides starting gear while the actor already has equipment, even if the pool still has content", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { startingGearChosen: true } } };
+		sheet.actor = {
+			system: {
+				playbook: { name: "The Scout" },
+				attributes: { equipment: [{ id: "1", kind: "gear", name: "Rations", description: "", tags: [], spent: [] }] }
+			}
+		};
 
 		const data = sheet.getData();
 
@@ -4069,7 +4082,7 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 		expect(data.equipment.gear.map((g) => g.id)).toEqual(["2"]);
 	});
 
-	it("resolves a weapon's tags, value, scale label, and tier", () => {
+	it("resolves a weapon's tags, value, scale label, and the wielding character's own tier", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -4082,8 +4095,7 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 							description: "A long blade.",
 							tags: ["blitz"],
 							spent: [],
-							scale: "astir",
-							tier: 3
+							scale: "astir"
 						}
 					]
 				}
@@ -4111,7 +4123,10 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 				value: 1,
 				scale: "astir",
 				scaleLabel: "Astir Scale",
-				tier: 3,
+				// Not an astir/ardent-flagged entry, so tier derives from _conflictTier().base — the
+				// character's own on-foot Tier, CHARACTER_TIER_DEFAULT (1) here since no playbook move
+				// raises it and no frame is mounted.
+				tier: 1,
 				weaponMoves: [
 					{ key: "exchange-blows", name: "Exchange Blows", gated: false, tooltip: null },
 					{ key: "strike-decisively", name: "Strike Decisively", gated: false, tooltip: null }
@@ -4237,7 +4252,7 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 });
 
 describe("PlaybookActorSheet#activateListeners - equipment", () => {
-	it("binds handlers to the add, catalog add, edit, remove, tier step, and tag spent controls", () => {
+	it("binds handlers to the add, catalog add, edit, remove, and tag spent controls", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
 
@@ -4251,7 +4266,6 @@ describe("PlaybookActorSheet#activateListeners - equipment", () => {
 		expect(html.find).toHaveBeenCalledWith(".starting-gear-add");
 		expect(html.find).toHaveBeenCalledWith(".equipment-edit");
 		expect(html.find).toHaveBeenCalledWith(".equipment-remove");
-		expect(html.find).toHaveBeenCalledWith(".equipment-tier-step");
 		expect(html.find).toHaveBeenCalledWith(".equipment-tag-spent-checkbox");
 		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
 		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
@@ -4405,7 +4419,6 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		await sheet._onStartingGearAdd();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.startingGearChosen": true,
 			"system.attributes.equipment": [
 				{ id: "test-id", spent: [], kind: "gear", name: firstItem.name, description: firstItem.description, tags: [] },
 				{ id: "test-id", spent: [], kind: "gear", name: secondItem.name, description: secondItem.description, tags: [] }
@@ -4423,7 +4436,6 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		await sheet._onStartingGearAdd();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.startingGearChosen": true,
 			"system.attributes.equipment": [
 				{
 					id: "test-id",
@@ -4446,7 +4458,6 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		await sheet._onStartingGearAdd();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.startingGearChosen": true,
 			"system.attributes.equipment": [{ id: "test-id", spent: [], ...weaponResult }]
 		});
 	});
@@ -4461,7 +4472,6 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledTimes(1);
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.startingGearChosen": true,
 			"system.attributes.equipment": [
 				{ id: "test-id", spent: [], kind: "gear", name: firstItem.name, description: firstItem.description, tags: [] },
 				{ id: "test-id", spent: [], ...weaponResult }
@@ -4479,7 +4489,6 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		await sheet._onStartingGearAdd();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.startingGearChosen": true,
 			"system.attributes.equipment": [
 				existing,
 				{ id: "test-id", spent: [], kind: "gear", name: firstItem.name, description: firstItem.description, tags: [] }
@@ -4487,7 +4496,7 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		});
 	});
 
-	it("still marks startingGearChosen, without touching equipment, when both dialogs are cancelled", async () => {
+	it("does nothing, leaving the button available to retry, when both dialogs are cancelled", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { equipment: [] } }, update: vi.fn() };
 		chooseStartingGear.mockResolvedValue(null);
@@ -4495,7 +4504,7 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 
 		await sheet._onStartingGearAdd();
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.startingGearChosen": true });
+		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 
 	describe("granted items and weapon-kind items (The Impostor)", () => {
@@ -4505,7 +4514,7 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		const powerFocusI = impostorItems.find((item) => item.key === "the-impostor:power-focus-i");
 		const shieldBroachI = impostorItems.find((item) => item.key === "the-impostor:shield-broach-i");
 
-		it("adds Augments I unconditionally, as a Tier I foot-scale weapon", async () => {
+		it("adds Augments I unconditionally, as a foot-scale weapon with no stored tier", async () => {
 			const sheet = new PlaybookActorSheet();
 			sheet.actor = { system: { playbook: { name: "The Impostor" }, attributes: { equipment: [] } }, update: vi.fn() };
 			chooseStartingGear.mockResolvedValue([]);
@@ -4514,7 +4523,6 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 
 			expect(chooseStartingGear).toHaveBeenCalledWith("The Impostor");
 			expect(sheet.actor.update).toHaveBeenCalledWith({
-				"system.attributes.startingGearChosen": true,
 				"system.attributes.equipment": [{
 					id: "test-id",
 					spent: [],
@@ -4522,8 +4530,7 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 					name: augmentsI.name,
 					description: augmentsI.description,
 					tags: augmentsI.tags,
-					scale: "foot",
-					tier: 1
+					scale: "foot"
 				}]
 			});
 		});
@@ -4536,12 +4543,11 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 			await sheet._onStartingGearAdd();
 
 			expect(sheet.actor.update).toHaveBeenCalledWith({
-				"system.attributes.startingGearChosen": true,
 				"system.attributes.equipment": [expect.objectContaining({ name: "Augments I" })]
 			});
 		});
 
-		it("saves a picked weapon-kind item (Power Focus I) with its own scale/tier defaults", async () => {
+		it("saves a picked weapon-kind item (Power Focus I) with its own scale default and no stored tier", async () => {
 			const sheet = new PlaybookActorSheet();
 			sheet.actor = { system: { playbook: { name: "The Impostor" }, attributes: { equipment: [] } }, update: vi.fn() };
 			chooseStartingGear.mockResolvedValue([powerFocusI]);
@@ -4556,8 +4562,7 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 				name: powerFocusI.name,
 				description: powerFocusI.description,
 				tags: powerFocusI.tags,
-				scale: "foot",
-				tier: 1
+				scale: "foot"
 			});
 		});
 
@@ -4623,7 +4628,6 @@ describe("PlaybookActorSheet#_onStartingMovesAdd", () => {
 		await sheet._onStartingMovesAdd();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.startingMovesChosen": true,
 			"system.attributes.playbookMoves": [DENY.key, "the-scout:field-scout", "the-scout:mobility"]
 		});
 	});
@@ -4639,29 +4643,28 @@ describe("PlaybookActorSheet#_onStartingMovesAdd", () => {
 		await sheet._onStartingMovesAdd();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.startingMovesChosen": true,
 			"system.attributes.playbookMoves": ["the-scout:field-scout", "the-scout:mobility"]
 		});
 	});
 
-	it("still marks startingMovesChosen, without touching playbookMoves, when the picker is cancelled", async () => {
+	it("does nothing, leaving the button available to retry, when the picker is cancelled", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: {} }, update: vi.fn() };
 		chooseStartingMoves.mockResolvedValue(null);
 
 		await sheet._onStartingMovesAdd();
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.startingMovesChosen": true });
+		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 
-	it("still marks startingMovesChosen, without touching playbookMoves, when nothing was picked", async () => {
+	it("does nothing, leaving the button available to retry, when nothing was picked", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: {} }, update: vi.fn() };
 		chooseStartingMoves.mockResolvedValue([]);
 
 		await sheet._onStartingMovesAdd();
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.startingMovesChosen": true });
+		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 
 	it("opens the picker and grants Arcane Augments for The Impostor, which has nothing to pick", async () => {
@@ -4673,7 +4676,6 @@ describe("PlaybookActorSheet#_onStartingMovesAdd", () => {
 
 		expect(chooseStartingMoves).toHaveBeenCalledWith("The Impostor");
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.startingMovesChosen": true,
 			"system.attributes.playbookMoves": [ARCANE_AUGMENTS.key]
 		});
 	});
@@ -4686,12 +4688,11 @@ describe("PlaybookActorSheet#_onStartingMovesAdd", () => {
 		await sheet._onStartingMovesAdd();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.startingMovesChosen": true,
 			"system.attributes.playbookMoves": [ARCANE_AUGMENTS.key]
 		});
 	});
 
-	it("does not duplicate a granted key the actor already has", async () => {
+	it("does nothing when a granted key the actor already has leaves no new additions", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { playbook: { name: "The Impostor" }, attributes: { playbookMoves: [ARCANE_AUGMENTS.key] } },
@@ -4701,7 +4702,7 @@ describe("PlaybookActorSheet#_onStartingMovesAdd", () => {
 
 		await sheet._onStartingMovesAdd();
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.startingMovesChosen": true });
+		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 });
 
@@ -4886,62 +4887,6 @@ describe("PlaybookActorSheet#_onEquipmentRemove", () => {
 		sheet._onEquipmentRemove({ currentTarget: { dataset: { equipmentId: "1" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.equipment": [] });
-	});
-});
-
-describe("PlaybookActorSheet#_onEquipmentTierStep", () => {
-	it("increments the matching entry's tier, leaving other entries untouched", () => {
-		const sheet = new PlaybookActorSheet();
-		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [], scale: "foot", tier: 2 };
-		const other = { id: "2", kind: "gear", name: "Rope", description: "", tags: [], spent: [] };
-		sheet.actor = { system: { attributes: { equipment: [entry, other] } }, update: vi.fn() };
-
-		sheet._onEquipmentTierStep({ currentTarget: { dataset: { equipmentId: "1", delta: "1" } } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.equipment": [{ ...entry, tier: 3 }, other]
-		});
-	});
-
-	it("clamps at the maximum tier and does not update the actor", () => {
-		const sheet = new PlaybookActorSheet();
-		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [], scale: "foot", tier: 5 };
-		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
-
-		sheet._onEquipmentTierStep({ currentTarget: { dataset: { equipmentId: "1", delta: "1" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-
-	it("clamps at the minimum tier and does not update the actor", () => {
-		const sheet = new PlaybookActorSheet();
-		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [], scale: "foot", tier: 1 };
-		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
-
-		sheet._onEquipmentTierStep({ currentTarget: { dataset: { equipmentId: "1", delta: "-1" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-
-	it("does nothing for an id that doesn't match any entry", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { equipment: [] } }, update: vi.fn() };
-
-		sheet._onEquipmentTierStep({ currentTarget: { dataset: { equipmentId: "not-a-real-id", delta: "1" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-
-	it("treats a missing tier as starting at the minimum", () => {
-		const sheet = new PlaybookActorSheet();
-		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [], scale: "foot" };
-		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
-
-		sheet._onEquipmentTierStep({ currentTarget: { dataset: { equipmentId: "1", delta: "1" } } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.equipment": [{ ...entry, tier: 2 }]
-		});
 	});
 });
 
@@ -5366,9 +5311,9 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 		expect(playbookGroup(sheet.getData()).startingMovesAvailable).toBe(true);
 	});
 
-	it("hides starting moves for good once startingMovesChosen is set", () => {
+	it("hides starting moves while the actor already has playbook moves", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { startingMovesChosen: true } } };
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { playbookMoves: ["the-scout:field-scout"] } } };
 
 		expect(playbookGroup(sheet.getData()).startingMovesAvailable).toBe(false);
 	});
@@ -6854,12 +6799,12 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 	const know = { key: "know", label: "KNOW", value: 1 };
-	const wardingSpend = {
-		partKey: WARDING.key,
-		partName: "Warding",
-		description: WARDING.spend.description,
+	const artifactSpend = {
+		partKey: ARTIFACT.key,
+		partName: "Artifact",
+		description: ARTIFACT.spend.description,
 		effect: null,
-		advantage: null,
+		advantage: "advantage",
 		disabled: false
 	};
 
@@ -6868,7 +6813,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 		sheet.actor = {
 			system: {
 				stats: { know: { value: 1 } },
-				attributes: { astir: { id: "a1", parts: [WARDING.key], piloted: true } }
+				attributes: { astir: { id: "a1", parts: [ARTIFACT.key], piloted: true } }
 			}
 		};
 		configureMoveRoll.mockResolvedValue(null);
@@ -6877,7 +6822,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [wardingSpend],
+			astirPartSpends: [artifactSpend],
 			equipmentSpends: []
 		});
 	});
@@ -6887,7 +6832,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 		sheet.actor = {
 			system: {
 				stats: { know: { value: 1 } },
-				attributes: { astir: { id: "a1", parts: [WARDING.key], piloted: false } }
+				attributes: { astir: { id: "a1", parts: [ARTIFACT.key], piloted: false } }
 			}
 		};
 		configureMoveRoll.mockResolvedValue(null);
@@ -6907,8 +6852,8 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 			system: {
 				stats: { know: { value: 1 } },
 				attributes: {
-					astir: { id: "a1", parts: [WARDING.key], piloted: true },
-					moveUses: { [WARDING.key]: { expended: true } }
+					astir: { id: "a1", parts: [ARTIFACT.key], piloted: true },
+					moveUses: { [ARTIFACT.key]: { expended: true } }
 				}
 			}
 		};
@@ -6938,6 +6883,54 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [],
+			equipmentSpends: []
+		});
+	});
+
+	// Warding used to carry a `spend` with no `effect`/`advantage`, which leaked it into every
+	// move's roll dialog as a checkbox that did nothing when checked (see claude.md's Astir
+	// section) — this pins it as permanently excluded, the same way an effect-less equipment tag
+	// (Ward) is excluded from _equipmentSpends, rather than relying on it merely happening to have
+	// no `spend` field today.
+	it("excludes Warding, a part whose spend sets neither effect nor advantage", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { astir: { id: "a1", parts: [WARDING.key], piloted: true } }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
+			astirPartSpends: [],
+			equipmentSpends: []
+		});
+	});
+
+	// No Astir Part in the catalog uses spend.effect yet (only Artifact's spend.advantage), but
+	// _astirPartSpends supports it symmetrically with an equipment tag's spend.effect (see
+	// claude.md's Astir section) — this stubs _mountedParts with a synthetic part so that support
+	// stays exercised rather than silently rotting until a real effect-based part is added.
+	it("offers a hypothetical part whose spend sets effect rather than advantage", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { know: { value: 1 } }, attributes: {} } };
+		sheet._mountedParts = () => [
+			{ key: "astir-part:fixture", name: "Fixture", spend: { effect: "confidence", description: "d" } }
+		];
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
+			astirPartSpends: [{
+				partKey: "astir-part:fixture", partName: "Fixture", description: "d",
+				effect: "confidence", advantage: null, disabled: false
+			}],
 			equipmentSpends: []
 		});
 	});
@@ -6983,19 +6976,19 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 		sheet.actor = {
 			system: {
 				stats: { know: { value: 1 } },
-				attributes: { astir: { id: "a1", parts: [WARDING.key], piloted: true } }
+				attributes: { astir: { id: "a1", parts: [ARTIFACT.key], piloted: true } }
 			},
 			update: vi.fn()
 		};
-		const config = { trait: know, advantage: "none", effect: "none", spentParts: [WARDING.key] };
+		const config = { trait: know, advantage: "none", effect: "none", spentParts: [ARTIFACT.key] };
 		configureMoveRoll.mockResolvedValue(config);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ [`system.attributes.moveUses.${WARDING.key}.expended`]: true });
+		expect(sheet.actor.update).toHaveBeenCalledWith({ [`system.attributes.moveUses.${ARTIFACT.key}.expended`]: true });
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, {
 			...config,
-			spentPartLabels: [{ key: WARDING.key, label: "Warding" }]
+			spentPartLabels: [{ key: ARTIFACT.key, label: "Artifact" }]
 		});
 	});
 
