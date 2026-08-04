@@ -3,15 +3,22 @@ import { DRAIN_GROUP, resolveEquipmentTags } from "../scripts/equipment.js";
 import { ASTIR_PART_CATALOG, ASTIR_WEAPON_CATALOG } from "../scripts/astir.js";
 import {
 	ARDENT_DEFAULT_NAME,
+	ARDENT_FEATURE_MAX_BASE,
+	ARDENT_FEATURE_PARTS,
+	ARDENT_FEATURE_WEAPONS,
 	ARDENT_MAX_LOADOUT,
 	ARDENT_TIER_DEFAULT,
 	ARDENT_TIER_MAX,
 	ARDENT_TIER_MIN,
+	ardentBaselineLoadoutCount,
+	ardentFeatureLoadoutCount,
+	ardentFeatureMax,
 	ardentLoadoutCount,
 	ardentParts,
 	ardentWeapons,
 	buildArdent,
-	chooseFrame
+	chooseFrame,
+	isAceFeaturePart
 } from "../scripts/ardent.js";
 
 beforeEach(() => {
@@ -227,5 +234,104 @@ describe("chooseFrame", () => {
 		chooseFrame([astirFrame]);
 
 		expect(Dialog.mock.calls.at(-1)[1]).toEqual({ classes: ["armor-astir"] });
+	});
+});
+
+describe("ARDENT_FEATURE_PARTS/ARDENT_FEATURE_WEAPONS", () => {
+	it("carries no powerCost or weaponPowerBonus on any part — an Ardent has no Power pool", () => {
+		for (const part of ARDENT_FEATURE_PARTS) {
+			expect(part.powerCost).toBeUndefined();
+			expect(part.weaponPowerBonus).toBeUndefined();
+		}
+	});
+
+	it("carries no Drain tag on any weapon — an Ardent has no Power for Drain to reduce", () => {
+		for (const weapon of ARDENT_FEATURE_WEAPONS) {
+			const hasDrain = resolveEquipmentTags(weapon.tags ?? []).some((tag) => tag.exclusiveGroup === DRAIN_GROUP);
+			expect(hasDrain).toBe(false);
+		}
+	});
+
+	it("is a separate catalog from the generic Astir-derived one — no overlapping keys", () => {
+		const featureKeys = [...ARDENT_FEATURE_PARTS, ...ARDENT_FEATURE_WEAPONS].map((entry) => entry.key);
+		const astirKeys = [...ASTIR_PART_CATALOG, ...ASTIR_WEAPON_CATALOG].map((entry) => entry.key);
+		for (const key of featureKeys) {
+			expect(astirKeys.includes(key)).toBe(false);
+		}
+	});
+});
+
+describe("isAceFeaturePart", () => {
+	it("is true for a key in ARDENT_FEATURE_PARTS", () => {
+		expect(isAceFeaturePart(ARDENT_FEATURE_PARTS[0].key)).toBe(true);
+	});
+
+	it("is false for a key in the generic Astir-derived catalog", () => {
+		expect(isAceFeaturePart(ASTIR_PART_CATALOG[0].key)).toBe(false);
+	});
+
+	it("takes an injectable catalog for fixture-based tests", () => {
+		const catalog = [{ key: "custom:a" }];
+		expect(isAceFeaturePart("custom:a", catalog)).toBe(true);
+		expect(isAceFeaturePart("custom:b", catalog)).toBe(false);
+	});
+});
+
+describe("ardentBaselineLoadoutCount", () => {
+	it("counts baseline parts and weapons, excluding Ardent Feature parts and commanderFeature weapons", () => {
+		const featureKey = ARDENT_FEATURE_PARTS[0].key;
+		const ardent = { id: "ar1", parts: ["astir-part:a", featureKey] };
+		const equipment = [
+			{ id: "1", kind: "weapon", ardent: "ar1" },
+			{ id: "2", kind: "weapon", ardent: "ar1", commanderFeature: true },
+			{ id: "3", kind: "weapon", ardent: "ar2" }
+		];
+
+		expect(ardentBaselineLoadoutCount(ardent, equipment)).toBe(2);
+	});
+
+	it("matches ardentLoadoutCount exactly when nothing is Feature-flagged", () => {
+		const ardent = { id: "ar1", parts: ["astir-part:a", "astir-part:b"] };
+		const equipment = [{ id: "1", kind: "weapon", ardent: "ar1" }];
+
+		expect(ardentBaselineLoadoutCount(ardent, equipment)).toBe(ardentLoadoutCount(ardent, equipment));
+	});
+
+	it("treats a missing parts array and missing equipment as empty", () => {
+		expect(ardentBaselineLoadoutCount({ id: "ar1" })).toBe(0);
+	});
+});
+
+describe("ardentFeatureLoadoutCount", () => {
+	it("counts only Ardent Feature parts and commanderFeature weapons", () => {
+		const featureKey = ARDENT_FEATURE_PARTS[0].key;
+		const ardent = { id: "ar1", parts: ["astir-part:a", featureKey] };
+		const equipment = [
+			{ id: "1", kind: "weapon", ardent: "ar1" },
+			{ id: "2", kind: "weapon", ardent: "ar1", commanderFeature: true },
+			{ id: "3", kind: "weapon", ardent: "ar2", commanderFeature: true }
+		];
+
+		expect(ardentFeatureLoadoutCount(ardent, equipment)).toBe(2);
+	});
+
+	it("treats a missing parts array and missing equipment as empty", () => {
+		expect(ardentFeatureLoadoutCount({ id: "ar1" })).toBe(0);
+	});
+});
+
+describe("ARDENT_FEATURE_MAX_BASE/ardentFeatureMax", () => {
+	it("defaults to 3 with no picked moves", () => {
+		expect(ARDENT_FEATURE_MAX_BASE).toBe(3);
+		expect(ardentFeatureMax([])).toBe(3);
+		expect(ardentFeatureMax()).toBe(3);
+	});
+
+	it("sums ardentFeatureBonus across picked moves on top of the base (Requisitions: +2)", () => {
+		expect(ardentFeatureMax([{ ardentFeatureBonus: 2 }])).toBe(5);
+	});
+
+	it("ignores a picked move with no ardentFeatureBonus flag", () => {
+		expect(ardentFeatureMax([{ key: "x" }])).toBe(3);
 	});
 });

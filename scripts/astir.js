@@ -57,7 +57,9 @@ export const ASTIR_DEFAULT_IMG = "icons/svg/mystery-man.svg";
 // period: "Sortie" — cleared by the Controls tab's Refresh Sortie button (see
 // PlaybookActorSheet#_onRefreshSortie); Subsystems' own "spend 1 Power to re-activate" text is a
 // separate, unaffected mid-Sortie option, not a substitute for the periodic refresh.
-const EXPENDED_USE = [{ key: "expended", label: "Expended", period: "Sortie" }];
+// Exported so ardent.js's own Commander-exclusive Ardent Feature catalog (see ARDENT_FEATURE_PARTS)
+// can reuse the identical checkbox shape rather than redefining it.
+export const EXPENDED_USE = [{ key: "expended", label: "Expended", period: "Sortie" }];
 
 export const ASTIR_PART_CATALOG = [
 	{

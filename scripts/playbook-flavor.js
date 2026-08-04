@@ -22,6 +22,35 @@ export const PLAYBOOK_FLAVOR = {
 			"Do you have a better relationship with regular soldiers due to not being a pilot?"
 		]
 	},
+	"the-commander": {
+		look: [
+			{ label: "You look:", text: "scarred, formal, out of your depth, decorated or wry" },
+			{ label: "You wear:", text: "lightweight clothing, military uniform, officer's dress, tough overalls" },
+			{ label: "Your squad is:", text: "fresh rookies, getting too old for this, a motley crew, the rank-and-file" }
+		],
+		intro: [
+			"Not everyone on the battlefield is lucky enough to have enough magic at their fingertips to " +
+				"pilot an Astir, or to have the time and training to be a Scout. The rest of you wade " +
+				"through the mud and dirt, clutching spark-rifles, or spears, or whatever you're given, " +
+				"hoping you don't get stepped on. If you do find yourself a little sliver of that luck " +
+				"though, you might find yourself part of an Ardent crew. Prove yourself, and you might even " +
+				"end up in charge.",
+			"To play the Commander is to draw into the spotlight those not fortunate enough to be " +
+				"Channelers, and to look into the bureaucracy and logistics of military operation. Ace crew " +
+				"provides you with your squad, and moves like retrofit and support company allow you to " +
+				"reinforce them with a little extra firepower. Consider;"
+		],
+		consider: [
+			"Does your custom Ardent have a name?",
+			"What is your squad or the part of the military you belong to called?",
+			"Are you a formally trained soldier, or something more informal?",
+			"Were you always part of the Cause, or did you defect?",
+			"What's your relationship like with those that pilot Astirs?",
+			"Have you always fought in Ardents?",
+			"When was the first time you saw an Astir?",
+			"What kind of vehicle exactly is your Ardent?"
+		]
+	},
 	"the-impostor": {
 		look: [
 			{ label: "You look:", text: "wild, cold, sharp, cocky or brash" },

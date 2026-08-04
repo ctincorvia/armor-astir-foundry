@@ -669,6 +669,22 @@ export const EQUIPMENT_CATALOG = [
 		description: "A destructive spell delayed by a wax timer. Stick it on an Astir, light the wick, and run " +
 			"for your life.",
 		tags: ["ruin", "one-use"]
+	},
+	{
+		key: "saber-sidearm-i",
+		name: "Saber & Sidearm I",
+		kind: "weapon",
+		description: "The standard-issue pairing carried by Ardent crews: a reliable sidearm backed up by a " +
+			"blade for when the fight closes in.",
+		tags: ["ranged", "versatile"],
+		scale: "foot"
+	},
+	{
+		key: "clothes-i",
+		name: "Clothes",
+		kind: "gear",
+		description: "Clothes that match your look.",
+		tags: []
 	}
 ];
 

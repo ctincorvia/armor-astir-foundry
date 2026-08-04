@@ -50,18 +50,34 @@ import {
 } from "./astir.js";
 import {
 	ARDENT_DEFAULT_NAME,
+	ARDENT_FEATURE_PARTS,
+	ARDENT_FEATURE_WEAPONS,
 	ARDENT_MAX_LOADOUT,
 	ARDENT_TIER_DEFAULT,
 	ARDENT_TIER_MAX,
 	ARDENT_TIER_MIN,
-	ardentLoadoutCount,
+	ardentBaselineLoadoutCount,
+	ardentFeatureLoadoutCount,
+	ardentFeatureMax,
 	ardentParts,
 	ardentWeapons,
 	buildArdent,
-	chooseFrame
+	chooseFrame,
+	isAceFeaturePart
 } from "./ardent.js";
 import { chooseCarrier, findCarrierActors } from "./carrier-actor-sheet.js";
 import { traitBonusesFor } from "./trait-bonuses.js";
+import { addEntry, removeEntry, updateEntryField } from "./entry-list.js";
+import {
+	CLOCK_STEPS_DEFAULT,
+	CLOCK_STEPS_MAX,
+	CLOCK_STEPS_MIN,
+	addClock,
+	removeClock,
+	setClockProgress,
+	updateClockLabel,
+	updateClockSteps
+} from "./clocks.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
 
@@ -79,12 +95,13 @@ const HOLD_MAX = 3;
 const SPOTLIGHT_MIN = 0;
 const SPOTLIGHT_MAX = 6;
 
-// Downtime Tokens (Downtime tab): a per-Sortie resource refreshed to DOWNTIME_TOKENS_MAX by the
-// Refresh Sortie control (see _onRefreshSortie). Every character caps at 3 today; nothing raises
-// it yet, so this stays a flat constant rather than derived/stored data (contrast Astir Power's
-// Parts-derived max) until a playbook or part actually needs to.
+// Downtime Tokens (Downtime tab): a per-Sortie resource refreshed to _downtimeTokensMax() by the
+// Refresh Sortie control (see _onRefreshSortie). DOWNTIME_TOKENS_MAX_BASE (3) is the floor every
+// character starts with; a picked move can raise it via its own declarative downtimeTokensMax flag
+// (Commander's Debrief: 4 total) — see _downtimeTokensMax, which takes the max across picked moves
+// the same way _conflictTier takes the max across conflictTier flags.
 const DOWNTIME_TOKENS_MIN = 0;
-const DOWNTIME_TOKENS_MAX = 3;
+const DOWNTIME_TOKENS_MAX_BASE = 3;
 
 // A character's Tier for all physical-conflict purposes is 1 by default unless a picked playbook
 // move raises it (Field Scout, Giant Slayer — see playbook-moves.js's conflictTier). Deliberately
@@ -108,14 +125,23 @@ const GRAVITY_CLOCK_VALUE_MAX = 3;
 // How many of the six top Advancement checklist items unlock the bottom four (see advancements.js).
 const ADVANCEMENT_UNLOCK_THRESHOLD = 3;
 
+// Every catalog an Ardent's own parts array might reference — the generic Astir-derived one every
+// playbook's Ardent draws from (ASTIR_PART_CATALOG, via ardentParts()) plus Commander's exclusive
+// Ardent Features (ARDENT_FEATURE_PARTS, see ardent.js) — used wherever an Ardent's stored part keys
+// need resolving, since a Commander's Ardent can carry keys from either catalog at once.
+const ARDENT_PART_CATALOG = [...ASTIR_PART_CATALOG, ...ARDENT_FEATURE_PARTS];
+
 // All groups share one flat list for key lookup (_onMoveRoll/_onMoveDescription) since a move's
 // section (Basic vs Special vs Playbook vs Astir) is purely a sheet-display grouping, not part of
 // its identity. Playbook/Astir move keys are pool-prefixed (see playbook-moves.js/astir.js) so
-// this stays collision-free as pools fill in. ASTIR_PART_CATALOG and ASTIR_MOVE_CATALOG are
-// flattened in whole, the same "every possible entry, not just what's picked" treatment
-// ALL_PLAYBOOK_MOVES already gives MOVE_POOLS — an individual actor's picked subset is resolved
-// separately (see resolveAstirParts/findAstirMove in getData).
-const ALL_MOVES = [...BASIC_MOVES, ...SPECIAL_MOVES, ...ALL_PLAYBOOK_MOVES, ...ASTIR_PART_CATALOG, ...ASTIR_MOVE_CATALOG];
+// this stays collision-free as pools fill in. ARDENT_PART_CATALOG (which already includes
+// ASTIR_PART_CATALOG) and ASTIR_MOVE_CATALOG are flattened in whole, the same "every possible
+// entry, not just what's picked" treatment ALL_PLAYBOOK_MOVES already gives MOVE_POOLS — an
+// individual actor's picked subset is resolved separately (see resolveAstirParts/findAstirMove in
+// getData). Ardent Features need to be in this flat list too — Roll/Activate/Description buttons,
+// Refresh Sortie's uses-clearing walk, and the roll dialog all resolve a move purely by key here,
+// regardless of which catalog it actually lives in.
+const ALL_MOVES = [...BASIC_MOVES, ...SPECIAL_MOVES, ...ALL_PLAYBOOK_MOVES, ...ARDENT_PART_CATALOG, ...ASTIR_MOVE_CATALOG];
 
 // Moves that represent attacking with a weapon (see moves.js's usesWeapon). Drives both
 // _onMoveRoll's weapon-choice prompt and the per-weapon quick-roll buttons in the Equipment tab
@@ -175,6 +201,11 @@ export class PlaybookActorSheet extends ActorSheet {
 		const playbookSlug = this.actor.system.playbook?.slug;
 		data.lookText = this.actor.system.details?.look?.value || defaultLookText(playbookSlug);
 		data.considerText = this.actor.system.details?.consider?.value || defaultConsiderText(playbookSlug);
+		// Gates the Ace Crew roster (Social tab) and the Custom Ardent's own "Add Ardent Feature"
+		// controls (Astir & Ardents tab) — both exclusive to Commander (see ardent.js's
+		// ARDENT_FEATURE_PARTS/ARDENT_FEATURE_WEAPONS and claude.md's Commander notes). No Handlebars
+		// equality helper is registered in this module, so the comparison happens here instead.
+		data.isCommander = playbookSlug === "the-commander";
 		// Rendered next to the Approach select in the header — see claude.md's Character Tier
 		// notes: on-foot Tier and Approach are the same kind of "how you fight outside your Astir"
 		// property. Derived fresh every render, not stored — see _conflictTier.
@@ -199,13 +230,13 @@ export class PlaybookActorSheet extends ActorSheet {
 			value: spotlightValue,
 			steps: Array.from({ length: SPOTLIGHT_MAX }, (_, i) => ({ step: i + 1, filled: i + 1 <= spotlightValue }))
 		};
-		// Downtime Tokens live on their own Downtime tab. max is a flat constant for now — no
-		// playbook or Astir part grants a higher one yet — so unlike Astir Power's derived max,
-		// there's nothing to compute here; value defaults to a fresh max, since a new character
-		// starts a Sortie with a full pool.
+		// Downtime Tokens live on their own Downtime tab. max is derived from picked moves (see
+		// _downtimeTokensMax, e.g. Commander's Debrief) — value defaults to a fresh max, since a new
+		// character starts a Sortie with a full pool.
+		const downtimeTokensMax = this._downtimeTokensMax();
 		data.downtimeTokens = {
-			value: this.actor.system.attributes?.downtimeTokens?.value ?? DOWNTIME_TOKENS_MAX,
-			max: DOWNTIME_TOKENS_MAX
+			value: this.actor.system.attributes?.downtimeTokens?.value ?? downtimeTokensMax,
+			max: downtimeTokensMax
 		};
 		// Basic and Special moves are the same fixed list for every actor; Playbook Moves is the
 		// per-actor set picked via the "+" button, so it's the only group that renders add/remove
@@ -259,7 +290,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		}
 		const ardents = this._ardents();
 		for (const ardent of ardents) {
-			const parts = resolveAstirParts(ardent.parts ?? []);
+			const parts = resolveAstirParts(ardent.parts ?? [], ARDENT_PART_CATALOG);
 			if (!parts.length) continue;
 			data.moveGroups.push({
 				label: `${ardent.name || ARDENT_DEFAULT_NAME} Moves`,
@@ -403,10 +434,25 @@ export class PlaybookActorSheet extends ActorSheet {
 		// list (not narrowed by a Core — Ardents have none), its parts read the same way the
 		// Astir's own do (drawn from the same catalog — see ardentParts), and loadoutFull disables
 		// both the Parts and Weapons "+" buttons at once, since the two combine into one cap.
+		//
+		// Commander's Custom Ardent additionally has a second, independent Ardent Feature pool (see
+		// ardent.js's ARDENT_FEATURE_PARTS/ARDENT_FEATURE_WEAPONS/ardentFeatureMax) — parts/weapons
+		// from that pool are split out of the baseline parts/weapons lists above (via
+		// isAceFeaturePart / the commanderFeature flag) into their own featureParts/featureWeapons,
+		// with their own featureLoadoutFull, so the two "+"-button pairs never interfere with each
+		// other's cap. Computed for every actor regardless of playbook — an actor with no
+		// Feature-flagged items just gets an empty featureParts/featureWeapons and featureLoadoutFull:
+		// false — the template gates the section itself on isCommander.
 		data.ardentTierMin = ARDENT_TIER_MIN;
 		data.ardentTierMax = ARDENT_TIER_MAX;
+		const ardentFeatureCap = ardentFeatureMax(resolvePlaybookMoves(this._playbookMoves()));
 		data.ardents = ardents.map((ardent) => {
-			const parts = resolveAstirParts(ardent.parts ?? []);
+			const allParts = resolveAstirParts(ardent.parts ?? [], ARDENT_PART_CATALOG);
+			const parts = allParts.filter((part) => !isAceFeaturePart(part.key));
+			const featureParts = allParts.filter((part) => isAceFeaturePart(part.key));
+			const allWeapons = ardentWeaponEntriesById.get(ardent.id);
+			const weapons = allWeapons.filter((weapon) => !weapon.commanderFeature);
+			const featureWeapons = allWeapons.filter((weapon) => weapon.commanderFeature);
 			return {
 				id: ardent.id,
 				name: ardent.name || ARDENT_DEFAULT_NAME,
@@ -422,13 +468,22 @@ export class PlaybookActorSheet extends ActorSheet {
 					partType: part.partType,
 					tier: ardent.tier ?? ARDENT_TIER_DEFAULT
 				})),
-				// Never falls back — ardentWeaponEntriesById is built from this same `ardents` list, so
-				// every Ardent's id already has an entry (possibly an empty array).
-				weapons: ardentWeaponEntriesById.get(ardent.id),
+				weapons,
 				// Only appears once a part actually grants it (Standardised Parts — see astir.js), same
 				// object-not-bare-number treatment the Astir's own repairTokens gets in getData above.
-				repairTokens: parts.some((part) => part.grantsRepairTokens) ? { value: ardent.repairTokens ?? 0 } : null,
-				loadoutFull: ardentLoadoutCount(ardent, equipment) >= ARDENT_MAX_LOADOUT
+				// Checked against every installed part (baseline + Feature) — Standardised Parts has no
+				// reason to be Feature-exclusive, and isn't.
+				repairTokens: allParts.some((part) => part.grantsRepairTokens) ? { value: ardent.repairTokens ?? 0 } : null,
+				loadoutFull: ardentBaselineLoadoutCount(ardent, equipment) >= ARDENT_MAX_LOADOUT,
+				featureParts: featureParts.map((part) => ({
+					key: part.key,
+					name: part.name,
+					partType: part.partType,
+					tier: ardent.tier ?? ARDENT_TIER_DEFAULT
+				})),
+				featureWeapons,
+				featureMax: ardentFeatureCap,
+				featureLoadoutFull: ardentFeatureLoadoutCount(ardent, equipment) >= ardentFeatureCap
 			};
 		});
 		// The Controls section (see the template's dangers-column) — Mount Up/Dismount just drive
@@ -471,6 +526,25 @@ export class PlaybookActorSheet extends ActorSheet {
 		// DANGER_MAX/type select), so getData just exposes the stored list as-is; there's no derived
 		// per-entry shape to build the way Gravity Clocks' progressSteps needs.
 		data.burdens = { list: this._burdens() };
+		// Generic narrative clocks (see clocks.js) — universal, unlike Gravity Clocks above, so this
+		// section renders on every playbook's sheet regardless of isCommander. Same per-clock
+		// progressSteps expansion Gravity Clocks' own list already does, just sized to each clock's
+		// own `steps` rather than one shared constant.
+		data.clocks = {
+			min: CLOCK_STEPS_MIN,
+			max: CLOCK_STEPS_MAX,
+			list: this._clocks().map((clock) => ({
+				...clock,
+				progressSteps: Array.from({ length: clock.steps ?? CLOCK_STEPS_DEFAULT }, (_, i) => ({
+					step: i + 1,
+					filled: i + 1 <= (clock.progress ?? 0)
+				}))
+			}))
+		};
+		// Commander's Ace Crew roster (see playbook-moves.js's Ace Crew move) — gated to Commander by
+		// the template (isCommander above), same "compute regardless, gate the render" treatment
+		// gravityTrigger already gets from a missing GRAVITY_TRIGGERS entry.
+		data.aceCrew = { list: this._aceCrew() };
 		// The bottom four Advancement options unlock once at least ADVANCEMENT_UNLOCK_THRESHOLD of
 		// the top six are checked. `checked` for bottom items is always read from stored data
 		// regardless of `locked` — locking only blocks new checkbox interaction in the template,
@@ -520,6 +594,19 @@ export class PlaybookActorSheet extends ActorSheet {
 
 	_gravityClocks() {
 		return this.actor.system.attributes?.gravityClocks ?? [];
+	}
+
+	// Generic narrative clocks (see clocks.js) — universal, not gated to any playbook, unlike
+	// Gravity Clocks above (fixed-6-step, tied to the Social tab's Gravity Trigger section).
+	_clocks() {
+		return this.actor.system.attributes?.clocks ?? [];
+	}
+
+	// Commander's Ace Crew roster: 3-5 named individuals with an adjective or two each (see
+	// playbook-moves.js's Ace Crew move). Reuses entry-list.js's CRUD helpers, the same pattern
+	// Carrier's Crew Members already establish for a plain id-keyed list of {name, ...} entries.
+	_aceCrew() {
+		return this.actor.system.attributes?.aceCrew ?? [];
 	}
 
 	_equipment() {
@@ -591,7 +678,7 @@ export class PlaybookActorSheet extends ActorSheet {
 	// rather than checking piloted state and _astirParts() separately, since an Ardent's own parts
 	// (drawn from the same catalog — see ardent.js) work identically to the Astir's once mounted.
 	_mountedParts() {
-		return resolveAstirParts(this._mountedFrame()?.parts ?? []);
+		return resolveAstirParts(this._mountedFrame()?.parts ?? [], ARDENT_PART_CATALOG);
 	}
 
 	// Which frame (by _frames' own id shape) an equipment entry belongs to, or null for a mundane
@@ -623,16 +710,30 @@ export class PlaybookActorSheet extends ActorSheet {
 	// other always-derived numbers). `base` is CHARACTER_TIER_DEFAULT unless a picked playbook move
 	// raises it via conflictTier (Field Scout II, Giant Slayer III) — max wins if somehow both are
 	// picked, since "pick either" is exactly as unenforced as every other pool restriction in this
-	// module (see playbook-moves.js's own top comment). While a frame is mounted, `effective` is
-	// that frame's own Tier instead of `base` — on dismount it reverts.
+	// module (see playbook-moves.js's own top comment). `bonus` (Commander's Ace Crew: "your tier...
+	// counts as one higher than whatever it would normally be") is a flat +N added on top of
+	// whichever of base/frame Tier is currently active, summed across picked moves rather than
+	// maxed like conflictTier — Ace Crew is the only source today, but nothing stops two sources
+	// stacking the way conflictTier's "pick either" deliberately doesn't. While a frame is mounted,
+	// `effective` is that frame's own Tier (plus bonus) instead of `base` — on dismount it reverts.
 	_conflictTier() {
 		const picked = resolvePlaybookMoves(this._playbookMoves());
 		const base = picked.reduce((max, move) => Math.max(max, move.conflictTier ?? 0), CHARACTER_TIER_DEFAULT);
+		const bonus = picked.reduce((sum, move) => sum + (move.tierBonus ?? 0), 0);
 		const frame = this._mountedFrame();
 		if (frame) {
-			return { base, effective: frame.tier, fromFrame: true, frameName: frame.name };
+			return { base: base + bonus, effective: frame.tier + bonus, fromFrame: true, frameName: frame.name };
 		}
-		return { base, effective: base, fromFrame: false };
+		return { base: base + bonus, effective: base + bonus, fromFrame: false };
+	}
+
+	// Downtime Tokens' effective max (see getData's downtimeTokens, _onDowntimeTokensStep,
+	// _onRefreshSortie) — DOWNTIME_TOKENS_MAX_BASE unless a picked move raises it via its own
+	// declarative downtimeTokensMax flag (Commander's Debrief: 4 total), taking the max across
+	// picked moves the same way _conflictTier's own base does for conflictTier.
+	_downtimeTokensMax() {
+		const picked = resolvePlaybookMoves(this._playbookMoves());
+		return picked.reduce((max, move) => Math.max(max, move.downtimeTokensMax ?? 0), DOWNTIME_TOKENS_MAX_BASE);
 	}
 
 	// Shared by getData (render shape) and _equipmentSpends (roll dialog offers) so a tag's
@@ -681,7 +782,11 @@ export class PlaybookActorSheet extends ActorSheet {
 					: WEAPON_SCALES.find((s) => s.key === entry.scale)?.label ?? entry.scale,
 				tier: (entry.astir || entry.ardent) ? frame?.tier : this._conflictTier().base,
 				weaponMoves,
-				isAstir: Boolean(entry.astir)
+				isAstir: Boolean(entry.astir),
+				// Commander-exclusive (see ardent.js's ardentFeatureLoadoutCount) — surfaced here so
+				// getData's per-Ardent split into baseline vs. Feature weapons can read it off the
+				// already-mapped entry rather than re-filtering the raw equipment array a second time.
+				commanderFeature: Boolean(entry.commanderFeature)
 			})
 		};
 	}
@@ -1008,6 +1113,14 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".gravity-clock-label-input").on("change", this._onGravityClockLabelChange.bind(this));
 		html.find(".gravity-clock-value-step").on("click", this._onGravityClockValueStep.bind(this));
 		html.find(".gravity-clock-step").on("click", this._onGravityClockStep.bind(this));
+		html.find(".clock-add").on("click", this._onClockAdd.bind(this));
+		html.find(".clock-remove").on("click", this._onClockRemove.bind(this));
+		html.find(".clock-label-input").on("change", this._onClockLabelChange.bind(this));
+		html.find(".clock-steps-input").on("change", this._onClockStepsChange.bind(this));
+		html.find(".clock-step").on("click", this._onClockStep.bind(this));
+		html.find(".ace-crew-add").on("click", this._onAceCrewAdd.bind(this));
+		html.find(".ace-crew-remove").on("click", this._onAceCrewRemove.bind(this));
+		html.find(".ace-crew-field").on("change", this._onAceCrewFieldChange.bind(this));
 		html.find(".starting-moves-add").on("click", this._onStartingMovesAdd.bind(this));
 		html.find(".playbook-move-add").on("click", this._onPlaybookMoveAdd.bind(this));
 		html.find(".playbook-move-remove").on("click", this._onPlaybookMoveRemove.bind(this));
@@ -1048,6 +1161,8 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".ardent-part-add").on("click", this._onArdentPartAdd.bind(this));
 		html.find(".ardent-part-remove").on("click", this._onArdentPartRemove.bind(this));
 		html.find(".ardent-weapon-catalog-add").on("click", this._onArdentWeaponAdd.bind(this));
+		html.find(".ardent-feature-part-add").on("click", this._onArdentFeaturePartAdd.bind(this));
+		html.find(".ardent-feature-weapon-add").on("click", this._onArdentFeatureWeaponAdd.bind(this));
 		html.find(".controls-mount-up").on("click", this._onMountUp.bind(this));
 		html.find(".controls-dismount").on("click", this._onDismount.bind(this));
 		html.find(".controls-refresh-scene").on("click", this._onRefreshScene.bind(this));
@@ -1107,12 +1222,13 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({ "system.attributes.spotlight.value": clamped });
 	}
 
-	// Bounded by DOWNTIME_TOKENS_MAX — see getData's downtimeTokens for why this is a flat
-	// constant rather than derived data.
+	// Bounded by _downtimeTokensMax() — see getData's downtimeTokens for how a picked move (e.g.
+	// Commander's Debrief) can raise this above DOWNTIME_TOKENS_MAX_BASE.
 	_onDowntimeTokensStep(event) {
 		const { delta } = event.currentTarget.dataset;
-		const current = this.actor.system.attributes?.downtimeTokens?.value ?? DOWNTIME_TOKENS_MAX;
-		const next = Math.min(DOWNTIME_TOKENS_MAX, Math.max(DOWNTIME_TOKENS_MIN, current + Number(delta)));
+		const max = this._downtimeTokensMax();
+		const current = this.actor.system.attributes?.downtimeTokens?.value ?? max;
+		const next = Math.min(max, Math.max(DOWNTIME_TOKENS_MIN, current + Number(delta)));
 		if (next === current) return;
 		this.actor.update({ "system.attributes.downtimeTokens.value": next });
 	}
@@ -1334,7 +1450,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		if (this._astirParts().some((part) => part.grantsPotionsOnLeadASortie)) {
 			updates["system.attributes.astir.potions"] = { red: 0, blue: 0, yellow: 0 };
 		}
-		updates["system.attributes.downtimeTokens.value"] = DOWNTIME_TOKENS_MAX;
+		updates["system.attributes.downtimeTokens.value"] = this._downtimeTokensMax();
 		this.actor.update(updates);
 	}
 
@@ -1498,13 +1614,16 @@ export class PlaybookActorSheet extends ActorSheet {
 
 	// The "+" on an Ardent's own Parts section — offers only the Astir catalog's Ardent-eligible
 	// subset (see ardent.js's ardentParts: no Power cost, no Weapon Power bonus), and refuses once
-	// this Ardent's combined parts+weapons loadout is already at ARDENT_MAX_LOADOUT.
+	// this Ardent's baseline parts+weapons loadout is already at ARDENT_MAX_LOADOUT. Uses
+	// ardentBaselineLoadoutCount rather than the old ardentLoadoutCount so Commander's separately-
+	// capped Ardent Features (see _onArdentFeaturePartAdd) never count against this cap — identical
+	// to ardentLoadoutCount for every other playbook, which never has a Feature-flagged entry at all.
 	async _onArdentPartAdd(event) {
 		const { ardentId } = event.currentTarget.dataset;
 		const current = this._ardents();
 		const ardent = current.find((a) => a.id === ardentId);
 		if (!ardent) return;
-		if (ardentLoadoutCount(ardent, this._equipment()) >= ARDENT_MAX_LOADOUT) {
+		if (ardentBaselineLoadoutCount(ardent, this._equipment()) >= ARDENT_MAX_LOADOUT) {
 			ui.notifications.warn(`An Ardent can carry at most ${ARDENT_MAX_LOADOUT} parts and weapons combined.`);
 			return;
 		}
@@ -1550,13 +1669,14 @@ export class PlaybookActorSheet extends ActorSheet {
 	// The "O" catalog picker for an Ardent weapon (see ardent.js's ardentWeapons: no Drain-tagged
 	// entries — an Ardent has no Power for Drain to reduce), then the same editor _onAstirWeaponAdd
 	// uses, with the ardentWeapon option suppressing the fields an Ardent weapon doesn't need — see
-	// configureEquipment. Refuses once this Ardent's combined loadout is already at
-	// ARDENT_MAX_LOADOUT, same guard _onArdentPartAdd applies to its own half of the same cap.
+	// configureEquipment. Refuses once this Ardent's baseline loadout is already at
+	// ARDENT_MAX_LOADOUT, same guard _onArdentPartAdd applies to its own half of the same cap (see
+	// its own comment on why this reads ardentBaselineLoadoutCount rather than ardentLoadoutCount).
 	async _onArdentWeaponAdd(event) {
 		const { ardentId } = event.currentTarget.dataset;
 		const ardent = this._ardents().find((a) => a.id === ardentId);
 		if (!ardent) return;
-		if (ardentLoadoutCount(ardent, this._equipment()) >= ARDENT_MAX_LOADOUT) {
+		if (ardentBaselineLoadoutCount(ardent, this._equipment()) >= ARDENT_MAX_LOADOUT) {
 			ui.notifications.warn(`An Ardent can carry at most ${ARDENT_MAX_LOADOUT} parts and weapons combined.`);
 			return;
 		}
@@ -1570,6 +1690,63 @@ export class PlaybookActorSheet extends ActorSheet {
 			"system.attributes.equipment": [
 				...this._equipment(),
 				{ id: foundry.utils.randomID(), spent: [], ardent: ardentId, ...result }
+			]
+		});
+	}
+
+	// Commander-exclusive counterpart to _onArdentPartAdd, drawing from ARDENT_FEATURE_PARTS (see
+	// ardent.js) instead of the generic Astir-derived catalog, and capped against the separate
+	// Ardent Feature pool (ardentFeatureLoadoutCount/ardentFeatureMax) rather than ARDENT_MAX_LOADOUT
+	// — the two pools are independent, so filling one never blocks the other. The button itself only
+	// renders for a Commander actor (see the template's isCommander gate), but the handler re-checks
+	// nothing playbook-specific beyond that — an Ardent Feature part installed by any means still
+	// reads back correctly through isAceFeaturePart.
+	async _onArdentFeaturePartAdd(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		const current = this._ardents();
+		const ardent = current.find((a) => a.id === ardentId);
+		if (!ardent) return;
+		const max = ardentFeatureMax(resolvePlaybookMoves(this._playbookMoves()));
+		if (ardentFeatureLoadoutCount(ardent, this._equipment()) >= max) {
+			ui.notifications.warn(`This Ardent can carry at most ${max} Ardent Features.`);
+			return;
+		}
+		const picked = ardent.parts ?? [];
+		const key = await chooseAstirPart(picked, ARDENT_FEATURE_PARTS, { title: "Add an Ardent Feature" });
+		if (!key || picked.includes(key)) return;
+		this.actor.update({
+			"system.attributes.ardents": current.map((a) => (
+				a.id === ardentId ? { ...a, parts: [...picked, key] } : a
+			))
+		});
+	}
+
+	// Commander-exclusive counterpart to _onArdentWeaponAdd — same chain (catalog picker into
+	// configureEquipment's ardentWeapon flow), against ARDENT_FEATURE_WEAPONS instead of
+	// ardentWeapons(), capped against the same Ardent Feature pool _onArdentFeaturePartAdd checks.
+	// The saved entry carries commanderFeature: true — set here and never player-editable — since a
+	// saved equipment entry is a freely-editable snapshot with no link back to its source catalog
+	// (see claude.md's Equipment notes), so this flag is the only way to tell it apart from a
+	// baseline Ardent weapon after the fact (see ardent.js's ardentFeatureLoadoutCount).
+	async _onArdentFeatureWeaponAdd(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		const ardent = this._ardents().find((a) => a.id === ardentId);
+		if (!ardent) return;
+		const max = ardentFeatureMax(resolvePlaybookMoves(this._playbookMoves()));
+		if (ardentFeatureLoadoutCount(ardent, this._equipment()) >= max) {
+			ui.notifications.warn(`This Ardent can carry at most ${max} Ardent Features.`);
+			return;
+		}
+		const template = await chooseAstirWeapon(ARDENT_FEATURE_WEAPONS, { title: "Pick an Ardent Feature Weapon" });
+		if (!template) return;
+
+		const result = await configureEquipment(template, undefined, { ardentWeapon: true });
+		if (!result) return;
+
+		this.actor.update({
+			"system.attributes.equipment": [
+				...this._equipment(),
+				{ id: foundry.utils.randomID(), spent: [], ardent: ardentId, commanderFeature: true, ...result }
 			]
 		});
 	}
@@ -1635,6 +1812,28 @@ export class PlaybookActorSheet extends ActorSheet {
 		});
 	}
 
+	// Commander's Ace Crew roster (see _aceCrew, playbook-moves.js's Ace Crew move) — reuses
+	// entry-list.js's generic CRUD helpers directly, the same pattern Carrier's Crew Members
+	// establish via WorldActorSheet, just wired by hand here since PlaybookActorSheet doesn't
+	// extend that base class.
+	_onAceCrewAdd() {
+		this.actor.update({
+			"system.attributes.aceCrew": addEntry(this._aceCrew(), { name: "", adjective: "" })
+		});
+	}
+
+	_onAceCrewRemove(event) {
+		const { entryId } = event.currentTarget.dataset;
+		this.actor.update({ "system.attributes.aceCrew": removeEntry(this._aceCrew(), entryId) });
+	}
+
+	_onAceCrewFieldChange(event) {
+		const { entryId, field } = event.currentTarget.dataset;
+		this.actor.update({
+			"system.attributes.aceCrew": updateEntryField(this._aceCrew(), entryId, field, event.currentTarget.value)
+		});
+	}
+
 	_onGravityClockAdd(event) {
 		const current = this._gravityClocks();
 		if (current.length >= GRAVITY_CLOCK_MAX) return;
@@ -1689,6 +1888,38 @@ export class PlaybookActorSheet extends ActorSheet {
 		this.actor.update({
 			"system.attributes.gravityClocks": current.map((c) => (c.id === clockId ? { ...c, progress: clamped } : c))
 		});
+	}
+
+	// Generic narrative clocks (see clocks.js) — universal, always-visible section, unlike Gravity
+	// Clocks above. Each handler is a thin wrapper around clocks.js's own pure functions, the same
+	// "thin sheet wiring over a pure helper" split entry-list.js/WorldActorSheet already establish.
+	_onClockAdd() {
+		this.actor.update({ "system.attributes.clocks": addClock(this._clocks(), {}) });
+	}
+
+	_onClockRemove(event) {
+		const { clockId } = event.currentTarget.dataset;
+		this.actor.update({ "system.attributes.clocks": removeClock(this._clocks(), clockId) });
+	}
+
+	_onClockLabelChange(event) {
+		const { clockId } = event.currentTarget.dataset;
+		const label = event.currentTarget.value.trim();
+		this.actor.update({ "system.attributes.clocks": updateClockLabel(this._clocks(), clockId, label) });
+	}
+
+	_onClockStepsChange(event) {
+		const { clockId } = event.currentTarget.dataset;
+		this.actor.update({ "system.attributes.clocks": updateClockSteps(this._clocks(), clockId, event.currentTarget.value) });
+	}
+
+	// Same click-to-set / click-top-to-decrement interaction as _onGravityClockStep, delegated to
+	// clocks.js's own setClockProgress since each clock here carries its own step count rather than
+	// one shared constant.
+	_onClockStep(event) {
+		const { clockId } = event.currentTarget.dataset;
+		const step = Number(event.currentTarget.dataset.step);
+		this.actor.update({ "system.attributes.clocks": setClockProgress(this._clocks(), clockId, step) });
 	}
 
 	// Opens the create dialog, defaulting Kind to whichever "+ Add" button was clicked (Weapons vs

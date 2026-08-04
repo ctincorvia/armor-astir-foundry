@@ -75,7 +75,30 @@ export const STARTING_GEAR_POOLS = [
 			}
 		]
 	},
-	{ playbookName: "The Commander", grantedItems: [], groups: [] },
+	{
+		playbookName: "The Commander",
+		// "1 Custom Ardent II" and "3 Ardent Features" aren't equipment-shaped at all — they're
+		// frame-level content built through the Astir & Ardents tab's own Ardent/Ardent Feature
+		// controls (see ardent.js's ARDENT_FEATURE_PARTS/ARDENT_FEATURE_WEAPONS), not something this
+		// picker can grant. Only the two personal-equipment items from Commander's gear list go here.
+		freeformNotes: ["1 Custom Ardent II, built on the Astir & Ardents tab.", "3 Ardent Features, added from the Custom Ardent's own controls."],
+		grantedItems: [
+			{
+				key: "the-commander:saber-sidearm-i",
+				name: "Saber & Sidearm I",
+				description: "The standard-issue pairing carried by Ardent crews: a reliable sidearm backed " +
+					"up by a blade for when the fight closes in.",
+				kind: "weapon",
+				tags: ["ranged", "versatile"]
+			},
+			{
+				key: "the-commander:clothes",
+				name: "Clothes",
+				description: "Clothes that match your look."
+			}
+		],
+		groups: []
+	},
 	{
 		playbookName: "The Impostor",
 		freeformNotes: ["Clothes that match your look."],

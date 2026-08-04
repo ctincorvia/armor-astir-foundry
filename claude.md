@@ -3,6 +3,22 @@
 ## Concurrent work
 - There might be other agents or humans working at the same time as you. Do not panic if you see diffs with changes you did not make in unrelated files. If you and another actor made changes to the same file, then you can investigate.
 
+## Subagent Model Selection
+
+When spawning subagents via the `Agent` tool, set the `model` parameter explicitly rather than relying on inheritance — under `opusplan` or `opus`, a subagent spawned during plan mode inherits Opus, which is overkill and expensive for most exploration.
+
+- **Rote / well-scoped exploration** (known files or symbols, a single targeted lookup, mechanical grep/read work): use `model: "haiku"`.
+- **High-complexity exploration** (ambiguous scope, cross-file inference, or output that will directly drive a plan): use `model: "sonnet"`.
+
+Judge each exploration's complexity. When genuinely unsure, prefer `sonnet`.
+
+## Implementing Plans from Plan Mode
+
+After a plan is approved, prefer delegating the implementation to a subagent with a distilled, self-contained brief rather than continuing inline in the planning session.
+
+- **How**: write the brief to contain only the finalized approach — don't say "implement the plan we discussed," which leans on the polluted history to fill gaps.
+- **Exception**: for work that needs tight, iterative back-and-forth or repeated judgment calls, staying inline in the session can be simpler than round-tripping through a subagent.
+
 ## Before declaring a task done
 - Stage the changes (`git add`) and run the pre-commit checks (`npx lint-staged` and `npm run test:coverage`, as defined in `.husky/pre-commit`) before declaring any task done.
 

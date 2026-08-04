@@ -382,7 +382,8 @@
 /* Spotlight and Gravity Clock steps are the same pip-track control (empty box / filled box)
    used in two different trackers — one rule instead of two duplicated ones. */
 .armor-astir.sheet .spotlight-step,
-.armor-astir.sheet .gravity-clock-step {
+.armor-astir.sheet .gravity-clock-step,
+.armor-astir.sheet .clock-step {
 	width: 20px;
 	height: 20px;
 	padding: 0;
@@ -393,7 +394,8 @@
 }
 
 .armor-astir.sheet .spotlight-step.filled,
-.armor-astir.sheet .gravity-clock-step.filled {
+.armor-astir.sheet .gravity-clock-step.filled,
+.armor-astir.sheet .clock-step.filled {
 	background: var(--aa-secondary);
 	border-color: var(--aa-secondary);
 }
@@ -518,6 +520,8 @@
    consolidated rule instead. */
 .armor-astir.sheet .danger-remove,
 .armor-astir.sheet .gravity-clock-remove,
+.armor-astir.sheet .clock-remove,
+.armor-astir.sheet .ace-crew-remove,
 .armor-astir.sheet .playbook-move-remove,
 .armor-astir.sheet .equipment-remove,
 .armor-astir.sheet .astir-part-remove,
@@ -537,6 +541,8 @@
 
 .armor-astir.sheet .danger-remove:hover,
 .armor-astir.sheet .gravity-clock-remove:hover,
+.armor-astir.sheet .clock-remove:hover,
+.armor-astir.sheet .ace-crew-remove:hover,
 .armor-astir.sheet .playbook-move-remove:hover,
 .armor-astir.sheet .equipment-remove:hover,
 .armor-astir.sheet .astir-part-remove:hover,
@@ -652,6 +658,54 @@
 	align-items: center;
 	gap: var(--aa-space-1);
 	flex: 0 0 auto;
+}
+
+/* Generic narrative clocks (clocks.js) — same list/item/header/track shape as Gravity Clocks
+   above, minus the secondary value stepper Gravity Clocks alone carry, plus a Steps number input
+   since each clock here carries its own step count rather than one shared constant. */
+.armor-astir.sheet .clock-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .clock-item {
+	padding: var(--aa-space-2) 0;
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.sheet .clock-header {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+}
+
+.armor-astir.sheet .clock-label-input {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.armor-astir.sheet .clock-steps-control {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+	flex: 0 0 auto;
+}
+
+.armor-astir.sheet .clock-steps-input {
+	width: 3em;
+}
+
+.armor-astir.sheet .clock-track {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-2);
+	margin: var(--aa-space-2) 0 0;
+	padding: 0;
+	list-style: none;
 }
 
 .armor-astir.sheet .burden-list {

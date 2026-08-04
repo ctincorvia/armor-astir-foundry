@@ -102,7 +102,15 @@ import {
 	chooseAstirWeapon
 } from "../scripts/astir.js";
 import { findCarrierActors, chooseCarrier } from "../scripts/carrier-actor-sheet.js";
-import { ARDENT_TIER_MAX, ARDENT_TIER_MIN, ardentParts, ardentWeapons, chooseFrame } from "../scripts/ardent.js";
+import {
+	ARDENT_FEATURE_PARTS,
+	ARDENT_FEATURE_WEAPONS,
+	ARDENT_TIER_MAX,
+	ARDENT_TIER_MIN,
+	ardentParts,
+	ardentWeapons,
+	chooseFrame
+} from "../scripts/ardent.js";
 import {
 	PlaybookActorSheet,
 	registerPlaybookActorSheet,
@@ -721,7 +729,7 @@ describe("PlaybookActorSheet#_seedCosmeticDefaults", () => {
 	it("does nothing for a playbook with no flavor prompts to seed", () => {
 		const sheet = new PlaybookActorSheet();
 		const update = vi.fn();
-		sheet.actor = { isOwner: true, system: { playbook: { slug: "the-commander" } }, update };
+		sheet.actor = { isOwner: true, system: { playbook: { slug: "not-a-real-playbook" } }, update };
 
 		sheet._seedCosmeticDefaults();
 
@@ -4040,9 +4048,9 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 		expect(data.equipment.startingGear).toEqual({ available: true });
 	});
 
-	it("hides starting gear for a playbook whose pool has neither items nor a custom weapon", () => {
+	it("hides starting gear for a playbook with no pool at all", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { playbook: { name: "The Commander" }, attributes: {} } };
+		sheet.actor = { system: { playbook: { name: "Not A Real Playbook" }, attributes: {} } };
 
 		const data = sheet.getData();
 
@@ -4131,7 +4139,8 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 					{ key: "exchange-blows", name: "Exchange Blows", gated: false, tooltip: null },
 					{ key: "strike-decisively", name: "Strike Decisively", gated: false, tooltip: null }
 				],
-				isAstir: false
+				isAstir: false,
+				commanderFeature: false
 			}
 		]);
 	});
@@ -4387,9 +4396,9 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 
-	it("does nothing for a pool with neither items nor a custom weapon", async () => {
+	it("does nothing for a playbook with no pool at all", async () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { playbook: { name: "The Commander" }, attributes: { equipment: [] } }, update: vi.fn() };
+		sheet.actor = { system: { playbook: { name: "Not A Real Playbook" }, attributes: { equipment: [] } }, update: vi.fn() };
 
 		await sheet._onStartingGearAdd();
 
@@ -4597,9 +4606,9 @@ describe("PlaybookActorSheet#_onStartingMovesAdd", () => {
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 
-	it("does nothing for a playbook whose pool has nothing to offer yet", async () => {
+	it("does nothing for a playbook with no pool at all", async () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { playbook: { name: "The Commander" } }, update: vi.fn() };
+		sheet.actor = { system: { playbook: { name: "Not A Real Playbook" } }, update: vi.fn() };
 
 		await sheet._onStartingMovesAdd();
 
@@ -5297,9 +5306,9 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 		expect(playbookGroup(sheet.getData()).startingMovesAvailable).toBe(true);
 	});
 
-	it("hides starting moves for a playbook with nothing to offer yet, e.g. The Commander", () => {
+	it("hides starting moves for a playbook with no pool at all", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { playbook: { name: "The Commander" } } };
+		sheet.actor = { system: { playbook: { name: "Not A Real Playbook" } } };
 
 		expect(playbookGroup(sheet.getData()).startingMovesAvailable).toBe(false);
 	});

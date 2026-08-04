@@ -28,7 +28,16 @@ export const STARTING_MOVE_POOLS = [
 		pickOneKeys: ["the-scout:field-scout", "the-scout:giant-slayer"],
 		chooseCount: 2
 	},
-	{ playbookName: "The Commander", poolKey: "the-commander", grantedKeys: [], pickOneKeys: [], chooseCount: 0 },
+	{
+		playbookName: "The Commander",
+		poolKey: "the-commander",
+		// "You start with the ace crew and debrief moves as well as one other from your Additional
+		// Moves" — both always granted (no pick involved), same treatment The Impostor's own
+		// grantedKeys gives Arcane Augments.
+		grantedKeys: ["the-commander:ace-crew", "the-commander:debrief"],
+		pickOneKeys: [],
+		chooseCount: 1
+	},
 	{
 		playbookName: "The Impostor",
 		poolKey: "the-impostor",
