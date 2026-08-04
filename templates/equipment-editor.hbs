@@ -43,7 +43,7 @@
 	</div>
 	<div class="form-group equipment-editor-tags">
 		<label>Tags</label>
-		<p class="equipment-editor-tag-total">Total: <span class="equipment-editor-tag-total-value">{{tagTotal}}</span></p>
+		<p class="equipment-editor-tag-total">Total: <span class="equipment-editor-tag-total-value">{{tagTotal}}</span>{{#if hasTagValueCap}} (max {{maxTagValue}}){{/if}}</p>
 		{{#each tagGroups}}
 		<details class="equipment-editor-tag-group" {{#if open}}open{{/if}}>
 			<summary class="equipment-editor-tag-group-label">{{label}}</summary>

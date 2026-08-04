@@ -27,7 +27,12 @@ import {
 	findEquipmentTag,
 	resolveEquipmentTags
 } from "./equipment.js";
-import { chooseStartingGear, findStartingGearPool } from "./starting-gear.js";
+import {
+	CUSTOM_WEAPON_EXCLUDED_TAG_KEYS,
+	DEFAULT_CUSTOM_WEAPON_MAX_VALUE,
+	chooseStartingGear,
+	findStartingGearPool
+} from "./starting-gear.js";
 import { chooseStartingMoves, findStartingMovePool } from "./starting-moves.js";
 import {
 	ASTIR_CORES,
@@ -996,7 +1001,17 @@ export class PlaybookActorSheet extends ActorSheet {
 				// distinct from moveUses/moveHold the same way those two stay distinct from each
 				// other — a different kind of per-move state.
 				traitBonusChoosable: Boolean(move.traitBonus?.chooseTrait),
-				traitBonusChoice: this.actor.system.attributes?.traitBonusChoices?.[move.key] ?? ""
+				traitBonusChoice: this.actor.system.attributes?.traitBonusChoices?.[move.key] ?? "",
+				// Generic, per-move clamped numeric counters (e.g. Transmute Self's two alternate-set
+				// trackers — see playbook-moves.js). Mirrors `uses`' per-move-key storage shape, but as a
+				// bounded number rather than a boolean, at system.attributes.moveTrackers.<moveKey>.<trackerKey>.
+				trackers: (move.numericTrackers ?? []).map((tracker) => ({
+					key: tracker.key,
+					label: tracker.label,
+					min: tracker.min,
+					max: tracker.max,
+					value: this.actor.system.attributes?.moveTrackers?.[move.key]?.[tracker.key] ?? 0
+				}))
 			};
 		});
 	}
@@ -1099,6 +1114,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".trait-step").on("click", this._onTraitStep.bind(this));
 		html.find(".hold-step").on("click", this._onHoldStep.bind(this));
 		html.find(".flat-hold-step").on("click", this._onFlatHoldStep.bind(this));
+		html.find(".move-tracker-step").on("click", this._onMoveTrackerStep.bind(this));
 		html.find(".spotlight-step").on("click", this._onSpotlightStep.bind(this));
 		html.find(".downtime-tokens-step").on("click", this._onDowntimeTokensStep.bind(this));
 		html.find(".advancement-checkbox").on("change", this._onAdvancementToggle.bind(this));
@@ -1197,6 +1213,18 @@ export class PlaybookActorSheet extends ActorSheet {
 		const next = Math.min(HOLD_MAX, Math.max(HOLD_MIN, current + Number(delta)));
 		if (next === current) return;
 		this.actor.update({ [`system.attributes.moveHold.${key}.value`]: next });
+	}
+
+	// Generic per-move clamped numeric tracker (e.g. Transmute Self's two alternate-set trackers —
+	// see playbook-moves.js's numericTrackers). Mirrors _onFlatHoldStep's clamp shape, but bounded
+	// by the tracker's own min/max (from its dataset, sourced from the move definition) rather than
+	// the fixed HOLD_MIN/HOLD_MAX.
+	_onMoveTrackerStep(event) {
+		const { move: moveKey, tracker: trackerKey, delta, min, max } = event.currentTarget.dataset;
+		const current = this.actor.system.attributes?.moveTrackers?.[moveKey]?.[trackerKey] ?? 0;
+		const next = Math.min(Number(max), Math.max(Number(min), current + Number(delta)));
+		if (next === current) return;
+		this.actor.update({ [`system.attributes.moveTrackers.${moveKey}.${trackerKey}`]: next });
 	}
 
 	// Serves both the top and bottom Advancement groups — the key comes from the checkbox's own
@@ -2005,7 +2033,11 @@ export class PlaybookActorSheet extends ActorSheet {
 		}
 
 		if (pool.customWeaponNote) {
-			const weapon = await configureEquipment({ kind: "weapon" }, undefined, { note: pool.customWeaponNote });
+			const weapon = await configureEquipment({ kind: "weapon" }, undefined, {
+				note: pool.customWeaponNote,
+				excludedTagKeys: CUSTOM_WEAPON_EXCLUDED_TAG_KEYS,
+				maxTagValue: pool.customWeaponMaxValue ?? DEFAULT_CUSTOM_WEAPON_MAX_VALUE
+			});
 			if (weapon) newEntries.push({ id: foundry.utils.randomID(), spent: [], ...weapon });
 		}
 

@@ -66,6 +66,17 @@
 				"PLAYER": "OBSERVER",
 				"ASSISTANT": "OWNER"
 			}
+		},
+		{
+			"name": "basic-playbook-arcanist",
+			"label": "Basic Playbook - The Arcanist",
+			"path": "packs/basic-playbook-arcanist",
+			"type": "Actor",
+			"system": "pbta",
+			"ownership": {
+				"PLAYER": "OBSERVER",
+				"ASSISTANT": "OWNER"
+			}
 		}
 	],
 	"relationships": {

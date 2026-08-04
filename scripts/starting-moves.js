@@ -54,6 +54,18 @@ export const STARTING_MOVE_POOLS = [
 		grantedKeys: ["the-diplomat:facilitator"],
 		pickOneKeys: [],
 		chooseCount: 2
+	},
+	{
+		playbookName: "The Arcanist",
+		poolKey: "the-arcanist",
+		// Prepare Rituals is unconditionally granted ("You start with the prepare rituals move"). The
+		// Astir's own unique move ("a move of your choice from your Additional Moves or the Cantrips
+		// list") is handled separately by astir.js's existing chooseAstirMove/astirMoveSections, which
+		// already offers exactly that selection (own playbook pool, then Cantrips, then the Astir Moves
+		// catalog) — no playbook-move budget needed here for it.
+		grantedKeys: ["the-arcanist:prepare-rituals"],
+		pickOneKeys: [],
+		chooseCount: 0
 	}
 ];
 

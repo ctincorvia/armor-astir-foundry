@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
-import { STARTING_GEAR_POOLS, chooseStartingGear, findStartingGearPool } from "../scripts/starting-gear.js";
+import {
+	CUSTOM_WEAPON_EXCLUDED_TAG_KEYS,
+	DEFAULT_CUSTOM_WEAPON_MAX_VALUE,
+	STARTING_GEAR_POOLS,
+	chooseStartingGear,
+	findStartingGearPool
+} from "../scripts/starting-gear.js";
 import { findEquipmentTag } from "../scripts/equipment.js";
 
 // A fixture pool set independent of the real STARTING_GEAR_POOLS (currently Scout/Impostor
@@ -119,6 +125,17 @@ describe("STARTING_GEAR_POOLS", () => {
 		}
 	});
 
+	it("gives The Scout a +2 custom weapon budget, above DEFAULT_CUSTOM_WEAPON_MAX_VALUE", () => {
+		const scout = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Scout");
+
+		expect(scout.customWeaponMaxValue).toBe(2);
+		expect(scout.customWeaponMaxValue).toBeGreaterThan(DEFAULT_CUSTOM_WEAPON_MAX_VALUE);
+	});
+
+	it("excludes Valuable and Treasure from the custom weapon budget, since this module has no economy system", () => {
+		expect(CUSTOM_WEAPON_EXCLUDED_TAG_KEYS).toEqual(["valuable", "treasure"]);
+	});
+
 	it("grants The Impostor exactly Augments I, a melee/bane weapon", () => {
 		const impostor = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Impostor");
 
@@ -148,6 +165,20 @@ describe("STARTING_GEAR_POOLS", () => {
 		const nullblade = impostor.groups[0].items.find((item) => item.key === "the-impostor:nullblade-i");
 
 		expect(nullblade.tags).toContain("mundane");
+	});
+
+	it("gives The Arcanist 2 of 4 Arcanist Gear items to choose from", () => {
+		const arcanist = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Arcanist");
+
+		expect(arcanist.grantedItems).toEqual([]);
+		expect(arcanist.groups).toHaveLength(1);
+		expect(arcanist.groups[0].chooseCount).toBe(2);
+		expect(arcanist.groups[0].items.map((item) => item.key)).toEqual([
+			"the-arcanist:telescoping-staff-i",
+			"the-arcanist:reagent-knife-i",
+			"the-arcanist:sidearm-i",
+			"the-arcanist:shield-broach-i"
+		]);
 	});
 
 	it("gives The Diplomat 1 Diplomacy 'Tool' weapon and 3 'Diplomacy' Tools as independent budgets", () => {

@@ -116,6 +116,14 @@ describe("STARTING_MOVE_POOLS", () => {
 		expect(impostor.pickOneKeys).toEqual([]);
 		expect(impostor.chooseCount).toBe(0);
 	});
+
+	it("grants The Arcanist exactly Prepare Rituals, with nothing to pick", () => {
+		const arcanist = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Arcanist");
+
+		expect(arcanist.grantedKeys).toEqual(["the-arcanist:prepare-rituals"]);
+		expect(arcanist.pickOneKeys).toEqual([]);
+		expect(arcanist.chooseCount).toBe(0);
+	});
 });
 
 describe("findStartingMovePool", () => {

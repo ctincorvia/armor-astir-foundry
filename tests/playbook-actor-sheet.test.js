@@ -30,12 +30,21 @@ vi.mock("../scripts/equipment.js", async (importOriginal) => ({
 	chooseWeapon: vi.fn()
 }));
 
-// Only the picker dialog is mocked — the pool definitions and findStartingGearPool stay real, same
-// reasoning as playbook-moves.js above.
-vi.mock("../scripts/starting-gear.js", async (importOriginal) => ({
-	...(await importOriginal()),
-	chooseStartingGear: vi.fn()
-}));
+// Only the picker dialog is mocked — the pool definitions stay real, same reasoning as
+// playbook-moves.js above. findStartingGearPool is wrapped (not replaced) rather than left
+// untouched: it delegates to the real implementation by default, so every existing test is
+// unaffected, but the one _onStartingGearAdd test covering DEFAULT_CUSTOM_WEAPON_MAX_VALUE's
+// fallback branch needs a pool shaped like The Scout's but without customWeaponMaxValue, which no
+// real STARTING_GEAR_POOLS entry provides (The Scout is the only pool with a customWeaponNote at
+// all, and it always sets its own cap).
+vi.mock("../scripts/starting-gear.js", async (importOriginal) => {
+	const actual = await importOriginal();
+	return {
+		...actual,
+		chooseStartingGear: vi.fn(),
+		findStartingGearPool: vi.fn(actual.findStartingGearPool)
+	};
+});
 
 // Only the picker dialog is mocked — the pool definitions and findStartingMovePool stay real, same
 // reasoning as starting-gear.js above.
@@ -82,7 +91,13 @@ import {
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../scripts/advancements.js";
 import { ALL_PLAYBOOK_MOVES, choosePlaybookMove } from "../scripts/playbook-moves.js";
 import { UNARMED, chooseEquipmentCatalogItem, chooseWeapon, configureEquipment } from "../scripts/equipment.js";
-import { STARTING_GEAR_POOLS, chooseStartingGear } from "../scripts/starting-gear.js";
+import {
+	CUSTOM_WEAPON_EXCLUDED_TAG_KEYS,
+	DEFAULT_CUSTOM_WEAPON_MAX_VALUE,
+	STARTING_GEAR_POOLS,
+	chooseStartingGear,
+	findStartingGearPool
+} from "../scripts/starting-gear.js";
 import { chooseStartingMoves } from "../scripts/starting-moves.js";
 import { GRAVITY_TRIGGERS } from "../scripts/gravity-triggers.js";
 import { PLAYBOOK_FLAVOR, defaultConsiderText, defaultLookText } from "../scripts/playbook-flavor.js";
@@ -136,6 +151,7 @@ const FACILITATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:facil
 const BUREAUCRAT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:bureaucrat");
 const FACE_TO_FACE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:face-to-face");
 const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
+const TRANSMUTE_SELF = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:transmute-self");
 const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
 const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
 const WEAPON_CONDUIT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:weapon-conduit");
@@ -4416,7 +4432,31 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		await sheet._onStartingGearAdd();
 
 		expect(chooseStartingGear).toHaveBeenCalledWith("The Scout");
-		expect(configureEquipment).toHaveBeenCalledWith({ kind: "weapon" }, undefined, { note: scoutPool.customWeaponNote });
+		expect(configureEquipment).toHaveBeenCalledWith({ kind: "weapon" }, undefined, {
+			note: scoutPool.customWeaponNote,
+			excludedTagKeys: CUSTOM_WEAPON_EXCLUDED_TAG_KEYS,
+			maxTagValue: 2
+		});
+	});
+
+	it("falls back to DEFAULT_CUSTOM_WEAPON_MAX_VALUE for a pool with a customWeaponNote but no customWeaponMaxValue of its own", async () => {
+		// No real STARTING_GEAR_POOLS entry has a customWeaponNote without also setting its own
+		// customWeaponMaxValue (The Scout is the only one with a note at all) — findStartingGearPool
+		// is overridden just this once (see its vi.mock comment above) to exercise that fallback.
+		const { customWeaponMaxValue, ...poolWithoutCap } = scoutPool;
+		findStartingGearPool.mockReturnValueOnce(poolWithoutCap);
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" }, attributes: { equipment: [] } }, update: vi.fn() };
+		chooseStartingGear.mockResolvedValue([]);
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onStartingGearAdd();
+
+		expect(configureEquipment).toHaveBeenCalledWith({ kind: "weapon" }, undefined, {
+			note: scoutPool.customWeaponNote,
+			excludedTagKeys: CUSTOM_WEAPON_EXCLUDED_TAG_KEYS,
+			maxTagValue: DEFAULT_CUSTOM_WEAPON_MAX_VALUE
+		});
 	});
 
 	it("appends picked pool items as new gear entries when the weapon editor is dismissed", async () => {
@@ -5051,7 +5091,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						hold: 0,
 						uses: [],
 						traitBonusChoosable: false,
-						traitBonusChoice: ""
+						traitBonusChoice: "",
+						trackers: []
 					},
 					{
 						key: "weather-the-storm",
@@ -5070,7 +5111,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						hold: 0,
 						uses: [],
 						traitBonusChoosable: false,
-						traitBonusChoice: ""
+						traitBonusChoice: "",
+						trackers: []
 					},
 					{
 						key: "read-the-room",
@@ -5087,7 +5129,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						hold: 0,
 						uses: [],
 						traitBonusChoosable: false,
-						traitBonusChoice: ""
+						traitBonusChoice: "",
+						trackers: []
 					},
 					{
 						key: "dispel-uncertainties",
@@ -5104,7 +5147,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						hold: 0,
 						uses: [],
 						traitBonusChoosable: false,
-						traitBonusChoice: ""
+						traitBonusChoice: "",
+						trackers: []
 					},
 					{
 						key: "help-or-hinder",
@@ -5119,7 +5163,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						hold: 0,
 						uses: [],
 						traitBonusChoosable: false,
-						traitBonusChoice: ""
+						traitBonusChoice: "",
+						trackers: []
 					},
 					{
 						key: "weave-magic",
@@ -5138,7 +5183,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						hold: 0,
 						uses: [],
 						traitBonusChoosable: false,
-						traitBonusChoice: ""
+						traitBonusChoice: "",
+						trackers: []
 					},
 					{
 						key: "cool-off",
@@ -5160,7 +5206,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						hold: 0,
 						uses: [],
 						traitBonusChoosable: false,
-						traitBonusChoice: ""
+						traitBonusChoice: "",
+						trackers: []
 					},
 					{
 						key: "strike-decisively",
@@ -5178,7 +5225,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						hold: 0,
 						uses: [],
 						traitBonusChoosable: false,
-						traitBonusChoice: ""
+						traitBonusChoice: "",
+						trackers: []
 					},
 					{
 						key: "bite-the-dust",
@@ -5195,7 +5243,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						hold: 0,
 						uses: [],
 						traitBonusChoosable: false,
-						traitBonusChoice: ""
+						traitBonusChoice: "",
+						trackers: []
 					}
 				]
 			},
@@ -5228,7 +5277,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						hold: 0,
 						uses: [],
 						traitBonusChoosable: false,
-						traitBonusChoice: ""
+						traitBonusChoice: "",
+						trackers: []
 					},
 					{
 						key: "subsystems",
@@ -5243,7 +5293,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						hold: 0,
 						uses: [],
 						traitBonusChoosable: false,
-						traitBonusChoice: ""
+						traitBonusChoice: "",
+						trackers: []
 					},
 					{
 						key: "b-plot",
@@ -5260,7 +5311,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						hold: 0,
 						uses: [],
 						traitBonusChoosable: false,
-						traitBonusChoice: ""
+						traitBonusChoice: "",
+						trackers: []
 					}
 				]
 			}
@@ -5366,8 +5418,28 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 			hold: 0,
 			uses: [],
 			traitBonusChoosable: false,
-			traitBonusChoice: ""
+			traitBonusChoice: "",
+			trackers: []
 		});
+	});
+
+	it("resolves Transmute Self's numericTrackers, with a stored value on one and the default 0 on the other", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [TRANSMUTE_SELF.key],
+					moveTrackers: { [TRANSMUTE_SELF.key]: { "set-1": 2 } }
+				}
+			}
+		};
+
+		const move = playbookGroup(sheet.getData()).moves[0];
+
+		expect(move.trackers).toEqual([
+			{ key: "set-1", label: "Alternate Set 1", min: -3, max: 3, value: 2 },
+			{ key: "set-2", label: "Alternate Set 2", min: -3, max: 3, value: 0 }
+		]);
 	});
 
 	it("marks a chooseTrait traitBonus move (Let Loose) as traitBonusChoosable, defaulting choice to blank", () => {
@@ -6015,6 +6087,101 @@ describe("PlaybookActorSheet#_onFlatHoldStep", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 2
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveTrackerStep", () => {
+	const TRANSMUTE_SELF = "the-arcanist:transmute-self";
+
+	it("increments the tracker's value and updates the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { moveTrackers: { [TRANSMUTE_SELF]: { "set-1": 0 } } } },
+			update: vi.fn()
+		};
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: TRANSMUTE_SELF, tracker: "set-1", delta: "1", min: "-3", max: "3" } }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveTrackers.${TRANSMUTE_SELF}.set-1`]: 1
+		});
+	});
+
+	it("decrements the tracker's value and updates the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { moveTrackers: { [TRANSMUTE_SELF]: { "set-1": 0 } } } },
+			update: vi.fn()
+		};
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: TRANSMUTE_SELF, tracker: "set-1", delta: "-1", min: "-3", max: "3" } }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveTrackers.${TRANSMUTE_SELF}.set-1`]: -1
+		});
+	});
+
+	it("treats a missing tracker value as starting at 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {}, update: vi.fn() };
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: TRANSMUTE_SELF, tracker: "set-1", delta: "1", min: "-3", max: "3" } }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveTrackers.${TRANSMUTE_SELF}.set-1`]: 1
+		});
+	});
+
+	it("clamps at the maximum and does not update the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { moveTrackers: { [TRANSMUTE_SELF]: { "set-1": 3 } } } },
+			update: vi.fn()
+		};
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: TRANSMUTE_SELF, tracker: "set-1", delta: "1", min: "-3", max: "3" } }
+		});
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at the minimum and does not update the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { moveTrackers: { [TRANSMUTE_SELF]: { "set-1": -3 } } } },
+			update: vi.fn()
+		};
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: TRANSMUTE_SELF, tracker: "set-1", delta: "-1", min: "-3", max: "3" } }
+		});
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("keeps a different tracker on the same move untouched when stepping this one", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { moveTrackers: { [TRANSMUTE_SELF]: { "set-1": 1, "set-2": 2 } } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: TRANSMUTE_SELF, tracker: "set-2", delta: "1", min: "-3", max: "3" } }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveTrackers.${TRANSMUTE_SELF}.set-2`]: 3
 		});
 	});
 });
@@ -8618,6 +8785,7 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [{ ...entry, spent: ["cursed", "dangerous"] }],
+			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
 			"system.resources.hold.value": 0
 		});
@@ -8641,6 +8809,7 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		sheet._onRefreshScene();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
 			"system.resources.hold.value": 0
 		});
@@ -8659,6 +8828,7 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		sheet._onRefreshScene();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
 			"system.resources.hold.value": 0
 		});
@@ -8671,6 +8841,7 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		sheet._onRefreshScene();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
 			"system.resources.hold.value": 0
 		});
@@ -8689,6 +8860,7 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		sheet._onRefreshScene();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
 			"system.resources.hold.value": 0
 		});

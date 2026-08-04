@@ -148,6 +148,18 @@
 										{{/each}}
 									</div>
 									{{/if}}
+									{{#if trackers.length}}
+									<div class="move-trackers-control">
+										{{#each trackers}}
+										<div class="move-tracker">
+											<span class="move-tracker-label">{{label}}</span>
+											<button type="button" class="move-tracker-step move-tracker-decrement" data-move="{{../key}}" data-tracker="{{key}}" data-delta="-1" data-min="{{min}}" data-max="{{max}}" aria-label="Decrease {{label}}">-</button>
+											<span class="move-tracker-value">{{value}}</span>
+											<button type="button" class="move-tracker-step move-tracker-increment" data-move="{{../key}}" data-tracker="{{key}}" data-delta="1" data-min="{{min}}" data-max="{{max}}" aria-label="Increase {{label}}">+</button>
+										</div>
+										{{/each}}
+									</div>
+									{{/if}}
 									{{#if traitBonusChoosable}}
 									<div class="move-trait-bonus-control">
 										<select class="trait-bonus-select" data-move="{{key}}">

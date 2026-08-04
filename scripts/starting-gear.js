@@ -1,5 +1,13 @@
 export const STARTING_GEAR_PICKER_TEMPLATE = "modules/armor-astir/templates/starting-gear-picker.hbs";
 
+// The default tag-value budget for a pool's custom weapon (see customWeaponNote below), and the
+// tag keys excluded from that flow outright. This module has no economy/appraisal system —
+// Valuable/Treasure's own EQUIPMENT_TAGS description already says as much — so letting them count
+// toward (or pad out) a chargen weapon's budget would be free value with nothing behind it; simpler
+// to exclude them from this flow entirely than to let a player stack them for no cost.
+export const DEFAULT_CUSTOM_WEAPON_MAX_VALUE = 0;
+export const CUSTOM_WEAPON_EXCLUDED_TAG_KEYS = ["valuable", "treasure"];
+
 // Per-playbook starting gear allowances (see claude.md, "Domain conventions" for the general
 // catalog/keys split this mirrors from MOVE_POOLS and EQUIPMENT_CATALOG). Unlike playbookMoves,
 // picked items are never stored as a permanent key reference back to this file — they're turned
@@ -16,7 +24,12 @@ export const STARTING_GEAR_PICKER_TEMPLATE = "modules/armor-astir/templates/star
 // couldn't express — it would let a player take four gear and no weapon.
 //
 // `customWeaponNote` is shown as non-blocking guidance text on the weapon editor (see equipment.js's
-// configureEquipment `note` option) — the tag-value budget it describes is never enforced.
+// configureEquipment `note` option); unlike a plain freeform note, the tag-value budget it describes
+// IS enforced — configureEquipment is also passed excludedTagKeys: CUSTOM_WEAPON_EXCLUDED_TAG_KEYS
+// and maxTagValue: pool.customWeaponMaxValue ?? DEFAULT_CUSTOM_WEAPON_MAX_VALUE (see
+// PlaybookActorSheet#_onStartingGearAdd), so a pool need only set customWeaponMaxValue when its
+// budget differs from the default (The Scout's is +2; every other pool with a customWeaponNote
+// today just takes the default of +0).
 // `freeformNotes` are narrative-only lines with no mechanical hook (e.g. "Any tier I weapons that
 // feel appropriate"), transcribed as prose per claude.md's "systems that do not exist yet" guidance
 // rather than modeled.
@@ -36,6 +49,7 @@ export const STARTING_GEAR_POOLS = [
 		playbookName: "The Scout",
 		chooseCount: 2,
 		customWeaponNote: "Design a +2 total cost weapon using tags of your choice.",
+		customWeaponMaxValue: 2,
 		freeformNotes: [
 			"Any tier I weapons that feel appropriate.",
 			"Clothes that match your look."
@@ -227,6 +241,58 @@ export const STARTING_GEAR_POOLS = [
 						name: "Transport",
 						description: "You have a mount or vehicle that's fast and quiet—probably something " +
 							"tier II."
+					}
+				]
+			}
+		]
+	},
+	{
+		playbookName: "The Arcanist",
+		// "1 Astir III" and "Touch Spells I" aren't equipment-shaped picks like the rest of this list —
+		// they're built/added through the Astir & Ardents tab's own controls (create Astir, defaults to
+		// Tier III already; then add the new Touch Spells I entry from ASTIR_WEAPON_CATALOG via the
+		// Astir's own weapon picker), same treatment Commander's Custom Ardent gets here.
+		freeformNotes: [
+			"1 Astir III, built on the Astir & Ardents tab.",
+			"Touch Spells I, added from the Astir's own weapon controls.",
+			"Clothes that match your look."
+		],
+		grantedItems: [],
+		groups: [
+			{
+				key: "the-arcanist:gear",
+				label: "Choose 2 Arcanist Gear.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-arcanist:telescoping-staff-i",
+						name: "Telescoping Staff I",
+						description: "A collapsible metal staff that extends in an instant, delivering a " +
+							"solid, weighty blow.",
+						kind: "weapon",
+						tags: ["melee", "impact"]
+					},
+					{
+						key: "the-arcanist:reagent-knife-i",
+						name: "Reagent Knife I",
+						description: "A plain, unenchanted blade used to prepare reagents as readily as it " +
+							"draws blood.",
+						kind: "weapon",
+						tags: ["melee", "mundane"]
+					},
+					{
+						key: "the-arcanist:sidearm-i",
+						name: "Sidearm I",
+						description: "The typical protections afforded to Astir pilots: a reliable tool " +
+							"capable of firing bursts of light arcane energy.",
+						kind: "weapon",
+						tags: ["ranged", "defensive"]
+					},
+					{
+						key: "the-arcanist:shield-broach-i",
+						name: "Shield Broach I",
+						description: "A small worn charm that flares to ward off harm.",
+						tags: ["ward"]
 					}
 				]
 			}

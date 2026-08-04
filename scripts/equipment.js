@@ -856,17 +856,31 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 // of Kind, rather than being hidden/shown live as Kind changes — kept intentionally narrow rather
 // than extended to every field, same as Tier's own precedent. Its value is only read into the
 // resolved result when Kind is Weapon at Save time.
+//
+// `excludedTagKeys` and `maxTagValue` are a second, generic budget mechanism alongside MAX_TAGS —
+// not starting-gear-specific, for the same reason `note` isn't: they're options any caller could
+// use, it's just starting-gear.js's custom-weapon flow (PlaybookActorSheet#_onStartingGearAdd)
+// that's the one caller opting in today. `excludedTagKeys` (default `[]`, so every existing caller
+// sees the exact same `pickableTags` as before) removes matching keys from the checkbox list
+// entirely, the same way WEAPON_RANGE_GROUP/DRAIN_GROUP already are — this module has no economy
+// system for Valuable/Treasure's claimed monetary value (see EQUIPMENT_TAGS' own doc comment), so
+// starting-gear.js excludes them as free padding a player could otherwise stack for nothing.
+// `maxTagValue` (default `null`, meaning "no cap") is enforced at Save the same way MAX_TAGS is:
+// over the cap warns and resolves null rather than saving.
 export async function configureEquipment(
 	initial = null,
 	tags = EQUIPMENT_TAGS,
-	{ note, astirWeapon = false, carrierWeapon = false, ardentWeapon = false } = {}
+	{ note, astirWeapon = false, carrierWeapon = false, ardentWeapon = false, excludedTagKeys = [], maxTagValue = null } = {}
 ) {
 	// Drain only means anything on an Astir weapon (see DRAIN_GROUP's doc comment) — every other
 	// flow, including ardentWeapon (an Ardent has no Power for Drain to reduce), hides its
 	// checkboxes so it can't be picked somewhere it would stay permanently inert. WEAPON_RANGE_GROUP
 	// is excluded unconditionally — it's never a checkbox anymore, see weaponRangeTags below.
+	// excludedTagKeys (see the doc comment above) removes any further caller-specified keys, e.g.
+	// starting-gear.js's custom-weapon flow excluding Valuable/Treasure.
 	const pickableTags = tags.filter((tag) =>
-		tag.exclusiveGroup !== WEAPON_RANGE_GROUP && (astirWeapon || tag.exclusiveGroup !== DRAIN_GROUP));
+		tag.exclusiveGroup !== WEAPON_RANGE_GROUP && (astirWeapon || tag.exclusiveGroup !== DRAIN_GROUP) &&
+		!excludedTagKeys.includes(tag.key));
 	// Melee/Ranged/Sniper render as their own native radio group (see equipment-editor.hbs) rather
 	// than as checkboxes in the tag list — a radio group can always have a default, which a
 	// checkbox trio validated only at Save time couldn't. Editing an entry pre-selects whichever
@@ -895,6 +909,11 @@ export async function configureEquipment(
 		// Equipment tab already uses to display an entry's Value (playbook-actor-sheet.js), so the
 		// number on open always matches what the sheet would show for `initial` today.
 		tagTotal: equipmentValue(initial?.tags ?? [], tags),
+		// hasTagValueCap is a separate boolean rather than checking maxTagValue directly in the
+		// template — {{#if}} treats 0 as falsy, and a cap of 0 (starting-gear.js's default) is a
+		// real, active cap that still needs to render.
+		maxTagValue,
+		hasTagValueCap: maxTagValue !== null,
 		// Grouped (see groupEquipmentTags above) rather than one flat 40-entry list — the catalog
 		// has grown too long to scan otherwise. Each group starts open only if it already holds one
 		// of `initial`'s current tags, so editing a tagged item lands with the relevant group(s)
@@ -970,6 +989,15 @@ export async function configureEquipment(
 						// reasoning as the weapon-range check below.
 						if (regularTagCount > MAX_TAGS) {
 							ui.notifications.warn(`Equipment can have at most ${MAX_TAGS} tags, not counting Melee/Ranged/Sniper.`);
+							resolve(null);
+							return;
+						}
+						// maxTagValue (see the doc comment above configureEquipment) is a second, opt-in
+						// budget cap enforced the same way as MAX_TAGS above — null (the default) means no
+						// cap, so every existing caller is unaffected. Only checked regular tags count —
+						// the range radio's value is always 0 and was never in checkedKeys to begin with.
+						if (maxTagValue !== null && equipmentValue(checkedKeys, tags) > maxTagValue) {
+							ui.notifications.warn(`This equipment's tags can total at most ${maxTagValue}.`);
 							resolve(null);
 							return;
 						}

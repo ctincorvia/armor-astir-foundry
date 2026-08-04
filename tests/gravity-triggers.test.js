@@ -14,6 +14,10 @@ describe("gravityTriggerForPlaybook", () => {
 		expect(gravityTriggerForPlaybook("the-impostor")).toBe(GRAVITY_TRIGGERS["the-impostor"]);
 	});
 
+	it("gives The Arcanist its trigger", () => {
+		expect(gravityTriggerForPlaybook("the-arcanist")).toBe(GRAVITY_TRIGGERS["the-arcanist"]);
+	});
+
 	it("returns null for a playbook with no known trigger", () => {
 		expect(GRAVITY_TRIGGERS["some-future-playbook"]).toBeUndefined();
 		expect(gravityTriggerForPlaybook("some-future-playbook")).toBeNull();

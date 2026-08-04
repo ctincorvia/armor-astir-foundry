@@ -913,6 +913,21 @@
 	white-space: nowrap;
 }
 
+.armor-astir.sheet .move-trackers-control {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+}
+
+.armor-astir.sheet .move-tracker {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+	font-size: 11px;
+	white-space: nowrap;
+}
+
 /* Let Loose's per-actor trait pick (see trait-bonuses.js's chooseTrait) — a plain select on the
    move's own row, same compact treatment as .move-uses-control beside it. */
 .armor-astir.sheet .move-trait-bonus-control select {

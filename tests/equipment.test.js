@@ -865,6 +865,82 @@ describe("configureEquipment - astirWeapon option", () => {
 	});
 });
 
+describe("configureEquipment - starting gear budget options", () => {
+	it("removes excludedTagKeys entries from the rendered tagGroups", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS, { excludedTagKeys: ["fixture-positive"] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { tagGroups } = renderTemplate.mock.calls.at(-1)[1];
+		const renderedKeys = tagGroups.flatMap((group) => group.tags.map((tag) => tag.key));
+		expect(renderedKeys).not.toContain("fixture-positive");
+		expect(renderedKeys).toEqual(expect.arrayContaining(["fixture-negative", "fixture-spendable"]));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("passes maxTagValue and hasTagValueCap through to the template", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS, { maxTagValue: 2 });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			maxTagValue: 2,
+			hasTagValueCap: true
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("saves when the checked tag total is exactly at maxTagValue", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS, { maxTagValue: 2 });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Rations",
+			"[name='kind']": "gear",
+			"[name='description']": ""
+		}, ["fixture-positive"]));
+
+		expect(await promise).toEqual(expect.objectContaining({ tags: ["fixture-positive"] }));
+	});
+
+	it("resolves null and warns when the checked tag total exceeds maxTagValue", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS, { maxTagValue: 1 });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Rations",
+			"[name='kind']": "gear",
+			"[name='description']": ""
+		}, ["fixture-positive"]));
+
+		expect(await promise).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalled();
+	});
+
+	it("never blocks a save on tag total when maxTagValue is null (the default), unaffected for every existing caller", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Rations",
+			"[name='kind']": "gear",
+			"[name='description']": ""
+		}, ["fixture-positive", "fixture-spendable"]));
+
+		expect(await promise).toEqual(expect.objectContaining({ tags: ["fixture-positive", "fixture-spendable"] }));
+	});
+});
+
 describe("configureEquipment - carrierWeapon option", () => {
 	it("passes carrierWeapon through to the template, hiding Kind and pre-filling TIER_MAX", async () => {
 		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true });

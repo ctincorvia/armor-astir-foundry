@@ -9,7 +9,9 @@ export const GRAVITY_TRIGGERS = {
 	"the-impostor":
 		"When someone you have GRAVITY with sees you be put in peril, advance it.",
 	"the-diplomat":
-		"When you successfully negotiate or advocate for something important to you, advance a GRAVITY clock of your choice."
+		"When you successfully negotiate or advocate for something important to you, advance a GRAVITY clock of your choice.",
+	"the-arcanist":
+		"When you declare your plan to solve a problem and it works, advance a GRAVITY clock with someone who doubted you."
 };
 
 export function gravityTriggerForPlaybook(playbookSlug) {

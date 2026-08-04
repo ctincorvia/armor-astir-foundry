@@ -632,6 +632,13 @@ export const ASTIR_WEAPON_CATALOG = [
 			"automatically during Downtime (untracked by this module — clear them yourself).",
 		tags: ["ranged", "defensive", "distinct"],
 		familiar: true
+	},
+	{
+		key: "touch-spells",
+		name: "Touch Spells I",
+		description: "A focusing gesture and a whispered word, channeled straight through the caster's " +
+			"own hands into whatever — or whoever — they touch.",
+		tags: ["melee", "bane"]
 	}
 ];
 

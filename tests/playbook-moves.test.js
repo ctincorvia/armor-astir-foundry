@@ -185,6 +185,43 @@ describe("MOVE_POOLS", () => {
 		expect(faceToFace.results.failure).toBeNull();
 		expect(faceToFace.questions).toHaveLength(3);
 	});
+
+	it("gives Prepare Rituals 3 Sortie-scoped uses checkboxes, one per ritual", () => {
+		const prepareRituals = findPlaybookMove("the-arcanist:prepare-rituals");
+
+		expect(prepareRituals.uses.map((use) => use.key)).toEqual(["ritual-1", "ritual-2", "ritual-3"]);
+		for (const use of prepareRituals.uses) {
+			expect(use.period).toBe("Sortie");
+		}
+	});
+
+	it("rolls Reshape with +CHANNEL, granting 2 hold on both success and mixed via separateHold", () => {
+		const reshape = findPlaybookMove("the-arcanist:reshape");
+
+		expect(reshape.traits).toEqual(["channel"]);
+		expect(reshape.hold).toEqual({ success: 2, mixed: 2, failure: 0 });
+		expect(reshape.separateHold).toBe(true);
+	});
+
+	it("gives Transmute Self two clamped -3 to +3 numericTrackers", () => {
+		const transmuteSelf = findPlaybookMove("the-arcanist:transmute-self");
+
+		expect(transmuteSelf.numericTrackers).toEqual([
+			{ key: "set-1", label: "Alternate Set 1", min: -3, max: 3 },
+			{ key: "set-2", label: "Alternate Set 2", min: -3, max: 3 }
+		]);
+	});
+
+	it("gives every numericTrackers entry a key, label, min and max", () => {
+		for (const move of ALL_PLAYBOOK_MOVES.filter((m) => m.numericTrackers)) {
+			for (const tracker of move.numericTrackers) {
+				expect(tracker.key).toBeTruthy();
+				expect(tracker.label).toBeTruthy();
+				expect(typeof tracker.min).toBe("number");
+				expect(typeof tracker.max).toBe("number");
+			}
+		}
+	});
 });
 
 describe("findPlaybookMove", () => {
