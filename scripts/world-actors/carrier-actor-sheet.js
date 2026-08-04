@@ -1,6 +1,6 @@
 import { WorldActorSheet } from "./world-actor-sheet.js";
-import { BASIC_MOVES, configureMoveRoll, rollMove } from "./moves.js";
-import { TIER_MAX, configureEquipment, equipmentValue, resolveEquipmentTags, WEAPON_SCALES } from "./equipment.js";
+import { BASIC_MOVES, configureMoveRoll, rollMove } from "../moves/moves.js";
+import { TIER_MAX, configureEquipment, equipmentValue, resolveEquipmentTags, WEAPON_SCALES } from "../equipment/equipment.js";
 
 export const CARRIER_SHEET_TEMPLATE = "modules/armor-astir/templates/carrier-actor-sheet.hbs";
 export const CARRIER_ACTOR_TYPE = "armor-astir.carrier";

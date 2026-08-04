@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
-import { BASIC_MOVES, SPECIAL_MOVES } from "../scripts/moves.js";
-import { TRAITS } from "../scripts/traits.js";
+import { BASIC_MOVES, SPECIAL_MOVES } from "../scripts/moves/moves.js";
+import { TRAITS } from "../scripts/core/traits.js";
 import {
 	ALL_PLAYBOOK_MOVES,
 	MOVE_POOLS,
@@ -9,7 +9,7 @@ import {
 	findPlaybookMove,
 	playbookMoveSections,
 	resolvePlaybookMoves
-} from "../scripts/playbook-moves.js";
+} from "../scripts/moves/playbook-moves.js";
 
 const BULLHEADED = "the-impostor:bullheaded";
 // Deny is the one real Cantrip with traits/results — plays the same functional role the old

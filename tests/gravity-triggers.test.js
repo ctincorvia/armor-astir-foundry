@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { GRAVITY_TRIGGERS, gravityTriggerForPlaybook } from "../scripts/gravity-triggers.js";
+import { GRAVITY_TRIGGERS, gravityTriggerForPlaybook } from "../scripts/playbook/gravity-triggers.js";
 
 describe("gravityTriggerForPlaybook", () => {
 	it("gives The Scout its trigger", () => {

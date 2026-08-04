@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { APPROACHES, PLAYBOOK_APPROACHES, availableApproaches } from "../scripts/approaches.js";
+import { APPROACHES, PLAYBOOK_APPROACHES, availableApproaches } from "../scripts/core/approaches.js";
 
 describe("APPROACHES", () => {
 	it("lists the five approaches", () => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TRAIT_BONUS_SOURCES, traitBonusesFor } from "../scripts/trait-bonuses.js";
+import { TRAIT_BONUS_SOURCES, traitBonusesFor } from "../scripts/moves/trait-bonuses.js";
 
 describe("TRAIT_BONUS_SOURCES", () => {
 	it("maps danger and burden to their count keys", () => {

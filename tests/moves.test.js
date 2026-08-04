@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { DIE_FACES } from "../scripts/roll-effects.js";
-import { TRAITS } from "../scripts/traits.js";
+import { DIE_FACES } from "../scripts/moves/roll-effects.js";
+import { TRAITS } from "../scripts/core/traits.js";
 import {
 	BASIC_MOVES,
 	FAILURE_REMINDERS,
@@ -14,8 +14,8 @@ import {
 	postGuidedResult,
 	postMoveDescription,
 	rollMove
-} from "../scripts/moves.js";
-import { ALL_PLAYBOOK_MOVES } from "../scripts/playbook-moves.js";
+} from "../scripts/moves/moves.js";
+import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 // The one real move carrying separateHold — a roll-tiered hold grant routed into its own

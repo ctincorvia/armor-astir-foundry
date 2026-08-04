@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DRAIN_GROUP, resolveEquipmentTags } from "../scripts/equipment.js";
-import { ASTIR_PART_CATALOG, ASTIR_WEAPON_CATALOG } from "../scripts/astir.js";
+import { DRAIN_GROUP, resolveEquipmentTags } from "../scripts/equipment/equipment.js";
+import { ASTIR_PART_CATALOG, ASTIR_WEAPON_CATALOG } from "../scripts/frames/astir.js";
 import {
 	ARDENT_DEFAULT_NAME,
 	ARDENT_FEATURE_MAX_BASE,
@@ -19,7 +19,7 @@ import {
 	buildArdent,
 	chooseFrame,
 	isAceFeaturePart
-} from "../scripts/ardent.js";
+} from "../scripts/frames/ardent.js";
 
 beforeEach(() => {
 	vi.resetAllMocks();

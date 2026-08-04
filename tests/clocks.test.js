@@ -8,7 +8,7 @@ import {
 	setClockProgress,
 	updateClockLabel,
 	updateClockSteps
-} from "../scripts/clocks.js";
+} from "../scripts/playbook/clocks.js";
 
 beforeEach(() => {
 	vi.resetAllMocks();

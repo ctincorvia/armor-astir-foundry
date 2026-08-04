@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { APPROACHES } from "../scripts/approaches.js";
-import { DRAIN_GROUP, findEquipmentTag } from "../scripts/equipment.js";
-import { findPlaybookMove } from "../scripts/playbook-moves.js";
+import { APPROACHES } from "../scripts/core/approaches.js";
+import { DRAIN_GROUP, findEquipmentTag } from "../scripts/equipment/equipment.js";
+import { findPlaybookMove } from "../scripts/moves/playbook-moves.js";
 import {
 	ASTIR_CORES,
 	ASTIR_MOVE_CATALOG,
@@ -23,7 +23,7 @@ import {
 	findAstirPart,
 	findCatalogAstirWeapon,
 	resolveAstirParts
-} from "../scripts/astir.js";
+} from "../scripts/frames/astir.js";
 
 // Fakes the jQuery `.find("[name='catalog-item']:checked").val()` / `.find("[name='playbook-move']:checked").val()`
 // chains the picker dialogs use to read the picked radio, mirroring the equivalent fakes in

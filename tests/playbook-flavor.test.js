@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { PLAYBOOK_FLAVOR, defaultConsiderText, defaultLookText, flavorForPlaybook } from "../scripts/playbook-flavor.js";
+import { PLAYBOOK_FLAVOR, defaultConsiderText, defaultLookText, flavorForPlaybook } from "../scripts/playbook/playbook-flavor.js";
 
 describe("flavorForPlaybook", () => {
 	it("gives The Scout its flavor", () => {

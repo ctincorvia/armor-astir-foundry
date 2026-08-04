@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addEntry, removeEntry, updateEntryField } from "../scripts/entry-list.js";
+import { addEntry, removeEntry, updateEntryField } from "../scripts/world-actors/entry-list.js";
 
 describe("addEntry", () => {
 	it("appends a new entry with a generated id and the given defaults", () => {

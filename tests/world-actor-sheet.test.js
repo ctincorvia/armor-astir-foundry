@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { WorldActorSheet } from "../scripts/world-actor-sheet.js";
+import { WorldActorSheet } from "../scripts/world-actors/world-actor-sheet.js";
 
 describe("WorldActorSheet.defaultOptions", () => {
 	it("sets the shared world-actor sheet classes and sizing", () => {

@@ -1,4 +1,4 @@
-import { DRAIN_GROUP, resolveEquipmentTags } from "./equipment.js";
+import { DRAIN_GROUP, resolveEquipmentTags } from "../equipment/equipment.js";
 import { ASTIR_PART_CATALOG, ASTIR_WEAPON_CATALOG, EXPENDED_USE } from "./astir.js";
 
 // Ardents are a cheaper, more limited pilotable frame than the Astir (see claude.md's Domain
@@ -141,6 +141,12 @@ export const ARDENT_FEATURE_WEAPONS = [
 		tags: ["sniper", "reload", "decisive"]
 	}
 ];
+
+// Every catalog an Ardent's own parts array might reference — the generic Astir-derived one every
+// playbook's Ardent draws from (ASTIR_PART_CATALOG, via ardentParts()) plus Commander's exclusive
+// Ardent Features (ARDENT_FEATURE_PARTS above) — used wherever an Ardent's stored part keys need
+// resolving, since a Commander's Ardent can carry keys from either catalog at once.
+export const ARDENT_PART_CATALOG = [...ASTIR_PART_CATALOG, ...ARDENT_FEATURE_PARTS];
 
 // True when a stored part key belongs to the Commander-exclusive catalog above rather than the
 // generic Astir-derived one — parts are stored on ardent.parts as plain catalog-key references

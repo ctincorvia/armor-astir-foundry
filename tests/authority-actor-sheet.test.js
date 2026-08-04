@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { AuthorityActorSheet, AUTHORITY_SHEET_TEMPLATE, registerAuthorityActorSheet } from "../scripts/authority-actor-sheet.js";
+import { AuthorityActorSheet, AUTHORITY_SHEET_TEMPLATE, registerAuthorityActorSheet } from "../scripts/world-actors/authority-actor-sheet.js";
 
 describe("AuthorityActorSheet.defaultOptions", () => {
 	it("merges the authority sheet's classes/template onto the base world-actor options", () => {

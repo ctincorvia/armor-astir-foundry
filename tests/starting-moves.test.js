@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
-import { MOVE_POOLS } from "../scripts/playbook-moves.js";
+import { MOVE_POOLS } from "../scripts/moves/playbook-moves.js";
 import {
 	STARTING_MOVE_POOLS,
 	chooseStartingMoves,
 	findStartingMovePool,
 	startingMovePickerData
-} from "../scripts/starting-moves.js";
+} from "../scripts/moves/starting-moves.js";
 
 // A fixture pool set independent of the real STARTING_MOVE_POOLS, mirroring the injectable
 // `pools`/`movePools` pattern playbookMoveSections/chooseStartingGear already use, so ordering/cap

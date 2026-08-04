@@ -1,4 +1,4 @@
-import { APPROACHES } from "./approaches.js";
+import { APPROACHES } from "../core/approaches.js";
 
 // -3 exists solely for Drain 3 (see EQUIPMENT_TAGS below) — every other tag stays within -2..+2.
 export const TAG_VALUE_MIN = -3;
@@ -739,6 +739,19 @@ export function resolveEquipmentTags(keys = [], tags = EQUIPMENT_TAGS) {
 // can never drift out of sync with the tags actually on the entry.
 export function equipmentValue(keys = [], tags = EQUIPMENT_TAGS) {
 	return resolveEquipmentTags(keys, tags).reduce((sum, tag) => sum + tag.value, 0);
+}
+
+// Merges a batch of {equipmentId, tagKey} spends into an equipment array's per-entry `spent`
+// list. Shared by PlaybookActorSheet#_spendEquipmentTags (a player-chosen or forced spend, ahead
+// of the roll it modifies) and move-chat-listeners.js's handleReroll (a reroll tag, spent after
+// the fact — from outside any PlaybookActorSheet instance, since a chat-card click isn't tied to
+// one).
+export function mergeSpentTags(equipment, spentTags) {
+	return equipment.map((item) => {
+		const additions = spentTags.filter((spend) => spend.equipmentId === item.id).map((spend) => spend.tagKey);
+		if (!additions.length) return item;
+		return { ...item, spent: [...new Set([...(item.spent ?? []), ...additions])] };
+	});
 }
 
 const TAG_VALUE_GROUPS = [

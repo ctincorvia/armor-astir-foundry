@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("../scripts/equipment.js", async (importOriginal) => ({
+vi.mock("../scripts/equipment/equipment.js", async (importOriginal) => ({
 	...(await importOriginal()),
 	configureEquipment: vi.fn()
 }));
 
-vi.mock("../scripts/astir.js", async (importOriginal) => ({
+vi.mock("../scripts/frames/astir.js", async (importOriginal) => ({
 	...(await importOriginal()),
 	chooseAstirPart: vi.fn(),
 	chooseAstirWeapon: vi.fn()
@@ -15,7 +15,7 @@ vi.mock("../scripts/astir.js", async (importOriginal) => ({
 // fixedTraits placeholder behaves before Carrier exists — same mock playbook-actor-sheet.test.js
 // itself applies, needed here since getData's move-trait resolution reaches it regardless of which
 // feature is under test.
-vi.mock("../scripts/carrier-actor-sheet.js", async (importOriginal) => ({
+vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal) => ({
 	...(await importOriginal()),
 	findCarrierActors: vi.fn(() => [])
 }));
@@ -24,22 +24,22 @@ vi.mock("../scripts/carrier-actor-sheet.js", async (importOriginal) => ({
 // playbook pool now has at least one non-empty field, since Commander's own pools were filled in —
 // see starting-gear.js/starting-moves.js), overridden per-test below to exercise the "a real pool
 // object exists but every field is empty" branch that no real playbook data shape reaches anymore.
-vi.mock("../scripts/starting-gear.js", async (importOriginal) => {
+vi.mock("../scripts/equipment/starting-gear.js", async (importOriginal) => {
 	const actual = await importOriginal();
 	return { ...actual, findStartingGearPool: vi.fn(actual.findStartingGearPool) };
 });
-vi.mock("../scripts/starting-moves.js", async (importOriginal) => {
+vi.mock("../scripts/moves/starting-moves.js", async (importOriginal) => {
 	const actual = await importOriginal();
 	return { ...actual, findStartingMovePool: vi.fn(actual.findStartingMovePool) };
 });
 
-import { configureEquipment } from "../scripts/equipment.js";
-import { ASTIR_PART_CATALOG, chooseAstirPart, chooseAstirWeapon } from "../scripts/astir.js";
-import { ARDENT_FEATURE_PARTS, ARDENT_FEATURE_WEAPONS } from "../scripts/ardent.js";
-import { findCarrierActors } from "../scripts/carrier-actor-sheet.js";
-import { findStartingGearPool } from "../scripts/starting-gear.js";
-import { findStartingMovePool } from "../scripts/starting-moves.js";
-import { PlaybookActorSheet } from "../scripts/playbook-actor-sheet.js";
+import { configureEquipment } from "../scripts/equipment/equipment.js";
+import { ASTIR_PART_CATALOG, chooseAstirPart, chooseAstirWeapon } from "../scripts/frames/astir.js";
+import { ARDENT_FEATURE_PARTS, ARDENT_FEATURE_WEAPONS } from "../scripts/frames/ardent.js";
+import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
+import { findStartingGearPool } from "../scripts/equipment/starting-gear.js";
+import { findStartingMovePool } from "../scripts/moves/starting-moves.js";
+import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 
 const WARDING = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:warding");
 
