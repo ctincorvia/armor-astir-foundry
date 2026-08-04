@@ -25,9 +25,12 @@
 		{{/each}}
 	</ol>
 	{{/each}}
-	{{else}}
-	<p class="starting-gear-picker-empty">There is no starting equipment list for this playbook yet.</p>
 	{{/if}}
+	{{#unless grantedItems.length}}
+	{{#unless groups.length}}
+	<p class="starting-gear-picker-empty">There is no starting equipment list for this playbook yet.</p>
+	{{/unless}}
+	{{/unless}}
 	{{#if freeformNotes.length}}
 	<ul class="starting-gear-picker-notes">
 		{{#each freeformNotes}}
