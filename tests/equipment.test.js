@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { EFFECT_STATES } from "../scripts/roll-effects.js";
+import { EFFECT_STATES } from "../scripts/moves/roll-effects.js";
 import {
 	DRAIN_GROUP,
 	EQUIPMENT_CATALOG,
@@ -21,7 +21,7 @@ import {
 	findEquipmentTag,
 	groupEquipmentTags,
 	resolveEquipmentTags
-} from "../scripts/equipment.js";
+} from "../scripts/equipment/equipment.js";
 
 const BLITZ = EQUIPMENT_TAGS.find((tag) => tag.key === "blitz");
 

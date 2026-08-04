@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
-import { STARTING_GEAR_POOLS, chooseStartingGear, findStartingGearPool } from "../scripts/starting-gear.js";
-import { findEquipmentTag } from "../scripts/equipment.js";
+import { STARTING_GEAR_POOLS, chooseStartingGear, findStartingGearPool } from "../scripts/equipment/starting-gear.js";
+import { findEquipmentTag } from "../scripts/equipment/equipment.js";
 
 // A fixture pool set independent of the real STARTING_GEAR_POOLS (currently Scout/Impostor
 // content), mirroring the injectable `pools`/`playbooks` pattern MOVE_POOLS/playbookMoveSections

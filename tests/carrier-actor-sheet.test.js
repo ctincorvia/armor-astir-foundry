@@ -2,26 +2,26 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 // Only the dialog is mocked — BASIC_MOVES/configureMoveRoll's real trait-building stays untouched
 // elsewhere, same reasoning playbook-actor-sheet.test.js already uses for these modules.
-vi.mock("../scripts/moves.js", async (importOriginal) => ({
+vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	...(await importOriginal()),
 	configureMoveRoll: vi.fn(),
 	rollMove: vi.fn()
 }));
 
-vi.mock("../scripts/equipment.js", async (importOriginal) => ({
+vi.mock("../scripts/equipment/equipment.js", async (importOriginal) => ({
 	...(await importOriginal()),
 	configureEquipment: vi.fn()
 }));
 
-import { BASIC_MOVES, configureMoveRoll, rollMove } from "../scripts/moves.js";
-import { TIER_MAX, configureEquipment } from "../scripts/equipment.js";
+import { BASIC_MOVES, configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
+import { TIER_MAX, configureEquipment } from "../scripts/equipment/equipment.js";
 import {
 	CarrierActorSheet,
 	CARRIER_SHEET_TEMPLATE,
 	findCarrierActors,
 	chooseCarrier,
 	registerCarrierActorSheet
-} from "../scripts/carrier-actor-sheet.js";
+} from "../scripts/world-actors/carrier-actor-sheet.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 const STRIKE_DECISIVELY = BASIC_MOVES.find((m) => m.key === "strike-decisively");

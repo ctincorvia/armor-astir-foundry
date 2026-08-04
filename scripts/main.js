@@ -1,8 +1,8 @@
-import { registerPlaybookActorSheet, registerMoveChatListeners } from "./playbook-actor-sheet.js";
+import { registerPlaybookActorSheet, registerMoveChatListeners } from "./playbook/playbook-actor-sheet.js";
 import { registerPlaybookActorCreation } from "./actor-creation.js";
-import { registerCarrierActorSheet } from "./carrier-actor-sheet.js";
-import { registerAuthorityActorSheet } from "./authority-actor-sheet.js";
-import { registerCauseActorSheet } from "./cause-actor-sheet.js";
+import { registerCarrierActorSheet } from "./world-actors/carrier-actor-sheet.js";
+import { registerAuthorityActorSheet } from "./world-actors/authority-actor-sheet.js";
+import { registerCauseActorSheet } from "./world-actors/cause-actor-sheet.js";
 
 export const MODULE_ID = "armor-astir";
 

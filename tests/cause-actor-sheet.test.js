@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CauseActorSheet, CAUSE_SHEET_TEMPLATE, registerCauseActorSheet } from "../scripts/cause-actor-sheet.js";
+import { CauseActorSheet, CAUSE_SHEET_TEMPLATE, registerCauseActorSheet } from "../scripts/world-actors/cause-actor-sheet.js";
 
 describe("CauseActorSheet.defaultOptions", () => {
 	it("merges the cause sheet's classes/template onto the base world-actor options", () => {

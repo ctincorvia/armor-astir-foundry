@@ -9,7 +9,7 @@ import {
 	effectState,
 	rollConditions,
 	rolledDoubles
-} from "../scripts/roll-effects.js";
+} from "../scripts/moves/roll-effects.js";
 
 function results(...values) {
 	return values.map((value) => ({ result: value, active: true, discarded: false }));

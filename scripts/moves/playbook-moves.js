@@ -1,4 +1,4 @@
-import { TRAITS } from "./traits.js";
+import { TRAITS } from "../core/traits.js";
 
 export const PLAYBOOK_MOVE_PICKER_TEMPLATE = "modules/armor-astir/templates/playbook-move-picker.hbs";
 

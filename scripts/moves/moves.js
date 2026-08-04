@@ -8,8 +8,8 @@ import {
 	effectState,
 	rollConditions
 } from "./roll-effects.js";
-import { TRAITS } from "./traits.js";
-import { findEquipmentTag } from "./equipment.js";
+import { TRAITS } from "../core/traits.js";
+import { findEquipmentTag } from "../equipment/equipment.js";
 
 export const MOVE_CHAT_TEMPLATE = "modules/armor-astir/templates/move-chat.hbs";
 export const MOVE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates/move-roll-dialog.hbs";
@@ -19,6 +19,13 @@ export const MOVE_RESULT_LABELS = {
 	mixed: "Mixed Success (7-9)",
 	failure: "Failure (6-)"
 };
+
+// Matches the highest per-tier hold any basic move currently grants (read-the-room's 3 on a
+// 10+); also reused as the cap for every flatHold move's own separately-tracked pool (see
+// PlaybookActorSheet#_moveGroupMoves) since all of them cap at 3 today. Revisit if a future move
+// grants more.
+export const HOLD_MIN = 0;
+export const HOLD_MAX = 3;
 
 // What always happens on a full failure (6-), regardless of the move: the player banks a point
 // of spotlight and the Director takes their turn. The chat card carries these as prompts because

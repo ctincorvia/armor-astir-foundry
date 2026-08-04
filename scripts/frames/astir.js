@@ -1,6 +1,6 @@
-import { APPROACHES } from "./approaches.js";
-import { DRAIN_GROUP, EQUIPMENT_CATALOG_PICKER_TEMPLATE, EQUIPMENT_TAGS, resolveEquipmentTags } from "./equipment.js";
-import { MOVE_POOLS, PLAYBOOK_MOVE_PICKER_TEMPLATE, findPlaybookMove, pickerSection } from "./playbook-moves.js";
+import { APPROACHES } from "../core/approaches.js";
+import { DRAIN_GROUP, EQUIPMENT_CATALOG_PICKER_TEMPLATE, EQUIPMENT_TAGS, resolveEquipmentTags } from "../equipment/equipment.js";
+import { MOVE_POOLS, PLAYBOOK_MOVE_PICKER_TEMPLATE, findPlaybookMove, pickerSection } from "../moves/playbook-moves.js";
 
 // Astirs aren't their own documents (see claude.md) — one lives at system.attributes.astir on the
 // character actor itself, null/absent meaning "no Astir". Everything below follows the
