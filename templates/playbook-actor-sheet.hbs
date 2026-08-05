@@ -816,12 +816,40 @@
 							{{/each}}
 						</ol>
 					</section>
+					<section class="hooks">
+						<div class="section-header">
+							<h3>{{#if isParadigm}}Tenets{{else}}Hooks{{/if}}</h3>
+							<div class="section-header-actions">
+								<button type="button" class="hook-add icon-add-button" title="{{#if isParadigm}}Add Tenet{{else}}Add Hook{{/if}}" aria-label="{{#if isParadigm}}Add Tenet{{else}}Add Hook{{/if}}">+</button>
+							</div>
+						</div>
+						<ol class="entry-list hook-list">
+							{{#each hooks.list}}
+							<li class="entry-list-item" data-entry-id="{{id}}">
+								<div class="entry-list-row">
+									<input type="text" class="entry-list-field hook-field hook-description" data-entry-id="{{id}}" data-field="description" value="{{description}}" placeholder="Describe the {{#if ../isParadigm}}tenet{{else}}hook{{/if}}…"/>
+									<select class="entry-list-field hook-field hook-depth-select" data-entry-id="{{id}}" data-field="depth">
+										{{selectOptions ../hooks.depths selected=depth valueAttr="key" labelAttr="label"}}
+									</select>
+									{{#if ../isParadigm}}
+									<label class="hook-flag-label">
+										<input type="checkbox" class="entry-list-field hook-field hook-shaken-checkbox" data-entry-id="{{id}}" data-field="shaken" {{#if shaken}}checked{{/if}}/>
+										Shaken
+									</label>
+									{{/if}}
+									<button type="button" class="hook-remove" data-entry-id="{{id}}" aria-label="Remove hook">✕</button>
+								</div>
+							</li>
+							{{/each}}
+						</ol>
+					</section>
 					{{#if isWitch}}
 					<section class="patron">
 						<div class="section-header">
 							<h3>Patron</h3>
 							<div class="section-header-actions">
-								<button type="button" class="witch-boons-choose icon-add-button labeled-add-button" title="Choose 2 Boons" aria-label="Choose 2 Boons">Choose 2 Boons</button>
+								<button type="button" class="witch-boons-random icon-add-button labeled-add-button" title="Two Random Boons" aria-label="Two Random Boons">Two Random Boons</button>
+								<button type="button" class="witch-boons-choose icon-add-button labeled-add-button{{#unless witch.canChooseBoons}} disabled{{/unless}}" title="Choose 2 Boons" aria-label="Choose 2 Boons" {{#unless witch.canChooseBoons}}disabled data-gate-tooltip="Requires the Whims move. Pick it in Playbook Moves to choose your boons instead of rolling."{{/unless}}>Choose 2 Boons</button>
 								<button type="button" class="witch-boons-relinquish icon-add-button labeled-add-button" title="Relinquish Boons" aria-label="Relinquish Boons">Relinquish Boons</button>
 							</div>
 						</div>

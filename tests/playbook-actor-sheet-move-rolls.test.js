@@ -32,6 +32,7 @@ const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 const STRIKE_DECISIVELY = BASIC_MOVES.find((m) => m.key === "strike-decisively");
 const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertainties");
 const BITE_THE_DUST = BASIC_MOVES.find((m) => m.key === "bite-the-dust");
+const WEAVE_MAGIC = BASIC_MOVES.find((m) => m.key === "weave-magic");
 const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
 const WEAPON_CONDUIT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:weapon-conduit");
@@ -359,6 +360,88 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 						{ id: "2", type: "peril", label: "b" },
 						{ id: "3", type: "peril", label: "c" }
 					]
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			[
+				{ key: "clash", label: "CLASH", value: 0 },
+				{ key: "talk", label: "TALK", value: 0 }
+			],
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a Shaken Tenet", () => {
+	it("locks Desperation on Weave Magic when a Tenet is Shaken", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 0 } },
+				attributes: {
+					hooks: [{ id: "1", description: "A vow", depth: "normal", shaken: true }]
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "weave-magic" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			WEAVE_MAGIC,
+			[{ key: "channel", label: "CHANNEL", value: 0 }],
+			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	it("does not lock Desperation on Weave Magic when no Tenet is Shaken", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 0 } },
+				attributes: {
+					hooks: [{ id: "1", description: "A vow", depth: "normal", shaken: false }]
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "weave-magic" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			WEAVE_MAGIC,
+			[{ key: "channel", label: "CHANNEL", value: 0 }],
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	it("does not lock Desperation on Weave Magic with no hooks at all", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { channel: { value: 0 } }, attributes: {} } };
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "weave-magic" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			WEAVE_MAGIC,
+			[{ key: "channel", label: "CHANNEL", value: 0 }],
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	it("never locks Desperation for a move without forcesDesperationOnShakenTenet, even with a Shaken Tenet", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					hooks: [{ id: "1", description: "A vow", depth: "normal", shaken: true }]
 				}
 			}
 		};

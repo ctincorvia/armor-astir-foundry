@@ -35,6 +35,14 @@ export const FAILURE_REMINDERS = [
 	"The Director makes a move"
 ];
 
+// Bite the Dust's own failure text already references deepening/loosening Hooks as prose (see
+// below); these two reminders surface the same prompt on every roll that qualifies, not just
+// that one move, mirroring FAILURE_REMINDERS' own "easy to forget" rationale. Hook depth itself
+// stays a manual player edit (system.attributes.hooks, see tracking-mixin.js) — this is display
+// text only, not an automatic mutation.
+const DESPERATION_SUCCESS_REMINDER = "You may deepen a Hook";
+const CONFIDENCE_FAILURE_REMINDER = "You may loosen a Hook";
+
 export function moveResultTier(total) {
 	if (total >= 10) return "success";
 	if (total >= 7) return "mixed";
@@ -202,6 +210,12 @@ export const BASIC_MOVES = [
 		key: "weave-magic",
 		name: "Weave Magic",
 		traits: ["channel"],
+		// Actor-state-dependent, evaluated in PlaybookActorSheet (mirrors bite-the-dust's
+		// forcesDesperationAtMaxPerils above): Paradigm's own Tenets move ("roll +CHANNEL with
+		// desperation until you resolve this") is mechanized here rather than on that move itself,
+		// since Weave Magic is the actual +CHANNEL roll a Shaken Tenet forces to Desperation. Only
+		// ever true for a Paradigm character in practice — see PlaybookActorSheet#_hasShakenTenet.
+		forcesDesperationOnShakenTenet: true,
 		description:
 			"<p>When you invoke your magic to crumble a bridge, attune to mystical orbs at the centre of the " +
 			"galaxy, or otherwise do something taxing with your power, you're attempting to weave magic.</p>" +
@@ -636,6 +650,15 @@ export async function rollMove(actor, move, trait, options = {}) {
 	// needs to import astir.js — see PlaybookActorSheet#_rollMove.
 	const astirPartConditions = options.spentPartLabels ?? [];
 
+	// Confidence/Desperation reminders stack with (rather than replace) the full-failure ones —
+	// a Confidence roll that still fails full is both "lost the spotlight point" and "may loosen a
+	// Hook" at once.
+	const reminders = [
+		...(tier === "failure" ? FAILURE_REMINDERS : []),
+		...(effect.key === "desperation" && tier === "success" ? [DESPERATION_SUCCESS_REMINDER] : []),
+		...(effect.key === "confidence" && tier === "failure" ? [CONFIDENCE_FAILURE_REMINDER] : [])
+	];
+
 	// options.reroll (see PlaybookActorSheet#_availableReroll) is only ever set for a usesWeapon
 	// move whose chosen weapon still has an unspent Decisive/Defensive/Versatile tag matching this
 	// move — but the reroll itself (Decisive: "reroll a failed strike decisively") only ever
@@ -690,7 +713,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 		tier,
 		tierLabel: MOVE_RESULT_LABELS[tier],
 		resultText: move.results[tier],
-		reminders: tier === "failure" ? FAILURE_REMINDERS : null,
+		reminders: reminders.length ? reminders : null,
 		conditions: [...rollConditions(advantage, effect), ...moveConditions, ...equipmentConditions, ...astirPartConditions],
 		dice,
 		hold,

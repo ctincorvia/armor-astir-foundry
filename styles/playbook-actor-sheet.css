@@ -519,6 +519,18 @@
 	color: inherit;
 }
 
+/* Paradigm's Shaken checkbox on a Tenet (a Hook entry, isParadigm-gated — see claude.md's Tenets
+   notes) — same inline label/checkbox pairing as world-actor-sheet.css's own .faction-flag-label,
+   mirrored here since the two sheets' CSS stays in separate files. */
+.armor-astir.sheet .hook-flag-label {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex: 0 0 auto;
+	gap: var(--aa-space-1);
+	white-space: nowrap;
+}
+
 /* Every small square icon-button that removes a list entry — Danger, Gravity Clock, Playbook
    Move, Equipment, Astir Part/Move, the Astir itself — was four byte-identical rules; one
    consolidated rule instead. */
@@ -526,6 +538,7 @@
 .armor-astir.sheet .gravity-clock-remove,
 .armor-astir.sheet .clock-remove,
 .armor-astir.sheet .ace-crew-remove,
+.armor-astir.sheet .hook-remove,
 .armor-astir.sheet .playbook-move-remove,
 .armor-astir.sheet .equipment-remove,
 .armor-astir.sheet .astir-part-remove,
@@ -547,6 +560,7 @@
 .armor-astir.sheet .gravity-clock-remove:hover,
 .armor-astir.sheet .clock-remove:hover,
 .armor-astir.sheet .ace-crew-remove:hover,
+.armor-astir.sheet .hook-remove:hover,
 .armor-astir.sheet .playbook-move-remove:hover,
 .armor-astir.sheet .equipment-remove:hover,
 .armor-astir.sheet .astir-part-remove:hover,
@@ -986,7 +1000,8 @@
 .armor-astir.sheet .move-roll.disabled,
 .armor-astir.sheet .move-activate.disabled,
 .armor-astir.sheet .controls-mount-up.disabled,
-.armor-astir.sheet .controls-dismount.disabled {
+.armor-astir.sheet .controls-dismount.disabled,
+.armor-astir.sheet .witch-boons-choose.disabled {
 	background: var(--aa-primary-tint);
 	border-color: var(--aa-primary-tint);
 	color: var(--aa-primary-dark);
@@ -1031,7 +1046,7 @@
 
 .armor-astir.sheet .move-roll:not(.disabled):hover,
 .armor-astir.sheet .move-activate:not(.disabled):hover,
-.armor-astir.sheet .icon-add-button:hover,
+.armor-astir.sheet .icon-add-button:not(.disabled):hover,
 .armor-astir.sheet .danger-add:hover,
 .armor-astir.sheet .astir-create:hover,
 .armor-astir.sheet .controls-mount-up:not(.disabled):hover,
@@ -1242,18 +1257,21 @@
 	background: var(--aa-primary-tint);
 }
 
-/* CSS-only tooltip explaining why a gated weapon button is disabled (mount/dismount state) — this
-   module's only tooltip beyond native title attributes, so it gets its own styled look rather
-   than the plain unstyled convention used elsewhere. Primary-dark since this is UI chrome, not
-   player-tracked state, and -dark because it carries white text (see the role-token note above).
-   Deliberately named data-gate-tooltip rather than data-tooltip: core Foundry's own TooltipManager
-   (client/core/tooltip.js) activates its own native tooltip on *any* element with a data-tooltip
-   attribute, so reusing that name doubled up with Foundry's own black tooltip. */
-.armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip] {
+/* CSS-only tooltip explaining why a gated button is disabled (e.g. weapon mount/dismount state,
+   or the Witch's Choose 2 Boons requiring Whims) — this module's only tooltip beyond native title
+   attributes, so it gets its own styled look rather than the plain unstyled convention used
+   elsewhere. Primary-dark since this is UI chrome, not player-tracked state, and -dark because it
+   carries white text (see the role-token note above). Deliberately named data-gate-tooltip rather
+   than data-tooltip: core Foundry's own TooltipManager (client/core/tooltip.js) activates its own
+   native tooltip on *any* element with a data-tooltip attribute, so reusing that name doubled up
+   with Foundry's own black tooltip. */
+.armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip],
+.armor-astir.sheet .witch-boons-choose.disabled[data-gate-tooltip] {
 	position: relative;
 }
 
-.armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip]:hover::after {
+.armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip]:hover::after,
+.armor-astir.sheet .witch-boons-choose.disabled[data-gate-tooltip]:hover::after {
 	content: attr(data-gate-tooltip);
 	position: absolute;
 	bottom: 100%;

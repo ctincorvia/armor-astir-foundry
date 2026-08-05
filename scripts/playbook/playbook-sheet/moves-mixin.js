@@ -40,6 +40,15 @@ export const MovesSheetMixin = {
 		const dangers = this._dangers();
 		return dangers.length >= DANGER_MAX && dangers.every((danger) => danger.type === "peril");
 	},
+	// weave-magic's forcesDesperationOnShakenTenet reads this the same way bite-the-dust's
+	// forcesDesperationAtMaxPerils reads _allDangersArePeril above — evaluated generically off any
+	// Hook's shaken flag (see tracking-mixin.js's _hooks) rather than gated on isParadigm itself,
+	// since a non-Paradigm actor's hooks never get a Shaken checkbox to check in the first place
+	// (see the template's isParadigm-gated markup), so this only ever fires for a Paradigm
+	// character in practice.
+	_hasShakenTenet() {
+		return this._hooks().some((hook) => hook.shaken);
+	},
 	// getData's moveGroups — Basic and Special moves are the same fixed list for every actor;
 	// Playbook Moves is the per-actor set picked via the "+" button, so it's the only group that
 	// renders add/remove controls (see the template's addable/removable branches). All three run
@@ -485,14 +494,16 @@ export const MovesSheetMixin = {
 		}
 		if (!traits.length && !move.conditions) return;
 
-		// bite-the-dust's forcesDesperationAtMaxPerils wins ties over a forced weapon tag — both
-		// only ever lock to Desperation today, so there's nothing to actually conflict, but the
-		// precedence keeps a future second forcesEffect value from silently overriding
-		// bite-the-dust's danger-state read. Field Scout's standing grantsEffectOnMove (see
-		// _grantedEffectForMove) sits last: it's a permanent grant rather than either of the other
-		// two's emergency/reactive lock, so anything already forcing an axis wins over it.
+		// bite-the-dust's forcesDesperationAtMaxPerils and weave-magic's forcesDesperationOnShakenTenet
+		// sit at the same "reactive/emergency lock" tier, ahead of a forced weapon tag — all three only
+		// ever lock to Desperation today, so there's nothing to actually conflict, but the precedence
+		// keeps a future second forcesEffect value from silently overriding either actor-state read.
+		// Field Scout's standing grantsEffectOnMove (see _grantedEffectForMove) sits last: it's a
+		// permanent grant rather than any of the other three's emergency/reactive lock, so anything
+		// already forcing an axis wins over it.
 		const forced = this._forcedWeaponEffect(weapon);
 		const lockedEffect = (move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null)
+			?? (move.forcesDesperationOnShakenTenet && this._hasShakenTenet() ? "desperation" : null)
 			?? forced?.effect
 			?? this._grantedEffectForMove(move)
 			?? null;

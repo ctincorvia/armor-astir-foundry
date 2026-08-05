@@ -87,6 +87,11 @@ export class PlaybookActorSheet extends ActorSheet {
 		// isCommander both follow). Computed unconditionally below (data.witch), same as
 		// data.aceCrew already is for isCommander.
 		data.isWitch = playbookSlug === "the-witch";
+		// Gates the Tenets label + Shaken checkbox on the Social tab's Hooks section — exclusive to
+		// The Paradigm (see claude.md's Tenets notes and tracking-mixin.js's HOOK_DEPTHS comment).
+		// Computed here, same reason isCommander/isWitch are: no Handlebars equality helper is
+		// registered in this module.
+		data.isParadigm = playbookSlug === "the-paradigm";
 		// Rendered next to the Approach select in the header — see claude.md's Character Tier
 		// notes: on-foot Tier and Approach are the same kind of "how you fight outside your Astir"
 		// property. Derived fresh every render, not stored — see _conflictTier.
@@ -160,6 +165,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		data.burdens = this._burdensData();
 		data.clocks = this._clocksData();
 		data.aceCrew = this._aceCrewData();
+		data.hooks = this._hooksData();
 		data.witch = this._witchData();
 		data.advancements = this._advancementsData();
 		return data;
@@ -220,7 +226,11 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".ace-crew-add").on("click", this._onAceCrewAdd.bind(this));
 		html.find(".ace-crew-remove").on("click", this._onAceCrewRemove.bind(this));
 		html.find(".ace-crew-field").on("change", this._onAceCrewFieldChange.bind(this));
+		html.find(".hook-add").on("click", this._onHookAdd.bind(this));
+		html.find(".hook-remove").on("click", this._onHookRemove.bind(this));
+		html.find(".hook-field").on("change", this._onHookFieldChange.bind(this));
 		html.find(".witch-influence-step").on("click", this._onWitchInfluenceStep.bind(this));
+		html.find(".witch-boons-random").on("click", this._grantRandomWitchBoons.bind(this));
 		html.find(".witch-boons-choose").on("click", this._onWitchBoonsChoose.bind(this));
 		html.find(".witch-boons-relinquish").on("click", this._onWitchBoonsRelinquish.bind(this));
 		html.find(".starting-moves-add").on("click", this._onStartingMovesAdd.bind(this));

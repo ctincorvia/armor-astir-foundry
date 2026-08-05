@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+import { HOOK_DEPTHS } from "../scripts/playbook/playbook-sheet/tracking-mixin.js";
 
 describe("PlaybookActorSheet#getData - dangers", () => {
 	it("defaults to an empty list, not at max, and able to add when attributes is empty", () => {
@@ -390,6 +391,140 @@ describe("PlaybookActorSheet#_onBurdenLabelChange", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.burdens": [{ id: "1", label: "A" }, { id: "2", label: "Changed" }]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#getData - hooks", () => {
+	it("defaults to an empty list when attributes is empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet.getData().hooks).toEqual({ depths: HOOK_DEPTHS, list: [] });
+	});
+
+	it("exposes the actor's stored hooks as-is, with no derived per-entry shape", () => {
+		const sheet = new PlaybookActorSheet();
+		const hooks = [
+			{ id: "1", description: "A debt owed to a stranger", depth: "loose" },
+			{ id: "2", description: "A promise to a dying friend", depth: "deep" }
+		];
+		sheet.actor = { system: { attributes: { hooks } } };
+
+		expect(sheet.getData().hooks).toEqual({ depths: HOOK_DEPTHS, list: hooks });
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - hooks", () => {
+	it("binds handlers to the add, remove and field controls", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".hook-add");
+		expect(html.find).toHaveBeenCalledWith(".hook-remove");
+		expect(html.find).toHaveBeenCalledWith(".hook-field");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
+	});
+});
+
+describe("PlaybookActorSheet#_onHookAdd", () => {
+	it("appends a new hook with a generated id, blank description, and normal depth", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { hooks: [] } }, update: vi.fn() };
+
+		sheet._onHookAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.hooks": [{ id: "test-id", description: "", depth: "normal" }]
+		});
+	});
+
+	it("appends to, rather than replaces, existing hooks", () => {
+		const sheet = new PlaybookActorSheet();
+		const existing = { id: "h1", description: "An old rivalry", depth: "loose" };
+		sheet.actor = { system: { attributes: { hooks: [existing] } }, update: vi.fn() };
+
+		sheet._onHookAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.hooks": [existing, { id: "test-id", description: "", depth: "normal" }]
+		});
+	});
+
+	it("treats a missing hooks array as starting empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onHookAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.hooks": [{ id: "test-id", description: "", depth: "normal" }]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onHookRemove", () => {
+	it("removes the matching hook, leaving others untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const a = { id: "h1", description: "An old rivalry", depth: "loose" };
+		const b = { id: "h2", description: "A debt owed", depth: "deep" };
+		sheet.actor = { system: { attributes: { hooks: [a, b] } }, update: vi.fn() };
+
+		sheet._onHookRemove({ currentTarget: { dataset: { entryId: "h1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.hooks": [b] });
+	});
+});
+
+describe("PlaybookActorSheet#_onHookFieldChange", () => {
+	it("updates the matching hook's description field, leaving others untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const a = { id: "h1", description: "", depth: "normal" };
+		const b = { id: "h2", description: "Unchanged", depth: "loose" };
+		sheet.actor = { system: { attributes: { hooks: [a, b] } }, update: vi.fn() };
+
+		sheet._onHookFieldChange({
+			currentTarget: { dataset: { entryId: "h1", field: "description" }, value: "A debt owed to a stranger" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.hooks": [{ id: "h1", description: "A debt owed to a stranger", depth: "normal" }, b]
+		});
+	});
+
+	it("updates the matching hook's depth field, leaving others untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const a = { id: "h1", description: "A debt owed", depth: "normal" };
+		const b = { id: "h2", description: "Unchanged", depth: "loose" };
+		sheet.actor = { system: { attributes: { hooks: [a, b] } }, update: vi.fn() };
+
+		sheet._onHookFieldChange({
+			currentTarget: { dataset: { entryId: "h1", field: "depth" }, value: "deep" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.hooks": [{ id: "h1", description: "A debt owed", depth: "deep" }, b]
+		});
+	});
+
+	it("writes a boolean, not the raw string value, for a checkbox field like shaken", () => {
+		const sheet = new PlaybookActorSheet();
+		const a = { id: "h1", description: "A vow", depth: "normal", shaken: false };
+		const b = { id: "h2", description: "Unchanged", depth: "loose" };
+		sheet.actor = { system: { attributes: { hooks: [a, b] } }, update: vi.fn() };
+
+		sheet._onHookFieldChange({
+			currentTarget: { dataset: { entryId: "h1", field: "shaken" }, type: "checkbox", checked: true, value: "on" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.hooks": [{ id: "h1", description: "A vow", depth: "normal", shaken: true }, b]
 		});
 	});
 });

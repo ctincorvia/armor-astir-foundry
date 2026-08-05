@@ -22,6 +22,14 @@ export const GRAVITY_CLOCK_PROGRESS_MAX = 6;
 export const GRAVITY_CLOCK_VALUE_MIN = 1;
 export const GRAVITY_CLOCK_VALUE_MAX = 3;
 
+// Hooks (Social tab) — a free-text description plus a fixed three-value depth select. Universal,
+// unlike Ace Crew below, so this renders on every playbook's sheet regardless of isCommander.
+export const HOOK_DEPTHS = [
+	{ key: "loose", label: "Loose" },
+	{ key: "normal", label: "Normal" },
+	{ key: "deep", label: "Deep" }
+];
+
 // Dangers, Burdens, Gravity Clocks, generic Clocks and Commander's Ace Crew roster — the Social/
 // Dangers-column trackers (see claude.md's Social tab and Dangers notes). Each is a plain id-keyed
 // (or, for Dangers/Burdens, actor-attributes-scoped) list with its own thin CRUD handlers; nothing
@@ -50,6 +58,11 @@ export const TrackingSheetMixin = {
 	// Carrier's Crew Members already establish for a plain id-keyed list of {name, ...} entries.
 	_aceCrew() {
 		return this.actor.system.attributes?.aceCrew ?? [];
+	},
+	// Hooks (see HOOK_DEPTHS above) — reuses entry-list.js's CRUD helpers exactly like Ace Crew
+	// above, but universal/always-visible on the Social tab rather than Commander-gated.
+	_hooks() {
+		return this.actor.system.attributes?.hooks ?? [];
 	},
 	// Dangers sit in their own left column beside the tab area (see the template) rather than
 	// inside a tab, since DEFENSELESS and the Danger list matter regardless of which tab is open.
@@ -111,6 +124,11 @@ export const TrackingSheetMixin = {
 	// gets from a missing GRAVITY_TRIGGERS entry.
 	_aceCrewData() {
 		return { list: this._aceCrew() };
+	},
+	// Hooks — universal Social-tab list, same "compute regardless, gate the render" non-issue as
+	// Burdens/Clocks above (there's nothing to gate, since Hooks isn't playbook-exclusive at all).
+	_hooksData() {
+		return { depths: HOOK_DEPTHS, list: this._hooks() };
 	},
 	// The header "+" for Dangers just shows/hides the add-controls row (see _dangerAddOpen) rather
 	// than opening a dialog — there's a label and a type to fill in first, so a single click can't
@@ -184,6 +202,29 @@ export const TrackingSheetMixin = {
 		const { entryId, field } = event.currentTarget.dataset;
 		this.actor.update({
 			"system.attributes.aceCrew": updateEntryField(this._aceCrew(), entryId, field, event.currentTarget.value)
+		});
+	},
+	// Hooks — same thin entry-list.js wiring as Ace Crew immediately above, just targeting
+	// system.attributes.hooks instead. _onHookFieldChange is shared between the description text
+	// input and the depth select, same "no trimming" stance Ace Crew's own field handler takes.
+	_onHookAdd() {
+		this.actor.update({
+			"system.attributes.hooks": addEntry(this._hooks(), { description: "", depth: "normal" })
+		});
+	},
+	_onHookRemove(event) {
+		const { entryId } = event.currentTarget.dataset;
+		this.actor.update({ "system.attributes.hooks": removeEntry(this._hooks(), entryId) });
+	},
+	// Covers the description/depth text fields and, for a Paradigm actor, the Shaken checkbox (see
+	// the template's isParadigm-gated markup) alike — same checkbox-vs-value branch
+	// WorldActorSheet#_onEntryFieldChange already establishes for Cause Faction's Exhausted/Seized
+	// flags.
+	_onHookFieldChange(event) {
+		const { entryId, field } = event.currentTarget.dataset;
+		const value = event.currentTarget.type === "checkbox" ? event.currentTarget.checked : event.currentTarget.value;
+		this.actor.update({
+			"system.attributes.hooks": updateEntryField(this._hooks(), entryId, field, value)
 		});
 	},
 	_onGravityClockAdd(event) {
