@@ -16,6 +16,7 @@ import { FramesSheetMixin } from "./playbook-sheet/frames-mixin.js";
 import { AstirSheetMixin } from "./playbook-sheet/astir-mixin.js";
 import { EquipmentSheetMixin } from "./playbook-sheet/equipment-mixin.js";
 import { MovesSheetMixin } from "./playbook-sheet/moves-mixin.js";
+import { PatronSheetMixin } from "./playbook-sheet/patron-mixin.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
 
@@ -80,6 +81,12 @@ export class PlaybookActorSheet extends ActorSheet {
 		// ARDENT_FEATURE_PARTS/ARDENT_FEATURE_WEAPONS and claude.md's Commander notes). No Handlebars
 		// equality helper is registered in this module, so the comparison happens here instead.
 		data.isCommander = playbookSlug === "the-commander";
+		// Gates the Patron section (Social tab) — Influence stepper, Boons list, "Choose 2 Boons" and
+		// "Relinquish Boons" — exclusive to The Witch (see witch.js/patron-mixin.js and claude.md's
+		// Clocks section for the general "compute regardless, gate the render" precedent this and
+		// isCommander both follow). Computed unconditionally below (data.witch), same as
+		// data.aceCrew already is for isCommander.
+		data.isWitch = playbookSlug === "the-witch";
 		// Rendered next to the Approach select in the header — see claude.md's Character Tier
 		// notes: on-foot Tier and Approach are the same kind of "how you fight outside your Astir"
 		// property. Derived fresh every render, not stored — see _conflictTier.
@@ -153,6 +160,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		data.burdens = this._burdensData();
 		data.clocks = this._clocksData();
 		data.aceCrew = this._aceCrewData();
+		data.witch = this._witchData();
 		data.advancements = this._advancementsData();
 		return data;
 	}
@@ -212,6 +220,9 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".ace-crew-add").on("click", this._onAceCrewAdd.bind(this));
 		html.find(".ace-crew-remove").on("click", this._onAceCrewRemove.bind(this));
 		html.find(".ace-crew-field").on("change", this._onAceCrewFieldChange.bind(this));
+		html.find(".witch-influence-step").on("click", this._onWitchInfluenceStep.bind(this));
+		html.find(".witch-boons-choose").on("click", this._onWitchBoonsChoose.bind(this));
+		html.find(".witch-boons-relinquish").on("click", this._onWitchBoonsRelinquish.bind(this));
 		html.find(".starting-moves-add").on("click", this._onStartingMovesAdd.bind(this));
 		html.find(".playbook-move-add").on("click", this._onPlaybookMoveAdd.bind(this));
 		html.find(".playbook-move-remove").on("click", this._onPlaybookMoveRemove.bind(this));
@@ -269,7 +280,7 @@ export class PlaybookActorSheet extends ActorSheet {
 Object.assign(
 	PlaybookActorSheet.prototype,
 	TrackingSheetMixin, ProgressionSheetMixin, ArdentSheetMixin, FramesSheetMixin,
-	AstirSheetMixin, EquipmentSheetMixin, MovesSheetMixin
+	AstirSheetMixin, EquipmentSheetMixin, MovesSheetMixin, PatronSheetMixin
 );
 
 export function registerPlaybookActorSheet() {

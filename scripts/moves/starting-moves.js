@@ -66,6 +66,27 @@ export const STARTING_MOVE_POOLS = [
 		grantedKeys: ["the-arcanist:prepare-rituals"],
 		pickOneKeys: [],
 		chooseCount: 0
+	},
+	{
+		playbookName: "The Paradigm",
+		poolKey: "the-paradigm",
+		// Tenets is unconditionally granted. The Astir's own unique move ("the Astir's own move from
+		// Additional Moves or the Cantrips list") is handled the same generic way as The Arcanist's own
+		// comment above describes — no separate budget needed here for it.
+		grantedKeys: ["the-paradigm:tenets"],
+		pickOneKeys: [],
+		chooseCount: 0
+	},
+	{
+		playbookName: "The Witch",
+		poolKey: "the-witch",
+		// "You start with the patron move" is unconditionally granted. The Astir's own unique move
+		// ("a move of your choice from your Additional Moves or the Cantrips list") is handled the
+		// same generic way as The Arcanist's/The Paradigm's own comments above describe — no
+		// separate budget needed here for it.
+		grantedKeys: ["the-witch:patron"],
+		pickOneKeys: [],
+		chooseCount: 0
 	}
 ];
 

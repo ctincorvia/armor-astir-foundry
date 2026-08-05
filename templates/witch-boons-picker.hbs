@@ -1,0 +1,15 @@
+<form class="armor-astir-witch-boons-picker">
+	<p class="witch-boons-picker-instructions">Choose {{count}}.</p>
+	<ol class="witch-boons-picker-list">
+		{{#each boons}}
+		<li class="witch-boons-picker-item{{#if held}} witch-boons-picker-item-held{{/if}}">
+			<label class="witch-boons-picker-option">
+				<input type="checkbox" name="witch-boon" value="{{key}}"/>
+				<span class="witch-boons-picker-name">{{name}}</span>
+				{{#if held}}<span class="witch-boons-picker-held-tag">Held</span>{{/if}}
+			</label>
+			<div class="witch-boons-picker-description">{{description}}</div>
+		</li>
+		{{/each}}
+	</ol>
+</form>

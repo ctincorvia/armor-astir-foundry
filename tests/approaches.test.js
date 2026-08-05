@@ -21,6 +21,10 @@ describe("availableApproaches", () => {
 		expect(availableApproaches("the-arcanist").map((a) => a.key)).toEqual(["arcane", "elemental"]);
 	});
 
+	it("restricts The Witch to Arcane or Profane", () => {
+		expect(availableApproaches("the-witch").map((a) => a.key)).toEqual(["arcane", "profane"]);
+	});
+
 	it("falls back to every approach for a playbook with no restriction entry", () => {
 		expect(PLAYBOOK_APPROACHES["some-future-playbook"]).toBeUndefined();
 		expect(availableApproaches("some-future-playbook")).toEqual(APPROACHES);

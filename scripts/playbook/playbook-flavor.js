@@ -107,6 +107,47 @@ export const PLAYBOOK_FLAVOR = {
 			"What does diplomacy mean to you? How do you go about it?",
 			"Have you ever negotiated with the Authority before?"
 		]
+	},
+	"the-paradigm": {
+		look: [
+			{ label: "You look:", text: "serious, haughty, caring, wise or zealous" },
+			{ label: "You wear:", text: "pilot jumpsuit, military uniform, dress uniform, religious garb" },
+			{ label: "Your magic is like:", text: "angelic choirs, blinding lights, warm embraces, blazing icons" },
+			{ label: "When you launch your Astir, you say:", text: "" }
+		],
+		consider: [
+			"Is your deity really divine in the supernatural sense, or just a godlike figure?",
+			"How formal is your religion/connection to your deity?",
+			"How well known is your deity?",
+			"How common are people like yourself? Are they called Paradigms, or something else?",
+			"What is the Cause's relationship to faith?",
+			"What is the Authority's relationship to faith?",
+			"What is your deity like? What do they demand, and what do they request?",
+			"What does giving service or worship to your deity look like?",
+			"What was your life like before the Cause?",
+			"How were you introduced to your deity?"
+		]
+	},
+	"the-witch": {
+		look: [
+			{ label: "You look:", text: "dark, mysterious, shrouded, unsure or haunted" },
+			{ label: "You wear:", text: "pilot jumpsuit, military uniform, dress uniform, occult robes" },
+			{ label: "Your magic is like:", text: "smothering darkness, roiling chaos, striking bolts, withering curses" },
+			{ label: "When you launch your Astir, you say:", text: "________________" }
+		],
+		consider: [
+			"What and who is your patron? Are they supernatural, or just powerful enough to seem so?",
+			"What is the nature of your relationship with your patron?",
+			"Are there other Witches serving your patron? Are there other Witches at all?",
+			"Do people refer to you as a Witch? Is there another term they or you use?",
+			"Is your bond with your patron forever, or will it expire?",
+			"What other kinds of beings exist that could be patrons?",
+			"Did forming this bond cost you anything now, or will it in the future?",
+			"Is there a recognisable symbol of your patronage? An associated familiar?",
+			"Does your patron have a direct connection to you, or do they act through agents?",
+			"Are your boons an informal collection of helpful magics, or something more defined? If so, what " +
+				"do you call them?"
+		]
 	}
 };
 

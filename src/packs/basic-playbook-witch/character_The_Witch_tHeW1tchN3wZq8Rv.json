@@ -1,0 +1,55 @@
+{
+	"name": "The Witch",
+	"type": "character",
+	"img": "icons/svg/mystery-man.svg",
+	"effects": [],
+	"items": [],
+	"folder": null,
+	"flags": {},
+	"system": {
+		"details": {
+			"callsign": {
+				"label": "Callsign",
+				"value": ""
+			}
+		},
+		"playbook": {
+			"name": "The Witch",
+			"slug": "the-witch",
+			"uuid": ""
+		},
+		"stats": {
+			"defy": { "value": 0 },
+			"sense": { "value": 0 },
+			"clash": { "value": 0 },
+			"talk": { "value": 0 },
+			"know": { "value": 0 },
+			"channel": { "value": 2 }
+		},
+		"attributes": { "approach": "profane" }
+	},
+	"prototypeToken": {
+		"name": "The Witch",
+		"actorLink": true,
+		"disposition": 1,
+		"texture": {
+			"src": "icons/svg/mystery-man.svg"
+		}
+	},
+	"ownership": {
+		"default": 0
+	},
+	"_stats": {
+		"compendiumSource": null,
+		"duplicateSource": null,
+		"coreVersion": "12",
+		"systemId": "pbta",
+		"systemVersion": "1.1.15",
+		"createdTime": null,
+		"modifiedTime": null,
+		"lastModifiedBy": null
+	},
+	"_id": "tHeW1tchN3wZq8Rv",
+	"sort": 0,
+	"_key": "!actors!tHeW1tchN3wZq8Rv"
+}

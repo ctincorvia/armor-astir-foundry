@@ -39,3 +39,12 @@ export function traitBonusesFor(moves, { dangerCount = 0, burdenCount = 0, choic
 	}
 	return bonuses;
 }
+
+// The Witch's Patron move ("as long as your Patron has at least 1 Influence, your CHANNEL is
+// increased by 1") — a boolean threshold gate, not a linear per-count scale like
+// TRAIT_BONUS_SOURCES above, so it's a separate pure function rather than a third entry there.
+// influence itself is a plain manual counter (see patron-mixin.js's _witchInfluence) with no cap
+// of its own; only whether it's >= 1 matters here.
+export function patronChannelBonus(moves, influence) {
+	return influence >= 1 && moves.some((move) => move.grantsChannelWhileInfluence) ? 1 : 0;
+}

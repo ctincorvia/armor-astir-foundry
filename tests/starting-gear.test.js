@@ -170,7 +170,6 @@ describe("STARTING_GEAR_POOLS", () => {
 	it("gives The Arcanist 2 of 4 Arcanist Gear items to choose from", () => {
 		const arcanist = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Arcanist");
 
-		expect(arcanist.grantedItems).toEqual([]);
 		expect(arcanist.groups).toHaveLength(1);
 		expect(arcanist.groups[0].chooseCount).toBe(2);
 		expect(arcanist.groups[0].items.map((item) => item.key)).toEqual([
@@ -179,6 +178,40 @@ describe("STARTING_GEAR_POOLS", () => {
 			"the-arcanist:sidearm-i",
 			"the-arcanist:shield-broach-i"
 		]);
+	});
+
+	it("grants The Arcanist Touch Spells I, a melee/bane weapon, rather than leaving it a freeform note", () => {
+		const arcanist = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Arcanist");
+
+		expect(arcanist.grantedItems).toHaveLength(1);
+		expect(arcanist.grantedItems[0]).toMatchObject({
+			key: "the-arcanist:touch-spells-i",
+			kind: "weapon",
+			tags: ["melee", "bane"]
+		});
+		expect(arcanist.freeformNotes).toEqual([
+			"1 Astir III, built on the Astir & Ardents tab.",
+			"Clothes that match your look."
+		]);
+	});
+
+	it("grants The Paradigm Divine Touch I, a melee/bane weapon", () => {
+		const paradigm = findStartingGearPool("The Paradigm");
+
+		expect(paradigm.grantedItems).toHaveLength(1);
+		expect(paradigm.grantedItems[0]).toMatchObject({
+			key: "the-paradigm:divine-touch-i",
+			kind: "weapon",
+			tags: ["melee", "bane"]
+		});
+	});
+
+	it("gives The Paradigm 2 of 4 Paradigm Gear items to choose from", () => {
+		const paradigm = findStartingGearPool("The Paradigm");
+
+		expect(paradigm.groups).toHaveLength(1);
+		expect(paradigm.groups[0].chooseCount).toBe(2);
+		expect(paradigm.groups[0].items).toHaveLength(4);
 	});
 
 	it("gives The Diplomat 1 Diplomacy 'Tool' weapon and 3 'Diplomacy' Tools as independent budgets", () => {
@@ -190,6 +223,25 @@ describe("STARTING_GEAR_POOLS", () => {
 		expect(tools.items.every((item) => item.kind === "weapon")).toBe(true);
 		expect(gear.chooseCount).toBe(3);
 		expect(gear.items.every((item) => item.kind === undefined)).toBe(true);
+	});
+
+	it("grants The Witch Pact Weapon I, a melee/bane weapon", () => {
+		const witch = findStartingGearPool("The Witch");
+
+		expect(witch.grantedItems).toHaveLength(1);
+		expect(witch.grantedItems[0]).toMatchObject({
+			key: "the-witch:pact-weapon-i",
+			kind: "weapon",
+			tags: ["melee", "bane"]
+		});
+	});
+
+	it("gives The Witch 2 of 4 Witch Gear items to choose from", () => {
+		const witch = findStartingGearPool("The Witch");
+
+		expect(witch.groups).toHaveLength(1);
+		expect(witch.groups[0].chooseCount).toBe(2);
+		expect(witch.groups[0].items).toHaveLength(4);
 	});
 });
 

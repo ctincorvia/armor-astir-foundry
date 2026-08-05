@@ -929,6 +929,350 @@ export const MOVE_POOLS = [
 		]
 	},
 	{
+		key: "the-paradigm",
+		label: "The Paradigm",
+		playbookName: "The Paradigm",
+		moves: [
+			{
+				key: "the-paradigm:tenets",
+				name: "Tenets",
+				// Unconditionally granted via starting-moves.js's grantedKeys (every Paradigm starts with
+				// this), so no `starting: true` — that flag is reserved for a pick-one starting choice (see
+				// Field Scout/Giant Slayer's own comment).
+				//
+				// None of this move's own consequences are tracked or enforced: this module has no Hooks
+				// data model (Hooks are referenced only as fiction elsewhere, e.g. bite-the-dust's own text
+				// above), no risk/peril counter beyond the freeform Dangers panel, and no Downtime-Scene
+				// counter anywhere (Downtime Tokens track a spendable resource, not how many Scenes a
+				// character gets — see The Commander's Debrief). The permanent CHANNEL reduction and forced
+				// playbook change are one-time narrated events, the same "choose a new playbook" treatment
+				// bite-the-dust's own failure text already gets. Left fully descriptive rather than adding a
+				// forced-Desperation flag or a tracked tenet/broken-flag structure.
+				traits: ["channel"],
+				results: { success: null, mixed: null, failure: null },
+				description:
+					"<p>Instead of Hooks, write three tenets that represent your deity's will. When you break " +
+					"or lose faith in a tenet, your deity will ask something of you. Roll +CHANNEL with " +
+					"desperation until you resolve this: once you have, take an Advancement and replace that " +
+					"tenet with a Hook representing how your faith has changed or grown.</p>" +
+					"<p>If you refuse or resolve it in a way that angers or disappoints the divine, reduce " +
+					"your CHANNEL by 1 permanently. If your CHANNEL reaches 0 in this way, immediately change " +
+					"playbooks and take an additional Advancement.</p>" +
+					"<p>You are responsible for the spiritual well-being of your crew: you gain an extra " +
+					"Social Space or Private Quarters Scene during Downtime to attend to it.</p>"
+			},
+			{
+				key: "the-paradigm:divine-guidance",
+				name: "Divine Guidance",
+				traits: ["channel"],
+				// Standalone rather than an addsTraitToMove onto Dispel Uncertainties: that move's own 7-9
+				// makes usefulness itself uncertain, while this one keeps the information useful but makes
+				// its divine origin uncertain instead — a meaningfully different mixed-success text, not
+				// just an extra Trait option on the existing move.
+				results: {
+					success: "Your deity tells you something directly useful about the situation or subject " +
+						"at hand.",
+					mixed: "The information is still directly useful, but it is difficult to discern if your " +
+						"answer came from the intended deity.",
+					failure: null
+				},
+				description:
+					"<p>When you consult your deity for information or guidance, you may dispel uncertainties " +
+					"with +CHANNEL.</p>" +
+					"<p>On a 10+, your deity tells you something directly useful about the situation or " +
+					"subject at hand.</p>" +
+					"<p>On a 7-9, the information is still directly useful, but it is difficult to discern if " +
+					"your answer came from the intended deity. People know you can literally contact the " +
+					"divine.</p>"
+			},
+			{
+				key: "the-paradigm:avenger",
+				name: "Avenger",
+				// No roll — traits is empty and there are no conditions, so the sheet's `rollable` flag
+				// stays false and only a Description button renders, same treatment as Bullheaded. The
+				// extra-Scene cost references the same untracked Downtime-Scene concept as Tenets above, so
+				// this stays descriptive too.
+				traits: [],
+				description:
+					"<p>When an ally or yourself is put in peril, you may declare the responsible party (you " +
+					"are the judge of who is responsible in this context) your target. You may freely ignore " +
+					"any risks you would be forced to take in direct pursuit of your target during a " +
+					"Sortie.</p>" +
+					"<p>If you do so, the extra Scene from tenets is lost during your next Downtime: you must " +
+					"use it to tend to yourself instead.</p>"
+			},
+			{
+				key: "the-paradigm:inspire-focus",
+				name: "Inspire Focus",
+				traits: [],
+				uses: [{ key: "sortie", label: "Used this Sortie", period: "Sortie" }],
+				description:
+					"<p>Once per Sortie, you may take a visible position over the battlefield and inspire " +
+					"confidence and clarity in your allies that see you: they each clear a risk and take " +
+					"advantage to their next roll.</p>"
+			},
+			{
+				key: "the-paradigm:safeguard",
+				name: "Safeguard",
+				// Pure fiction — no roll, no tracked resource. Both halves of this move are narrated
+				// exchanges of harm between the two participants in an existing exchange-blows/help-or-hinder
+				// pairing, with nothing further to track beyond the Dangers panel either party already has.
+				traits: [],
+				description:
+					"<p>When you exchange blows and someone helps or hinders you, you can protect them from " +
+					"any harm they might suffer as a result. When you help or hinder someone who is exchanging " +
+					"blows, you can suffer any harm taken in their place.</p>"
+			},
+			{
+				key: "the-paradigm:turn-unearthly",
+				name: "Turn Unearthly",
+				// Doesn't roll on its own — it adds CHANNEL as an option to two other moves' trait choice
+				// (see PlaybookActorSheet#_moveTraits' addsTraitToMove handling, generalized below to accept
+				// a `moveKeys` array alongside Facilitator/Ascension's existing singular `moveKey`).
+				traits: [],
+				addsTraitToMove: { moveKeys: ["exchange-blows", "strike-decisively"], trait: "channel" },
+				description:
+					"<p>You may exchange blows and strike decisively using +CHANNEL against creatures and " +
+					"entities that are not of our mortal plane. You can sense such creatures, and make them " +
+					"uncomfortable.</p>"
+			},
+			{
+				key: "the-paradigm:firebrand",
+				name: "Firebrand",
+				// "Roll the highest of +TALK or +CHANNEL" is the existing plain choice-of-2 dropdown, the
+				// same treatment Exchange Blows already gives "+CLASH or +TALK, whichever is more
+				// appropriate" — no auto-select-the-higher-trait logic is built for either move.
+				traits: ["talk", "channel"],
+				results: {
+					success: "<p>Choose 2:</p>" +
+						"<ul>" +
+						"<li>Your words reach people far beyond where your voice is heard.</li>" +
+						"<li>Even those not of your faith connect to your message.</li>" +
+						"<li>You are not targeted immediately for what you preach.</li>" +
+						"</ul>",
+					mixed: "<p>Choose 1:</p>" +
+						"<ul>" +
+						"<li>Your words reach people far beyond where your voice is heard.</li>" +
+						"<li>Even those not of your faith connect to your message.</li>" +
+						"<li>You are not targeted immediately for what you preach.</li>" +
+						"</ul>",
+					failure: "Your words are misinterpreted, co-opted, or misrepresented in a terrible way."
+				},
+				description:
+					"<p>When you openly and loudly advocate for something related to one of your tenets, roll " +
+					"the highest of +TALK or +CHANNEL.</p>" +
+					"<p>On a 10+, choose 2. On a 7-9, choose 1;</p>" +
+					"<ul>" +
+					"<li>Your words reach people far beyond where your voice is heard.</li>" +
+					"<li>Even those not of your faith connect to your message.</li>" +
+					"<li>You are not targeted immediately for what you preach.</li>" +
+					"</ul>" +
+					"<p>On a 6 or below, your words are misinterpreted, co-opted, or misrepresented in a " +
+					"terrible way.</p>"
+			},
+			{
+				key: "the-paradigm:consecrate-ground",
+				name: "Consecrate Ground",
+				traits: ["channel"],
+				results: {
+					success: "<p>Choose 2:</p>" +
+						"<ul>" +
+						"<li>Creatures opposed by your deity or faith cannot enter the consecrated area.</li>" +
+						"<li>Creatures within your consecrated area cannot take violent action against each " +
+						"other.</li>" +
+						"<li>Creatures within the consecrated area cool off with advantage.</li>" +
+						"<li>Creatures within your consecrated area cannot knowingly lie.</li>" +
+						"</ul>",
+					mixed: "<p>Choose 1:</p>" +
+						"<ul>" +
+						"<li>Creatures opposed by your deity or faith cannot enter the consecrated area.</li>" +
+						"<li>Creatures within your consecrated area cannot take violent action against each " +
+						"other.</li>" +
+						"<li>Creatures within the consecrated area cool off with advantage.</li>" +
+						"<li>Creatures within your consecrated area cannot knowingly lie.</li>" +
+						"</ul>",
+					failure: null
+				},
+				description:
+					"<p>When you attempt to imbue an area or building with your divine power and presence, " +
+					"roll +CHANNEL.</p>" +
+					"<p>On a 10+, choose 2. On a 7-9, choose 1;</p>" +
+					"<ul>" +
+					"<li>Creatures opposed by your deity or faith cannot enter the consecrated area.</li>" +
+					"<li>Creatures within your consecrated area cannot take violent action against each " +
+					"other.</li>" +
+					"<li>Creatures within the consecrated area cool off with advantage.</li>" +
+					"<li>Creatures within your consecrated area cannot knowingly lie.</li>" +
+					"</ul>"
+			},
+			{
+				key: "the-paradigm:ascension",
+				name: "Ascension",
+				// Doesn't roll on its own — it adds CHANNEL as an option to bite-the-dust's trait choice
+				// (see the addsTraitToMove singular-moveKey path, same as Facilitator's). "Clear all risks on
+				// a 10+ rather than one" is prose only: risk-clearing isn't a counted mechanic anywhere in
+				// this module (Dangers are a freeform panel, not a tally), and bite-the-dust's own
+				// results.success text (moves.js) is deliberately left untouched by this move.
+				traits: [],
+				addsTraitToMove: { moveKey: "bite-the-dust", trait: "channel" },
+				description:
+					"<p>By divine decree you become something beyond the person you were. You may bite the " +
+					"dust with +CHANNEL, and clear all risks on a 10+ rather than one.</p>"
+			}
+		]
+	},
+	{
+		key: "the-witch",
+		label: "The Witch",
+		playbookName: "The Witch",
+		moves: [
+			{
+				key: "the-witch:patron",
+				name: "Patron",
+				// Unconditionally granted ("You start with the patron move") — no `starting: true` marker
+				// on the move itself, same treatment Prepare Rituals/Tenets give their own unconditional
+				// grants (see starting-moves.js's grantedKeys instead).
+				//
+				// grantsChannelWhileInfluence (see trait-bonuses.js's patronChannelBonus) is the one real
+				// mechanic here: +1 CHANNEL while the Patron's Influence is >= 1, reaching every place
+				// PlaybookActorSheet#_traitBonuses already reaches. Influence and Boons themselves are
+				// tracked on the Social tab's own Patron section (see patron-mixin.js), not per-move state —
+				// this move just carries the flag that turns Influence's count into a real Trait bonus.
+				// The three Influence-spend options (help/hinder as a 10+, force a move the player may
+				// weather the storm against, re-roll boons) are the patron's own reactive action against the
+				// player rather than something the player rolls or activates themselves, so — like Bearer Of
+				// Curses below — they stay descriptive; the player raises/lowers the Influence stepper by
+				// hand to reflect the patron having spent it.
+				traits: [],
+				grantsChannelWhileInfluence: true,
+				description:
+					"<p>Your patron offers you two boons at random whenever someone leads a Sortie.</p>" +
+					"<p>Additionally, they may spend Influence 1-for-1 to do the following;</p>" +
+					"<ul>" +
+					"<li>Help or hinder you, succeeding as if they had rolled a 10+.</li>" +
+					"<li>Attempt to force you to do something; you may weather the storm to resist.</li>" +
+					"<li>Re-roll your boons for the day.</li>" +
+					"</ul>" +
+					"<p>As long as your Patron has at least 1 Influence, your CHANNEL is increased by 1.</p>" +
+					"<p>The more Influence on you a Patron holds, the clearer their mark is upon you.</p>"
+			},
+			{
+				key: "the-witch:occult-lore",
+				name: "Occult Lore",
+				traits: ["channel"],
+				results: {
+					success: null,
+					mixed: "The information is still directly useful, but using it would cause some " +
+						"unforeseen complication entertaining or beneficial to your patron.",
+					failure: null
+				},
+				description:
+					"<p>When you consult your patron for information, you may dispel uncertainties with " +
+					"+CHANNEL. If you do so, on a 7-9 the information is still directly useful, but using it " +
+					"would cause some unforeseen complication entertaining or beneficial to your patron.</p>"
+			},
+			{
+				key: "the-witch:whims",
+				name: "Whims",
+				// "Choose your boons instead of rolling next time" is the manual "Choose 2 Boons" picker in
+				// the Patron section (see witch.js's chooseWitchBoons/patron-mixin.js's
+				// _onWitchBoonsChoose) — the same button Receive Boons' own random grant sits beside.
+				// Completing (or not completing) the Director's own goal each Sortie isn't tracked anywhere
+				// (no Sortie-scoped Director-prompt system exists in this module), so that half stays
+				// descriptive; giving 1 Influence is the existing manual Influence stepper.
+				traits: [],
+				description:
+					"<p>Your patron is unfathomable, and their interests obscure. Your Director should, once " +
+					"per Sortie, give you some minor goal or abstract requirement your patron demands of " +
+					"you—it should be doable within the session.</p>" +
+					"<p>If you complete it, you may choose your boons instead of rolling next time, using the " +
+					"\"Choose 2 Boons\" button in the Patron section. If you don't, give your patron 1 " +
+					"Influence.</p>"
+			},
+			{
+				key: "the-witch:embrace-chaos",
+				name: "Embrace Chaos",
+				// Retroactively converting an already-rolled 10+ into a banked 7-9, later spent to upgrade a
+				// *different* move's result tier (or flip a disadvantage to an advantage), isn't modeled
+				// anywhere in this module — the closest existing shape, a move's own tiered `hold`, only ever
+				// grants hold as a consequence of the tier actually rolled, it can't rewrite that tier after
+				// the fact or bank a choice to spend later against an unrelated roll. Prose only, per
+				// claude.md's "systems that do not exist yet".
+				traits: [],
+				description:
+					"<p>Whenever you roll a 10+, you may opt to instead take a partial success as if you had " +
+					"rolled a 7-9. If you do so, hold 1, which you may spend at any point before the end of " +
+					"the Sortie to do one of the following;</p>" +
+					"<ul>" +
+					"<li>Convert a disadvantage into an advantage.</li>" +
+					"<li>Upgrade a result of 7-9 to a 10+.</li>" +
+					"</ul>"
+			},
+			{
+				key: "the-witch:re-weave-reality",
+				name: "Re-Weave Reality",
+				// Equipment tags are a fixed snapshot on the entry with no temporary per-roll override hook
+				// (see claude.md's "systems that do not exist yet" — weapon tags/profiles). Prose only;
+				// giving your patron 1 Influence is the existing manual Influence stepper.
+				traits: [],
+				description:
+					"<p>When you use a piece of equipment to make a move, e.g using a weapon to strike " +
+					"decisively, you can ignore one of its tags OR act as if it had an additional one of your " +
+					"choice. When you do so, give your patron 1 Influence.</p>"
+			},
+			{
+				key: "the-witch:relinquish",
+				name: "Relinquish",
+				// The boon-clearing half is real — see the Patron section's own "Relinquish Boons" button
+				// (patron-mixin.js's _onWitchBoonsRelinquish). Fixing a damaged Astir part and losing a
+				// peril as a result stays prose: no per-part damage state exists to track "this specific
+				// part is damaged/destroyed" (Astir Parts are either installed or not — see astir.js), and
+				// Dangers are a freeform panel rather than a tally a move could conditionally clear one of.
+				traits: [],
+				description:
+					"<p>If a part of your Astir is damaged or destroyed and you take a peril as a result, you " +
+					"may relinquish your boons; losing them until you receive boons again but fixing that " +
+					"part and losing the peril. You cannot re-roll relinquished boons.</p>" +
+					"<p>Clear your boons yourself with the \"Relinquish Boons\" button in the Patron section " +
+					"— fixing the part and removing the peril are narrated at the table.</p>"
+			},
+			{
+				key: "the-witch:bearer-of-curses",
+				name: "Bearer Of Curses",
+				// Pure fiction — no roll, no tracked resource, and the three options are adjudicated at the
+				// table (whether someone can use subsystems, a lasting mark, advantage on a future move
+				// against them) rather than posted as a chat prompt, unlike Facilitator/Bureaucrat's own
+				// activateChoices menus.
+				traits: [],
+				description:
+					"<p>When you exchange blows with someone for the first time in a Scene, choose 1;</p>" +
+					"<ul>" +
+					"<li>They cannot use subsystems for the rest of the Scene.</li>" +
+					"<li>You leave a difficult to remove brand or mark on them, according to your patron.</li>" +
+					"<li>They suffer misfortune in the future: the next move against them is made with " +
+					"advantage.</li>" +
+					"</ul>"
+			},
+			{
+				key: "the-witch:borrowed-power",
+				name: "Borrowed Power",
+				// Both halves are unbuildable within existing shapes: the roll+hold grant has a per-tier
+				// player-choice-with-a-cost branch on a 7-9 ("hold 1, OR be in peril and hold 3") that plain
+				// tiered `hold` (one fixed value per tier) can't express, and the actually load-bearing spend
+				// — use a boon you don't currently have, or spend 2 hold to make any move from another
+				// playbook — has no machinery to hook into (boons aren't moves, so ALL_MOVES' own lookup
+				// can't reach one, and nothing in this module lets a roll borrow another playbook's move
+				// definition). Prose only, per claude.md's "systems that do not exist yet".
+				traits: [],
+				description:
+					"<p>When you request help from your patron, roll +CHANNEL and give your patron 1 " +
+					"Influence. On a 10+, hold 3. On a 7-9, hold 1, or be in peril and hold 3.</p>" +
+					"<p>You may spend your hold at any point during the Sortie 1-for-1 to use any boon you " +
+					"don't currently have, or you may spend 2 hold to make any move from another playbook.</p>"
+			}
+		]
+	},
+	{
 		key: "cantrips",
 		label: "Cantrips",
 		note: "Any playbook may take these in place of a move from their own pool.",

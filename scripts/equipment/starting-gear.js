@@ -248,16 +248,26 @@ export const STARTING_GEAR_POOLS = [
 	},
 	{
 		playbookName: "The Arcanist",
-		// "1 Astir III" and "Touch Spells I" aren't equipment-shaped picks like the rest of this list —
-		// they're built/added through the Astir & Ardents tab's own controls (create Astir, defaults to
-		// Tier III already; then add the new Touch Spells I entry from ASTIR_WEAPON_CATALOG via the
-		// Astir's own weapon picker), same treatment Commander's Custom Ardent gets here.
+		// "1 Astir III" isn't equipment-shaped like the rest of this list — it's built through the
+		// Astir & Ardents tab's own controls (create Astir, defaults to Tier III already), same
+		// treatment Commander's Custom Ardent gets here. Touch Spells I, by contrast, is an ordinary
+		// personal weapon (see grantedItems below) — nothing in the rulebook says it's added from the
+		// Astir's own weapon controls the way Commander's Ardent Features explicitly are, so it's
+		// granted here like any other playbook's starting weapon rather than left as a freeform note.
 		freeformNotes: [
 			"1 Astir III, built on the Astir & Ardents tab.",
-			"Touch Spells I, added from the Astir's own weapon controls.",
 			"Clothes that match your look."
 		],
-		grantedItems: [],
+		grantedItems: [
+			{
+				key: "the-arcanist:touch-spells-i",
+				name: "Touch Spells I",
+				description: "A focusing gesture and a whispered word, channeled straight through the caster's " +
+					"own hands into whatever — or whoever — they touch.",
+				kind: "weapon",
+				tags: ["melee", "bane"]
+			}
+		],
 		groups: [
 			{
 				key: "the-arcanist:gear",
@@ -290,6 +300,117 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-arcanist:shield-broach-i",
+						name: "Shield Broach I",
+						description: "A small worn charm that flares to ward off harm.",
+						tags: ["ward"]
+					}
+				]
+			}
+		]
+	},
+	{
+		playbookName: "The Paradigm",
+		freeformNotes: [
+			"1 Astir III, built on the Astir & Ardents tab.",
+			"Clothes that match your look."
+		],
+		grantedItems: [
+			{
+				key: "the-paradigm:divine-touch-i",
+				name: "Divine Touch I",
+				description: "A blow delivered through a hand wreathed in divine light — the caster's own " +
+					"conduit for their god's power.",
+				kind: "weapon",
+				tags: ["melee", "bane"]
+			}
+		],
+		groups: [
+			{
+				key: "the-paradigm:gear",
+				label: "Choose 2 Paradigm Gear.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-paradigm:holy-symbol-i",
+						name: "Holy Symbol I",
+						description: "A sacred icon raised high, calling down divine judgement on all who " +
+							"stand against the faith.",
+						kind: "weapon",
+						tags: ["ranged", "area"]
+					},
+					{
+						key: "the-paradigm:sacred-weapon-i",
+						name: "Sacred Weapon I",
+						description: "A blade or bludgeon consecrated in solemn ritual — ordinary steel made " +
+							"holy by purpose and blessing.",
+						kind: "weapon",
+						tags: ["melee", "mundane"]
+					},
+					{
+						key: "the-paradigm:sidearm-i",
+						name: "Sidearm I",
+						description: "The typical protections afforded to Astir pilots: a reliable tool " +
+							"capable of firing bursts of light arcane energy.",
+						kind: "weapon",
+						tags: ["ranged", "defensive"]
+					},
+					{
+						key: "the-paradigm:shield-broach-i",
+						name: "Shield Broach I",
+						description: "A small worn charm that flares to ward off harm.",
+						tags: ["ward"]
+					}
+				]
+			}
+		]
+	},
+	{
+		playbookName: "The Witch",
+		freeformNotes: [
+			"1 Astir III, built on the Astir & Ardents tab.",
+			"Clothes that match your look."
+		],
+		grantedItems: [
+			{
+				key: "the-witch:pact-weapon-i",
+				name: "Pact Weapon I",
+				description: "A weapon shaped — or granted outright — by the Witch's patron, its edge (or " +
+					"its aim) always finding whatever the patron would have it strike down.",
+				kind: "weapon",
+				tags: ["melee", "bane"]
+			}
+		],
+		groups: [
+			{
+				key: "the-witch:gear",
+				label: "Choose 2 Witch Gear.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-witch:patrons-icon-i",
+						name: "Patron's Icon I",
+						description: "A small, easily hidden token of the Witch's patron, channeling their " +
+							"power into a discreet ranged strike.",
+						kind: "weapon",
+						tags: ["ranged", "concealable"]
+					},
+					{
+						key: "the-witch:ritual-dagger-i",
+						name: "Ritual Dagger I",
+						description: "A plain, unenchanted blade used in ritual as readily as it draws blood.",
+						kind: "weapon",
+						tags: ["melee", "mundane"]
+					},
+					{
+						key: "the-witch:sidearm-i",
+						name: "Sidearm I",
+						description: "The typical protections afforded to Astir pilots: a reliable tool " +
+							"capable of firing bursts of light arcane energy.",
+						kind: "weapon",
+						tags: ["ranged", "defensive"]
+					},
+					{
+						key: "the-witch:shield-broach-i",
 						name: "Shield Broach I",
 						description: "A small worn charm that flares to ward off harm.",
 						tags: ["ward"]

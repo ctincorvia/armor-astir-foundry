@@ -77,6 +77,28 @@
 				"PLAYER": "OBSERVER",
 				"ASSISTANT": "OWNER"
 			}
+		},
+		{
+			"name": "basic-playbook-paradigm",
+			"label": "Basic Playbook - The Paradigm",
+			"path": "packs/basic-playbook-paradigm",
+			"type": "Actor",
+			"system": "pbta",
+			"ownership": {
+				"PLAYER": "OBSERVER",
+				"ASSISTANT": "OWNER"
+			}
+		},
+		{
+			"name": "basic-playbook-witch",
+			"label": "Basic Playbook - The Witch",
+			"path": "packs/basic-playbook-witch",
+			"type": "Actor",
+			"system": "pbta",
+			"ownership": {
+				"PLAYER": "OBSERVER",
+				"ASSISTANT": "OWNER"
+			}
 		}
 	],
 	"relationships": {

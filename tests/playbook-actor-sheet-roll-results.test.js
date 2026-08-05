@@ -17,6 +17,7 @@ import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postGuidedResult, rollMo
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { UNARMED, chooseWeapon } from "../scripts/equipment/equipment.js";
 import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
+import { WITCH_BOONS } from "../scripts/playbook/witch.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
@@ -32,6 +33,7 @@ const DONT_FOLLOW_ME = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:do
 const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:alchemical-suite");
 const FLOURISH_COMPONENT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:flourish-component");
 const SPELL_ROUTINES = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:spell-routines");
+const PATRON = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:patron");
 
 beforeEach(() => {
 	configureMoveRoll.mockClear();
@@ -915,5 +917,66 @@ describe("PlaybookActorSheet#_onMoveResolved", () => {
 		await sheet._onMoveResolved(LEAD_A_SORTIE, null);
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveResolved - Patron's random Boon grant", () => {
+	it("grants two boons on Lead a Sortie when Patron is picked, even with nothing mounted", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [PATRON.key] } },
+			update: vi.fn()
+		};
+
+		await sheet._onMoveResolved(LEAD_A_SORTIE, null);
+
+		expect(sheet.actor.update).toHaveBeenCalledTimes(1);
+		const [update] = sheet.actor.update.mock.calls[0];
+		const granted = update["system.attributes.witch.boons"];
+		expect(granted).toHaveLength(2);
+		expect(granted.every((key) => WITCH_BOONS.some((boon) => boon.key === key))).toBe(true);
+	});
+
+	it("grants nothing on a move other than Lead a Sortie", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [PATRON.key] } },
+			update: vi.fn()
+		};
+
+		await sheet._onMoveResolved(EXCHANGE_BLOWS, null);
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("grants nothing on Lead a Sortie when Patron isn't picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } }, update: vi.fn() };
+
+		await sheet._onMoveResolved(LEAD_A_SORTIE, null);
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("still runs the mounted-frame Astir Part effects afterward when both apply", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [PATRON.key],
+					astir: { id: "a1", parts: [ALCHEMICAL_SUITE.key], piloted: true }
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._onMoveResolved(LEAD_A_SORTIE, null);
+
+		// One update for the Boon grant, one for Alchemical Suite's Potions grant — Patron's grant
+		// doesn't short-circuit the existing mounted-frame branch below it.
+		expect(sheet.actor.update).toHaveBeenCalledTimes(2);
+		expect(sheet.actor.update.mock.calls[1][0]).toMatchObject({
+			"system.attributes.astir.potions": { red: 1, blue: 1, yellow: 1 }
+		});
 	});
 });

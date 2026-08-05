@@ -615,6 +615,34 @@
 	color: var(--aa-secondary-dark);
 }
 
+/* The Witch-only Patron section (Social tab, gated on isWitch) — Influence reuses the existing
+   .power-control stepper styling as-is; only the Boons list below needs its own rules. */
+.armor-astir.sheet .patron-boons-list {
+	margin: var(--aa-space-2) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .patron-boon-item {
+	padding: var(--aa-space-2) 0;
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.sheet .patron-boon-name {
+	font-weight: bold;
+}
+
+/* Secondary role token, same "this is the player's own tracked state" marking the equipment tag
+   label and Gravity Clock pips already use — a held Boon is highlighted the same way. */
+.armor-astir.sheet .patron-boon-item.held .patron-boon-name {
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir.sheet .patron-boon-description {
+	margin: var(--aa-space-1) 0 0;
+	font-size: 12px;
+}
+
 .armor-astir.sheet .gravity-clock-list {
 	margin: 0;
 	padding: 0;
@@ -1823,6 +1851,49 @@
 
 .armor-astir.starting-move-picker .starting-move-picker-description p {
 	margin: 2px 0;
+}
+
+.armor-astir.witch-boons-picker .witch-boons-picker-instructions {
+	margin: 0 0 var(--aa-space-1);
+	font-weight: bold;
+}
+
+.armor-astir.witch-boons-picker .witch-boons-picker-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.witch-boons-picker .witch-boons-picker-item {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir.witch-boons-picker .witch-boons-picker-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+}
+
+.armor-astir.witch-boons-picker .witch-boons-picker-name {
+	font-weight: bold;
+}
+
+.armor-astir.witch-boons-picker .witch-boons-picker-held-tag {
+	padding: 2px 6px;
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-dark);
+	font-size: 11px;
+	font-weight: bold;
+	color: #fff;
+}
+
+/* Indented to line up under the checkbox's label text rather than the checkbox itself, same as
+   .starting-move-picker-description. */
+.armor-astir.witch-boons-picker .witch-boons-picker-description {
+	margin-left: 22px;
+	font-size: 12px;
 }
 
 .armor-astir.equipment-catalog-picker .equipment-catalog-picker-list {

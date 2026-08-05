@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TRAIT_BONUS_SOURCES, traitBonusesFor } from "../scripts/moves/trait-bonuses.js";
+import { TRAIT_BONUS_SOURCES, patronChannelBonus, traitBonusesFor } from "../scripts/moves/trait-bonuses.js";
 
 describe("TRAIT_BONUS_SOURCES", () => {
 	it("maps danger and burden to their count keys", () => {
@@ -76,5 +76,25 @@ describe("traitBonusesFor", () => {
 
 		expect(traitBonusesFor(moves, { dangerCount: 2, burdenCount: 1, choices: { "let-loose": "clash" } }))
 			.toEqual({ channel: 2, clash: 1 });
+	});
+});
+
+describe("patronChannelBonus", () => {
+	const PATRON = { key: "the-witch:patron", grantsChannelWhileInfluence: true };
+
+	it("is 0 with no Influence, even with Patron picked", () => {
+		expect(patronChannelBonus([PATRON], 0)).toBe(0);
+	});
+
+	it("is 0 with Influence but Patron not picked", () => {
+		expect(patronChannelBonus([], 1)).toBe(0);
+	});
+
+	it("is 1 once both Influence >= 1 and Patron is picked", () => {
+		expect(patronChannelBonus([PATRON], 1)).toBe(1);
+	});
+
+	it("stays at 1 as Influence rises further — a threshold gate, not a scaling bonus", () => {
+		expect(patronChannelBonus([PATRON], 5)).toBe(1);
 	});
 });

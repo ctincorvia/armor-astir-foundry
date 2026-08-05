@@ -34,6 +34,7 @@ const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:bullhe
 const ARCANE_AUGMENTS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:arcane-augments");
 const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loose");
 const FACILITATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:facilitator");
+const TURN_UNEARTHLY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-paradigm:turn-unearthly");
 const BUREAUCRAT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:bureaucrat");
 const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
 const TRANSMUTE_SELF = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:transmute-self");
@@ -1473,6 +1474,39 @@ describe("PlaybookActorSheet#_moveTraits", () => {
 		expect(sheet._moveTraits({ key: "read-the-room", traits: ["sense"] })).toEqual([
 			{ key: "sense", label: "SENSE", value: 1 },
 			{ key: "talk", label: "TALK", value: 0 }
+		]);
+	});
+
+	it("offers +CHANNEL on both Exchange Blows and Strike Decisively when Turn Unearthly is picked (addsTraitToMove.moveKeys)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, channel: { value: 3 } },
+				attributes: { playbookMoves: [TURN_UNEARTHLY.key] }
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "exchange-blows", traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 },
+			{ key: "channel", label: "CHANNEL", value: 3 }
+		]);
+		expect(sheet._moveTraits({ key: "strike-decisively", traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 },
+			{ key: "channel", label: "CHANNEL", value: 3 }
+		]);
+	});
+
+	it("does not add +CHANNEL to an unrelated move just because Turn Unearthly is picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { sense: { value: 1 }, channel: { value: 3 } },
+				attributes: { playbookMoves: [TURN_UNEARTHLY.key] }
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "read-the-room", traits: ["sense"] })).toEqual([
+			{ key: "sense", label: "SENSE", value: 1 }
 		]);
 	});
 });

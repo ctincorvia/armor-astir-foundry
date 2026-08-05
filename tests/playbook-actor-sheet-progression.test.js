@@ -8,6 +8,7 @@ import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js"
 
 const ARCANE_AUGMENTS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:arcane-augments");
 const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loose");
+const PATRON = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:patron");
 
 describe("PlaybookActorSheet#getData - traits", () => {
 	it("defaults every trait to value 0, no bonus, and enabled when system.stats is empty", () => {
@@ -76,6 +77,53 @@ describe("PlaybookActorSheet#getData - traits", () => {
 		const data = sheet.getData();
 
 		expect(data.traits.find((t) => t.key === "sense")).toEqual({ key: "sense", label: "SENSE", value: 0, bonus: 2, total: 2, disabled: false });
+	});
+
+	it("adds Patron's +1 CHANNEL once Influence reaches 1, with no other bonus on CHANNEL", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 2 } },
+				attributes: { playbookMoves: [PATRON.key], witch: { influence: 1 } }
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.traits.find((t) => t.key === "channel")).toEqual({ key: "channel", label: "CHANNEL", value: 2, bonus: 1, total: 3, disabled: false });
+	});
+
+	it("stacks Patron's +1 CHANNEL on top of an existing CHANNEL bonus from another traitBonus move", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 1 } },
+				attributes: {
+					playbookMoves: [PATRON.key, ARCANE_AUGMENTS.key],
+					witch: { influence: 1 },
+					dangers: [{ id: "1", type: "risk", label: "Exposed" }]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		// Arcane Augments' own +1 per Danger (1 Danger here) plus Patron's flat +1.
+		expect(data.traits.find((t) => t.key === "channel")).toEqual({ key: "channel", label: "CHANNEL", value: 1, bonus: 2, total: 3, disabled: false });
+	});
+
+	it("adds no Patron bonus below 1 Influence, even with Patron picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 2 } },
+				attributes: { playbookMoves: [PATRON.key], witch: { influence: 0 } }
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.traits.find((t) => t.key === "channel")).toEqual({ key: "channel", label: "CHANNEL", value: 2, bonus: 0, total: 2, disabled: false });
 	});
 });
 

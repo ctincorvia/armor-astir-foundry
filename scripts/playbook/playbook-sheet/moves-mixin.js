@@ -1,5 +1,5 @@
 import { choosePlaybookMove, resolvePlaybookMoves } from "../../moves/playbook-moves.js";
-import { traitBonusesFor } from "../../moves/trait-bonuses.js";
+import { patronChannelBonus, traitBonusesFor } from "../../moves/trait-bonuses.js";
 import { TRAITS } from "../../core/traits.js";
 import { chooseCarrier, findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
 import { UNARMED, chooseWeapon } from "../../equipment/equipment.js";
@@ -106,11 +106,20 @@ export const MovesSheetMixin = {
 	// equipmentValue/_conflictTier, so it can't drift after a Danger/Burden/choice changes.
 	_traitBonuses() {
 		const moves = resolvePlaybookMoves(this._playbookMoves());
-		return traitBonusesFor(moves, {
+		const bonuses = traitBonusesFor(moves, {
 			dangerCount: this._dangers().length,
 			burdenCount: this._burdens().length,
 			choices: this.actor.system.attributes?.traitBonusChoices ?? {}
 		});
+		// The Witch's Patron ("as long as your Patron has at least 1 Influence, your CHANNEL is
+		// increased by 1" — see trait-bonuses.js's patronChannelBonus). A separate boolean-threshold
+		// bonus rather than a third traitBonusesFor source, folded in on top since it can stack with a
+		// hypothetical trait-scaling bonus on the same trait. this._witchInfluence() comes from the
+		// Patron mixin (patron-mixin.js) via the shared prototype, the same cross-mixin call
+		// convention _dangers()/_burdens() above already rely on in this method.
+		const patronBonus = patronChannelBonus(moves, this._witchInfluence());
+		if (patronBonus) bonuses.channel = (bonuses.channel ?? 0) + patronBonus;
+		return bonuses;
 	},
 	_moveGroupMoves(moves) {
 		const channelDisabled = Boolean(this.actor.system.stats?.channel?.disabled);
@@ -240,9 +249,16 @@ export const MovesSheetMixin = {
 		// grantsTraitOnMove *locks* the roll dialog to a trait the target move already offers, so it
 		// can only ever narrow an existing choice; this *adds* an option the move never had, matching
 		// the rulebook's "you may" framing. Same resolve-off-picked-moves shape as the grants* trio,
-		// and the same add-once guard the Input Channel block above uses.
+		// and the same add-once guard the Input Channel block above uses. `moveKey` (a single target,
+		// e.g. Ascension's own bite-the-dust grant) and `moveKeys` (an array, e.g. Turn Unearthly
+		// adding CHANNEL to both Exchange Blows and Strike Decisively at once) are both accepted —
+		// the two forms only ever differ in whether one move's trait grant reaches one or several
+		// target moves, so this is a single find matching either shape rather than two separate paths.
 		const addedTraitKey = resolvePlaybookMoves(this._playbookMoves())
-			.find((m) => m.addsTraitToMove?.moveKey === move.key)?.addsTraitToMove.trait ?? null;
+			.find((m) => {
+				const grant = m.addsTraitToMove;
+				return grant?.moveKey === move.key || grant?.moveKeys?.includes(move.key);
+			})?.addsTraitToMove.trait ?? null;
 		if (addedTraitKey && !actorTraits.some((trait) => trait.key === addedTraitKey)) {
 			// TRAITS is a fixed, six-entry constant (see traits.js), and playbook-moves.test.js
 			// asserts every addsTraitToMove names a real key — no fallback needed here.
@@ -571,13 +587,22 @@ export const MovesSheetMixin = {
 		await this._onMoveResolved(move, result.dice);
 	},
 	// Runs after a move resolves — whether via a real roll (dice present) or Guided's "Take 7-9"
-	// (dice null) — for the two Astir Part effects that react to a move's outcome rather than
-	// being offered as part of setting it up. Both are scoped to the mounted frame's own parts (see
-	// claude.md's Piloted note): a part contributes nothing when no frame is currently mounted.
-	// Both grantsPotionsOnLeadASortie and regainPowerOnDoubles carry a powerCost, so — like
-	// grantsGuided above — neither can ever be installed on an Ardent; this still reads generically
-	// off _mountedParts() rather than special-casing the Astir.
+	// (dice null). The Witch's Patron ("offers you two boons at random whenever someone leads a
+	// Sortie") is checked first and unconditionally, before the mounted-frame early-return below —
+	// unlike Potions/doubles-regen (Astir Part effects, gated on the Astir specifically being
+	// mounted), Patron is a base playbook feature that doesn't care whether — or which — frame is
+	// mounted.
 	async _onMoveResolved(move, dice) {
+		if (move.key === "lead-a-sortie"
+				&& resolvePlaybookMoves(this._playbookMoves()).some((m) => m.key === "the-witch:patron")) {
+			await this._grantRandomWitchBoons();
+		}
+		// The two Astir Part effects below react to a move's outcome rather than being offered as part
+		// of setting it up. Both are scoped to the mounted frame's own parts (see claude.md's Piloted
+		// note): a part contributes nothing when no frame is currently mounted. Both
+		// grantsPotionsOnLeadASortie and regainPowerOnDoubles carry a powerCost, so — like grantsGuided
+		// above — neither can ever be installed on an Ardent; this still reads generically off
+		// _mountedParts() rather than special-casing the Astir.
 		if (!this._mountedFrame()) return;
 		const parts = this._mountedParts();
 		if (move.key === "lead-a-sortie" && parts.some((part) => part.grantsPotionsOnLeadASortie)) {

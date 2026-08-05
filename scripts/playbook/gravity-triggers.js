@@ -11,7 +11,11 @@ export const GRAVITY_TRIGGERS = {
 	"the-diplomat":
 		"When you successfully negotiate or advocate for something important to you, advance a GRAVITY clock of your choice.",
 	"the-arcanist":
-		"When you declare your plan to solve a problem and it works, advance a GRAVITY clock with someone who doubted you."
+		"When you declare your plan to solve a problem and it works, advance a GRAVITY clock with someone who doubted you.",
+	"the-paradigm":
+		"When you discuss your faith with someone or learn something about how they personally relate to faith and spirituality, advance a GRAVITY clock with them if you have one.",
+	"the-witch":
+		"You have an extra GRAVITY clock with your patron, representing the tenuous bond between you: whenever they spend Influence, advance your GRAVITY clock with them."
 };
 
 export function gravityTriggerForPlaybook(playbookSlug) {
