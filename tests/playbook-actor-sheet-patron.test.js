@@ -86,6 +86,16 @@ describe("PlaybookActorSheet#_witchData / getData.witch", () => {
 
 		expect(data.influence).toBe(0);
 		expect(data.boons.every((b) => !b.held)).toBe(true);
+		expect(data.canChooseBoons).toBe(false);
+	});
+
+	it("canChooseBoons is true once Whims is picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: ["the-witch:whims"] } }
+		};
+
+		expect(sheet._witchData().canChooseBoons).toBe(true);
 	});
 
 	it("getData.witch matches _witchData's own output, computed regardless of playbook", () => {
@@ -171,6 +181,41 @@ describe("PlaybookActorSheet#_onWitchBoonsChoose", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.witch.boons": ["witch-boon:masking", "witch-boon:shielding"]
 		});
+	});
+});
+
+describe("PlaybookActorSheet#_grantRandomWitchBoons", () => {
+	it("replaces already-held boons with exactly 2 new ones, rather than adding to them", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					witch: {
+						boons: ["witch-boon:masking", "witch-boon:shielding", "witch-boon:tenacious"]
+					}
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._grantRandomWitchBoons();
+
+		expect(sheet.actor.update).toHaveBeenCalledTimes(1);
+		const [update] = sheet.actor.update.mock.calls[0];
+		const granted = update["system.attributes.witch.boons"];
+		expect(granted).toHaveLength(2);
+		expect(granted.every((key) => WITCH_BOONS.some((boon) => boon.key === key))).toBe(true);
+	});
+
+	it("grants exactly 2 boons when none are held", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { witch: { boons: [] } } }, update: vi.fn() };
+
+		await sheet._grantRandomWitchBoons();
+
+		expect(sheet.actor.update).toHaveBeenCalledTimes(1);
+		const [update] = sheet.actor.update.mock.calls[0];
+		expect(update["system.attributes.witch.boons"]).toHaveLength(2);
 	});
 });
 

@@ -968,6 +968,64 @@ describe("rollMove", () => {
 		}));
 	});
 
+	it("adds the deepen-a-Hook reminder for a Desperation roll that succeeds, but not for mixed or failure", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		// No 6s in these dice, so Desperation's 6->1 substitution never fires — only the effect
+		// tag itself (not the substitution) is what the reminder keys off.
+		mockRoll({ dice: [5, 5] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { effect: "desperation" });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			reminders: ["You may deepen a Hook"]
+		}));
+
+		mockRoll({ dice: [4, 3] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { effect: "desperation" });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "mixed",
+			reminders: null
+		}));
+
+		mockRoll({ dice: [1, 1] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { effect: "desperation" });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "failure",
+			reminders: FAILURE_REMINDERS
+		}));
+	});
+
+	it("adds the loosen-a-Hook reminder for a Confidence roll that fails, but not for success or mixed", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		// No 1s in these dice, so Confidence's 1->6 substitution never fires and the roll stays a
+		// genuine failure.
+		mockRoll({ dice: [2, 2] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { effect: "confidence" });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "failure",
+			reminders: [...FAILURE_REMINDERS, "You may loosen a Hook"]
+		}));
+
+		mockRoll({ dice: [4, 3] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { effect: "confidence" });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "mixed",
+			reminders: null
+		}));
+
+		mockRoll({ dice: [5, 5] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { effect: "confidence" });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			reminders: null
+		}));
+	});
+
 	it("includes the active conditions in the chat template data", async () => {
 		const actor = { system: { stats: { clash: { value: 0 } } } };
 		const clash = TRAITS.find((t) => t.key === "clash");

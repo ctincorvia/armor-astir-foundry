@@ -1,4 +1,5 @@
 import { WITCH_BOONS, chooseWitchBoons, pickRandomBoons } from "../witch.js";
+import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 
 // The Witch's Patron domain (Influence, held Boons, the random grant, the manual picker,
 // Relinquish) — its own file, the same "one domain, one file" treatment Astir got
@@ -23,7 +24,8 @@ export const PatronSheetMixin = {
 		const held = this._witchBoons();
 		return {
 			influence: this._witchInfluence(),
-			boons: WITCH_BOONS.map((boon) => ({ ...boon, held: held.includes(boon.key) }))
+			boons: WITCH_BOONS.map((boon) => ({ ...boon, held: held.includes(boon.key) })),
+			canChooseBoons: resolvePlaybookMoves(this._playbookMoves()).some((m) => m.key === "the-witch:whims")
 		};
 	},
 	// A plain manual counter, uncapped like Downtime Tokens/Power — the Patron move's own text has
@@ -46,10 +48,13 @@ export const PatronSheetMixin = {
 	},
 	// "Your patron offers you two boons at random whenever someone leads a Sortie" — see
 	// moves-mixin.js's _onMoveResolved, which calls this whenever this actor rolls Lead a Sortie
-	// with the Patron move picked. No button of its own, matching how Alchemical Suite's Potions
-	// grant has none either.
+	// with the Patron move picked. Also wired directly to its own "Two Random Boons" button, for
+	// triggering the grant manually outside of rolling that move. Unlike Whims' merge-in picker
+	// below, this replaces whatever boons are currently held — the patron is offering a fresh pair,
+	// not padding out the old ones — so it writes straight to the actor rather than going through
+	// the merge-dedupe of _addWitchBoons.
 	async _grantRandomWitchBoons() {
-		await this._addWitchBoons(pickRandomBoons(WITCH_BOONS, 2, this._witchBoons()));
+		await this.actor.update({ "system.attributes.witch.boons": pickRandomBoons(WITCH_BOONS, 2) });
 	},
 	// Whims' "you may choose your boons instead of rolling next time" — opens the manual picker and
 	// merges whatever was chosen, same dedupe-merge _grantRandomWitchBoons already gets for free
