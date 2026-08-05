@@ -37,6 +37,7 @@ const FACILITATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:facil
 const BUREAUCRAT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:bureaucrat");
 const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
 const TRANSMUTE_SELF = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:transmute-self");
+const PRE_ORDAINED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:pre-ordained");
 const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
 const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
 const INPUT_CHANNEL = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:input-channel");
@@ -543,6 +544,17 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 		expect(move.trackers).toEqual([
 			{ key: "set-1", label: "Alternate Set 1", min: -3, max: 3, value: 2 },
 			{ key: "set-2", label: "Alternate Set 2", min: -3, max: 3, value: 0 }
+		]);
+	});
+
+	it("resolves Pre-ordained's kept-die numericTracker, defaulting to 0 when unset", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [PRE_ORDAINED.key] } } };
+
+		const move = playbookGroup(sheet.getData()).moves[0];
+
+		expect(move.trackers).toEqual([
+			{ key: "kept-die", label: "Kept d6", min: 0, max: 6, value: 0 }
 		]);
 	});
 

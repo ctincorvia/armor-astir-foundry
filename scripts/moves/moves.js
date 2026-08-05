@@ -109,6 +109,11 @@ export const BASIC_MOVES = [
 		// Success/mixed hold grants a fresh, sheet-tracked point pool (see rollMove); failure's 0
 		// is never written back — a failure grants an immediate question, not stored hold.
 		hold: { success: 3, mixed: 1, failure: 0 },
+		// Unlike every other questionPrompts/questions move (Mobility, Guerrilla, Stir The Crowd,
+		// Face To Face, Tactical Illusions), Read the Room's own failure text still grants an
+		// immediate question to ask — so its question list stays visible in chat on a miss too. See
+		// rollMove's questions gating below.
+		questionsOnFailure: true,
 		// Shown above the question list in chat so the questions read as something to be paid for
 		// rather than a freebie — on a hit the hold has to be spent, on a miss it doesn't exist.
 		questionPrompts: {
@@ -690,7 +695,11 @@ export async function rollMove(actor, move, trait, options = {}) {
 		dice,
 		hold,
 		questionPrompt: move.questionPrompts?.[tier] ?? null,
-		questions: move.questions ?? null,
+		// A choice list only makes sense in chat when this tier actually offers a choice — every
+		// questionPrompts/questions move except Read the Room (questionsOnFailure) has nothing to
+		// choose from on a miss, even when its failure questionPrompt still has explanatory text
+		// (e.g. Mobility's "You hold nothing.").
+		questions: (tier !== "failure" || move.questionsOnFailure) ? (move.questions ?? null) : null,
 		reroll: Boolean(rerollOffer),
 		automaticSuccess: automaticSuccessOffer
 	};

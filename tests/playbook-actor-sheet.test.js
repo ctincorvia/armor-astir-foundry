@@ -28,7 +28,8 @@ describe("PlaybookActorSheet.defaultOptions", () => {
 			classes: ["armor-astir", "sheet", "actor", "playbook"],
 			template: "modules/armor-astir/templates/playbook-actor-sheet.hbs",
 			width: 760,
-			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }]
+			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }],
+			scrollY: [".sheet-body"]
 		});
 	});
 });

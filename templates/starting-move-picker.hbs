@@ -30,6 +30,7 @@
 		{{/each}}
 	</ol>
 	{{/if}}
+	{{#if chooseCount}}
 	{{#if additionalMoves.length}}
 	<p class="starting-move-picker-instructions">Choose {{chooseCount}} more.</p>
 	<ol class="starting-move-picker-list">
@@ -46,5 +47,6 @@
 		</li>
 		{{/each}}
 	</ol>
+	{{/if}}
 	{{/if}}
 </form>

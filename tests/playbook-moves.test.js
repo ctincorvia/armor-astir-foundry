@@ -212,6 +212,14 @@ describe("MOVE_POOLS", () => {
 		]);
 	});
 
+	it("gives Pre-ordained a single 0-6 kept-die numericTracker", () => {
+		const preOrdained = findPlaybookMove("the-arcanist:pre-ordained");
+
+		expect(preOrdained.numericTrackers).toEqual([
+			{ key: "kept-die", label: "Kept d6", min: 0, max: 6 }
+		]);
+	});
+
 	it("gives every numericTrackers entry a key, label, min and max", () => {
 		for (const move of ALL_PLAYBOOK_MOVES.filter((m) => m.numericTrackers)) {
 			for (const tracker of move.numericTrackers) {

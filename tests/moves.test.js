@@ -1386,6 +1386,21 @@ describe("rollMove - hold", () => {
 		}));
 	});
 
+	it("suppresses the question list on a failure for a move without questionsOnFailure (Mobility)", async () => {
+		const actor = { system: { stats: { defy: { value: 0 } } }, update: vi.fn() };
+		const defy = TRAITS.find((t) => t.key === "defy");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, MOBILITY, defy);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			hold: 0,
+			questionPrompt: MOBILITY.questionPrompts.failure,
+			questions: null
+		}));
+	});
+
 	it("passes a null hold and null questions for moves without a hold track", async () => {
 		const actor = { system: { stats: { clash: { value: 0 } } } };
 		const clash = TRAITS.find((t) => t.key === "clash");

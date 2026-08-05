@@ -779,11 +779,15 @@ export const MOVE_POOLS = [
 			{
 				key: "the-arcanist:pre-ordained",
 				name: "Pre-ordained",
-				// TODO: real mechanic not built — holding an unkept d6 for the rest of the Scene and
-				// swapping it into a future roll needs new persisted die-value state plus a hook into
-				// roll-effects.js's kept/discarded die tracking (see applyRollEffects). Deliberately scoped
-				// out for now; prose only, per claude.md's "systems that do not exist yet".
+				// TODO: real mechanic not built — auto-swapping the kept d6 into a future roll needs a
+				// hook into roll-effects.js's kept/discarded die tracking (see applyRollEffects).
+				// Deliberately scoped out for now, per claude.md's "systems that do not exist yet". The
+				// numericTrackers entry below is just a manual reminder of which face is currently held
+				// (0 = not holding one), not an implementation of the swap itself.
 				traits: [],
+				numericTrackers: [
+					{ key: "kept-die", label: "Kept d6", min: 0, max: 6 }
+				],
 				description:
 					"<p>When you make a move with advantage or disadvantage, you may hold onto one unkept d6 " +
 					"for the rest of the Scene. During that Scene, you may replace any rolled d6 with that kept " +
@@ -815,11 +819,22 @@ export const MOVE_POOLS = [
 				key: "the-arcanist:tactical-illusions",
 				name: "Tactical Illusions",
 				traits: ["channel"],
-				results: {
+				// Same questionPrompts/questions shape as Guerrilla/Stir The Crowd — a per-tier
+				// prompt plus an option list, rendered through the chat template's existing questions
+				// section rather than needing one of its own.
+				questionPrompts: {
 					success: "Choose 2 of the illusion effects below.",
 					mixed: "Choose 1, but your illusions also distract an unintended audience.",
 					failure: null
 				},
+				questions: [
+					"The illusions last until you stop sustaining them (otherwise they last up to a " +
+						"minute).",
+					"Your illusions affect anyone you intend to perceive them, rather than a single " +
+						"person.",
+					"You can create illusions that affect all the senses, rather than just sight."
+				],
+				results: { success: null, mixed: null, failure: null },
 				description:
 					"<p>When you distract your foes with magic, roll +CHANNEL. On a 10+, choose 2. On a 7-9, " +
 					"choose 1, but your illusions also distract an unintended audience.</p>" +

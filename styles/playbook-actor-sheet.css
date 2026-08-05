@@ -342,17 +342,18 @@
 }
 
 /* One rule for every numeric readout tied to a player-tracked resource (Traits, Power, Hold,
-   Gravity Clock progress) or other at-a-glance derived stat (Tier) — same reasoning as the
-   remove-button and step-pip consolidations below: these were four byte-identical min-width/
-   text-align rules. Primary, not secondary: these are numerals the player reads at a glance, so
-   they take the same color as the sheet's other "acted on" chrome rather than the quieter
-   tracker color the pips below use. */
+   Gravity Clock progress, per-move numeric Trackers) or other at-a-glance derived stat (Tier) —
+   same reasoning as the remove-button and step-pip consolidations below: these were four
+   byte-identical min-width/text-align rules. Primary, not secondary: these are numerals the
+   player reads at a glance, so they take the same color as the sheet's other "acted on" chrome
+   rather than the quieter tracker color the pips below use. */
 .armor-astir.sheet .trait-value,
 .armor-astir.sheet .power-value,
 .armor-astir.sheet .hold-value,
 .armor-astir.sheet .gravity-clock-value,
 .armor-astir.sheet .potion-value,
-.armor-astir.sheet .tier-value {
+.armor-astir.sheet .tier-value,
+.armor-astir.sheet .move-tracker-value {
 	min-width: 1.5em;
 	text-align: center;
 	font-weight: 700;
@@ -400,15 +401,17 @@
 	border-color: var(--aa-secondary);
 }
 
-/* The little +/- steppers scattered across Traits, Power, Hold, Gravity Clock value and
-   Equipment Tier were all relying on the browser's bare default button look — one consolidated
-   rule gives them a consistent, deliberate appearance instead. */
+/* The little +/- steppers scattered across Traits, Power, Hold, Gravity Clock value,
+   Equipment Tier and per-move numeric Trackers (Pre-ordained, Transmute Self) were all relying
+   on the browser's bare default button look — one consolidated rule gives them a consistent,
+   deliberate appearance instead. */
 .armor-astir.sheet .trait-step,
 .armor-astir.sheet .power-step,
 .armor-astir.sheet .hold-step,
 .armor-astir.sheet .flat-hold-step,
 .armor-astir.sheet .gravity-clock-value-step,
-.armor-astir.sheet .equipment-tier-step {
+.armor-astir.sheet .equipment-tier-step,
+.armor-astir.sheet .move-tracker-step {
 	width: 22px;
 	height: 22px;
 	padding: 0;
@@ -424,7 +427,8 @@
 .armor-astir.sheet .hold-step:hover,
 .armor-astir.sheet .flat-hold-step:hover,
 .armor-astir.sheet .gravity-clock-value-step:hover,
-.armor-astir.sheet .equipment-tier-step:hover {
+.armor-astir.sheet .equipment-tier-step:hover,
+.armor-astir.sheet .move-tracker-step:hover {
 	border-color: var(--aa-primary);
 	color: var(--aa-primary-dark);
 }
@@ -924,8 +928,14 @@
 	flex-direction: row;
 	align-items: center;
 	gap: var(--aa-space-1);
-	font-size: 11px;
 	white-space: nowrap;
+}
+
+/* Stays compact like .move-use's own label text; the step buttons and value deliberately don't
+   inherit this — they match .hold-step/.hold-value's font size (the ambient default, unset
+   here on purpose) so a tracker counter reads identically to B-Plot's hold counter. */
+.armor-astir.sheet .move-tracker-label {
+	font-size: 11px;
 }
 
 /* Let Loose's per-actor trait pick (see trait-bonuses.js's chooseTrait) — a plain select on the

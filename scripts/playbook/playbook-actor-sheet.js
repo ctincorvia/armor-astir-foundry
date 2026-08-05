@@ -40,7 +40,13 @@ export class PlaybookActorSheet extends ActorSheet {
 			// shorter than its content. Falls back to ActorSheet's own default (720, resizable: true);
 			// .sheet-body's internal scroll (see styles/playbook-actor-sheet.css) covers whatever the
 			// fixed height cuts off.
-			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }]
+			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }],
+			// Without this, Application#_render has no selector to save/restore scroll position across
+			// a re-render, so any actor.update() from *within* the sheet (a hold stepper, a move roll,
+			// any tracked-resource click) reset .sheet-body's scrollTop to 0 — visible as the sheet
+			// snapping to the top of the active tab on every such click. Matches pbta's own ActorSheet
+			// (scrollY: [".window-content"]).
+			scrollY: [".sheet-body"]
 		});
 	}
 
