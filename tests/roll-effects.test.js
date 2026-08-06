@@ -9,6 +9,7 @@ import {
 	applyRollEffects,
 	effectState,
 	nextAdvantageState,
+	removeDie,
 	rollConditions,
 	rolledDoubles
 } from "../scripts/moves/roll-effects.js";
@@ -246,19 +247,27 @@ describe("nextAdvantageState", () => {
 		expect(nextAdvantageState("disadvantage", "disadvantage")).toBe(ADVANTAGE_STATES.find((s) => s.key === "disadvantage2"));
 	});
 
-	it("blocks disadvantage once advantage is already active", () => {
-		expect(nextAdvantageState("advantage", "disadvantage")).toBeNull();
+	it("steps advantage down to none when disadvantage is clicked", () => {
+		expect(nextAdvantageState("advantage", "disadvantage")).toBe(ADVANTAGE_STATES.find((s) => s.key === "none"));
 	});
 
-	it("blocks advantage once disadvantage is already active", () => {
-		expect(nextAdvantageState("disadvantage", "advantage")).toBeNull();
+	it("steps disadvantage down to none when advantage is clicked", () => {
+		expect(nextAdvantageState("disadvantage", "advantage")).toBe(ADVANTAGE_STATES.find((s) => s.key === "none"));
 	});
 
-	it("is null once already maxed at advantage x2", () => {
+	it("steps advantage x2 down to advantage x1 when disadvantage is clicked", () => {
+		expect(nextAdvantageState("advantage2", "disadvantage")).toBe(ADVANTAGE_STATES.find((s) => s.key === "advantage"));
+	});
+
+	it("steps disadvantage x2 down to disadvantage x1 when advantage is clicked", () => {
+		expect(nextAdvantageState("disadvantage2", "advantage")).toBe(ADVANTAGE_STATES.find((s) => s.key === "disadvantage"));
+	});
+
+	it("is null once already maxed at advantage x2 and advantage is clicked again", () => {
 		expect(nextAdvantageState("advantage2", "advantage")).toBeNull();
 	});
 
-	it("is null once already maxed at disadvantage x2", () => {
+	it("is null once already maxed at disadvantage x2 and disadvantage is clicked again", () => {
 		expect(nextAdvantageState("disadvantage2", "disadvantage")).toBeNull();
 	});
 });
@@ -317,5 +326,72 @@ describe("addDie", () => {
 		const result = addDie(dice, false, 1);
 
 		expect(result.at(-1)).toEqual({ original: 1, result: 1, changed: false, kept: false });
+	});
+});
+
+describe("removeDie", () => {
+	it("drops the last die and recomputes kept for the highest two when keepLowest is false", () => {
+		const dice = [
+			{ original: 2, result: 2, changed: false, kept: false },
+			{ original: 5, result: 5, changed: false, kept: true },
+			{ original: 6, result: 6, changed: false, kept: true },
+			{ original: 3, result: 3, changed: false, kept: false }
+		];
+
+		const result = removeDie(dice, false);
+
+		expect(result).toEqual([
+			{ original: 2, result: 2, changed: false, kept: false },
+			{ original: 5, result: 5, changed: false, kept: true },
+			{ original: 6, result: 6, changed: false, kept: true }
+		]);
+	});
+
+	it("drops the last die and recomputes kept for the lowest two when keepLowest is true", () => {
+		const dice = [
+			{ original: 5, result: 5, changed: false, kept: false },
+			{ original: 2, result: 2, changed: false, kept: true },
+			{ original: 6, result: 6, changed: false, kept: false },
+			{ original: 1, result: 1, changed: false, kept: true }
+		];
+
+		const result = removeDie(dice, true);
+
+		expect(result).toEqual([
+			{ original: 5, result: 5, changed: false, kept: true },
+			{ original: 2, result: 2, changed: false, kept: true },
+			{ original: 6, result: 6, changed: false, kept: false }
+		]);
+	});
+
+	it("preserves the remaining dice entries' original/result/changed fields untouched", () => {
+		const dice = [
+			{ original: 1, result: 6, changed: true, kept: true },
+			{ original: 3, result: 3, changed: false, kept: false },
+			{ original: 6, result: 6, changed: false, kept: true },
+			{ original: 2, result: 2, changed: false, kept: false }
+		];
+
+		// Dropping the trailing die leaves a tie for highest (two dice showing 6) — both entries'
+		// own original/result/changed stay exactly as they were regardless of the kept recompute.
+		const result = removeDie(dice, false);
+
+		expect(result[0]).toEqual({ original: 1, result: 6, changed: true, kept: true });
+		expect(result[1]).toEqual({ original: 3, result: 3, changed: false, kept: false });
+	});
+
+	it("keeps both remaining dice when dropping down to a 2-die pool", () => {
+		const dice = [
+			{ original: 4, result: 4, changed: false, kept: true },
+			{ original: 1, result: 1, changed: false, kept: false },
+			{ original: 5, result: 5, changed: false, kept: true }
+		];
+
+		const result = removeDie(dice, false);
+
+		expect(result).toEqual([
+			{ original: 4, result: 4, changed: false, kept: true },
+			{ original: 1, result: 1, changed: false, kept: true }
+		]);
 	});
 });

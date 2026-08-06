@@ -86,15 +86,21 @@ export function rollConditions(advantage, effect) {
 // Retroactively adding Advantage/Disadvantage to an already-posted roll (see moves.js#rollMove's
 // showAddAdvantage/showAddDisadvantage and move-chat-listeners.js#handleAdvantage) walks
 // ADVANTAGE_STATES one step at a time in the requested direction: "none" jumps straight to the
-// 3-dice state, an established direction can only step up to the 4-dice cap, and the opposite
-// direction is blocked outright rather than silently overriding whatever's already locked in — a
-// player can't un-ring the bell on an Advantage a GM already granted by clicking Disadvantage.
+// 3-dice state, and clicking the same direction again stacks up to the 4-dice cap (returning
+// null once maxed). Clicking the *opposite* direction steps back down instead of stacking or
+// being blocked — one step down keeps the current direction's keepLowest, only landing on
+// direction-flipped state once it reaches "none" (advantage2 + disadvantage -> advantage,
+// advantage + disadvantage -> none), so both sides of the axis stay reachable from a maxed state.
 export function nextAdvantageState(key, direction) {
 	const current = advantageState(key);
 	if (current.key === "none") return advantageState(direction);
-	if (current.keepLowest !== (direction === "disadvantage")) return null;
-	if (current.dice >= 4) return null;
-	return ADVANTAGE_STATES.find((state) => state.keepLowest === current.keepLowest && state.dice === current.dice + 1);
+	const sameDirection = current.keepLowest === (direction === "disadvantage");
+	if (sameDirection) {
+		if (current.dice >= 4) return null;
+		return ADVANTAGE_STATES.find((state) => state.keepLowest === current.keepLowest && state.dice === current.dice + 1);
+	}
+	if (current.dice === 3) return ADVANTAGE_STATES[0];
+	return ADVANTAGE_STATES.find((state) => state.keepLowest === current.keepLowest && state.dice === current.dice - 1);
 }
 
 // Adds one freshly-rolled die to an existing dice breakdown (see applyRollEffects' own return
@@ -112,4 +118,17 @@ export function addDie(dice, keepLowest, newFace) {
 		...dice.map((die, index) => ({ ...die, kept: kept.has(pool[index]) })),
 		{ original: newFace, result: newFace, changed: false, kept: kept.has(pool[dice.length]) }
 	];
+}
+
+// The inverse of addDie above, for nextAdvantageState's new step-down case: drops the last entry
+// in the breakdown (the die that was most recently added by a prior stack-up) and recomputes
+// which KEPT_DICE dice are kept under the new, one-smaller pool. Never rolls a fresh die — a
+// step-down never needs one, since it's only ever discarding an existing die from the pool.
+export function removeDie(dice, keepLowest) {
+	const remaining = dice.slice(0, -1);
+	const pool = remaining.map(({ result }) => ({ result }));
+	const sorted = [...pool].sort((a, b) => (keepLowest ? a.result - b.result : b.result - a.result));
+	const kept = new Set(sorted.slice(0, KEPT_DICE));
+
+	return remaining.map((die, index) => ({ ...die, kept: kept.has(pool[index]) }));
 }

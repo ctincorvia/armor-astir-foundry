@@ -724,10 +724,11 @@ export async function rollMove(actor, move, trait, options = {}) {
 	const astirPartConditions = options.spentPartLabels ?? [];
 
 	// Whether this roll can still be retroactively pushed a further step of Advantage/Disadvantage
-	// after it's posted (see roll-effects.js#nextAdvantageState) — both flags ride along on the
-	// chat card so its own Add Advantage/Add Disadvantage buttons know whether to render, and the
-	// same check re-runs after each such addition (see move-chat-listeners.js#handleAdvantage)
-	// since a direction can lock out its opposite or hit the x2 cap.
+	// (or stepped back down) after it's posted (see roll-effects.js#nextAdvantageState) — both
+	// flags ride along on the chat card so its own Add Advantage/Add Disadvantage buttons know
+	// whether to render, and the same check re-runs after each such change (see
+	// move-chat-listeners.js#handleAdvantage) since only the x2 cap in the same direction ever
+	// actually blocks a button — the opposite direction always steps down instead.
 	const showAddAdvantage = nextAdvantageState(advantage.key, "advantage") !== null;
 	const showAddDisadvantage = nextAdvantageState(advantage.key, "disadvantage") !== null;
 

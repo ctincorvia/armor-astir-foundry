@@ -1,5 +1,5 @@
 import { MOVE_CHAT_TEMPLATE, MOVE_RESULT_LABELS, HOLD_MIN, buildReminders, moveResultTier, rollMove } from "./moves.js";
-import { addDie, effectState, nextAdvantageState, rollConditions } from "./roll-effects.js";
+import { addDie, effectState, nextAdvantageState, removeDie, rollConditions } from "./roll-effects.js";
 import { mergeSpentTags } from "../equipment/equipment.js";
 import { ALL_MOVES } from "./all-moves.js";
 
@@ -64,10 +64,13 @@ async function handleAutomaticSuccess(message, offer, sourceKey) {
 	await message.update({ flavor });
 }
 
-// Retroactively adds one die to an already-posted roll and re-applies the keep-highest/keep-
-// lowest rule (see roll-effects.js#nextAdvantageState/addDie), potentially flipping the result
-// tier — a GM or the roller granting Advantage/Disadvantage after the fact, not something any move
-// triggers itself (see moves.js#rollMove's showAddAdvantage/showAddDisadvantage). Like
+// Retroactively adds or removes one die on an already-posted roll and re-applies the
+// keep-highest/keep-lowest rule (see roll-effects.js#nextAdvantageState/addDie/removeDie),
+// potentially flipping the result tier — a GM or the roller granting or walking back
+// Advantage/Disadvantage after the fact, not something any move triggers itself (see
+// moves.js#rollMove's showAddAdvantage/showAddDisadvantage). A step up (stacking further in the
+// same direction) rolls a fresh die; a step down (the opposite direction, per
+// nextAdvantageState's own stepping rules) only discards one, no roll needed. Like
 // handleAutomaticSuccess above, this does not retroactively regrant hold or recompute
 // questionPrompt/questions for the new tier — those stay exactly as originally rolled; it reframes
 // the outcome rather than re-resolving the roll. Unlike handleAutomaticSuccess, it also updates
@@ -84,10 +87,14 @@ async function handleAdvantage(message, offer, direction) {
 	const nextState = nextAdvantageState(offer.advantageKey, direction);
 	if (!nextState) return;
 
-	const dieRoll = new Roll("1d6");
-	await dieRoll.evaluate();
-
-	const dice = addDie(offer.dice, nextState.keepLowest, dieRoll.total);
+	let dice;
+	if (nextState.dice > offer.dice.length) {
+		const dieRoll = new Roll("1d6");
+		await dieRoll.evaluate();
+		dice = addDie(offer.dice, nextState.keepLowest, dieRoll.total);
+	} else {
+		dice = removeDie(offer.dice, nextState.keepLowest);
+	}
 	const total = dice.filter((d) => d.kept).reduce((sum, d) => sum + d.result, 0) + offer.value;
 	const tier = moveResultTier(total);
 	const effect = effectState(offer.effectKey);

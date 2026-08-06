@@ -499,24 +499,76 @@ describe("onRenderMoveChat/handleAdvantage (Add Advantage/Add Disadvantage)", ()
 		});
 	});
 
-	it("does nothing when the opposite direction is already locked in", async () => {
+	it("steps advantage back down to none when disadvantage is clicked, without rolling a new die", async () => {
 		game.actors.get.mockReturnValue({ id: "actor1" });
-		const message = {
-			flags: { "armor-astir": { advantageOffer: baseOffer({ advantageKey: "advantage" }) } },
-			author: "author1",
-			update: vi.fn()
-		};
+		const offer = baseOffer({
+			advantageKey: "advantage",
+			dice: [
+				{ original: 2, result: 2, changed: false, kept: false },
+				{ original: 2, result: 2, changed: false, kept: true },
+				{ original: 5, result: 5, changed: false, kept: true }
+			]
+		});
+		const message = { flags: { "armor-astir": { advantageOffer: offer } }, author: "author1", update: vi.fn() };
 		const fake = fakeChatHtml();
+		const rollCallsBefore = Roll.mock.calls.length;
 
 		onRenderMoveChat(message, fake.html);
 		fake.addDisadvantageHandler({ currentTarget: { disabled: false } });
 		await Promise.resolve();
 		await Promise.resolve();
+		await Promise.resolve();
 
-		expect(message.update).not.toHaveBeenCalled();
+		// Stepping down only discards a die, it never rolls a fresh one — [2, 5] kept-highest-2
+		// loses its top die, leaving the flat [2, 2] pair -> 4.
+		expect(Roll.mock.calls.length).toBe(rollCallsBefore);
+		expect(message.update).toHaveBeenCalledWith({
+			flavor: "<div>updated</div>",
+			content: "4",
+			flags: {
+				"armor-astir": {
+					advantageOffer: expect.objectContaining({ advantageKey: "none", dice: expect.any(Array) })
+				}
+			}
+		});
 	});
 
-	it("does nothing once already maxed at advantage x2, and the regenerated flavor (from the earlier step) offers neither button", async () => {
+	it("steps advantage x2 back down to advantage x1 when disadvantage is clicked", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const offer = baseOffer({
+			advantageKey: "advantage2",
+			dice: [
+				{ original: 2, result: 2, changed: false, kept: false },
+				{ original: 2, result: 2, changed: false, kept: false },
+				{ original: 4, result: 4, changed: false, kept: true },
+				{ original: 5, result: 5, changed: false, kept: true }
+			]
+		});
+		const message = { flags: { "armor-astir": { advantageOffer: offer } }, author: "author1", update: vi.fn() };
+		const fake = fakeChatHtml();
+		const rollCallsBefore = Roll.mock.calls.length;
+
+		onRenderMoveChat(message, fake.html);
+		fake.addDisadvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// Dropping the most-recently-added die (the second 4->5 stack-up) leaves [2, 2, 4]
+		// keep-highest-2 -> 2 and 4 kept -> 6.
+		expect(Roll.mock.calls.length).toBe(rollCallsBefore);
+		expect(message.update).toHaveBeenCalledWith({
+			flavor: "<div>updated</div>",
+			content: "6",
+			flags: {
+				"armor-astir": {
+					advantageOffer: expect.objectContaining({ advantageKey: "advantage", dice: expect.any(Array) })
+				}
+			}
+		});
+	});
+
+	it("does nothing once already maxed at advantage x2 and advantage is clicked again", async () => {
 		game.actors.get.mockReturnValue({ id: "actor1" });
 		const message = {
 			flags: { "armor-astir": { advantageOffer: baseOffer({ advantageKey: "advantage2" }) } },
@@ -533,7 +585,7 @@ describe("onRenderMoveChat/handleAdvantage (Add Advantage/Add Disadvantage)", ()
 		expect(message.update).not.toHaveBeenCalled();
 	});
 
-	it("both showAddAdvantage/showAddDisadvantage flip false once the x2 cap is reached", async () => {
+	it("showAddAdvantage flips false once the x2 cap is reached, but showAddDisadvantage stays true so the stack can still be stepped down", async () => {
 		game.actors.get.mockReturnValue({ id: "actor1" });
 		const message = {
 			flags: { "armor-astir": { advantageOffer: baseOffer({ advantageKey: "advantage" }) } },
@@ -551,7 +603,7 @@ describe("onRenderMoveChat/handleAdvantage (Add Advantage/Add Disadvantage)", ()
 
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
 			showAddAdvantage: false,
-			showAddDisadvantage: false
+			showAddDisadvantage: true
 		}));
 	});
 

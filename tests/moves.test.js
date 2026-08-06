@@ -1320,13 +1320,17 @@ describe("rollMove", () => {
 		await rollMove(actor, EXCHANGE_BLOWS, clash, { advantage: "advantage" });
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
 			showAddAdvantage: true,
-			showAddDisadvantage: false
+			// Disadvantage can still be clicked here — it steps back down to a flat roll rather
+			// than being locked out (see roll-effects.js#nextAdvantageState).
+			showAddDisadvantage: true
 		}));
 
 		await rollMove(actor, EXCHANGE_BLOWS, clash, { advantage: "advantage2" });
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			// Maxed in the same direction, so Advantage is blocked...
 			showAddAdvantage: false,
-			showAddDisadvantage: false
+			// ...but Disadvantage still steps the stack down to advantage x1.
+			showAddDisadvantage: true
 		}));
 	});
 
