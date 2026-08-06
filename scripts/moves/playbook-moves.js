@@ -1273,6 +1273,134 @@ export const MOVE_POOLS = [
 		]
 	},
 	{
+		key: "the-wither",
+		label: "The Wither",
+		playbookName: "The Wither",
+		moves: [
+			{
+				key: "the-wither:born-to-die",
+				name: "Born To Die",
+				// Unconditionally granted (see starting-moves.js's grantedKeys) — mirrors Tenets/Prepare
+				// Rituals/Patron's own unconditional-grant treatment, no `starting: true` marker needed on
+				// the move itself.
+				traits: [],
+				// Prose only — subsystems (moves.js SPECIAL_MOVES) has no enforced Power-spend mechanic to
+				// override today (traits: [], no flatHold), so there's nothing here to hook a "risk instead
+				// of Power" override into. See claude.md's "systems that do not exist yet".
+				description:
+					"<p>You may use the subsystems move by taking a risk instead of spending Power.</p>"
+			},
+			{
+				key: "the-wither:dark-rebirth",
+				name: "Dark Rebirth",
+				traits: [],
+				// A new variant of the existing grantsAutomaticSuccess mechanism (Hot-blooded/Once the War's
+				// Over/The Arity Method): instead of spending this move's own hold/uses pool, the "cost" is
+				// adding a Danger of type peril to the actor, gated on the actor currently holding zero
+				// peril-type Dangers (see PlaybookActorSheet#_availableAutomaticSuccess). Scoped to
+				// bite-the-dust only, same `moves` restriction The Arity Method already uses.
+				grantsAutomaticSuccess: { moves: ["bite-the-dust"], costsPeril: true },
+				description:
+					"<p>If you are forced to bite the dust and have no perils, you may put yourself in peril to " +
+					"succeed as if you rolled a 10+. Say what dark rite or power saves you.</p>"
+			},
+			{
+				key: "the-wither:number-of-the-beast",
+				name: "Number Of The Beast",
+				traits: [],
+				// A standing effect on every roll this actor makes (see moves.js#explodeSixes and
+				// PlaybookActorSheet#_hasExplodingSixes), not scoped to one target move key — the same
+				// "actor-wide, not move-scoped" shape Cold Company's own grantsHauntedStandingRoll needs
+				// below, rather than the single-move grantsAdvantageOnMove/grantsEffectOnMove/
+				// addsTraitToMove trio.
+				grantsExplodingSixes: true,
+				description:
+					"<p>Whenever you roll a 6, roll an additional die and add it to the total for that roll. " +
+					"If you ever roll three 6's during one move, you are killed in a spectacular fashion at " +
+					"the nearest suitable moment.</p>"
+			},
+			{
+				key: "the-wither:cold-company",
+				name: "Cold Company",
+				traits: [],
+				// Reuses the existing generic `uses` checkbox (system.attributes.moveUses.<key>.dispelled),
+				// rendered and manually toggleable via the existing _onMoveUseToggle handler with zero new
+				// code — but also read/written automatically: see PlaybookActorSheet#_coldCompanyAdvantage
+				// (every roll's Dice-select lock) and #_onMoveResolved (auto-flip on 10+/6-).
+				uses: [{
+					key: "dispelled",
+					label: "Dispelled (advantage on every roll, until you fail a move with a 6-) — unchecked: " +
+						"haunted (disadvantage on every roll, until you succeed with a 10+)"
+				}],
+				grantsHauntedStandingRoll: { useKey: "dispelled" },
+				description:
+					"<p>You are constantly followed by one or more spectres/ghosts/ghouls from your past. " +
+					"Make all rolls with disadvantage until you succeed on a move with a 10+ (dispels the " +
+					"haunting for a while: roll with advantage until you fail on a move with a 6-, at which " +
+					"point disadvantage returns and the cycle begins anew).</p>"
+			},
+			{
+				key: "the-wither:the-old-blood",
+				name: "The Old Blood",
+				traits: [],
+				// Real: +CHANNEL becomes an offered rollable trait on Exchange Blows/Strike Decisively,
+				// additive not replacing — exact shape Turn Unearthly (the-paradigm:turn-unearthly) already
+				// uses, resolved generically by moves-mixin.js#_moveTraits (no new code needed beyond this
+				// declaration).
+				addsTraitToMove: { moveKeys: ["exchange-blows", "strike-decisively"], trait: "channel" },
+				description:
+					"<p>If you are outside your Astir and fighting on foot, you can exchange blows and strike " +
+					"decisively with +CHANNEL when attempting to cause physical harm. When appropriate, you will " +
+					"obtain a tier I melee weapon with bane and one of the following tags of your choice: " +
+					"concealable, area, impact, blitz, ruin/reloading.</p>"
+				// The weapon-grant half has no grant mechanism anywhere in the codebase (Soldier's Nightmare of
+				// Solomon/Field Scout/Giant Slayer all leave this manual) — player builds it via the Equipment
+				// tab's configureEquipment editor, matching every existing precedent. No code needed.
+			},
+			{
+				key: "the-wither:wretched-visage",
+				name: "Wretched Visage",
+				traits: [],
+				description:
+					"<p>Your death-touched nature is impossible to fully hide. When you reveal what you truly " +
+					"are, or let your wretched visage show through, anyone who sees it and isn't already " +
+					"accustomed to horrors like you takes the risk (horrified) before they can act against " +
+					"you.</p>"
+			},
+			{
+				key: "the-wither:fresh-hells",
+				name: "Fresh Hells",
+				traits: [],
+				description:
+					"<p>You have seen, and continue to see, more of what waits beyond death than anyone should. " +
+					"Whenever a Sortie threatens to escalate into deeper danger, you may reveal a fresh hell " +
+					"drawn from your own expertise—some worse threat was already there, waiting, and you're " +
+					"the only one who noticed in time to say so.</p>"
+			},
+			{
+				key: "the-wither:abyssal-summons",
+				name: "Abyssal Summons",
+				traits: [],
+				description:
+					"<p>You may call upon lesser spirits, wraiths, or the unquiet dead already lingering nearby " +
+					"to fight alongside you for the rest of the Scene. They ask for something in return—only " +
+					"you and your Director know what.</p>"
+			},
+			{
+				key: "the-wither:dark-guarantees",
+				name: "Dark Guarantees",
+				// A conditional future-roll buff sealed by a promise, same "no hook yet" shape The Arity
+				// Method's own second sentence (confidence + advantage on a future roll) leaves descriptive —
+				// see claude.md's "systems that do not exist yet".
+				traits: [],
+				description:
+					"<p>You may offer someone a guarantee, sealed in blood, shadow, or breath. If they accept, " +
+					"they act with confidence on their next move. The price of breaking a guarantee you've " +
+					"made is yours to decide, and it is never small.</p>"
+			}
+		]
+	},
+	{
 		key: "cantrips",
 		label: "Cantrips",
 		note: "Any playbook may take these in place of a move from their own pool.",

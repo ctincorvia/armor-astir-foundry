@@ -50,6 +50,21 @@ describe("PLAYBOOK_FLAVOR", () => {
 	it("gives The Scout no intro paragraphs", () => {
 		expect(PLAYBOOK_FLAVOR["the-scout"].intro).toBeUndefined();
 	});
+
+	it("gives The Wither four LOOK prompts, each with a label and text", () => {
+		for (const entry of PLAYBOOK_FLAVOR["the-wither"].look) {
+			expect(entry.label).toBeTruthy();
+			expect(entry.text).toBeTruthy();
+		}
+		expect(PLAYBOOK_FLAVOR["the-wither"].look).toHaveLength(4);
+	});
+
+	it("gives The Wither eight Consider questions", () => {
+		expect(PLAYBOOK_FLAVOR["the-wither"].consider).toHaveLength(8);
+		for (const question of PLAYBOOK_FLAVOR["the-wither"].consider) {
+			expect(question).toBeTruthy();
+		}
+	});
 });
 
 describe("defaultLookText", () => {

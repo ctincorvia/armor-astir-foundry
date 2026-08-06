@@ -1,6 +1,11 @@
 export const DIE_FACES = 6;
 export const KEPT_DICE = 2;
 
+// Number Of The Beast's exploding-6 mechanic (see moves.js#explodeSixes) — purely a defensive cap
+// against a runaway explosion chain, not a balance lever: 8 consecutive 6-in-6 explosions is
+// astronomically unlikely (6^-8), so this is never expected to actually bind in play.
+export const NUMBER_OF_THE_BEAST_MAX_EXPLOSIONS = 8;
+
 // Advantage/Disadvantage: roll one extra die per stack (up to two stacks) and keep the
 // highest/lowest two. Mutually exclusive with each other, hence one flat list rather than two
 // independent toggles — selecting one is structurally exclusive of the others.
@@ -76,4 +81,35 @@ export function rollConditions(advantage, effect) {
 	if (advantage.key !== "none") conditions.push({ key: advantage.key, label: advantage.label });
 	if (effect.key !== "none") conditions.push({ key: effect.key, label: effect.label });
 	return conditions;
+}
+
+// Retroactively adding Advantage/Disadvantage to an already-posted roll (see moves.js#rollMove's
+// showAddAdvantage/showAddDisadvantage and move-chat-listeners.js#handleAdvantage) walks
+// ADVANTAGE_STATES one step at a time in the requested direction: "none" jumps straight to the
+// 3-dice state, an established direction can only step up to the 4-dice cap, and the opposite
+// direction is blocked outright rather than silently overriding whatever's already locked in — a
+// player can't un-ring the bell on an Advantage a GM already granted by clicking Disadvantage.
+export function nextAdvantageState(key, direction) {
+	const current = advantageState(key);
+	if (current.key === "none") return advantageState(direction);
+	if (current.keepLowest !== (direction === "disadvantage")) return null;
+	if (current.dice >= 4) return null;
+	return ADVANTAGE_STATES.find((state) => state.keepLowest === current.keepLowest && state.dice === current.dice + 1);
+}
+
+// Adds one freshly-rolled die to an existing dice breakdown (see applyRollEffects' own return
+// shape above) and recomputes which KEPT_DICE dice are kept under the new, one-larger pool —
+// mirrors applyRollEffects' own sort/keep logic, but works from the breakdown's already-resolved
+// `.result` faces rather than raw DiceTerm results, and never re-runs Confidence/Desperation
+// substitution on any of them: the existing dice were already substituted when the roll first
+// happened, and a die added after the fact was never subject to that roll's own effect.
+export function addDie(dice, keepLowest, newFace) {
+	const pool = [...dice.map(({ result }) => ({ result })), { result: newFace }];
+	const sorted = [...pool].sort((a, b) => (keepLowest ? a.result - b.result : b.result - a.result));
+	const kept = new Set(sorted.slice(0, KEPT_DICE));
+
+	return [
+		...dice.map((die, index) => ({ ...die, kept: kept.has(pool[index]) })),
+		{ original: newFace, result: newFace, changed: false, kept: kept.has(pool[dice.length]) }
+	];
 }

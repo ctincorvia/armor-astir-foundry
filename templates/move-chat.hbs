@@ -22,6 +22,19 @@
 		</li>
 		{{/each}}
 	</ol>
+	{{#if explodedDice}}
+	<ol class="move-dice move-dice-exploded">
+		{{#each explodedDice}}
+		<li class="move-die move-die-exploded{{#if changed}} move-die-changed{{/if}}">
+			{{#if changed}}<span class="move-die-original">{{original}}</span>{{/if}}
+			<span class="move-die-face">{{result}}</span>
+		</li>
+		{{/each}}
+	</ol>
+	{{/if}}
+	{{#if beastTriggered}}
+	<div class="move-beast-trigger">Number Of The Beast: three 6's rolled — you are killed in a spectacular fashion at the nearest suitable moment. Narrate it with your Director.</div>
+	{{/if}}
 	{{#if resultText}}
 	<div class="move-result-text">{{{resultText}}}</div>
 	{{/if}}
@@ -51,6 +64,8 @@
 	{{#each automaticSuccess}}
 	<button type="button" class="move-automatic-success" data-source="{{key}}">Automatic success from {{name}}</button>
 	{{/each}}
+	{{#if showAddAdvantage}}<button type="button" class="move-add-advantage">Add Advantage</button>{{/if}}
+	{{#if showAddDisadvantage}}<button type="button" class="move-add-disadvantage">Add Disadvantage</button>{{/if}}
 	{{else}}
 	<div class="move-description">{{{description}}}</div>
 	{{/if}}

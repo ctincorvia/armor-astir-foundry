@@ -49,6 +49,31 @@ export const MovesSheetMixin = {
 	_hasShakenTenet() {
 		return this._hooks().some((hook) => hook.shaken);
 	},
+	// Number Of The Beast (see playbook-moves.js's grantsExplodingSixes) — a standing, actor-wide
+	// effect on every roll, not scoped to any one move key, so this reads the actor's picked moves
+	// directly rather than going through _grantedXOnMove's single-target-move resolvers.
+	_hasExplodingSixes() {
+		return resolvePlaybookMoves(this._playbookMoves()).some((m) => m.grantsExplodingSixes);
+	},
+	// Cold Company (see playbook-moves.js's grantsHauntedStandingRoll) — finds the actor's picked
+	// Cold Company move, if any. Shared by _coldCompanyAdvantage (read, every roll) and
+	// _onMoveResolved's flip (write, after every roll) so the useKey string only lives in one place.
+	_coldCompanyMove() {
+		return resolvePlaybookMoves(this._playbookMoves()).find((m) => m.grantsHauntedStandingRoll);
+	},
+	// The Advantage-axis standing lock every roll this actor makes gets — unlike
+	// _grantedAdvantageForMove (Don't Follow Me), which only ever locks one specific target move,
+	// this applies unconditionally to every roll, so it isn't resolved through that single-target-
+	// move lookup. Returns null when the actor hasn't picked Cold Company at all — a true no-op for
+	// every other actor, same "compute regardless, resolves to nothing" stance _grantedEffectForMove
+	// etc. already take.
+	_coldCompanyAdvantage() {
+		const coldCompany = this._coldCompanyMove();
+		if (!coldCompany) return null;
+		const { useKey } = coldCompany.grantsHauntedStandingRoll;
+		const dispelled = Boolean(this.actor.system.attributes?.moveUses?.[coldCompany.key]?.[useKey]);
+		return dispelled ? "advantage" : "disadvantage";
+	},
 	// getData's moveGroups — Basic and Special moves are the same fixed list for every actor;
 	// Playbook Moves is the per-actor set picked via the "+" button, so it's the only group that
 	// renders add/remove controls (see the template's addable/removable branches). All three run
@@ -325,22 +350,39 @@ export const MovesSheetMixin = {
 		return granting?.grantsAdvantageOnMove.advantage ?? null;
 	},
 	// Every move flagged grantsAutomaticSuccess (Hot-blooded, Once the War's Over, The Arity
-	// Method — see playbook-moves.js) can spend its own hold pool or `uses` checkbox to treat the
-	// move currently being rolled as a success, matching each move's own "succeed as if you'd
-	// rolled a 10+" text. Unlike a reroll tag or an equipment spend, this isn't tied to the weapon
-	// being used — it's actor-wide, so every flagged move (not just ones on this actor's picked
-	// pools — a hold/uses value can only be non-zero if the move was actually picked and activated,
-	// so there's nothing to additionally check there) is considered fresh for every roll. `moves`
-	// (The Arity Method) restricts the offer to specific move keys, the same field/meaning as
-	// equipment.js's own reroll.moves.
+	// Method, Dark Rebirth — see playbook-moves.js) can spend its own hold pool, `uses` checkbox,
+	// or (Dark Rebirth) put the actor in peril to treat the move currently being rolled as a
+	// success, matching each move's own "succeed as if you'd rolled a 10+" text. Unlike a reroll
+	// tag or an equipment spend, this isn't tied to the weapon being used — it's actor-wide, so
+	// every flagged move (not just ones on this actor's picked pools — a hold/uses value can only
+	// be non-zero if the move was actually picked and activated, so there's nothing to additionally
+	// check there) is considered fresh for every roll. `moves` (The Arity Method, Dark Rebirth)
+	// restricts the offer to specific move keys, the same field/meaning as equipment.js's own
+	// reroll.moves.
 	_availableAutomaticSuccess(move) {
+		// A hold-cost source (Hot-blooded, Once the War's Over) is naturally excluded for an actor
+		// who never picked it: moveHold reads 0, and cost is always positive. A useKey source (The
+		// Arity Method) has no such natural floor — an unset uses checkbox (never picked) reads
+		// exactly the same as an unchecked one (picked, not yet spent) — and Dark Rebirth's costsPeril
+		// reads actor-wide Danger state with no per-move field at all. Both need an explicit "was this
+		// actually picked" check; picked moves are resolved once here rather than per-source.
+		const pickedKeys = resolvePlaybookMoves(this._playbookMoves()).map((m) => m.key);
 		return ALL_MOVES
 			.filter((m) => m.grantsAutomaticSuccess)
 			.filter((m) => !m.grantsAutomaticSuccess.moves || m.grantsAutomaticSuccess.moves.includes(move.key))
 			.filter((m) => {
-				const { cost, useKey } = m.grantsAutomaticSuccess;
+				const { cost, useKey, costsPeril } = m.grantsAutomaticSuccess;
+				// Dark Rebirth's "cost" (see playbook-moves.js) is a fresh Danger of type peril rather
+				// than spending an existing hold/uses pool — gated on the actor currently holding zero
+				// peril-type Dangers (its own "if you ... have no perils" text) and, defensively, not
+				// already at DANGER_MAX, since a Danger can't be added to a full list.
+				if (costsPeril) {
+					if (!pickedKeys.includes(m.key)) return false;
+					const dangers = this._dangers();
+					return dangers.length < DANGER_MAX && dangers.every((danger) => danger.type !== "peril");
+				}
 				return useKey
-					? !this.actor.system.attributes?.moveUses?.[m.key]?.[useKey]
+					? pickedKeys.includes(m.key) && !this.actor.system.attributes?.moveUses?.[m.key]?.[useKey]
 					: (this.actor.system.attributes?.moveHold?.[m.key]?.value ?? 0) >= cost;
 			})
 			.map((m) => ({ key: m.key, name: m.name, ...m.grantsAutomaticSuccess }));
@@ -514,7 +556,12 @@ export const MovesSheetMixin = {
 		// disabled for this actor) resolves to no lock at all.
 		const grantedTraitKey = this._grantedTraitForMove(move);
 		const lockedTrait = grantedTraitKey ? traits.find((t) => t.key === grantedTraitKey) ?? null : null;
-		const lockedAdvantage = this._grantedAdvantageForMove(move);
+		// Don't Follow Me's single-target-move grant wins if it and Cold Company's standing haunted-
+		// state lock somehow both apply — in practice these two moves live on mutually exclusive
+		// playbooks (Impostor / Wither), so this ordering is a defensive tie-break, not an expected
+		// real-world collision. An Astir Part's own reactive spend.advantage (Artifact) still wins
+		// over either, per configureMoveRoll's own precedence — untouched by this change.
+		const lockedAdvantage = this._grantedAdvantageForMove(move) ?? this._coldCompanyAdvantage();
 		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
 		const astirPartSpends = this._astirPartSpends(lockedEffect);
 		// Omitted entirely rather than passed as `false` when not guided — configureMoveRoll
@@ -546,7 +593,7 @@ export const MovesSheetMixin = {
 				weaponLabel: weapon ? weapon.name : "Unarmed",
 				weaponTags: this._weaponTagLabels(weapon)
 			});
-			await this._onMoveResolved(move, null);
+			await this._onMoveResolved(move, null, "mixed");
 			return;
 		}
 
@@ -584,7 +631,10 @@ export const MovesSheetMixin = {
 			...config,
 			...(traitBonus && { traitBonus }),
 			...(spentPartLabels.length && { spentPartLabels }),
-			...(automaticSuccess.length && { automaticSuccess })
+			...(automaticSuccess.length && { automaticSuccess }),
+			// Number Of The Beast (see playbook-moves.js) — applies to every roll this actor makes,
+			// not just one move key, so this is folded in unconditionally rather than gated on `move`.
+			...(this._hasExplodingSixes() && { explodeOnSix: true })
 		};
 		const options = weapon !== undefined
 			? {
@@ -595,7 +645,7 @@ export const MovesSheetMixin = {
 			}
 			: baseOptions;
 		const result = await rollMove(this.actor, move, config.trait, options);
-		await this._onMoveResolved(move, result.dice);
+		await this._onMoveResolved(move, result.dice, result.tier);
 	},
 	// Runs after a move resolves — whether via a real roll (dice present) or Guided's "Take 7-9"
 	// (dice null). The Witch's Patron ("offers you two boons at random whenever someone leads a
@@ -603,10 +653,27 @@ export const MovesSheetMixin = {
 	// unlike Potions/doubles-regen (Astir Part effects, gated on the Astir specifically being
 	// mounted), Patron is a base playbook feature that doesn't care whether — or which — frame is
 	// mounted.
-	async _onMoveResolved(move, dice) {
+	async _onMoveResolved(move, dice, tier) {
 		if (move.key === "lead-a-sortie"
 				&& resolvePlaybookMoves(this._playbookMoves()).some((m) => m.key === "the-witch:patron")) {
 			await this._grantRandomWitchBoons();
+		}
+		// Cold Company (see _coldCompanyMove/_coldCompanyAdvantage) — flips the haunted/dispelled
+		// state based on THIS roll's own outcome tier, for every move this actor rolls. A 7-9 is a
+		// no-op either way (Cold Company's own text only reacts to 10+/6-); already-dispelled staying
+		// dispelled on another 10+, or already-haunted staying haunted on another 6-, are also no-ops
+		// — the checkbox only ever flips, never redundantly re-writes the same value. Checked ahead of
+		// the mounted-frame early-return below for the same reason the Patron check above is: this is
+		// a base playbook feature, not an Astir Part effect, so it must not be skipped when unpiloted.
+		const coldCompany = this._coldCompanyMove();
+		if (coldCompany) {
+			const { useKey } = coldCompany.grantsHauntedStandingRoll;
+			const dispelled = Boolean(this.actor.system.attributes?.moveUses?.[coldCompany.key]?.[useKey]);
+			if (tier === "success" && !dispelled) {
+				await this.actor.update({ [`system.attributes.moveUses.${coldCompany.key}.${useKey}`]: true });
+			} else if (tier === "failure" && dispelled) {
+				await this.actor.update({ [`system.attributes.moveUses.${coldCompany.key}.${useKey}`]: false });
+			}
 		}
 		// The two Astir Part effects below react to a move's outcome rather than being offered as part
 		// of setting it up. Both are scoped to the mounted frame's own parts (see claude.md's Piloted

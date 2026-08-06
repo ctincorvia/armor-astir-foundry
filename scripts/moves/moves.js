@@ -3,9 +3,11 @@ import {
 	DIE_FACES,
 	EFFECT_STATES,
 	KEPT_DICE,
+	NUMBER_OF_THE_BEAST_MAX_EXPLOSIONS,
 	advantageState,
 	applyRollEffects,
 	effectState,
+	nextAdvantageState,
 	rollConditions
 } from "./roll-effects.js";
 import { TRAITS } from "../core/traits.js";
@@ -42,6 +44,19 @@ export const FAILURE_REMINDERS = [
 // text only, not an automatic mutation.
 const DESPERATION_SUCCESS_REMINDER = "You may deepen a Hook";
 const CONFIDENCE_FAILURE_REMINDER = "You may loosen a Hook";
+
+// Confidence/Desperation reminders stack with (rather than replace) the full-failure ones — a
+// Confidence roll that still fails full both banks a point of spotlight and "may loosen a Hook"
+// at once. Extracted out of rollMove so move-chat-listeners.js#handleAdvantage can rebuild a
+// card's reminders after retroactively adding a die changes its tier (see roll-effects.js#
+// nextAdvantageState), without duplicating this logic.
+export function buildReminders(tier, effect) {
+	return [
+		...(tier === "failure" ? FAILURE_REMINDERS : []),
+		...(effect.key === "desperation" && tier === "success" ? [DESPERATION_SUCCESS_REMINDER] : []),
+		...(effect.key === "confidence" && tier === "failure" ? [CONFIDENCE_FAILURE_REMINDER] : [])
+	];
+}
 
 export function moveResultTier(total) {
 	if (total >= 10) return "success";
@@ -570,6 +585,47 @@ export async function configureMoveRoll(
 	});
 }
 
+// Number Of The Beast's exploding-6 mechanic (see playbook-moves.js's the-wither:number-of-the-beast
+// / grantsExplodingSixes). Rolls one additional d6 for every die in `dice` (the full pool — see
+// applyRollEffects — not just the two kept for the total; see the design-risk note in the plan)
+// whose final, post-substitution face shows a 6, and lets a freshly-rolled exploded die that itself
+// lands on a 6 explode again, up to NUMBER_OF_THE_BEAST_MAX_EXPLOSIONS as a defensive cap. Each
+// exploded die gets the same Confidence/Desperation single-face substitution the initial pool
+// already got (see applyRollEffects), so a Desperation roll that turns an exploded 6 into a 1 does
+// not chain-explode, and a Confidence roll that turns an exploded 1 into a 6 does.
+//
+// Returns { bonus, sixCount, extraDice, triggered }:
+//  - bonus: sum of every exploded die's final face, added to the roll's total unconditionally
+//    ("add it to the total for that roll" — not "if kept").
+//  - sixCount: total 6-faces across the *entire* roll (initial pool + every exploded die).
+//  - extraDice: {original, result, changed} breakdown per exploded die, same shape as
+//    applyRollEffects' own return, for the chat card to render alongside the normal dice list.
+//  - triggered: true once sixCount reaches 3. There is no death/incapacitation system anywhere in
+//    this module to hook the "killed in a spectacular fashion" consequence into (see claude.md) —
+//    this only drives an unmissable chat-card badge; narrating the consequence is left to the table.
+export async function explodeSixes(dice, effect) {
+	let sixCount = dice.filter((die) => die.result === DIE_FACES).length;
+	let toRoll = sixCount;
+	const extraDice = [];
+	let bonus = 0;
+
+	while (toRoll > 0 && extraDice.length < NUMBER_OF_THE_BEAST_MAX_EXPLOSIONS) {
+		toRoll -= 1;
+		const explosionRoll = new Roll(`1d${DIE_FACES}`);
+		await explosionRoll.evaluate();
+		const original = explosionRoll.dice[0].results[0].result;
+		const result = original === effect.from ? effect.to : original;
+		extraDice.push({ original, result, changed: original !== result });
+		bonus += result;
+		if (result === DIE_FACES) {
+			sixCount += 1;
+			toRoll += 1;
+		}
+	}
+
+	return { bonus, sixCount, extraDice, triggered: sixCount >= 3 };
+}
+
 // Rebuilds the roll's total in place rather than via Roll.fromTerms: Foundry's AST-based
 // evaluator (Roll#_evaluate -> CONFIG.Dice.parser.toAST) only calls .evaluate() on leaf terms
 // (Die, NumericTerm), never on the "+" OperatorTerm sitting in roll.terms — so after
@@ -605,8 +661,18 @@ export async function rollMove(actor, move, trait, options = {}) {
 	if (advantage.dice > KEPT_DICE) {
 		roll.dice[0].modifiers.push(advantage.keepLowest ? `kl${KEPT_DICE}` : `kh${KEPT_DICE}`);
 	}
+
+	// Number Of The Beast (see playbook-moves.js) — options.explodeOnSix is set by
+	// PlaybookActorSheet#_rollMove whenever the acting actor has picked that move; applies to every
+	// roll they make, not just one move key. Not merged into `dice` itself — see the regression-guard
+	// comment on roll-effects.js#rolledDoubles (Flourish Component's "regain Power on doubles") this
+	// would otherwise break if an exploded die were appended there.
+	const explosion = options.explodeOnSix ? await explodeSixes(dice, effect) : null;
+
 	roll._formula = roll.formula;
-	roll._total = dice.filter((die) => die.kept).reduce((sum, die) => sum + die.result, 0) + value;
+	roll._total = dice.filter((die) => die.kept).reduce((sum, die) => sum + die.result, 0)
+		+ (explosion?.bonus ?? 0)
+		+ value;
 
 	const tier = moveResultTier(roll.total);
 
@@ -650,14 +716,15 @@ export async function rollMove(actor, move, trait, options = {}) {
 	// needs to import astir.js — see PlaybookActorSheet#_rollMove.
 	const astirPartConditions = options.spentPartLabels ?? [];
 
-	// Confidence/Desperation reminders stack with (rather than replace) the full-failure ones —
-	// a Confidence roll that still fails full is both "lost the spotlight point" and "may loosen a
-	// Hook" at once.
-	const reminders = [
-		...(tier === "failure" ? FAILURE_REMINDERS : []),
-		...(effect.key === "desperation" && tier === "success" ? [DESPERATION_SUCCESS_REMINDER] : []),
-		...(effect.key === "confidence" && tier === "failure" ? [CONFIDENCE_FAILURE_REMINDER] : [])
-	];
+	// Whether this roll can still be retroactively pushed a further step of Advantage/Disadvantage
+	// after it's posted (see roll-effects.js#nextAdvantageState) — both flags ride along on the
+	// chat card so its own Add Advantage/Add Disadvantage buttons know whether to render, and the
+	// same check re-runs after each such addition (see move-chat-listeners.js#handleAdvantage)
+	// since a direction can lock out its opposite or hit the x2 cap.
+	const showAddAdvantage = nextAdvantageState(advantage.key, "advantage") !== null;
+	const showAddDisadvantage = nextAdvantageState(advantage.key, "disadvantage") !== null;
+
+	const reminders = buildReminders(tier, effect);
 
 	// options.reroll (see PlaybookActorSheet#_availableReroll) is only ever set for a usesWeapon
 	// move whose chosen weapon still has an unspent Decisive/Defensive/Versatile tag matching this
@@ -716,6 +783,10 @@ export async function rollMove(actor, move, trait, options = {}) {
 		reminders: reminders.length ? reminders : null,
 		conditions: [...rollConditions(advantage, effect), ...moveConditions, ...equipmentConditions, ...astirPartConditions],
 		dice,
+		// Number Of The Beast (see explodeSixes above) — null/false for every actor who hasn't picked
+		// it, so the chat template renders nothing extra for anyone else.
+		explodedDice: explosion?.extraDice.length ? explosion.extraDice : null,
+		beastTriggered: Boolean(explosion?.triggered),
 		hold,
 		questionPrompt: move.questionPrompts?.[tier] ?? null,
 		// A choice list only makes sense in chat when this tier actually offers a choice — every
@@ -724,17 +795,33 @@ export async function rollMove(actor, move, trait, options = {}) {
 		// (e.g. Mobility's "You hold nothing.").
 		questions: (tier !== "failure" || move.questionsOnFailure) ? (move.questions ?? null) : null,
 		reroll: Boolean(rerollOffer),
-		automaticSuccess: automaticSuccessOffer
+		automaticSuccess: automaticSuccessOffer,
+		showAddAdvantage,
+		showAddDisadvantage
 	};
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, flavorArgs);
 
 	// Both offers ride in the same flags namespace so a single card (e.g. a failed usesWeapon roll)
-	// can carry a reroll tag offer and an automatic-success spend offer at once.
+	// can carry a reroll tag offer and an automatic-success spend offer at once. advantageOffer is
+	// always attached (unlike reroll/automaticSuccess, which only exist when actually offered) —
+	// every dice roll can potentially receive Advantage/Disadvantage after the fact, even a
+	// currently-maxed one, where showAddAdvantage/showAddDisadvantage above are already both false
+	// so the card simply renders no buttons for it.
 	const cardFlags = {
 		...(rerollOffer && { reroll: rerollOffer }),
 		...(automaticSuccessOffer.length && {
 			automaticSuccess: { actorId: actor.id, moveKey: move.key, flavorArgs, sources: automaticSuccessOffer }
-		})
+		}),
+		advantageOffer: {
+			actorId: actor.id,
+			moveKey: move.key,
+			value,
+			effectKey: options.effect ?? "none",
+			advantageKey: advantage.key,
+			dice,
+			extraConditions: [...moveConditions, ...equipmentConditions, ...astirPartConditions],
+			flavorArgs
+		}
 	};
 	const message = await roll.toMessage({
 		speaker: ChatMessage.getSpeaker({ actor }),
@@ -744,8 +831,11 @@ export async function rollMove(actor, move, trait, options = {}) {
 
 	// dice is returned alongside the chat message so PlaybookActorSheet#_rollMove can check for
 	// Flourish Component's "regain Power on doubles" (see roll-effects.js#rolledDoubles) without
-	// this module needing to know anything about Astir Parts.
-	return { message, dice };
+	// this module needing to know anything about Astir Parts. tier is returned so
+	// PlaybookActorSheet#_onMoveResolved can flip Cold Company's haunted/dispelled state off this
+	// roll's own outcome without re-deriving it — the same "extend rollMove's return shape as an
+	// escape hatch" pattern dice itself was added under for Flourish Component.
+	return { message, dice, tier };
 }
 
 // Guided's "take a 7-9 rather than rolling, if you wish" (see equipment.js's EQUIPMENT_TAGS

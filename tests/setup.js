@@ -25,6 +25,14 @@ vi.stubGlobal("game", {
 	actors: {
 		get: vi.fn(),
 		filter: vi.fn(() => [])
+	},
+	// A GM by default so any code gated on game.user.isGM/id (e.g. the move chat card's Add
+	// Advantage/Disadvantage buttons — see move-chat-listeners.js) exercises its "allowed" path
+	// without every unrelated test having to set this up itself; tests of the permission check
+	// itself override these fields directly.
+	user: {
+		isGM: true,
+		id: "test-user"
 	}
 });
 

@@ -1395,9 +1395,12 @@
 /* Same solid-primary treatment as the sheet's own Roll/Activate buttons (see the sheet's
    .move-roll rule) — this is chrome the player acts on too, just rendered on a chat card instead
    of the sheet, so it can't share that rule's `.armor-astir.sheet` scope. Shared by every chat-card
-   action button (Reroll, Automatic Success) — they're styled identically. */
+   action button (Reroll, Automatic Success, Add Advantage, Add Disadvantage) — they're styled
+   identically. */
 .armor-astir-move-chat .move-reroll,
-.armor-astir-move-chat .move-automatic-success {
+.armor-astir-move-chat .move-automatic-success,
+.armor-astir-move-chat .move-add-advantage,
+.armor-astir-move-chat .move-add-disadvantage {
 	margin-top: var(--aa-space-1);
 	padding: var(--aa-space-1) var(--aa-space-2);
 	border: 1px solid var(--aa-primary);
@@ -1409,14 +1412,18 @@
 }
 
 .armor-astir-move-chat .move-reroll:hover,
-.armor-astir-move-chat .move-automatic-success:hover {
+.armor-astir-move-chat .move-automatic-success:hover,
+.armor-astir-move-chat .move-add-advantage:hover,
+.armor-astir-move-chat .move-add-disadvantage:hover {
 	background: var(--aa-primary-dark);
 }
 
 /* Same tint/-dark swap as the sheet's own solid disabled buttons (see .move-roll.disabled) —
    opacity alone faded the primary fill and white text to unreadable gray-on-gray. */
 .armor-astir-move-chat .move-reroll:disabled,
-.armor-astir-move-chat .move-automatic-success:disabled {
+.armor-astir-move-chat .move-automatic-success:disabled,
+.armor-astir-move-chat .move-add-advantage:disabled,
+.armor-astir-move-chat .move-add-disadvantage:disabled {
 	background: var(--aa-primary-tint);
 	border-color: var(--aa-primary-tint);
 	color: var(--aa-primary-dark);
@@ -1505,6 +1512,26 @@
 	opacity: 0.6;
 	text-decoration: line-through;
 	font-weight: normal;
+}
+
+/* Number Of The Beast's exploded dice (see moves.js#explodeSixes) — same .move-die look as the
+   normal dice list, just marked out with the secondary-dark border every changed die already gets,
+   so a run of exploded 6's reads as visually distinct from the roll's own kept/dropped dice. */
+.armor-astir-move-chat .move-die-exploded {
+	border-color: var(--aa-secondary-dark);
+}
+
+/* Number Of The Beast's "killed in a spectacular fashion" badge — deliberately unmissable, the
+   same --aa-danger fill the sheet's own DEFENSELESS indicator uses, since this has no automatic
+   consequence anywhere in this module (see claude.md) and depends entirely on the table noticing
+   it in chat. */
+.armor-astir-move-chat .move-beast-trigger {
+	margin-top: var(--aa-space-1);
+	padding: var(--aa-space-1) var(--aa-space-2);
+	border-radius: var(--aa-radius);
+	background: var(--aa-danger);
+	color: #fff;
+	font-weight: 700;
 }
 
 .armor-astir.move-roll-dialog .form-group {

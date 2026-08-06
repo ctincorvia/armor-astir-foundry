@@ -87,6 +87,17 @@ export const STARTING_MOVE_POOLS = [
 		grantedKeys: ["the-witch:patron"],
 		pickOneKeys: [],
 		chooseCount: 0
+	},
+	{
+		playbookName: "The Wither",
+		poolKey: "the-wither",
+		// "You start with the born to die move" is unconditionally granted. The Astir's own unique
+		// move ("a move of your choice from your Additional Moves or the Cantrips list") is handled
+		// the same generic way as every other Astir-piloting playbook's own comment above describes —
+		// no separate budget needed here for it.
+		grantedKeys: ["the-wither:born-to-die"],
+		pickOneKeys: [],
+		chooseCount: 0
 	}
 ];
 

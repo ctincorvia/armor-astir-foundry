@@ -124,6 +124,14 @@ describe("STARTING_MOVE_POOLS", () => {
 		expect(arcanist.pickOneKeys).toEqual([]);
 		expect(arcanist.chooseCount).toBe(0);
 	});
+
+	it("grants The Wither exactly Born To Die, with nothing to pick", () => {
+		const wither = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Wither");
+
+		expect(wither.grantedKeys).toEqual(["the-wither:born-to-die"]);
+		expect(wither.pickOneKeys).toEqual([]);
+		expect(wither.chooseCount).toBe(0);
+	});
 });
 
 describe("findStartingMovePool", () => {

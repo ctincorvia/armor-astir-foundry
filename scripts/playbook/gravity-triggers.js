@@ -15,7 +15,9 @@ export const GRAVITY_TRIGGERS = {
 	"the-paradigm":
 		"When you discuss your faith with someone or learn something about how they personally relate to faith and spirituality, advance a GRAVITY clock with them if you have one.",
 	"the-witch":
-		"You have an extra GRAVITY clock with your patron, representing the tenuous bond between you: whenever they spend Influence, advance your GRAVITY clock with them."
+		"You have an extra GRAVITY clock with your patron, representing the tenuous bond between you: whenever they spend Influence, advance your GRAVITY clock with them.",
+	"the-wither":
+		"When you use your born to die move, advance a GRAVITY clock with someone who fears or mistrusts your magic."
 };
 
 export function gravityTriggerForPlaybook(playbookSlug) {

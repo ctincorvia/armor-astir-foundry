@@ -230,6 +230,39 @@ describe("MOVE_POOLS", () => {
 			}
 		}
 	});
+
+	it("gives Dark Rebirth a costsPeril automatic-success grant scoped to bite-the-dust", () => {
+		const darkRebirth = findPlaybookMove("the-wither:dark-rebirth");
+
+		expect(darkRebirth.grantsAutomaticSuccess).toEqual({ moves: ["bite-the-dust"], costsPeril: true });
+	});
+
+	it("gives Number Of The Beast a standing, actor-wide exploding-sixes grant", () => {
+		expect(findPlaybookMove("the-wither:number-of-the-beast").grantsExplodingSixes).toBe(true);
+	});
+
+	it("gives Cold Company a dispelled uses checkbox and the standing haunted-roll grant reading it", () => {
+		const coldCompany = findPlaybookMove("the-wither:cold-company");
+
+		expect(coldCompany.uses.map((use) => use.key)).toEqual(["dispelled"]);
+		expect(coldCompany.grantsHauntedStandingRoll).toEqual({ useKey: "dispelled" });
+	});
+
+	it("gives The Old Blood a +CHANNEL addsTraitToMove grant on Exchange Blows and Strike Decisively", () => {
+		const theOldBlood = findPlaybookMove("the-wither:the-old-blood");
+
+		expect(theOldBlood.addsTraitToMove).toEqual({ moveKeys: ["exchange-blows", "strike-decisively"], trait: "channel" });
+	});
+});
+
+describe("MOVE_POOLS - the-wither", () => {
+	it("registers The Wither's own pool with 9 moves", () => {
+		const wither = MOVE_POOLS.find((pool) => pool.key === "the-wither");
+
+		expect(wither.label).toBe("The Wither");
+		expect(wither.playbookName).toBe("The Wither");
+		expect(wither.moves).toHaveLength(9);
+	});
 });
 
 describe("findPlaybookMove", () => {

@@ -19,7 +19,8 @@ export const PLAYBOOK_APPROACHES = {
 	"the-diplomat": ["mundane"],
 	"the-arcanist": ["arcane", "elemental"],
 	"the-paradigm": ["divine", "profane"],
-	"the-witch": ["arcane", "profane"]
+	"the-witch": ["arcane", "profane"],
+	"the-wither": ["profane"]
 };
 
 export function availableApproaches(playbookSlug) {

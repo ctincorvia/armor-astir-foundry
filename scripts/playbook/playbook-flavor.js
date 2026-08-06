@@ -148,6 +148,24 @@ export const PLAYBOOK_FLAVOR = {
 			"Are your boons an informal collection of helpful magics, or something more defined? If so, what " +
 				"do you call them?"
 		]
+	},
+	"the-wither": {
+		look: [
+			{ label: "You look:", text: "gaunt, sickly, spectral, feral or serene" },
+			{ label: "You wear:", text: "pilot jumpsuit, military uniform, funeral shrouds, tattered ritual garb" },
+			{ label: "Your magic is like:", text: "grave-cold whispers, crawling shadows, wilting flowers, screaming static" },
+			{ label: "When you launch your Astir, you say:", text: "________________" }
+		],
+		consider: [
+			"What curse, pact or affliction gave you power over death and decay?",
+			"How many times have you already died, or almost died?",
+			"What do people call you—Wither, or something crueler?",
+			"What waits for you on the other side, and does it want you back?",
+			"Who do the spectres that follow you actually used to be?",
+			"What did dying, or nearly dying, cost you?",
+			"How does the Cause feel about a Channeler who deals in death?",
+			"Is your power something you chose, or something that chose you?"
+		]
 	}
 };
 

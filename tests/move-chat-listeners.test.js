@@ -17,15 +17,29 @@ beforeEach(() => {
 	// that doesn't care about the roll's dice (most of them) doesn't have to configure this itself.
 	// Tests that do care (Flourish Component's doubles regen) override this per-test.
 	rollMove.mockResolvedValue({ message: undefined, dice: null });
+	// tests/setup.js defaults game.user to a GM so every test not specifically exercising the
+	// Add Advantage/Disadvantage permission check exercises the "allowed" path with no per-test
+	// setup of its own — restored here in case an earlier test in this file overrode it.
+	game.user.isGM = true;
+	game.user.id = "test-user";
 });
 
 function fakeChatHtml() {
-	const state = { handler: null, automaticSuccessHandler: null };
+	const state = { handler: null, automaticSuccessHandler: null, addAdvantageHandler: null, addDisadvantageHandler: null, removed: [] };
 	state.html = {
 		find: (selector) => {
 			if (selector === ".move-reroll") return { on: (event, handler) => { state.handler = handler; } };
 			if (selector === ".move-automatic-success") {
 				return { on: (event, handler) => { state.automaticSuccessHandler = handler; } };
+			}
+			if (selector === ".move-add-advantage") {
+				return { on: (event, handler) => { state.addAdvantageHandler = handler; } };
+			}
+			if (selector === ".move-add-disadvantage") {
+				return { on: (event, handler) => { state.addDisadvantageHandler = handler; } };
+			}
+			if (selector === ".move-add-advantage, .move-add-disadvantage") {
+				return { remove: () => { state.removed.push(selector); } };
 			}
 			return {};
 		}
@@ -258,6 +272,60 @@ describe("onRenderMoveChat/handleAutomaticSuccess (Hot-blooded/Once the War's Ov
 		expect(message.update).toHaveBeenCalledWith({ flavor: "<div>updated</div>" });
 	});
 
+	it("spends a costsPeril source (Dark Rebirth) by appending a fresh peril Danger, instead of hold or uses", async () => {
+		const DARK_REBIRTH_SOURCE = { key: "the-wither:dark-rebirth", name: "Dark Rebirth", moves: ["bite-the-dust"], costsPeril: true };
+		const actor = { id: "actor1", system: { attributes: { dangers: [{ id: "d1", type: "risk", label: "existing" }] } }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const offer = {
+			actorId: "actor1",
+			moveKey: "bite-the-dust",
+			flavorArgs: { tier: "failure", conditions: [] },
+			sources: [DARK_REBIRTH_SOURCE]
+		};
+		const message = { flags: { "armor-astir": { automaticSuccess: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.automaticSuccessHandler({ currentTarget: { disabled: false, dataset: { source: DARK_REBIRTH_SOURCE.key } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).toHaveBeenCalledWith({
+			"system.attributes.dangers": [
+				{ id: "d1", type: "risk", label: "existing" },
+				{ id: "test-id", type: "peril", label: "Dark Rebirth" }
+			]
+		});
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ resultText: BITE_THE_DUST.results.success })
+		);
+		expect(message.update).toHaveBeenCalledWith({ flavor: "<div>updated</div>" });
+	});
+
+	it("treats a missing dangers array as empty when a costsPeril source is spent", async () => {
+		const DARK_REBIRTH_SOURCE = { key: "the-wither:dark-rebirth", name: "Dark Rebirth", moves: ["bite-the-dust"], costsPeril: true };
+		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const offer = {
+			actorId: "actor1",
+			moveKey: "bite-the-dust",
+			flavorArgs: { tier: "failure", conditions: [] },
+			sources: [DARK_REBIRTH_SOURCE]
+		};
+		const message = { flags: { "armor-astir": { automaticSuccess: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.automaticSuccessHandler({ currentTarget: { disabled: false, dataset: { source: DARK_REBIRTH_SOURCE.key } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).toHaveBeenCalledWith({
+			"system.attributes.dangers": [{ id: "test-id", type: "peril", label: "Dark Rebirth" }]
+		});
+	});
+
 	it("does nothing when the actor no longer exists", async () => {
 		game.actors.get.mockReturnValue(undefined);
 		const offer = { actorId: "gone", moveKey: "exchange-blows", flavorArgs: {}, sources: [HOT_BLOODED_SOURCE] };
@@ -303,5 +371,217 @@ describe("onRenderMoveChat/handleAutomaticSuccess (Hot-blooded/Once the War's Ov
 
 		expect(actor.update).not.toHaveBeenCalled();
 		expect(renderTemplate).not.toHaveBeenCalled();
+	});
+});
+
+describe("onRenderMoveChat/handleAdvantage (Add Advantage/Add Disadvantage)", () => {
+	beforeEach(() => {
+		renderTemplate.mockClear();
+		renderTemplate.mockResolvedValue("<div>updated</div>");
+	});
+
+	// Overrides the global Roll stub's own default (total always 0 — see tests/setup.js) for
+	// exactly the next `new Roll(...)` call, i.e. handleAdvantage's own "1d6" die.
+	function mockDieRoll(total) {
+		Roll.mockImplementationOnce(function () {
+			this.evaluate = vi.fn().mockResolvedValue(this);
+			Object.defineProperty(this, "total", { get: () => total, configurable: true });
+		});
+	}
+
+	function baseOffer(overrides = {}) {
+		return {
+			actorId: "actor1",
+			moveKey: "exchange-blows",
+			value: 0,
+			effectKey: "none",
+			advantageKey: "none",
+			dice: [
+				{ original: 2, result: 2, changed: false, kept: true },
+				{ original: 2, result: 2, changed: false, kept: true }
+			],
+			extraConditions: [],
+			flavorArgs: { tier: "failure", conditions: [] },
+			...overrides
+		};
+	}
+
+	it("does nothing for a message with no advantageOffer flag", () => {
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat({ flags: {} }, fake.html);
+
+		expect(fake.addAdvantageHandler).toBeNull();
+		expect(fake.addDisadvantageHandler).toBeNull();
+	});
+
+	it("wires both buttons for a GM, even when they aren't the message's author", () => {
+		game.user.isGM = true;
+		game.user.id = "gm-user";
+		const message = { flags: { "armor-astir": { advantageOffer: baseOffer() } }, author: "author1" };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+
+		expect(fake.addAdvantageHandler).toBeTypeOf("function");
+		expect(fake.addDisadvantageHandler).toBeTypeOf("function");
+		expect(fake.removed).toEqual([]);
+	});
+
+	it("wires both buttons for a non-GM who is the message's own author", () => {
+		game.user.isGM = false;
+		game.user.id = "author1";
+		const message = { flags: { "armor-astir": { advantageOffer: baseOffer() } }, author: "author1" };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+
+		expect(fake.addAdvantageHandler).toBeTypeOf("function");
+		expect(fake.addDisadvantageHandler).toBeTypeOf("function");
+	});
+
+	it("removes both buttons for a non-GM who is not the message's author", () => {
+		game.user.isGM = false;
+		game.user.id = "someone-else";
+		const message = { flags: { "armor-astir": { advantageOffer: baseOffer() } }, author: "author1" };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+
+		expect(fake.addAdvantageHandler).toBeNull();
+		expect(fake.addDisadvantageHandler).toBeNull();
+		expect(fake.removed).toEqual([".move-add-advantage, .move-add-disadvantage"]);
+	});
+
+	it("disables the clicked button synchronously, before the die roll resolves", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const message = { flags: { "armor-astir": { advantageOffer: baseOffer() } }, author: "author1", update: vi.fn() };
+		const fake = fakeChatHtml();
+		mockDieRoll(4);
+
+		onRenderMoveChat(message, fake.html);
+		const button = { disabled: false };
+		fake.addAdvantageHandler({ currentTarget: button });
+
+		expect(button.disabled).toBe(true);
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+	});
+
+	it("adds a die, re-applies keep-highest, and can flip a failure into a mixed success", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const offer = baseOffer({ value: 1 });
+		const message = { flags: { "armor-astir": { advantageOffer: offer } }, author: "author1", update: vi.fn() };
+		const fake = fakeChatHtml();
+		mockDieRoll(6);
+
+		onRenderMoveChat(message, fake.html);
+		fake.addAdvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// [2, 2] kept-highest-2 with a freshly rolled 6 added -> keeps 2 and 6 -> 8, +1 value -> 9 (mixed).
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "mixed",
+			tierLabel: MOVE_RESULT_LABELS.mixed,
+			resultText: EXCHANGE_BLOWS.results.mixed
+		}));
+		expect(message.update).toHaveBeenCalledWith({
+			flavor: "<div>updated</div>",
+			content: "9",
+			flags: {
+				"armor-astir": {
+					advantageOffer: expect.objectContaining({ advantageKey: "advantage", dice: expect.any(Array) })
+				}
+			}
+		});
+	});
+
+	it("does nothing when the opposite direction is already locked in", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const message = {
+			flags: { "armor-astir": { advantageOffer: baseOffer({ advantageKey: "advantage" }) } },
+			author: "author1",
+			update: vi.fn()
+		};
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.addDisadvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(message.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing once already maxed at advantage x2, and the regenerated flavor (from the earlier step) offers neither button", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const message = {
+			flags: { "armor-astir": { advantageOffer: baseOffer({ advantageKey: "advantage2" }) } },
+			author: "author1",
+			update: vi.fn()
+		};
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.addAdvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(message.update).not.toHaveBeenCalled();
+	});
+
+	it("both showAddAdvantage/showAddDisadvantage flip false once the x2 cap is reached", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const message = {
+			flags: { "armor-astir": { advantageOffer: baseOffer({ advantageKey: "advantage" }) } },
+			author: "author1",
+			update: vi.fn()
+		};
+		const fake = fakeChatHtml();
+		mockDieRoll(5);
+
+		onRenderMoveChat(message, fake.html);
+		fake.addAdvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			showAddAdvantage: false,
+			showAddDisadvantage: false
+		}));
+	});
+
+	it("does nothing when the actor no longer exists", async () => {
+		game.actors.get.mockReturnValue(undefined);
+		const message = { flags: { "armor-astir": { advantageOffer: baseOffer() } }, author: "author1", update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.addAdvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(message.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the rolled move no longer resolves", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const message = {
+			flags: { "armor-astir": { advantageOffer: baseOffer({ moveKey: "not-a-real-move" }) } },
+			author: "author1",
+			update: vi.fn()
+		};
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.addAdvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(message.update).not.toHaveBeenCalled();
 	});
 });

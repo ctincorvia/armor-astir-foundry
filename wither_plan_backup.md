@@ -93,6 +93,8 @@ Stays exactly as scoped: `traits: []`, description only. No code path to hook �
 ```
 No new mechanic code required — `_moveTraits()` in `scripts/playbook/playbook-sheet/moves-mixin.js` (~line 262-270) already resolves `addsTraitToMove.moveKeys` generically.
 
+The `piloted` tag already exists on all Astirs, so it is possible to derive whether or not someone is "On foot"
+
 ### 3.3 Wretched Visage, Fresh Hells, Abyssal Summons, Dark Guarantees
 All four: `traits: []`, description only, no `results`, no roll — matching Bullheaded/White Devil/Subsystems' shape. Dark Guarantees explicitly follows The Arity Method's own precedent/comment (conditional future-roll buff has "no hook yet", stays descriptive).
 

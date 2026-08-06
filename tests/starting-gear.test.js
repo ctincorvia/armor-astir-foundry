@@ -243,6 +243,25 @@ describe("STARTING_GEAR_POOLS", () => {
 		expect(witch.groups[0].chooseCount).toBe(2);
 		expect(witch.groups[0].items).toHaveLength(4);
 	});
+
+	it("grants The Wither Withering Grip I, a melee/bane weapon", () => {
+		const wither = findStartingGearPool("The Wither");
+
+		expect(wither.grantedItems).toHaveLength(1);
+		expect(wither.grantedItems[0]).toMatchObject({
+			key: "the-wither:withering-grip-i",
+			kind: "weapon",
+			tags: ["melee", "bane"]
+		});
+	});
+
+	it("gives The Wither 2 of 4 Wither Gear items to choose from", () => {
+		const wither = findStartingGearPool("The Wither");
+
+		expect(wither.groups).toHaveLength(1);
+		expect(wither.groups[0].chooseCount).toBe(2);
+		expect(wither.groups[0].items).toHaveLength(4);
+	});
 });
 
 describe("findStartingGearPool", () => {

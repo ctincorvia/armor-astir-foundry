@@ -1,4 +1,5 @@
-import { MOVE_CHAT_TEMPLATE, MOVE_RESULT_LABELS, HOLD_MIN, rollMove } from "./moves.js";
+import { MOVE_CHAT_TEMPLATE, MOVE_RESULT_LABELS, HOLD_MIN, buildReminders, moveResultTier, rollMove } from "./moves.js";
+import { addDie, effectState, nextAdvantageState, rollConditions } from "./roll-effects.js";
 import { mergeSpentTags } from "../equipment/equipment.js";
 import { ALL_MOVES } from "./all-moves.js";
 
@@ -31,7 +32,18 @@ async function handleAutomaticSuccess(message, offer, sourceKey) {
 	const source = offer.sources.find((s) => s.key === sourceKey);
 	if (!actor || !move || !source) return;
 
-	if (source.useKey) {
+	if (source.costsPeril) {
+		// Dark Rebirth's "cost" (see playbook-moves.js/PlaybookActorSheet#_availableAutomaticSuccess)
+		// is a fresh Danger, appended the same way tracking-mixin.js#_onDangerAdd does, rather than
+		// spending an existing hold/uses pool.
+		const dangers = actor.system.attributes?.dangers ?? [];
+		await actor.update({
+			"system.attributes.dangers": [
+				...dangers,
+				{ id: foundry.utils.randomID(), type: "peril", label: source.name }
+			]
+		});
+	} else if (source.useKey) {
 		await actor.update({ [`system.attributes.moveUses.${source.key}.${source.useKey}`]: true });
 	} else {
 		const current = actor.system.attributes?.moveHold?.[source.key]?.value ?? 0;
@@ -50,6 +62,55 @@ async function handleAutomaticSuccess(message, offer, sourceKey) {
 		automaticSuccess: []
 	});
 	await message.update({ flavor });
+}
+
+// Retroactively adds one die to an already-posted roll and re-applies the keep-highest/keep-
+// lowest rule (see roll-effects.js#nextAdvantageState/addDie), potentially flipping the result
+// tier — a GM or the roller granting Advantage/Disadvantage after the fact, not something any move
+// triggers itself (see moves.js#rollMove's showAddAdvantage/showAddDisadvantage). Like
+// handleAutomaticSuccess above, this does not retroactively regrant hold or recompute
+// questionPrompt/questions for the new tier — those stay exactly as originally rolled; it reframes
+// the outcome rather than re-resolving the roll. Unlike handleAutomaticSuccess, it also updates
+// `content`: for these rolls `content` is just the bare total (Foundry's own `String(roll.total)`
+// default — see rollMove's own doc comment), and that number genuinely changed, whereas automatic
+// success only reframes an unchanged roll's flavor. Foundry's own native per-die dice tooltip
+// (driven by the message's stored `rolls` array) is deliberately left showing the original dice,
+// for the same Roll-re-serialization hazard rollMove's own doc comment already flags.
+async function handleAdvantage(message, offer, direction) {
+	const actor = game.actors.get(offer.actorId);
+	const move = ALL_MOVES.find((m) => m.key === offer.moveKey);
+	if (!actor || !move) return;
+
+	const nextState = nextAdvantageState(offer.advantageKey, direction);
+	if (!nextState) return;
+
+	const dieRoll = new Roll("1d6");
+	await dieRoll.evaluate();
+
+	const dice = addDie(offer.dice, nextState.keepLowest, dieRoll.total);
+	const total = dice.filter((d) => d.kept).reduce((sum, d) => sum + d.result, 0) + offer.value;
+	const tier = moveResultTier(total);
+	const effect = effectState(offer.effectKey);
+	const conditions = [...rollConditions(nextState, effect), ...offer.extraConditions];
+	const reminders = buildReminders(tier, effect);
+
+	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
+		...offer.flavorArgs,
+		tier,
+		tierLabel: MOVE_RESULT_LABELS[tier],
+		resultText: move.results[tier],
+		dice,
+		conditions,
+		reminders: reminders.length ? reminders : null,
+		showAddAdvantage: nextAdvantageState(nextState.key, "advantage") !== null,
+		showAddDisadvantage: nextAdvantageState(nextState.key, "disadvantage") !== null
+	});
+
+	await message.update({
+		flavor,
+		content: String(total),
+		flags: { "armor-astir": { ...message.flags["armor-astir"], advantageOffer: { ...offer, advantageKey: nextState.key, dice } } }
+	});
 }
 
 // Reads a rendered chat message's reroll offer (see moves.js#rollMove) and wires its Reroll
@@ -80,6 +141,27 @@ export function onRenderMoveChat(message, html) {
 			event.currentTarget.disabled = true;
 			handleAutomaticSuccess(message, automaticSuccess, event.currentTarget.dataset.source);
 		});
+	}
+
+	const advantageOffer = message.flags?.["armor-astir"]?.advantageOffer;
+	if (advantageOffer) {
+		// Foundry's own ChatMessage#canUpdate only allows the message's GM or its author to call
+		// .update() — everyone else gets the buttons removed outright rather than left visible as
+		// dead controls that would throw if clicked.
+		const canAct = game.user.isGM || game.user.id === message.author;
+		if (canAct) {
+			html.find(".move-add-advantage").on("click", (event) => {
+				// Same immediate-disable reasoning as the reroll/automatic-success buttons above.
+				event.currentTarget.disabled = true;
+				handleAdvantage(message, advantageOffer, "advantage");
+			});
+			html.find(".move-add-disadvantage").on("click", (event) => {
+				event.currentTarget.disabled = true;
+				handleAdvantage(message, advantageOffer, "disadvantage");
+			});
+		} else {
+			html.find(".move-add-advantage, .move-add-disadvantage").remove();
+		}
 	}
 }
 

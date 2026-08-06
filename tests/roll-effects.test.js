@@ -4,9 +4,11 @@ import {
 	ADVANTAGE_STATES,
 	DIE_FACES,
 	EFFECT_STATES,
+	addDie,
 	advantageState,
 	applyRollEffects,
 	effectState,
+	nextAdvantageState,
 	rollConditions,
 	rolledDoubles
 } from "../scripts/moves/roll-effects.js";
@@ -224,5 +226,96 @@ describe("rollConditions", () => {
 			{ key: "disadvantage", label: "Disadvantage" },
 			{ key: "confidence", label: "Confidence" }
 		]);
+	});
+});
+
+describe("nextAdvantageState", () => {
+	it("jumps from none straight to the 3-dice advantage state", () => {
+		expect(nextAdvantageState("none", "advantage")).toBe(ADVANTAGE_STATES.find((s) => s.key === "advantage"));
+	});
+
+	it("jumps from none straight to the 3-dice disadvantage state", () => {
+		expect(nextAdvantageState("none", "disadvantage")).toBe(ADVANTAGE_STATES.find((s) => s.key === "disadvantage"));
+	});
+
+	it("steps advantage up to advantage x2", () => {
+		expect(nextAdvantageState("advantage", "advantage")).toBe(ADVANTAGE_STATES.find((s) => s.key === "advantage2"));
+	});
+
+	it("steps disadvantage up to disadvantage x2", () => {
+		expect(nextAdvantageState("disadvantage", "disadvantage")).toBe(ADVANTAGE_STATES.find((s) => s.key === "disadvantage2"));
+	});
+
+	it("blocks disadvantage once advantage is already active", () => {
+		expect(nextAdvantageState("advantage", "disadvantage")).toBeNull();
+	});
+
+	it("blocks advantage once disadvantage is already active", () => {
+		expect(nextAdvantageState("disadvantage", "advantage")).toBeNull();
+	});
+
+	it("is null once already maxed at advantage x2", () => {
+		expect(nextAdvantageState("advantage2", "advantage")).toBeNull();
+	});
+
+	it("is null once already maxed at disadvantage x2", () => {
+		expect(nextAdvantageState("disadvantage2", "disadvantage")).toBeNull();
+	});
+});
+
+describe("addDie", () => {
+	it("recomputes kept for the highest two when keepLowest is false", () => {
+		const dice = [
+			{ original: 2, result: 2, changed: false, kept: true },
+			{ original: 5, result: 5, changed: false, kept: true }
+		];
+
+		const result = addDie(dice, false, 6);
+
+		expect(result).toEqual([
+			{ original: 2, result: 2, changed: false, kept: false },
+			{ original: 5, result: 5, changed: false, kept: true },
+			{ original: 6, result: 6, changed: false, kept: true }
+		]);
+	});
+
+	it("recomputes kept for the lowest two when keepLowest is true", () => {
+		const dice = [
+			{ original: 2, result: 2, changed: false, kept: true },
+			{ original: 5, result: 5, changed: false, kept: true }
+		];
+
+		const result = addDie(dice, true, 1);
+
+		expect(result).toEqual([
+			{ original: 2, result: 2, changed: false, kept: true },
+			{ original: 5, result: 5, changed: false, kept: false },
+			{ original: 1, result: 1, changed: false, kept: true }
+		]);
+	});
+
+	it("preserves the existing dice entries' original/result/changed fields untouched", () => {
+		const dice = [
+			{ original: 1, result: 6, changed: true, kept: true },
+			{ original: 3, result: 3, changed: false, kept: true }
+		];
+
+		// A tying new high die bumps the lower-value existing entry (result: 3) out of the kept
+		// set — original/result/changed on both existing entries stay exactly as they were.
+		const result = addDie(dice, false, 6);
+
+		expect(result[0]).toEqual({ original: 1, result: 6, changed: true, kept: true });
+		expect(result[1]).toEqual({ original: 3, result: 3, changed: false, kept: false });
+	});
+
+	it("always marks the new die's own changed as false, even when it doesn't make the cut", () => {
+		const dice = [
+			{ original: 5, result: 5, changed: false, kept: true },
+			{ original: 6, result: 6, changed: false, kept: true }
+		];
+
+		const result = addDie(dice, false, 1);
+
+		expect(result.at(-1)).toEqual({ original: 1, result: 1, changed: false, kept: false });
 	});
 });

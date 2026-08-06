@@ -418,6 +418,62 @@ export const STARTING_GEAR_POOLS = [
 				]
 			}
 		]
+	},
+	{
+		playbookName: "The Wither",
+		freeformNotes: [
+			"1 Astir III, built on the Astir & Ardents tab.",
+			"Clothes that match your look."
+		],
+		grantedItems: [
+			{
+				key: "the-wither:withering-grip-i",
+				name: "Withering Grip I",
+				description: "A touch that leeches vitality and warmth from whatever — or whoever — it closes " +
+					"around.",
+				kind: "weapon",
+				tags: ["melee", "bane"]
+			}
+		],
+		groups: [
+			{
+				key: "the-wither:gear",
+				label: "Choose 2 Wither Gear.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-wither:carved-wand-i",
+						name: "Carved Wand I",
+						description: "A wand carved from grave-wood, channeling a thin sliver of death magic " +
+							"outward at range.",
+						kind: "weapon",
+						tags: ["ranged"]
+					},
+					{
+						key: "the-wither:wicked-blade-i",
+						name: "Wicked Blade I",
+						description: "A plain, unenchanted blade, no different from one anybody else might " +
+							"carry.",
+						kind: "weapon",
+						tags: ["melee", "mundane"]
+					},
+					{
+						key: "the-wither:sidearm-i",
+						name: "Sidearm I",
+						description: "The typical protections afforded to Astir pilots: a reliable tool " +
+							"capable of firing bursts of light arcane energy.",
+						kind: "weapon",
+						tags: ["ranged", "defensive"]
+					},
+					{
+						key: "the-wither:shield-broach-i",
+						name: "Shield Broach I",
+						description: "A small worn charm that flares to ward off harm.",
+						tags: ["ward"]
+					}
+				]
+			}
+		]
 	}
 ];
 

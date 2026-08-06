@@ -594,10 +594,12 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
 	});
 
-	it("offers a useKey source (The Arity Method) when its own uses checkbox is unchecked, restricted to bite-the-dust", async () => {
+	it("offers a useKey source (The Arity Method) when picked and its own uses checkbox is unchecked, restricted to bite-the-dust", async () => {
 		const sheet = new PlaybookActorSheet();
 		const defy = { key: "defy", label: "DEFY", value: 0 };
-		sheet.actor = { system: { stats: { defy: { value: 0 } }, attributes: {} } };
+		sheet.actor = {
+			system: { stats: { defy: { value: 0 } }, attributes: { playbookMoves: ["soldier:the-arity-method"] } }
+		};
 		configureMoveRoll.mockResolvedValue({ ...config, trait: defy });
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
@@ -609,11 +611,28 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 		});
 	});
 
+	it("does not offer The Arity Method on an actor who never picked it, even with its use unchecked", async () => {
+		const sheet = new PlaybookActorSheet();
+		const defy = { key: "defy", label: "DEFY", value: 0 };
+		sheet.actor = { system: { stats: { defy: { value: 0 } }, attributes: {} } };
+		configureMoveRoll.mockResolvedValue({ ...config, trait: defy });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, BITE_THE_DUST, defy, { ...config, trait: defy });
+	});
+
 	it("does not offer The Arity Method once its Sortie use is already checked", async () => {
 		const sheet = new PlaybookActorSheet();
 		const defy = { key: "defy", label: "DEFY", value: 0 };
 		sheet.actor = {
-			system: { stats: { defy: { value: 0 } }, attributes: { moveUses: { "soldier:the-arity-method": { sortie: true } } } }
+			system: {
+				stats: { defy: { value: 0 } },
+				attributes: {
+					playbookMoves: ["soldier:the-arity-method"],
+					moveUses: { "soldier:the-arity-method": { sortie: true } }
+				}
+			}
 		};
 		configureMoveRoll.mockResolvedValue({ ...config, trait: defy });
 
