@@ -262,6 +262,25 @@ describe("STARTING_GEAR_POOLS", () => {
 		expect(wither.groups[0].chooseCount).toBe(2);
 		expect(wither.groups[0].items).toHaveLength(4);
 	});
+
+	it("grants The Adrift Strange Touch I, a melee/bane weapon", () => {
+		const adrift = findStartingGearPool("The Adrift");
+
+		expect(adrift.grantedItems).toHaveLength(1);
+		expect(adrift.grantedItems[0]).toMatchObject({
+			key: "the-adrift:strange-touch-i",
+			kind: "weapon",
+			tags: ["melee", "bane"]
+		});
+	});
+
+	it("gives The Adrift 2 of 4 Adrift Curios to choose from", () => {
+		const adrift = findStartingGearPool("The Adrift");
+
+		expect(adrift.groups).toHaveLength(1);
+		expect(adrift.groups[0].chooseCount).toBe(2);
+		expect(adrift.groups[0].items).toHaveLength(4);
+	});
 });
 
 describe("findStartingGearPool", () => {

@@ -27,6 +27,11 @@ describe("gravityTriggerForPlaybook", () => {
 		expect(GRAVITY_TRIGGERS["the-wither"]).toContain("born to die");
 	});
 
+	it("gives The Adrift its trigger", () => {
+		expect(gravityTriggerForPlaybook("the-adrift")).toBe(GRAVITY_TRIGGERS["the-adrift"]);
+		expect(GRAVITY_TRIGGERS["the-adrift"]).toContain("+HOME");
+	});
+
 	it("returns null for a playbook with no known trigger", () => {
 		expect(GRAVITY_TRIGGERS["some-future-playbook"]).toBeUndefined();
 		expect(gravityTriggerForPlaybook("some-future-playbook")).toBeNull();

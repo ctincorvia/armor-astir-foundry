@@ -17,6 +17,7 @@ import { AstirSheetMixin } from "./playbook-sheet/astir-mixin.js";
 import { EquipmentSheetMixin } from "./playbook-sheet/equipment-mixin.js";
 import { MovesSheetMixin } from "./playbook-sheet/moves-mixin.js";
 import { PatronSheetMixin } from "./playbook-sheet/patron-mixin.js";
+import { HomeSheetMixin } from "./playbook-sheet/home-mixin.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
 
@@ -167,6 +168,10 @@ export class PlaybookActorSheet extends ActorSheet {
 		data.aceCrew = this._aceCrewData();
 		data.hooks = this._hooksData();
 		data.witch = this._witchData();
+		// The Adrift's +HOME clock (Social tab) — gated on the actor having actually picked Love,
+		// Love, Love, the same "object once a granting move/part is installed, else null" treatment
+		// an Ardent's Repair Tokens already establishes for a conditionally-present section.
+		data.home = this._homeMove() ? this._homeData() : null;
 		data.advancements = this._advancementsData();
 		return data;
 	}
@@ -233,6 +238,8 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".witch-boons-random").on("click", this._grantRandomWitchBoons.bind(this));
 		html.find(".witch-boons-choose").on("click", this._onWitchBoonsChoose.bind(this));
 		html.find(".witch-boons-relinquish").on("click", this._onWitchBoonsRelinquish.bind(this));
+		html.find(".home-value-step").on("click", this._onHomeValueStep.bind(this));
+		html.find(".home-clock-step").on("click", this._onHomeProgressStep.bind(this));
 		html.find(".starting-moves-add").on("click", this._onStartingMovesAdd.bind(this));
 		html.find(".playbook-move-add").on("click", this._onPlaybookMoveAdd.bind(this));
 		html.find(".playbook-move-remove").on("click", this._onPlaybookMoveRemove.bind(this));
@@ -290,7 +297,7 @@ export class PlaybookActorSheet extends ActorSheet {
 Object.assign(
 	PlaybookActorSheet.prototype,
 	TrackingSheetMixin, ProgressionSheetMixin, ArdentSheetMixin, FramesSheetMixin,
-	AstirSheetMixin, EquipmentSheetMixin, MovesSheetMixin, PatronSheetMixin
+	AstirSheetMixin, EquipmentSheetMixin, MovesSheetMixin, PatronSheetMixin, HomeSheetMixin
 );
 
 export function registerPlaybookActorSheet() {

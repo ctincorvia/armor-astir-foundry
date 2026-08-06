@@ -17,7 +17,9 @@ export const GRAVITY_TRIGGERS = {
 	"the-witch":
 		"You have an extra GRAVITY clock with your patron, representing the tenuous bond between you: whenever they spend Influence, advance your GRAVITY clock with them.",
 	"the-wither":
-		"When you use your born to die move, advance a GRAVITY clock with someone who fears or mistrusts your magic."
+		"When you use your born to die move, advance a GRAVITY clock with someone who fears or mistrusts your magic.",
+	"the-adrift":
+		"Whenever you use your +HOME clock from love, love, love, advance it."
 };
 
 export function gravityTriggerForPlaybook(playbookSlug) {

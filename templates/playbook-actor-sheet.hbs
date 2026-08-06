@@ -737,6 +737,25 @@
 						<p class="gravity-trigger-text">{{gravityTrigger}}</p>
 					</section>
 					{{/if}}
+					{{#if home}}
+					<section class="home-clock">
+						<h3>+HOME</h3>
+						<div class="gravity-clock-body">
+							<ol class="gravity-clock-track">
+								{{#each home.progressSteps}}
+								<li class="gravity-clock-step-item">
+									<button type="button" class="home-clock-step gravity-clock-step{{#if filled}} filled{{/if}}" data-step="{{step}}" aria-label="Home clock step {{step}}"></button>
+								</li>
+								{{/each}}
+							</ol>
+							<div class="gravity-clock-value-control">
+								<button type="button" class="home-value-step gravity-clock-value-step gravity-clock-value-decrement" data-delta="-1">-</button>
+								<span class="gravity-clock-value">{{home.value}}</span>
+								<button type="button" class="home-value-step gravity-clock-value-step gravity-clock-value-increment" data-delta="1">+</button>
+							</div>
+						</div>
+					</section>
+					{{/if}}
 					<section class="gravity-clocks">
 						<div class="section-header">
 							<h3>Gravity Clocks ({{gravityClocks.list.length}}/{{gravityClocks.max}})</h3>

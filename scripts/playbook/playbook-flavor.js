@@ -166,6 +166,40 @@ export const PLAYBOOK_FLAVOR = {
 			"How does the Cause feel about a Channeler who deals in death?",
 			"Is your power something you chose, or something that chose you?"
 		]
+	},
+	"the-adrift": {
+		look: [
+			{ label: "You look:", text: "lost, naïve, playful, soft or brash" },
+			{ label: "You wear:", text: "pilot jumpsuit, military uniform, dress uniform, otherworldly attire" },
+			{ label: "Your magic is like:", text: "reality distortions, what you saw on tv, glowing runes, simple force" },
+			{ label: "When you launch your Astir, you say:", text: "________________" }
+		],
+		intro: [
+			"Whether from another place or another time, you've been pulled into a life and a struggle " +
+				"that isn't yours. You are Adrift, disconnected from those you hold dear, searching for a " +
+				"way back. But this world isn't like yours: here, magic is real and strange, and some " +
+				"stranger power still grants you control over Astirs despite never even having heard the " +
+				"word before.",
+			"To play an Adrift is to play a character torn from one world and thrust into the conflict of " +
+				"this one. It is a common trope—one that is broadly it's own genre in anime—but doesn't need " +
+				"to be supernatural in origin. The Adrift could be from another country, a traitor from the " +
+				"Authority, or even just a civilian who lived a life distant from magic and fighting before " +
+				"being drawn into conflict (see: a lot of mecha anime). Your starting move, love, love, love, " +
+				"details your ties to your home, and moves like if I go there will be trouble and if I stay " +
+				"it will be double revolve around your place in this strange new world. Consider;"
+		],
+		consider: [
+			"Are you literally from another world, or just metaphorically?",
+			"How did you end up in this world?",
+			"What might getting home entail for you?",
+			"What kind of technology (or lack thereof) are you used to?",
+			"Did you bring any keepsakes or reminders of your home with you?",
+			"How do you feel about suddenly being able to pilot Astirs?",
+			"How did you run into the Cause?",
+			"How were you introduced to the Authority?",
+			"How did you get your Astir and gear?",
+			"In what major ways is this world different to yours? In what ways is it similar?"
+		]
 	}
 };
 

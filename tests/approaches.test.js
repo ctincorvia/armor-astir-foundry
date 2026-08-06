@@ -29,6 +29,10 @@ describe("availableApproaches", () => {
 		expect(availableApproaches("the-wither").map((a) => a.key)).toEqual(["profane"]);
 	});
 
+	it("restricts The Adrift to Mundane", () => {
+		expect(availableApproaches("the-adrift").map((a) => a.key)).toEqual(["mundane"]);
+	});
+
 	it("falls back to every approach for a playbook with no restriction entry", () => {
 		expect(PLAYBOOK_APPROACHES["some-future-playbook"]).toBeUndefined();
 		expect(availableApproaches("some-future-playbook")).toEqual(APPROACHES);

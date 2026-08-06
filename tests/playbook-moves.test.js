@@ -265,6 +265,46 @@ describe("MOVE_POOLS - the-wither", () => {
 	});
 });
 
+describe("MOVE_POOLS - the-adrift", () => {
+	it("registers The Adrift's own pool with 9 moves", () => {
+		const adrift = MOVE_POOLS.find((pool) => pool.key === "the-adrift");
+
+		expect(adrift.label).toBe("The Adrift");
+		expect(adrift.playbookName).toBe("The Adrift");
+		expect(adrift.moves).toHaveLength(9);
+	});
+
+	it("gives Love, Love, Love the grantsHomeInsteadOfChannel flag", () => {
+		expect(findPlaybookMove("the-adrift:love-love-love").grantsHomeInsteadOfChannel).toBe(true);
+	});
+
+	it("gives Walk-on Part In The War a +HOME addsTraitToMove grant on Exchange Blows and Strike Decisively", () => {
+		const walkOnPart = findPlaybookMove("the-adrift:walk-on-part-in-the-war");
+
+		expect(walkOnPart.addsTraitToMove).toEqual({ moveKeys: ["exchange-blows", "strike-decisively"], trait: "home" });
+	});
+
+	it("gives Lead Role In A Cage both an addsTraitToMove and a grantsTraitOnMove lock to +HOME on Lead a Sortie", () => {
+		const leadRole = findPlaybookMove("the-adrift:lead-role-in-a-cage");
+
+		expect(leadRole.addsTraitToMove).toEqual({ moveKey: "lead-a-sortie", trait: "home" });
+		expect(leadRole.grantsTraitOnMove).toEqual({ moveKey: "lead-a-sortie", trait: "home" });
+	});
+
+	it("gives Draw Your Bath And Load Your Gun a self-targeting +HOME addsTraitToMove grant, with empty traits", () => {
+		const drawYourBath = findPlaybookMove("the-adrift:draw-your-bath-and-load-your-gun");
+
+		expect(drawYourBath.traits).toEqual([]);
+		expect(drawYourBath.addsTraitToMove).toEqual({
+			moveKey: "the-adrift:draw-your-bath-and-load-your-gun",
+			trait: "home"
+		});
+		expect(drawYourBath.results.success).toBeTruthy();
+		expect(drawYourBath.results.mixed).toBeTruthy();
+		expect(drawYourBath.results.failure).toBeNull();
+	});
+});
+
 describe("findPlaybookMove", () => {
 	it("finds a move by key across every pool", () => {
 		expect(findPlaybookMove(BULLHEADED).name).toBe("Bullheaded");

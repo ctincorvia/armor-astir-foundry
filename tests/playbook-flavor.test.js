@@ -65,6 +65,25 @@ describe("PLAYBOOK_FLAVOR", () => {
 			expect(question).toBeTruthy();
 		}
 	});
+
+	it("gives The Adrift four LOOK prompts, each with a label and text", () => {
+		for (const entry of PLAYBOOK_FLAVOR["the-adrift"].look) {
+			expect(entry.label).toBeTruthy();
+			expect(entry.text).toBeTruthy();
+		}
+		expect(PLAYBOOK_FLAVOR["the-adrift"].look).toHaveLength(4);
+	});
+
+	it("gives The Adrift its two intro paragraphs", () => {
+		expect(PLAYBOOK_FLAVOR["the-adrift"].intro).toHaveLength(2);
+	});
+
+	it("gives The Adrift ten Consider questions", () => {
+		expect(PLAYBOOK_FLAVOR["the-adrift"].consider).toHaveLength(10);
+		for (const question of PLAYBOOK_FLAVOR["the-adrift"].consider) {
+			expect(question).toBeTruthy();
+		}
+	});
 });
 
 describe("defaultLookText", () => {
@@ -99,6 +118,17 @@ describe("defaultConsiderText", () => {
 			expect(html).toContain(`<p>${paragraph}</p>`);
 		}
 		for (const question of PLAYBOOK_FLAVOR["the-impostor"].consider) {
+			expect(html).toContain(`<li>${question}</li>`);
+		}
+		expect(html.indexOf("<p>")).toBeLessThan(html.indexOf("<ul>"));
+	});
+
+	it("renders The Adrift's intro paragraphs ahead of its Consider questions", () => {
+		const html = defaultConsiderText("the-adrift");
+		for (const paragraph of PLAYBOOK_FLAVOR["the-adrift"].intro) {
+			expect(html).toContain(`<p>${paragraph}</p>`);
+		}
+		for (const question of PLAYBOOK_FLAVOR["the-adrift"].consider) {
 			expect(html).toContain(`<li>${question}</li>`);
 		}
 		expect(html.indexOf("<p>")).toBeLessThan(html.indexOf("<ul>"));

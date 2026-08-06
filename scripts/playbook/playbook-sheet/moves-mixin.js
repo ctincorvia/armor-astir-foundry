@@ -278,6 +278,15 @@ export const MovesSheetMixin = {
 				value: (this.actor.system.stats?.channel?.value ?? 0) + (traitBonuses.channel ?? 0)
 			});
 		}
+		// Love, Love, Love — "instead of a +CHANNEL trait ... treated as your +CHANNEL trait in all
+		// circumstances" (see playbook-moves.js). Adrift's own CHANNEL stat is always disabled, so
+		// this generically fills the resulting gap on any move that already lists channel among its
+		// traits — no per-move addsTraitToMove grant needed on every existing channel-using move.
+		if (move.traits.includes("channel")
+				&& !actorTraits.some((trait) => trait.key === "home")
+				&& this._homeMove()) {
+			actorTraits.push(this._homeTraitOption());
+		}
 		// Facilitator's "you may read the room with +TALK" (see playbook-moves.js's addsTraitToMove).
 		// The counterpart to _grantedTraitForMove, and deliberately the opposite operation:
 		// grantsTraitOnMove *locks* the roll dialog to a trait the target move already offers, so it
@@ -294,14 +303,23 @@ export const MovesSheetMixin = {
 				return grant?.moveKey === move.key || grant?.moveKeys?.includes(move.key);
 			})?.addsTraitToMove.trait ?? null;
 		if (addedTraitKey && !actorTraits.some((trait) => trait.key === addedTraitKey)) {
-			// TRAITS is a fixed, six-entry constant (see traits.js), and playbook-moves.test.js
-			// asserts every addsTraitToMove names a real key — no fallback needed here.
-			const added = TRAITS.find((trait) => trait.key === addedTraitKey);
-			actorTraits.push({
-				key: added.key,
-				label: added.label,
-				value: (this.actor.system.stats?.[added.key]?.value ?? 0) + (traitBonuses[added.key] ?? 0)
-			});
+			// "home" is the one addsTraitToMove target that isn't a real TRAITS key — see home-mixin.js's
+			// file-level comment: it's a virtual trait with a dynamically-computed value (this actor's own
+			// +HOME clock), not a real actor stat backed by TRAITS/system.stats, so it can't go through the
+			// TRAITS.find lookup below (Walk-on Part In The War, Lead Role In A Cage, Draw Your Bath And
+			// Load Your Gun — see playbook-moves.js).
+			if (addedTraitKey === "home") {
+				actorTraits.push(this._homeTraitOption());
+			} else {
+				// TRAITS is a fixed, six-entry constant (see traits.js), and playbook-moves.test.js
+				// asserts every addsTraitToMove names a real key — no fallback needed here.
+				const added = TRAITS.find((trait) => trait.key === addedTraitKey);
+				actorTraits.push({
+					key: added.key,
+					label: added.label,
+					value: (this.actor.system.stats?.[added.key]?.value ?? 0) + (traitBonuses[added.key] ?? 0)
+				});
+			}
 		}
 		const fixedTraits = (move.fixedTraits ?? []).map((trait) => (
 			trait.key === "crew" ? { ...trait, value: this._crewFixedTraitValue() } : trait
@@ -645,6 +663,10 @@ export const MovesSheetMixin = {
 			}
 			: baseOptions;
 		const result = await rollMove(this.actor, move, config.trait, options);
+		// The Adrift's own Gravity Trigger: "whenever you use your +HOME clock, advance it." Not
+		// applied on the Guided "Take 7-9" early-return path above — no trait was actually rolled
+		// there, so nothing to advance.
+		if (config.trait?.key === "home") await this._advanceHome();
 		await this._onMoveResolved(move, result.dice, result.tier);
 	},
 	// Runs after a move resolves — whether via a real roll (dice present) or Guided's "Take 7-9"

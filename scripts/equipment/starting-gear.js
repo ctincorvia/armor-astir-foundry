@@ -474,6 +474,62 @@ export const STARTING_GEAR_POOLS = [
 				]
 			}
 		]
+	},
+	{
+		playbookName: "The Adrift",
+		freeformNotes: [
+			"1 Astir III, built on the Astir & Ardents tab.",
+			"Clothes that match your look."
+		],
+		grantedItems: [
+			{
+				key: "the-adrift:strange-touch-i",
+				name: "Strange Touch I",
+				description: "A blow delivered through hands touched by power that was never meant to be theirs.",
+				kind: "weapon",
+				tags: ["melee", "bane"]
+			}
+		],
+		groups: [
+			{
+				key: "the-adrift:curios",
+				label: "Choose 2 Adrift Curios.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-adrift:it-like-shoots-you-know-i",
+						name: "It Like, Shoots? You Know? I",
+						description: "You're not entirely sure how it works. It shoots things, though.",
+						kind: "weapon",
+						tags: ["ranged"]
+					},
+					{
+						key: "the-adrift:for-hitting-people-with-i",
+						name: "For Hitting People With I",
+						// The rulebook parenthetical for this item also lists "arcane", which is not a real
+						// EQUIPMENT_TAGS key anywhere in this module (grep equipment.js's EQUIPMENT_TAGS —
+						// only melee/ranged/sniper/bane/defensive/ward/etc. exist, no "arcane"). Per
+						// claude.md's "systems that do not exist yet" guidance, only the real tag is kept.
+						description: "You're fairly sure it used to be something else. Now it's for hitting people with.",
+						kind: "weapon",
+						tags: ["melee"]
+					},
+					{
+						key: "the-adrift:hard-to-explain-i",
+						name: "Hard To Explain I",
+						description: "You genuinely cannot explain how or why this works.",
+						kind: "weapon",
+						tags: ["ranged", "defensive"]
+					},
+					{
+						key: "the-adrift:this-its-just-a-keepsake-i",
+						name: "This? It's Just A Keepsake I",
+						description: "Something you brought with you. It wards off harm, somehow.",
+						tags: ["ward"]
+					}
+				]
+			}
+		]
 	}
 ];
 

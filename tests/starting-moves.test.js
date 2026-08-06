@@ -132,6 +132,14 @@ describe("STARTING_MOVE_POOLS", () => {
 		expect(wither.pickOneKeys).toEqual([]);
 		expect(wither.chooseCount).toBe(0);
 	});
+
+	it("grants The Adrift exactly Love, Love, Love, with nothing to pick", () => {
+		const adrift = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Adrift");
+
+		expect(adrift.grantedKeys).toEqual(["the-adrift:love-love-love"]);
+		expect(adrift.pickOneKeys).toEqual([]);
+		expect(adrift.chooseCount).toBe(0);
+	});
 });
 
 describe("findStartingMovePool", () => {

@@ -98,6 +98,17 @@ export const STARTING_MOVE_POOLS = [
 		grantedKeys: ["the-wither:born-to-die"],
 		pickOneKeys: [],
 		chooseCount: 0
+	},
+	{
+		playbookName: "The Adrift",
+		poolKey: "the-adrift",
+		// "You start with the love, love, love move" is unconditionally granted. The Astir's own
+		// unique move ("a move of your choice from your Additional Moves or the Cantrips list") is
+		// handled the same generic way as every other Astir-piloting playbook's own comment above
+		// describes — no separate budget needed here for it.
+		grantedKeys: ["the-adrift:love-love-love"],
+		pickOneKeys: [],
+		chooseCount: 0
 	}
 ];
 
