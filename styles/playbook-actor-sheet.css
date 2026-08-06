@@ -789,6 +789,10 @@
    otherwise redistribute any leftover width as extra gaps that grow/shrink with the window —
    gap below is what gives every tab (including the two edges, via this rule's own padding) even,
    fixed spacing regardless of window width. */
+/* z-index is required, not decorative: with neither this nor .dangers-column set, the browser was
+   letting the moves/equipment/etc. content scrolling underneath this stuck nav win the paint order
+   in practice, so a sliver of the last-scrolled row showed through above the nav instead of staying
+   hidden behind its opaque background. This pins the nav unambiguously on top. */
 .armor-astir.sheet .sheet-tabs {
 	margin: 0 0 var(--aa-space-3);
 	padding: var(--aa-space-1) var(--aa-space-2);
@@ -796,6 +800,7 @@
 	border-bottom: 2px solid var(--aa-primary);
 	position: sticky;
 	top: 0;
+	z-index: 1;
 	background: #fff url("/systems/pbta/assets/concrete-seamless.webp");
 	justify-content: flex-start;
 	gap: var(--aa-space-3);
