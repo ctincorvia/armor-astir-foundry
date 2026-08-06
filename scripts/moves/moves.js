@@ -50,11 +50,18 @@ const CONFIDENCE_FAILURE_REMINDER = "You may loosen a Hook";
 // at once. Extracted out of rollMove so move-chat-listeners.js#handleAdvantage can rebuild a
 // card's reminders after retroactively adding a die changes its tier (see roll-effects.js#
 // nextAdvantageState), without duplicating this logic.
-export function buildReminders(tier, effect) {
+//
+// extraFailureReminder (e.g. Walk-on Part In The War's "Tick 'overheating' on your Astir" — see
+// PlaybookActorSheet#_grantedFailureReminderForMove/moves-mixin.js) is a move-specific reminder a
+// picked playbook move adds to a *different* move's failure result, for a consequence this module
+// has no automatic tracker for (see claude.md's "Manual trackers, not enforcement"). Only ever
+// surfaced on an actual 6-, same as the universal FAILURE_REMINDERS above.
+export function buildReminders(tier, effect, extraFailureReminder = null) {
 	return [
 		...(tier === "failure" ? FAILURE_REMINDERS : []),
 		...(effect.key === "desperation" && tier === "success" ? [DESPERATION_SUCCESS_REMINDER] : []),
-		...(effect.key === "confidence" && tier === "failure" ? [CONFIDENCE_FAILURE_REMINDER] : [])
+		...(effect.key === "confidence" && tier === "failure" ? [CONFIDENCE_FAILURE_REMINDER] : []),
+		...(tier === "failure" && extraFailureReminder ? [extraFailureReminder] : [])
 	];
 }
 
@@ -724,7 +731,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 	const showAddAdvantage = nextAdvantageState(advantage.key, "advantage") !== null;
 	const showAddDisadvantage = nextAdvantageState(advantage.key, "disadvantage") !== null;
 
-	const reminders = buildReminders(tier, effect);
+	const reminders = buildReminders(tier, effect, options.extraFailureReminder);
 
 	// options.reroll (see PlaybookActorSheet#_availableReroll) is only ever set for a usesWeapon
 	// move whose chosen weapon still has an unspent Decisive/Defensive/Versatile tag matching this
@@ -820,6 +827,10 @@ export async function rollMove(actor, move, trait, options = {}) {
 			advantageKey: advantage.key,
 			dice,
 			extraConditions: [...moveConditions, ...equipmentConditions, ...astirPartConditions],
+			// Carried alongside extraConditions so move-chat-listeners.js#handleAdvantage can rebuild
+			// this reminder too if a retroactive Advantage/Disadvantage add flips the tier into or out
+			// of failure (see buildReminders' own extraFailureReminder param).
+			extraFailureReminder: options.extraFailureReminder ?? null,
 			flavorArgs
 		}
 	};

@@ -5,7 +5,7 @@ import { chooseCarrier, findCarrierActors } from "../../world-actors/carrier-act
 import { UNARMED, chooseWeapon } from "../../equipment/equipment.js";
 import { findAstirPart } from "../../frames/astir.js";
 import { rolledDoubles } from "../../moves/roll-effects.js";
-import { chooseStartingMoves, findStartingMovePool } from "../../moves/starting-moves.js";
+import { chooseStartingMoves, findStartingMovePool, playbookGrantsHomeInsteadOfChannel } from "../../moves/starting-moves.js";
 import {
 	BASIC_MOVES,
 	HOLD_MAX,
@@ -156,7 +156,12 @@ export const MovesSheetMixin = {
 		return bonuses;
 	},
 	_moveGroupMoves(moves) {
-		const channelDisabled = Boolean(this.actor.system.stats?.channel?.disabled);
+		// Adrift's own playbook substitutes +HOME for CHANNEL entirely (see playbook-moves.js's love,
+		// love, love and playbookGrantsHomeInsteadOfChannel's own comment) — b-plot's own text is for
+		// characters with no Channel-equivalent at all, so Adrift must read as Channel-enabled here
+		// too, or b-plot would wrongly stay available to a playbook that's meant to lose access to it.
+		const channelDisabled = Boolean(this.actor.system.stats?.channel?.disabled)
+			&& !playbookGrantsHomeInsteadOfChannel(this.actor.system.playbook?.name);
 		return moves.map((move) => {
 			const traits = this._moveTraits(move);
 			// Read-the-room's roll-tiered hold lives in pbta's shared system.resources.hold
@@ -187,8 +192,16 @@ export const MovesSheetMixin = {
 				// Whether this move rolls anything at all, based on its static definition rather
 				// than the actor-filtered trait list above — a gated move (e.g. Weave Magic with
 				// Channel disabled) still shows a disabled Roll button, but a move with no traits or
-				// conditions by design (Subsystems, B-Plot) shows no Roll button at all.
-				rollable: move.traits.length > 0 || Boolean(move.conditions),
+				// conditions by design (Subsystems, B-Plot) shows no Roll button at all. Draw Your
+				// Bath And Load Your Gun (see playbook-moves.js) is the one exception: its own
+				// `traits` is deliberately empty (see that move's own comment on why "home" can't
+				// live there) and it grants itself +HOME via a self-targeting addsTraitToMove, so
+				// rollable also checks for that grant — a real trait to roll, just not one recorded
+				// on the move's own static traits array.
+				rollable: move.traits.length > 0
+					|| Boolean(move.conditions)
+					|| resolvePlaybookMoves(this._playbookMoves())
+						.some((m) => m.addsTraitToMove?.moveKey === move.key || m.addsTraitToMove?.moveKeys?.includes(move.key)),
 				// Moves with a flat hold grant (B-Plot) show an Activate button in place of Roll —
 				// see the template's rollable/activatable branch and _onMoveActivate. Divination
 				// Codex's showsReadTheRoomQuestions and a move's own activateChoices (Bureaucrat,
@@ -297,10 +310,18 @@ export const MovesSheetMixin = {
 		// adding CHANNEL to both Exchange Blows and Strike Decisively at once) are both accepted —
 		// the two forms only ever differ in whether one move's trait grant reaches one or several
 		// target moves, so this is a single find matching either shape rather than two separate paths.
+		// `requiresUnmounted` (The Old Blood only, whose own text restricts the grant to "outside your
+		// Astir") drops a candidate whenever a frame is currently mounted — Turn Unearthly's identical
+		// shape has no such restriction in its text, so it omits the flag and is unaffected.
+		// `requiresAstirMounted` (Walk-on Part In The War — "while piloting your Astir") is the
+		// opposite polarity, and specifically the Astir: an Ardent mounted instead doesn't count.
 		const addedTraitKey = resolvePlaybookMoves(this._playbookMoves())
 			.find((m) => {
 				const grant = m.addsTraitToMove;
-				return grant?.moveKey === move.key || grant?.moveKeys?.includes(move.key);
+				if (!grant) return false;
+				if (grant.requiresUnmounted && this._mountedFrame()) return false;
+				if (grant.requiresAstirMounted && this._mountedFrame()?.kind !== "astir") return false;
+				return grant.moveKey === move.key || grant.moveKeys?.includes(move.key);
 			})?.addsTraitToMove.trait ?? null;
 		if (addedTraitKey && !actorTraits.some((trait) => trait.key === addedTraitKey)) {
 			// "home" is the one addsTraitToMove target that isn't a real TRAITS key — see home-mixin.js's
@@ -366,6 +387,23 @@ export const MovesSheetMixin = {
 		const granting = resolvePlaybookMoves(this._playbookMoves())
 			.find((m) => m.grantsAdvantageOnMove?.moveKey === move.key);
 		return granting?.grantsAdvantageOnMove.advantage ?? null;
+	},
+	// Walk-on Part In The War's "tick 'overheating' on a 6-" (see playbook-moves.js's
+	// addsFailureReminderToMove) — a move-specific reminder text appended to a *different* move's
+	// chat card on failure, for a consequence this module has no automatic tracker for (see
+	// claude.md's "Manual trackers, not enforcement"). Always an array of target keys (unlike
+	// addsTraitToMove's moveKey/moveKeys pair) since nothing needs a single-target form yet — only
+	// ever surfaced by moves.js#rollMove on an actual 6-. requiresAstirMounted mirrors the same
+	// flag on this move's own addsTraitToMove grant above — no reminder to tick a box that was
+	// never offered as a roll option in the first place while unmounted or in an Ardent.
+	_grantedFailureReminderForMove(move) {
+		const granting = resolvePlaybookMoves(this._playbookMoves())
+			.find((m) => {
+				const grant = m.addsFailureReminderToMove;
+				if (!grant?.moveKeys?.includes(move.key)) return false;
+				return !grant.requiresAstirMounted || this._mountedFrame()?.kind === "astir";
+			});
+		return granting?.addsFailureReminderToMove.reminder ?? null;
 	},
 	// Every move flagged grantsAutomaticSuccess (Hot-blooded, Once the War's Over, The Arity
 	// Method, Dark Rebirth — see playbook-moves.js) can spend its own hold pool, `uses` checkbox,
@@ -645,11 +683,15 @@ export const MovesSheetMixin = {
 		// See _availableAutomaticSuccess — unlike reroll, this isn't scoped to a usesWeapon move, so
 		// it's folded into baseOptions rather than the weapon-only branch below.
 		const automaticSuccess = this._availableAutomaticSuccess(move);
+		// Walk-on Part In The War's overheating reminder (see _grantedFailureReminderForMove) — only
+		// ever shown by moves.js#rollMove on an actual 6-, so it's harmless to always pass through.
+		const extraFailureReminder = this._grantedFailureReminderForMove(move);
 		const baseOptions = {
 			...config,
 			...(traitBonus && { traitBonus }),
 			...(spentPartLabels.length && { spentPartLabels }),
 			...(automaticSuccess.length && { automaticSuccess }),
+			...(extraFailureReminder && { extraFailureReminder }),
 			// Number Of The Beast (see playbook-moves.js) — applies to every roll this actor makes,
 			// not just one move key, so this is folded in unconditionally rather than gated on `move`.
 			...(this._hasExplodingSixes() && { explodeOnSix: true })

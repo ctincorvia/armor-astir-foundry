@@ -64,8 +64,10 @@
 	{{#each automaticSuccess}}
 	<button type="button" class="move-automatic-success" data-source="{{key}}">Automatic success from {{name}}</button>
 	{{/each}}
-	{{#if showAddAdvantage}}<button type="button" class="move-add-advantage">Add Advantage</button>{{/if}}
-	{{#if showAddDisadvantage}}<button type="button" class="move-add-disadvantage">Add Disadvantage</button>{{/if}}
+	<div class="move-advantage-controls">
+		{{#if showAddAdvantage}}<button type="button" class="move-add-advantage">+Advantage</button>{{/if}}
+		{{#if showAddDisadvantage}}<button type="button" class="move-add-disadvantage">+Disadvantage</button>{{/if}}
+	</div>
 	{{else}}
 	<div class="move-description">{{{description}}}</div>
 	{{/if}}

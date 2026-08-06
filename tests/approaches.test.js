@@ -33,6 +33,10 @@ describe("availableApproaches", () => {
 		expect(availableApproaches("the-adrift").map((a) => a.key)).toEqual(["mundane"]);
 	});
 
+	it("restricts The Advocate to Elemental", () => {
+		expect(availableApproaches("the-advocate").map((a) => a.key)).toEqual(["elemental"]);
+	});
+
 	it("falls back to every approach for a playbook with no restriction entry", () => {
 		expect(PLAYBOOK_APPROACHES["some-future-playbook"]).toBeUndefined();
 		expect(availableApproaches("some-future-playbook")).toEqual(APPROACHES);

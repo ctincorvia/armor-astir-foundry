@@ -12,6 +12,8 @@ The fix is to invert which level gets linked:
 
 This gives live-reloading dev iteration for code and compiled packs, while still satisfying Foundry's directory scan.
 
+**Gotcha: a new compendium pack "missing" after adding a playbook.** Adding a playbook (see the `add-playbook` skill) edits the repo's `module.json` to register a new pack entry, then compiles it with `npm run pullJSONtoLDB`. The compiled pack lands under `packs/`, which is junctioned — so it's visible to Foundry immediately. But `module.json` itself is one of the plain-copied manifest files from step 2 above, so if it isn't re-copied into `Data/modules/armor-astir`, Foundry is still reading the *old* manifest and has no idea the new pack exists. There's no error at compile time or even at world load — the only symptom is Foundry reporting the new playbook missing from the compendium when a player tries to add it. Fix: re-copy `module.json` into `Data/modules/armor-astir`, then fully reload the Foundry client (manifest changes aren't hot-reloaded).
+
 ## Hot reload through junctions
 
 Foundry does not hot-reload `esmodules` at all — a script change always needs a full client reload. It *does* hot-reload `css`, `hbs`/`html` and `json`, but that is driven by a server-side file watcher pushing a socket event, and whether that watcher fires through the `Data/modules/armor-astir` junctions is unverified. Treat a full reload as the reliable fallback whenever an edit doesn't appear.

@@ -92,7 +92,7 @@ async function handleAdvantage(message, offer, direction) {
 	const tier = moveResultTier(total);
 	const effect = effectState(offer.effectKey);
 	const conditions = [...rollConditions(nextState, effect), ...offer.extraConditions];
-	const reminders = buildReminders(tier, effect);
+	const reminders = buildReminders(tier, effect, offer.extraFailureReminder);
 
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
 		...offer.flavorArgs,

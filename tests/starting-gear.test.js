@@ -281,6 +281,25 @@ describe("STARTING_GEAR_POOLS", () => {
 		expect(adrift.groups[0].chooseCount).toBe(2);
 		expect(adrift.groups[0].items).toHaveLength(4);
 	});
+
+	it("grants The Advocate Withertouch I, a melee/bane weapon", () => {
+		const advocate = findStartingGearPool("The Advocate");
+
+		expect(advocate.grantedItems).toHaveLength(1);
+		expect(advocate.grantedItems[0]).toMatchObject({
+			key: "the-advocate:withertouch-i",
+			kind: "weapon",
+			tags: ["melee", "bane"]
+		});
+	});
+
+	it("gives The Advocate 2 of 4 Advocate Gear items to choose from", () => {
+		const advocate = findStartingGearPool("The Advocate");
+
+		expect(advocate.groups).toHaveLength(1);
+		expect(advocate.groups[0].chooseCount).toBe(2);
+		expect(advocate.groups[0].items).toHaveLength(4);
+	});
 });
 
 describe("findStartingGearPool", () => {

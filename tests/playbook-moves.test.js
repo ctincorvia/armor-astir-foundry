@@ -137,6 +137,22 @@ describe("MOVE_POOLS", () => {
 		expect(giantSlayer.starting).toBe(true);
 	});
 
+	// Field Scout/Giant Slayer and Earthly Ally/Titanic each present alternate identities, not
+	// merely alternate skill picks — exclusiveGroup keeps every picker (not just the chargen one)
+	// from ever offering both at once. See pickerSection's own tests below for the filtering itself.
+	it("shares an exclusiveGroup between Field Scout and Giant Slayer, distinct from the Advocate pair", () => {
+		const fieldScout = findPlaybookMove("the-scout:field-scout");
+		const giantSlayer = findPlaybookMove("the-scout:giant-slayer");
+		const earthlyAlly = findPlaybookMove("the-advocate:earthly-ally");
+		const titanic = findPlaybookMove("the-advocate:titanic");
+
+		expect(fieldScout.exclusiveGroup).toBeTruthy();
+		expect(fieldScout.exclusiveGroup).toBe(giantSlayer.exclusiveGroup);
+		expect(earthlyAlly.exclusiveGroup).toBeTruthy();
+		expect(earthlyAlly.exclusiveGroup).toBe(titanic.exclusiveGroup);
+		expect(fieldScout.exclusiveGroup).not.toBe(earthlyAlly.exclusiveGroup);
+	});
+
 	it("marks Arcane Augments as The Impostor's Starting Move", () => {
 		expect(findPlaybookMove("the-impostor:arcane-augments").starting).toBe(true);
 	});
@@ -251,7 +267,11 @@ describe("MOVE_POOLS", () => {
 	it("gives The Old Blood a +CHANNEL addsTraitToMove grant on Exchange Blows and Strike Decisively", () => {
 		const theOldBlood = findPlaybookMove("the-wither:the-old-blood");
 
-		expect(theOldBlood.addsTraitToMove).toEqual({ moveKeys: ["exchange-blows", "strike-decisively"], trait: "channel" });
+		expect(theOldBlood.addsTraitToMove).toEqual({
+			moveKeys: ["exchange-blows", "strike-decisively"],
+			trait: "channel",
+			requiresUnmounted: true
+		});
 	});
 });
 
@@ -278,17 +298,35 @@ describe("MOVE_POOLS - the-adrift", () => {
 		expect(findPlaybookMove("the-adrift:love-love-love").grantsHomeInsteadOfChannel).toBe(true);
 	});
 
-	it("gives Walk-on Part In The War a +HOME addsTraitToMove grant on Exchange Blows and Strike Decisively", () => {
-		const walkOnPart = findPlaybookMove("the-adrift:walk-on-part-in-the-war");
-
-		expect(walkOnPart.addsTraitToMove).toEqual({ moveKeys: ["exchange-blows", "strike-decisively"], trait: "home" });
+	it("gives Snakes In The Grass a flatHold:1 pool", () => {
+		expect(findPlaybookMove("the-adrift:snakes-in-the-grass").flatHold).toBe(1);
 	});
 
-	it("gives Lead Role In A Cage both an addsTraitToMove and a grantsTraitOnMove lock to +HOME on Lead a Sortie", () => {
+	it("gives Walk-on Part In The War a +HOME addsTraitToMove grant on Exchange Blows and Strike Decisively, gated on the Astir being mounted", () => {
+		const walkOnPart = findPlaybookMove("the-adrift:walk-on-part-in-the-war");
+
+		expect(walkOnPart.addsTraitToMove).toEqual({
+			moveKeys: ["exchange-blows", "strike-decisively"],
+			trait: "home",
+			requiresAstirMounted: true
+		});
+	});
+
+	it("gives Walk-on Part In The War an overheating addsFailureReminderToMove grant on the same two moves, also gated on the Astir being mounted", () => {
+		const walkOnPart = findPlaybookMove("the-adrift:walk-on-part-in-the-war");
+
+		expect(walkOnPart.addsFailureReminderToMove).toEqual({
+			moveKeys: ["exchange-blows", "strike-decisively"],
+			reminder: "Tick 'overheating' on your Astir",
+			requiresAstirMounted: true
+		});
+	});
+
+	it("gives Lead Role In A Cage only an addsTraitToMove option on Lead a Sortie, no lock", () => {
 		const leadRole = findPlaybookMove("the-adrift:lead-role-in-a-cage");
 
 		expect(leadRole.addsTraitToMove).toEqual({ moveKey: "lead-a-sortie", trait: "home" });
-		expect(leadRole.grantsTraitOnMove).toEqual({ moveKey: "lead-a-sortie", trait: "home" });
+		expect(leadRole.grantsTraitOnMove).toBeUndefined();
 	});
 
 	it("gives Draw Your Bath And Load Your Gun a self-targeting +HOME addsTraitToMove grant, with empty traits", () => {
@@ -302,6 +340,30 @@ describe("MOVE_POOLS - the-adrift", () => {
 		expect(drawYourBath.results.success).toBeTruthy();
 		expect(drawYourBath.results.mixed).toBeTruthy();
 		expect(drawYourBath.results.failure).toBeNull();
+	});
+});
+
+describe("MOVE_POOLS - the-advocate", () => {
+	it("registers The Advocate's own pool with 9 moves", () => {
+		const advocate = MOVE_POOLS.find((pool) => pool.key === "the-advocate");
+
+		expect(advocate.label).toBe("The Advocate");
+		expect(advocate.playbookName).toBe("The Advocate");
+		expect(advocate.moves).toHaveLength(9);
+	});
+
+	it("gives Earthly Ally and Titanic empty traits, as prose-only starting-move options", () => {
+		expect(findPlaybookMove("the-advocate:earthly-ally").traits).toEqual([]);
+		expect(findPlaybookMove("the-advocate:titanic").traits).toEqual([]);
+	});
+
+	it("gives Nature's Bounty a +CHANNEL roll with success/mixed results and no failure result", () => {
+		const naturesBounty = findPlaybookMove("the-advocate:natures-bounty");
+
+		expect(naturesBounty.traits).toEqual(["channel"]);
+		expect(naturesBounty.results.success).toBeTruthy();
+		expect(naturesBounty.results.mixed).toBeTruthy();
+		expect(naturesBounty.results.failure).toBeNull();
 	});
 });
 
@@ -459,6 +521,48 @@ describe("playbookMoveSections", () => {
 
 		expect(keys).toContain("cantrips");
 		expect(keys).toContain("soldier");
+	});
+
+	// Field Scout/Giant Slayer share an exclusiveGroup (see playbook-moves.js#pickerSection) — once
+	// one is picked, the other must never be offered by any picker drawing from this pool.
+	it("excludes Giant Slayer once Field Scout is already picked, via their shared exclusiveGroup", () => {
+		const [scout] = playbookMoveSections("The Scout", ["the-scout:field-scout"]);
+		const keys = scout.moves.map((move) => move.key);
+
+		expect(keys).not.toContain("the-scout:giant-slayer");
+		// An unrelated move from the same pool is unaffected by the exclusion.
+		expect(keys).toContain("the-scout:team-player");
+	});
+
+	it("excludes Field Scout once Giant Slayer is already picked", () => {
+		const [scout] = playbookMoveSections("The Scout", ["the-scout:giant-slayer"]);
+
+		expect(scout.moves.map((move) => move.key)).not.toContain("the-scout:field-scout");
+	});
+
+	it("offers both Field Scout and Giant Slayer when neither is picked yet", () => {
+		const [scout] = playbookMoveSections("The Scout", []);
+		const keys = scout.moves.map((move) => move.key);
+
+		expect(keys).toContain("the-scout:field-scout");
+		expect(keys).toContain("the-scout:giant-slayer");
+	});
+
+	// Same shape for The Advocate's Earthly Ally/Titanic pair.
+	it("excludes Titanic once Earthly Ally is already picked, via their shared exclusiveGroup", () => {
+		const [advocate] = playbookMoveSections("The Advocate", ["the-advocate:earthly-ally"]);
+		const keys = advocate.moves.map((move) => move.key);
+
+		expect(keys).not.toContain("the-advocate:titanic");
+		expect(keys).toContain("the-advocate:woodland-whispers");
+	});
+
+	it("offers both Earthly Ally and Titanic when neither is picked yet", () => {
+		const [advocate] = playbookMoveSections("The Advocate", []);
+		const keys = advocate.moves.map((move) => move.key);
+
+		expect(keys).toContain("the-advocate:earthly-ally");
+		expect(keys).toContain("the-advocate:titanic");
 	});
 });
 

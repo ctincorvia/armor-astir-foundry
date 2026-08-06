@@ -1,3 +1,5 @@
+import { playbookGrantsHomeInsteadOfChannel } from "./moves/starting-moves.js";
+
 // Each playbook is a compendium Actor (see claude.md, "Domain conventions"). Adding a new
 // playbook means adding an entry here plus its own compendium pack; no other code changes.
 export const PLAYBOOKS = [
@@ -9,7 +11,8 @@ export const PLAYBOOKS = [
 	{ packId: "armor-astir.basic-playbook-paradigm", name: "The Paradigm" },
 	{ packId: "armor-astir.basic-playbook-witch", name: "The Witch" },
 	{ packId: "armor-astir.basic-playbook-wither", name: "The Wither" },
-	{ packId: "armor-astir.basic-playbook-adrift", name: "The Adrift" }
+	{ packId: "armor-astir.basic-playbook-adrift", name: "The Adrift" },
+	{ packId: "armor-astir.basic-playbook-advocate", name: "The Advocate" }
 ];
 
 async function getPlaybookSourceData(playbook) {
@@ -50,12 +53,16 @@ export async function createPlaybookActor(playbook, { folder = null } = {}) {
 // The Astir (see astir.js/PlaybookActorSheet) is the character's too, but only when the new
 // playbook still grants CHANNEL — an Astir the new playbook's own tab would immediately grey out
 // as unavailable is dropped instead, along with any astir: true equipment entries it owns (same
-// cleanup _onAstirDelete does), so nothing orphaned lingers in the equipment array.
+// cleanup _onAstirDelete does), so nothing orphaned lingers in the equipment array. Adrift's own
+// playbook substitutes +HOME for CHANNEL entirely (see starting-moves.js's
+// playbookGrantsHomeInsteadOfChannel), so swapping into it must count as Channel-enabled too, or
+// this would strip an Astir/its weapons the new playbook can still pilot.
 export async function swapActorPlaybook(actor, playbook) {
 	const data = await getPlaybookSourceData(playbook);
 	if (!data) return null;
 
-	const channelEnabled = !data.system.stats?.channel?.disabled;
+	const channelEnabled = !data.system.stats?.channel?.disabled
+		|| playbookGrantsHomeInsteadOfChannel(data.system.playbook?.name);
 	const currentEquipment = actor.system.attributes?.equipment ?? [];
 	const equipment = channelEnabled ? currentEquipment : currentEquipment.filter((item) => !item.astir);
 	const astir = actor.system.attributes?.astir;
@@ -96,7 +103,7 @@ export function choosePlaybook(playbooks = PLAYBOOKS) {
 			content: "<p>Choose a playbook for the new character.</p>",
 			buttons,
 			close: () => resolve(null)
-		}, { classes: ["armor-astir"] }).render(true);
+		}, { classes: ["armor-astir", "playbook-picker"], width: 560 }).render(true);
 	});
 }
 

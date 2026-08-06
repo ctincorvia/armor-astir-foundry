@@ -273,6 +273,42 @@ describe("swapActorPlaybook", () => {
 		});
 	});
 
+	it("keeps the actor's Astir and its equipment when swapping into Adrift, despite CHANNEL being disabled there too", async () => {
+		const adriftSource = {
+			toObject: () => ({
+				_id: "adr123",
+				name: PLAYBOOKS[8].name,
+				type: "character",
+				system: { playbook: { name: PLAYBOOKS[8].name }, stats: { channel: { value: 0, disabled: true } }, attributes: {} },
+				items: []
+			})
+		};
+		const pack = {
+			getIndex: vi.fn().mockResolvedValue([{ _id: "adr123", name: PLAYBOOKS[8].name }]),
+			getDocument: vi.fn().mockResolvedValue(adriftSource)
+		};
+		game.packs.get.mockReturnValue(pack);
+
+		const astir = { id: "a1", core: "alchemical", approach: "arcane", tier: 3, power: 4, overheating: false, parts: [], move: null };
+		const astirWeapon = { id: "1", kind: "weapon", astir: true, name: "Lance", tags: [], spent: [] };
+		const gear = { id: "2", kind: "gear", name: "Rope", tags: [], spent: [] };
+		const actor = {
+			system: { attributes: { astir, equipment: [astirWeapon, gear] } },
+			update: vi.fn().mockResolvedValue(undefined),
+			items: [],
+			deleteEmbeddedDocuments: vi.fn(),
+			createEmbeddedDocuments: vi.fn()
+		};
+
+		await swapActorPlaybook(actor, PLAYBOOKS[8]);
+
+		expect(actor.update).toHaveBeenCalledWith({
+			"system.playbook": { name: PLAYBOOKS[8].name },
+			"system.stats": { channel: { value: 0, disabled: true } },
+			"system.attributes": { equipment: [astirWeapon, gear], astir }
+		});
+	});
+
 	it("has nothing to preserve or clear when the actor never had an Astir", async () => {
 		const impostorSource = {
 			toObject: () => ({

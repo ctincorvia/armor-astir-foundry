@@ -79,6 +79,15 @@ new pack in isolation as a stopgap and tell the user to re-run the full command 
 closed. Don't skip re-running it after Foundry closes; a partially-compiled set of packs is easy to
 forget about.
 
+**On a local Windows dev setup, also re-copy `module.json` into `Data/modules/armor-astir`** (see
+`docs/windows-dev-setup.md`) — this step just edited `module.json` to add the new pack entry, and
+that file is a plain copy there, not a junction, so the copy goes stale the moment the repo's
+version changes. Skipping this produces no error at compile or reload time; the symptom only shows
+up later as Foundry saying the new playbook is missing from the compendium, since its manifest copy
+never learned the new pack exists. Don't assume a working directory outside the repo — check
+whether `Data/modules/armor-astir` is reachable (e.g. listed as an additional working directory)
+before attempting this, and skip it silently if it isn't this user's machine.
+
 ## 3. Real-mechanic implementation
 
 Once any new-mechanic design questions from step 1 are resolved, implement them following whichever

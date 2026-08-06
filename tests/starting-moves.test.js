@@ -5,6 +5,7 @@ import {
 	STARTING_MOVE_POOLS,
 	chooseStartingMoves,
 	findStartingMovePool,
+	playbookGrantsHomeInsteadOfChannel,
 	startingMovePickerData
 } from "../scripts/moves/starting-moves.js";
 
@@ -140,6 +141,14 @@ describe("STARTING_MOVE_POOLS", () => {
 		expect(adrift.pickOneKeys).toEqual([]);
 		expect(adrift.chooseCount).toBe(0);
 	});
+
+	it("gives The Advocate exactly Earthly Ally and Titanic as its pick-one options, with nothing else granted", () => {
+		const advocate = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Advocate");
+
+		expect(advocate.grantedKeys).toEqual([]);
+		expect(advocate.pickOneKeys).toEqual(["the-advocate:earthly-ally", "the-advocate:titanic"]);
+		expect(advocate.chooseCount).toBe(0);
+	});
 });
 
 describe("findStartingMovePool", () => {
@@ -155,6 +164,24 @@ describe("findStartingMovePool", () => {
 		expect(findStartingMovePool("The Scout")).toEqual(
 			STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Scout")
 		);
+	});
+});
+
+describe("playbookGrantsHomeInsteadOfChannel", () => {
+	it("is true for The Adrift, whose love, love, love is flagged grantsHomeInsteadOfChannel", () => {
+		expect(playbookGrantsHomeInsteadOfChannel("The Adrift")).toBe(true);
+	});
+
+	it("is false for a playbook with no grantedKeys flagged that way", () => {
+		expect(playbookGrantsHomeInsteadOfChannel("The Scout")).toBe(false);
+	});
+
+	it("is false for an unknown playbook name", () => {
+		expect(playbookGrantsHomeInsteadOfChannel("Not a Real Playbook", FIXTURE_POOLS)).toBe(false);
+	});
+
+	it("is false rather than throwing when the pool's own poolKey has no matching entry in movePools", () => {
+		expect(playbookGrantsHomeInsteadOfChannel("Fixture Granted Playbook", FIXTURE_POOLS, [])).toBe(false);
 	});
 });
 

@@ -84,6 +84,25 @@ describe("PLAYBOOK_FLAVOR", () => {
 			expect(question).toBeTruthy();
 		}
 	});
+
+	it("gives The Advocate four LOOK prompts, each with a label and text", () => {
+		for (const entry of PLAYBOOK_FLAVOR["the-advocate"].look) {
+			expect(entry.label).toBeTruthy();
+			expect(entry.text).toBeTruthy();
+		}
+		expect(PLAYBOOK_FLAVOR["the-advocate"].look).toHaveLength(4);
+	});
+
+	it("gives The Advocate its two intro paragraphs", () => {
+		expect(PLAYBOOK_FLAVOR["the-advocate"].intro).toHaveLength(2);
+	});
+
+	it("gives The Advocate nine Consider questions", () => {
+		expect(PLAYBOOK_FLAVOR["the-advocate"].consider).toHaveLength(9);
+		for (const question of PLAYBOOK_FLAVOR["the-advocate"].consider) {
+			expect(question).toBeTruthy();
+		}
+	});
 });
 
 describe("defaultLookText", () => {

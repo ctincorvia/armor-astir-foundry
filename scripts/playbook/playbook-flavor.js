@@ -200,6 +200,41 @@ export const PLAYBOOK_FLAVOR = {
 			"How did you get your Astir and gear?",
 			"In what major ways is this world different to yours? In what ways is it similar?"
 		]
+	},
+	"the-advocate": {
+		look: [
+			{ label: "You look:", text: "gnarled, fresh, spritely, venerable or bold" },
+			{ label: "You wear:", text: "pilot jumpsuit, military uniform, dress uniform, handmade attire" },
+			{ label: "Your magic is like:", text: "swarming creatures, rays of light, toxic miasma, blooming flora" },
+			{ label: "When you launch your Astir, you say:", text: "________________" }
+		],
+		intro: [
+			"Unlike others, who draw their magic from divine sources or unlikely patrons, pore over " +
+				"arcane tomes or study forbidden rites, your magic is of the natural kind. It is drawn " +
+				"from and returned to the land: a power as old and familiar as life itself. Your Astir, " +
+				"then, may be of similar origin: grown or conjured from the natural realm, cast from the " +
+				"artistic palettes of flora and fauna, or you may even take the form of it yourself. In " +
+				"fantasy fiction, shape-shifting is often tied to 'natural' magic, but consider: you might " +
+				"just be a twenty-foot tall tree person. It's allowed.",
+			"To play an Advocate, then, is to play a character with deep ties to nature and " +
+				"environmental concerns. It tells your group that you are interested in tackling how " +
+				"conflict and it's effects (both short and longer term) damage the environment, and in " +
+				"turn, threaten lives in ever more unforeseen ways. Your choice of starting moves, earthly " +
+				"ally or titanic outline exactly what kind of being you are, while moves like all things " +
+				"great and small and a greener world make specific your connection to different aspects of " +
+				"the environment."
+		],
+		consider: [
+			"Where are you from?",
+			"How did you get so close to nature?",
+			"What's your favourite animal?",
+			"What's your favourite plant?",
+			"How do you feel about fungus, broadly?",
+			"Do you belong to any kind of order or group of people like yourself?",
+			"Where did your Astir come from? If you don't have one, what is your other form like?",
+			"Name a place of natural beauty that has been scarred by the conflict.",
+			"Name a place of natural beauty that you still hope to preserve."
+		]
 	}
 };
 

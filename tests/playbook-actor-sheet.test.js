@@ -29,7 +29,7 @@ describe("PlaybookActorSheet.defaultOptions", () => {
 			template: "modules/armor-astir/templates/playbook-actor-sheet.hbs",
 			width: 760,
 			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }],
-			scrollY: [".sheet-body"]
+			scrollY: [".window-content"]
 		});
 	});
 });
@@ -91,6 +91,34 @@ describe("PlaybookActorSheet#getData", () => {
 	it("falls back to null gravity trigger when the actor has no playbook set", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: {} };
+
+		const data = sheet.getData();
+
+		expect(data.gravityTrigger).toBeNull();
+	});
+
+	it("resolves The Advocate's gravity trigger from its picked starting move", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { slug: "the-advocate" },
+				attributes: { playbookMoves: ["the-advocate:titanic"] }
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.gravityTrigger).toBe(GRAVITY_TRIGGERS["the-advocate"]["the-advocate:titanic"]);
+	});
+
+	it("falls back to null gravity trigger for The Advocate when no starting move is picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { slug: "the-advocate" },
+				attributes: { playbookMoves: [] }
+			}
+		};
 
 		const data = sheet.getData();
 

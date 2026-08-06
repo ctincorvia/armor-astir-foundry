@@ -40,6 +40,7 @@ const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertain
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 const STRIKE_DECISIVELY = BASIC_MOVES.find((m) => m.key === "strike-decisively");
 const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
+const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
 const LOVE_LOVE_LOVE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-adrift:love-love-love");
 const WALK_ON_PART = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-adrift:walk-on-part-in-the-war");
 const LEAD_ROLE_IN_A_CAGE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-adrift:lead-role-in-a-cage");
@@ -343,12 +344,16 @@ describe("PlaybookActorSheet#_moveTraits - Love, Love, Love's +HOME substitution
 });
 
 describe("PlaybookActorSheet#_moveTraits - Walk-on Part In The War", () => {
-	it("offers +HOME on Exchange Blows once picked", () => {
+	it("offers +HOME on Exchange Blows once picked, while piloting the Astir", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				stats: { clash: { value: 0 }, talk: { value: 0 } },
-				attributes: { playbookMoves: [WALK_ON_PART.key], home: { progress: 0, value: 3 } }
+				attributes: {
+					playbookMoves: [WALK_ON_PART.key],
+					home: { progress: 0, value: 3 },
+					astir: { piloted: true }
+				}
 			}
 		};
 
@@ -357,12 +362,16 @@ describe("PlaybookActorSheet#_moveTraits - Walk-on Part In The War", () => {
 		expect(traits).toContainEqual({ key: "home", label: "HOME", value: 3 });
 	});
 
-	it("offers +HOME on Strike Decisively once picked", () => {
+	it("offers +HOME on Strike Decisively once picked, while piloting the Astir", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				stats: { clash: { value: 0 }, talk: { value: 0 } },
-				attributes: { playbookMoves: [WALK_ON_PART.key], home: { progress: 0, value: 3 } }
+				attributes: {
+					playbookMoves: [WALK_ON_PART.key],
+					home: { progress: 0, value: 3 },
+					astir: { piloted: true }
+				}
 			}
 		};
 
@@ -381,10 +390,43 @@ describe("PlaybookActorSheet#_moveTraits - Walk-on Part In The War", () => {
 
 		expect(traits.some((trait) => trait.key === "home")).toBe(false);
 	});
+
+	it("does not offer +HOME on Exchange Blows while unmounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { playbookMoves: [WALK_ON_PART.key], home: { progress: 0, value: 3 } }
+			}
+		};
+
+		const traits = sheet._moveTraits(EXCHANGE_BLOWS);
+
+		expect(traits.some((trait) => trait.key === "home")).toBe(false);
+	});
+
+	it("does not offer +HOME on Exchange Blows while piloting an Ardent instead of the Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					playbookMoves: [WALK_ON_PART.key],
+					home: { progress: 0, value: 3 },
+					astir: { piloted: false },
+					ardents: [{ id: "ardent-1", piloted: true, parts: [] }]
+				}
+			}
+		};
+
+		const traits = sheet._moveTraits(EXCHANGE_BLOWS);
+
+		expect(traits.some((trait) => trait.key === "home")).toBe(false);
+	});
 });
 
-describe("PlaybookActorSheet#_rollMove - Lead Role In A Cage locks Lead a Sortie to +HOME", () => {
-	it("locks Lead a Sortie's Trait to HOME when picked", async () => {
+describe("PlaybookActorSheet#_rollMove - Lead Role In A Cage offers +HOME on Lead a Sortie without locking it", () => {
+	it("offers +HOME as an option on Lead a Sortie when picked, without locking to it", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -397,12 +439,14 @@ describe("PlaybookActorSheet#_rollMove - Lead Role In A Cage locks Lead a Sortie
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
 
+		const traits = configureMoveRoll.mock.calls.at(-1)[1];
+		expect(traits.some((trait) => trait.key === "home" && trait.value === 2)).toBe(true);
 		expect(configureMoveRoll).toHaveBeenCalledWith(LEAD_A_SORTIE, expect.any(Array), expect.objectContaining({
-			lockedTrait: { key: "home", label: "HOME", value: 2 }
+			lockedTrait: null
 		}));
 	});
 
-	it("leaves Lead a Sortie's Trait unlocked without Lead Role In A Cage picked", async () => {
+	it("leaves Lead a Sortie without a +HOME option when Lead Role In A Cage isn't picked", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { stats: { know: { value: 1 }, defy: { value: 2 } }, attributes: { playbookMoves: [] } },
@@ -412,6 +456,8 @@ describe("PlaybookActorSheet#_rollMove - Lead Role In A Cage locks Lead a Sortie
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
 
+		const traits = configureMoveRoll.mock.calls.at(-1)[1];
+		expect(traits.some((trait) => trait.key === "home")).toBe(false);
 		expect(configureMoveRoll).toHaveBeenCalledWith(LEAD_A_SORTIE, expect.any(Array), expect.objectContaining({
 			lockedTrait: null
 		}));
@@ -502,5 +548,200 @@ describe("PlaybookActorSheet#_rollMove - Draw Your Bath And Load Your Gun (self-
 
 		expect(configureMoveRoll).not.toHaveBeenCalled();
 		expect(rollMove).not.toHaveBeenCalled();
+	});
+
+	it("is rollable (rollable: true) once picked, despite traits: []", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { slug: "the-adrift", name: "The Adrift" },
+				stats: {},
+				attributes: { playbookMoves: [DRAW_YOUR_BATH.key] }
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[1].moves.find((m) => m.key === DRAW_YOUR_BATH.key).rollable).toBe(true);
+	});
+
+	it("stays rollable alongside another picked move whose own addsTraitToMove targets different moves (moveKeys, not moveKey)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { slug: "the-adrift", name: "The Adrift" },
+				stats: {},
+				// Walk-on Part In The War's own addsTraitToMove uses moveKeys (plural), targeting
+				// Exchange Blows/Strike Decisively — neither of which is Draw Your Bath, so this
+				// exercises that grant's moveKey/moveKeys checks both resolving false before Draw
+				// Your Bath's own self-targeting moveKey grant is reached.
+				attributes: { playbookMoves: [WALK_ON_PART.key, DRAW_YOUR_BATH.key] }
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[1].moves.find((m) => m.key === DRAW_YOUR_BATH.key).rollable).toBe(true);
+	});
+
+	it("is not rollable when not picked (checked directly — an unpicked playbook move never renders at all via getData)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { playbookMoves: [] } } };
+
+		const [entry] = sheet._moveGroupMoves([DRAW_YOUR_BATH]);
+
+		expect(entry.rollable).toBe(false);
+	});
+});
+
+describe("PlaybookActorSheet#_astirData - Astir tab availability for Adrift", () => {
+	it("is available with CHANNEL disabled, since Adrift substitutes +HOME for it", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { channel: { value: 0, disabled: true } }, playbook: { name: "The Adrift" } }
+		};
+
+		expect(sheet._astirData(null, [], null, [], []).available).toBe(true);
+	});
+
+	it("stays unavailable with CHANNEL disabled on a non-Adrift, non-HOME playbook", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { channel: { value: 0, disabled: true } }, playbook: { name: "The Scout" } }
+		};
+
+		expect(sheet._astirData(null, [], null, [], []).available).toBe(false);
+	});
+});
+
+describe("PlaybookActorSheet#getData - b-plot reads as Channel-enabled for Adrift", () => {
+	it("gates b-plot for Adrift even though its own CHANNEL stat is disabled", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { slug: "the-adrift", name: "The Adrift" },
+				stats: { channel: { value: 0, disabled: true } }
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups.at(-1).moves.find((m) => m.key === B_PLOT.key).gated).toBe(true);
+	});
+});
+
+describe("PlaybookActorSheet#_grantedFailureReminderForMove - Walk-on Part In The War's overheating reminder", () => {
+	it("returns the reminder for Exchange Blows once Walk-on Part In The War is picked, while piloting the Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [WALK_ON_PART.key], astir: { piloted: true } } }
+		};
+
+		expect(sheet._grantedFailureReminderForMove(EXCHANGE_BLOWS)).toBe("Tick 'overheating' on your Astir");
+	});
+
+	it("returns the reminder for Strike Decisively too", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [WALK_ON_PART.key], astir: { piloted: true } } }
+		};
+
+		expect(sheet._grantedFailureReminderForMove(STRIKE_DECISIVELY)).toBe("Tick 'overheating' on your Astir");
+	});
+
+	it("returns null without Walk-on Part In The War picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
+
+		expect(sheet._grantedFailureReminderForMove(EXCHANGE_BLOWS)).toBeNull();
+	});
+
+	it("returns null for a move Walk-on Part In The War doesn't target", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [WALK_ON_PART.key], astir: { piloted: true } } }
+		};
+
+		expect(sheet._grantedFailureReminderForMove(LEAD_A_SORTIE)).toBeNull();
+	});
+
+	it("returns null while unmounted, even with the move picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [WALK_ON_PART.key] } } };
+
+		expect(sheet._grantedFailureReminderForMove(EXCHANGE_BLOWS)).toBeNull();
+	});
+
+	it("threads extraFailureReminder into rollMove's options once granted, while piloting the Astir", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, talk: { value: 0 } },
+				attributes: { playbookMoves: [WALK_ON_PART.key], equipment: [], astir: { piloted: true } }
+			},
+			update: vi.fn()
+		};
+		const config = {
+			trait: { key: "clash", label: "CLASH", value: 1 },
+			advantage: "none",
+			effect: "none",
+			spentTags: []
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor,
+			EXCHANGE_BLOWS,
+			config.trait,
+			expect.objectContaining({ extraFailureReminder: "Tick 'overheating' on your Astir" })
+		);
+	});
+
+	it("does not add extraFailureReminder to rollMove's options without the move picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, talk: { value: 0 } },
+				attributes: { playbookMoves: [], equipment: [] }
+			},
+			update: vi.fn()
+		};
+		const config = {
+			trait: { key: "clash", label: "CLASH", value: 1 },
+			advantage: "none",
+			effect: "none",
+			spentTags: []
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		const options = rollMove.mock.calls.at(-1)[3];
+		expect(options.extraFailureReminder).toBeUndefined();
+	});
+
+	it("does not add extraFailureReminder to rollMove's options while unmounted, even with the move picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, talk: { value: 0 } },
+				attributes: { playbookMoves: [WALK_ON_PART.key], equipment: [] }
+			},
+			update: vi.fn()
+		};
+		const config = {
+			trait: { key: "clash", label: "CLASH", value: 1 },
+			advantage: "none",
+			effect: "none",
+			spentTags: []
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		const options = rollMove.mock.calls.at(-1)[3];
+		expect(options.extraFailureReminder).toBeUndefined();
 	});
 });

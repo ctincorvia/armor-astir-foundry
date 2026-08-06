@@ -14,6 +14,7 @@ import {
 	resolveAstirParts
 } from "../../frames/astir.js";
 import { configureEquipment } from "../../equipment/equipment.js";
+import { playbookGrantsHomeInsteadOfChannel } from "../../moves/starting-moves.js";
 
 // The Astir itself — its own identity/loadout fields, plus every reactive Astir Part effect
 // (Potions, doubles-regen Power, spend-driven Expended) that only ever applies to the Astir
@@ -29,11 +30,17 @@ export const AstirSheetMixin = {
 	// player can see why it's there but inert. exists is false either when no Astir has ever been
 	// created, or after it's been deleted — Create/Delete are the only ways in or out.
 	//
+	// Adrift's own playbook substitutes +HOME for CHANNEL entirely (see playbook-moves.js's love,
+	// love, love and playbookGrantsHomeInsteadOfChannel's own comment) — still an Astir-piloting
+	// playbook, so it must count as available here too, or its own Astir tab would wrongly show the
+	// "requires the CHANNEL trait" locked note forever.
+	//
 	// astirParts/astirMove/equipment/astirWeapons are all computed once in getData (shared with the
 	// Moves/Equipment data methods) and passed in here rather than recomputed.
 	_astirData(astir, astirParts, astirMove, equipment, astirWeapons) {
 		return {
-			available: !this.actor.system.stats?.channel?.disabled,
+			available: !this.actor.system.stats?.channel?.disabled
+				|| playbookGrantsHomeInsteadOfChannel(this.actor.system.playbook?.name),
 			exists: Boolean(astir),
 			cores: ASTIR_CORES,
 			tierMin: ASTIR_TIER_MIN,
@@ -296,11 +303,18 @@ export const AstirSheetMixin = {
 	},
 	// The Astir's one unique move, picked from the character's own playbook pool, Cantrips, or the
 	// dedicated Astir Moves catalog (see astir.js#astirMoveSections) — picking a new one replaces
-	// whatever was there, since only one is ever held.
+	// whatever was there, since only one is ever held. Also passes the actor's regular playbookMoves
+	// as already-selected, alongside the Astir's own current move — both pools draw from the same
+	// flat MOVE_POOLS content, so an exclusiveGroup pair (Field Scout/Giant Slayer, Earthly Ally/
+	// Titanic — see playbook-moves.js#pickerSection) must be excluded here too, not just in the
+	// regular "+" picker, or this picker would let a player pick the sibling as their Astir move.
 	async _onAstirMoveAdd() {
 		const astir = this._astir();
 		if (!astir) return;
-		const key = await chooseAstirMove(this.actor.system.playbook?.name, astir.move ? [astir.move] : []);
+		const key = await chooseAstirMove(
+			this.actor.system.playbook?.name,
+			[...this._playbookMoves(), ...(astir.move ? [astir.move] : [])]
+		);
 		if (!key) return;
 		this.actor.update({ "system.attributes.astir.move": key });
 	},

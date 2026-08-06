@@ -36,4 +36,31 @@ describe("gravityTriggerForPlaybook", () => {
 		expect(GRAVITY_TRIGGERS["some-future-playbook"]).toBeUndefined();
 		expect(gravityTriggerForPlaybook("some-future-playbook")).toBeNull();
 	});
+
+	describe("The Advocate (trigger varies by starting move)", () => {
+		it("stores The Advocate's entry as an object keyed by starting move, not a string", () => {
+			expect(typeof GRAVITY_TRIGGERS["the-advocate"]).toBe("object");
+			expect(Object.keys(GRAVITY_TRIGGERS["the-advocate"])).toEqual([
+				"the-advocate:earthly-ally",
+				"the-advocate:titanic"
+			]);
+		});
+
+		it("returns null when no starting move has been picked yet", () => {
+			expect(gravityTriggerForPlaybook("the-advocate")).toBeNull();
+			expect(gravityTriggerForPlaybook("the-advocate", [])).toBeNull();
+		});
+
+		it("gives the Earthly Ally trigger when that starting move is picked", () => {
+			expect(gravityTriggerForPlaybook("the-advocate", ["the-advocate:earthly-ally"])).toBe(
+				GRAVITY_TRIGGERS["the-advocate"]["the-advocate:earthly-ally"]
+			);
+		});
+
+		it("gives the Titanic trigger when that starting move is picked", () => {
+			expect(gravityTriggerForPlaybook("the-advocate", ["the-advocate:titanic"])).toBe(
+				GRAVITY_TRIGGERS["the-advocate"]["the-advocate:titanic"]
+			);
+		});
+	});
 });

@@ -37,6 +37,7 @@ const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertain
 const DARK_REBIRTH = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-wither:dark-rebirth");
 const NUMBER_OF_THE_BEAST = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-wither:number-of-the-beast");
 const COLD_COMPANY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-wither:cold-company");
+const THE_OLD_BLOOD = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-wither:the-old-blood");
 
 beforeEach(() => {
 	foundry.utils.randomID.mockReturnValue("test-id");
@@ -373,5 +374,63 @@ describe("PlaybookActorSheet#_onMoveResolved - Cold Company's haunted/dispelled 
 		expect(sheet.actor.update).toHaveBeenCalledTimes(1);
 		const [update] = sheet.actor.update.mock.calls[0];
 		expect(update["system.attributes.witch.boons"]).toHaveLength(2);
+	});
+});
+
+describe("PlaybookActorSheet#_moveTraits - The Old Blood (addsTraitToMove.requiresUnmounted)", () => {
+	it("offers +CHANNEL on Exchange Blows and Strike Decisively while no frame is mounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, channel: { value: 3 } },
+				attributes: { playbookMoves: [THE_OLD_BLOOD.key] }
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "exchange-blows", traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 },
+			{ key: "channel", label: "CHANNEL", value: 3 }
+		]);
+		expect(sheet._moveTraits({ key: "strike-decisively", traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 },
+			{ key: "channel", label: "CHANNEL", value: 3 }
+		]);
+	});
+
+	it("does not offer +CHANNEL while the Astir is mounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, channel: { value: 3 } },
+				attributes: {
+					playbookMoves: [THE_OLD_BLOOD.key],
+					astir: { id: "a1", piloted: true }
+				}
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "exchange-blows", traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 }
+		]);
+		expect(sheet._moveTraits({ key: "strike-decisively", traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 }
+		]);
+	});
+
+	it("does not offer +CHANNEL while an Ardent is mounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, channel: { value: 3 } },
+				attributes: {
+					playbookMoves: [THE_OLD_BLOOD.key],
+					ardents: [{ id: "r1", piloted: true }]
+				}
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "exchange-blows", traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 }
+		]);
 	});
 });

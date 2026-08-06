@@ -567,6 +567,16 @@ describe("astirMoveSections", () => {
 		expect(sections.map((s) => s.key)).toContain("cantrips");
 		expect(sections.some((s) => s.key === "soldier")).toBe(false);
 	});
+
+	// Field Scout/Giant Slayer share an exclusiveGroup (see playbook-moves.js#pickerSection), and
+	// astirMoveSections reuses that same pickerSection for its own-pool section — this should fall
+	// out "for free" from the shared fix, but is exercised here too since coverage is a hard gate
+	// on this file's own suite.
+	it("excludes Giant Slayer from the Astir move picker once Field Scout is already selected", () => {
+		const [scout] = astirMoveSections("The Scout", ["the-scout:field-scout"]);
+
+		expect(scout.moves.map((m) => m.key)).not.toContain("the-scout:giant-slayer");
+	});
 });
 
 describe("chooseAstirMove", () => {

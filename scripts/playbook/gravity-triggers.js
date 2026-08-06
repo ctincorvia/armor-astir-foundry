@@ -1,6 +1,9 @@
 // Keyed by system.playbook.slug, same convention as approaches.js's PLAYBOOK_APPROACHES — unlike
 // MOVE_POOLS, which matches PLAYBOOKS[].name. A playbook with no entry here has no known trigger
-// yet, so it renders nothing (see gravityTriggerForPlaybook).
+// yet, so it renders nothing (see gravityTriggerForPlaybook). An entry is normally a single fixed
+// string, but may instead be an object keyed by starting-move key when the trigger text varies by
+// which starting move was picked (see The Advocate, whose trigger depends on Earthly Ally vs.
+// Titanic) — gravityTriggerForPlaybook resolves either shape.
 export const GRAVITY_TRIGGERS = {
 	"the-scout":
 		"When you hold your own against something bigger than you or help someone in an Astir out of a tight spot, advance a GRAVITY clock with someone who sees you and is impressed.",
@@ -19,9 +22,19 @@ export const GRAVITY_TRIGGERS = {
 	"the-wither":
 		"When you use your born to die move, advance a GRAVITY clock with someone who fears or mistrusts your magic.",
 	"the-adrift":
-		"Whenever you use your +HOME clock from love, love, love, advance it."
+		"Whenever you use your +HOME clock from love, love, love, advance it.",
+	"the-advocate": {
+		"the-advocate:earthly-ally":
+			"When you teach someone a truth about the natural world, advance a GRAVITY clock if you have one with them.",
+		"the-advocate:titanic":
+			"When you destroy something that threatens nature directly, advance a GRAVITY clock with someone surprised by your power."
+	}
 };
 
-export function gravityTriggerForPlaybook(playbookSlug) {
-	return GRAVITY_TRIGGERS[playbookSlug] ?? null;
+export function gravityTriggerForPlaybook(playbookSlug, pickedMoveKeys = []) {
+	const entry = GRAVITY_TRIGGERS[playbookSlug];
+	if (!entry) return null;
+	if (typeof entry === "string") return entry;
+	const matchKey = Object.keys(entry).find((key) => pickedMoveKeys.includes(key));
+	return matchKey ? entry[matchKey] : null;
 }

@@ -109,11 +109,42 @@ export const STARTING_MOVE_POOLS = [
 		grantedKeys: ["the-adrift:love-love-love"],
 		pickOneKeys: [],
 		chooseCount: 0
+	},
+	{
+		playbookName: "The Advocate",
+		poolKey: "the-advocate",
+		// "You start with the earthly ally OR titanic move" — a real pick, not an unconditional
+		// grant, same pickOneKeys-with-no-grantedKeys shape as The Scout's own entry above (the
+		// only other playbook using this shape). The Astir's own unique move ("a move of your
+		// choice from your Additional Moves or the Cantrips list") is handled the same generic way
+		// as every other CHANNEL-granting playbook's own comment above describes — no separate
+		// budget needed here for it.
+		grantedKeys: [],
+		pickOneKeys: ["the-advocate:earthly-ally", "the-advocate:titanic"],
+		chooseCount: 0
 	}
 ];
 
 export function findStartingMovePool(playbookName, pools = STARTING_MOVE_POOLS) {
 	return pools.find((pool) => pool.playbookName === playbookName) ?? null;
+}
+
+// Whether a playbook's own pool unconditionally grants a move flagged grantsHomeInsteadOfChannel
+// (currently just Adrift's love, love, love — see playbook-moves.js) — used wherever code needs to
+// treat CHANNEL as available for a playbook that substitutes it with +HOME (Astir-tab availability
+// in astir-mixin.js, b-plot's channel gating in moves-mixin.js, and swapActorPlaybook's Astir-
+// carryover check in actor-creation.js, none of which have anywhere else to read this from).
+// Resolved structurally off the playbook's guaranteed grantedKeys rather than an actor's currently
+// -picked playbookMoves: unlike an optional pick (Cold Company, Dark Rebirth), love, love, love is
+// mandatory for every Adrift character, so playbook membership alone already determines the
+// outcome — checking picked-move state instead would introduce a false negative during the narrow
+// chargen window before the player clicks "+ Choose Starting Moves" (a fresh actor, or one that
+// just swapped into Adrift, has no playbookMoves at all yet).
+export function playbookGrantsHomeInsteadOfChannel(playbookName, pools = STARTING_MOVE_POOLS, movePools = MOVE_POOLS) {
+	const pool = findStartingMovePool(playbookName, pools);
+	if (!pool) return false;
+	const sourceMoves = movePools.find((p) => p.key === pool.poolKey)?.moves ?? [];
+	return pool.grantedKeys.some((key) => sourceMoves.find((m) => m.key === key)?.grantsHomeInsteadOfChannel);
 }
 
 // Resolves a starting-move pool's pickOneKeys and remaining "Additional Moves" against the real

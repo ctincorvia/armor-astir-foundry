@@ -447,6 +447,9 @@
 	gap: var(--aa-space-3);
 }
 
+/* Sticky rather than a second clipped scroll region — see .sheet-body below for why. No
+   background needed: unlike .sheet-tabs below, .dangers-column sits beside the tab content, not
+   above it, so nothing ever scrolls underneath it once it's stuck. */
 .armor-astir.sheet .dangers-column {
 	display: flex;
 	flex-direction: column;
@@ -456,6 +459,8 @@
 	   a long, unbroken danger label would force the column past its 170px basis and drag the
 	   remove button out past the column's right edge with it. */
 	min-width: 0;
+	position: sticky;
+	top: 0;
 }
 
 .armor-astir.sheet .sheet-tabs-column {
@@ -773,16 +778,30 @@
 
 /* No top margin: .sheet-main lays .dangers-column and .sheet-tabs-column side by side from the
    same y, so any top margin here would drop the tab nav below the Dangers panel's top edge and
-   visibly break the two columns' alignment. */
+   visibly break the two columns' alignment. Sticky for the same reason as .dangers-column above —
+   both start at the same y-offset, so pinning both to top: 0 keeps them aligned while stuck.
+   Unlike .dangers-column, this needs an opaque background: .sheet-body's own content scrolls up
+   underneath this nav once it's stuck, and pbta's system CSS (not core Foundry's) is what actually
+   paints .window-content's background here — #fff plus its concrete-seamless.webp texture (see
+   pbta's src/styles/src/global/application/_window.scss) — so that's what has to be matched for
+   the seam to be invisible. */
+/* justify-content: flex-start overrides core Foundry's .tabs class (space-around), which would
+   otherwise redistribute any leftover width as extra gaps that grow/shrink with the window —
+   gap below is what gives every tab (including the two edges, via this rule's own padding) even,
+   fixed spacing regardless of window width. */
 .armor-astir.sheet .sheet-tabs {
 	margin: 0 0 var(--aa-space-3);
-	padding: var(--aa-space-1) 0;
+	padding: var(--aa-space-1) var(--aa-space-2);
 	border-top: var(--aa-border);
 	border-bottom: 2px solid var(--aa-primary);
+	position: sticky;
+	top: 0;
+	background: #fff url("/systems/pbta/assets/concrete-seamless.webp");
+	justify-content: flex-start;
+	gap: var(--aa-space-3);
 }
 
 .armor-astir.sheet .sheet-tabs .item {
-	margin-right: var(--aa-space-3);
 	padding: var(--aa-space-1) var(--aa-space-1) calc(var(--aa-space-1) + 2px);
 	border-bottom: 2px solid transparent;
 	font-weight: 700;
@@ -870,28 +889,26 @@
 	gap: var(--aa-space-3);
 }
 
-/* Without a cap, a tab with a long move/equipment list just grows the sheet past the viewport.
-   Scoping the scroll to .sheet-body (not the whole .sheet-main) keeps .dangers-column and the tab
-   nav always visible while only the active tab's content scrolls. This is the common case; if the
-   player also drags the window itself shorter than that (see PlaybookActorSheet's defaultOptions),
-   core Foundry's own .window-content overflow falls back to scrolling the whole sheet body. */
+/* .sheet-body deliberately has no scroll cap of its own — a tab with a long move/equipment list
+   just grows the sheet past the window, and core Foundry's own .window-content overflow (set in
+   public/css/style.css) is the single scroll region that handles it. Two independently scrollable
+   regions (this plus a capped .sheet-body) used to fight over the same scroll gesture: scrolling
+   over a long list only drove the inner region, and once that bottomed out nothing happened until
+   the cursor moved off the list to reach the outer one. .dangers-column and .sheet-tabs stay
+   visible via position: sticky instead (see those rules) rather than a second clipped container. */
 .armor-astir.sheet .sheet-body {
-	max-height: 65vh;
-	overflow-y: auto;
 	padding-right: var(--aa-space-2);
 }
 
-/* Hides the scrollbar handle/track on the playbook sheet (both the normal .sheet-body scroll and
-   its .window-content fallback above) without disabling scrolling itself — overflow-y stays auto,
-   this only removes the visual affordance. scrollbar-width/-ms-overflow-style cover Firefox/old
-   Edge; ::-webkit-scrollbar covers Chromium, which is what Foundry's own client runs on. */
-.armor-astir.sheet.playbook .sheet-body,
+/* Hides .window-content's scrollbar handle/track without disabling scrolling itself — overflow-y
+   stays auto, this only removes the visual affordance. scrollbar-width/-ms-overflow-style cover
+   Firefox/old Edge; ::-webkit-scrollbar covers Chromium, which is what Foundry's own client runs
+   on. */
 .window-app.armor-astir.playbook .window-content {
 	scrollbar-width: none;
 	-ms-overflow-style: none;
 }
 
-.armor-astir.sheet.playbook .sheet-body::-webkit-scrollbar,
 .window-app.armor-astir.playbook .window-content::-webkit-scrollbar {
 	display: none;
 }
@@ -1401,7 +1418,6 @@
 .armor-astir-move-chat .move-automatic-success,
 .armor-astir-move-chat .move-add-advantage,
 .armor-astir-move-chat .move-add-disadvantage {
-	margin-top: var(--aa-space-1);
 	padding: var(--aa-space-1) var(--aa-space-2);
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
@@ -1409,6 +1425,19 @@
 	color: #fff;
 	font-weight: 700;
 	cursor: pointer;
+}
+
+.armor-astir-move-chat .move-reroll,
+.armor-astir-move-chat .move-automatic-success {
+	margin-top: var(--aa-space-1);
+}
+
+/* Side by side rather than each stretching full-width — buttons are flex containers by Foundry's
+   own core style, so without a flex-row parent each one fills its own row. */
+.armor-astir-move-chat .move-advantage-controls {
+	display: flex;
+	gap: var(--aa-space-1);
+	margin-top: var(--aa-space-1);
 }
 
 .armor-astir-move-chat .move-reroll:hover,
@@ -1756,6 +1785,29 @@
 
 .vtt .window-app.armor-astir .dialog-button:hover {
 	background: var(--aa-primary-dark);
+}
+
+/* choosePlaybook (actor-creation.js) renders one Dialog button per playbook via core's plain
+   buttons object rather than this module's usual templated radio-list picker, since a playbook
+   pick has no extra per-option content to show. With 10+ playbooks, pbta's own flex-wrap layout
+   (see the .dialog-buttons fix above) squeezes each button narrow enough that a two-word name
+   ("The Commander") wraps to two lines inside core's fixed 40px button height, overflowing the
+   box. Grid replaces the cramped flex-wrap with real columns that scale cleanly as more playbooks
+   are added; minmax(160px, 1fr) fits every current name on one line, and height: auto + a
+   white-space fallback (rather than nowrap) means a future longer name grows the button instead
+   of re-overflowing it. */
+.armor-astir.playbook-picker .dialog-buttons {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	gap: var(--aa-space-2);
+}
+
+.armor-astir.playbook-picker .dialog-button {
+	height: auto;
+	min-height: 40px;
+	padding: var(--aa-space-2);
+	white-space: normal;
+	text-align: center;
 }
 
 /* pbta's own base styling (_window.scss) blows radio and checkbox inputs up to 18x18 via plain

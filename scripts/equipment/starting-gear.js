@@ -530,6 +530,63 @@ export const STARTING_GEAR_POOLS = [
 				]
 			}
 		]
+	},
+	{
+		playbookName: "The Advocate",
+		freeformNotes: [
+			"1 Astir III, built on the Astir & Ardents tab.",
+			"Clothes that match your look."
+		],
+		grantedItems: [
+			{
+				key: "the-advocate:withertouch-i",
+				name: "Withertouch I",
+				description: "A touch that draws on the slow, patient hunger of rot and reclamation.",
+				kind: "weapon",
+				tags: ["melee", "bane"]
+			}
+		],
+		groups: [
+			{
+				key: "the-advocate:gear",
+				label: "Choose 2 Advocate Gear.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-advocate:oaken-staff-i",
+						name: "Oaken Staff I",
+						description: "A staff of living wood that channels natural force outward at range.",
+						kind: "weapon",
+						tags: ["ranged"]
+					},
+					{
+						key: "the-advocate:sharp-sickle-i",
+						name: "Sharp Sickle I",
+						// The "mundane" tag key is not a real EQUIPMENT_TAGS entry (see equipment.js) —
+						// resolveEquipmentTags silently drops it. Mirrors the-wither's Wicked Blade I
+						// precedent, which already ships this exact same inert tag.
+						description: "A plain, well-worn sickle, no different from the tools of any harvest.",
+						kind: "weapon",
+						tags: ["melee", "mundane"]
+					},
+					{
+						key: "the-advocate:sidearm-i",
+						name: "Sidearm I",
+						description: "The typical protections afforded to Astir pilots: a reliable tool " +
+							"capable of firing bursts of concentrated natural energy.",
+						kind: "weapon",
+						tags: ["ranged", "defensive"]
+					},
+					{
+						key: "the-advocate:shield-broach-i",
+						name: "Shield Broach I",
+						description: "A small worn charm, grown rather than forged, that flares to ward off " +
+							"harm.",
+						tags: ["ward"]
+					}
+				]
+			}
+		]
 	}
 ];
 

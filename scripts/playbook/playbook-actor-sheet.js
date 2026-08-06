@@ -40,15 +40,16 @@ export class PlaybookActorSheet extends ActorSheet {
 			// by re-measuring content and resetting el.style.height on every position update, including
 			// every mousemove while dragging the resize handle — so the window could never be dragged
 			// shorter than its content. Falls back to ActorSheet's own default (720, resizable: true);
-			// .sheet-body's internal scroll (see styles/playbook-actor-sheet.css) covers whatever the
-			// fixed height cuts off.
+			// core Foundry's own .window-content scroll (see styles/playbook-actor-sheet.css) covers
+			// whatever the fixed height cuts off.
 			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }],
 			// Without this, Application#_render has no selector to save/restore scroll position across
 			// a re-render, so any actor.update() from *within* the sheet (a hold stepper, a move roll,
-			// any tracked-resource click) reset .sheet-body's scrollTop to 0 — visible as the sheet
-			// snapping to the top of the active tab on every such click. Matches pbta's own ActorSheet
-			// (scrollY: [".window-content"]).
-			scrollY: [".sheet-body"]
+			// any tracked-resource click) reset the scroll position to 0 — visible as the sheet snapping
+			// to the top on every such click. .window-content is the sheet's one scroll region (see
+			// styles/playbook-actor-sheet.css — .sheet-body itself no longer scrolls independently),
+			// matching pbta's own ActorSheet default.
+			scrollY: [".window-content"]
 		});
 	}
 
@@ -68,7 +69,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		data.playbooks = PLAYBOOKS;
 		data.currentPlaybookId = PLAYBOOKS.find((p) => p.name === this.actor.system.playbook?.name)?.packId ?? null;
 		data.approachOptions = availableApproaches(this.actor.system.playbook?.slug);
-		data.gravityTrigger = gravityTriggerForPlaybook(this.actor.system.playbook?.slug);
+		data.gravityTrigger = gravityTriggerForPlaybook(this.actor.system.playbook?.slug, this._playbookMoves());
 		// Look/Consider editors on the Cosmetic tab start pre-filled with the playbook's own
 		// flavor prompts (see playbook-flavor.js) until the player has saved text of their own —
 		// once system.details.look/consider.value is set, that stored value wins. This is only

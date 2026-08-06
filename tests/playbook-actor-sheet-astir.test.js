@@ -1034,21 +1034,46 @@ describe("PlaybookActorSheet#_onAstirPartRemove", () => {
 });
 
 describe("PlaybookActorSheet#_onAstirMoveAdd", () => {
-	it("sets the chosen move, passing the current one (if any) as already-selected", async () => {
+	it("sets the chosen move, passing the actor's playbookMoves and the current Astir move (if any) as already-selected", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
-			system: { playbook: { name: "The Scout" }, attributes: { astir: { id: "a1", move: "cantrips:deny" } } },
+			system: {
+				playbook: { name: "The Scout" },
+				attributes: {
+					astir: { id: "a1", move: "cantrips:deny" },
+					playbookMoves: ["the-scout:field-scout"]
+				}
+			},
 			update: vi.fn()
 		};
 		chooseAstirMove.mockResolvedValue("astir:placeholder-move");
 
 		await sheet._onAstirMoveAdd();
 
-		expect(chooseAstirMove).toHaveBeenCalledWith("The Scout", ["cantrips:deny"]);
+		// Both the actor's regular playbookMoves and the Astir's own current move end up in the
+		// combined already-selected array — this is what closes the exclusiveGroup bypass (Field
+		// Scout/Giant Slayer, Earthly Ally/Titanic) since both pickers draw from the same pool.
+		expect(chooseAstirMove).toHaveBeenCalledWith("The Scout", ["the-scout:field-scout", "cantrips:deny"]);
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.move": "astir:placeholder-move" });
 	});
 
-	it("passes no already-selected move when none is picked yet", async () => {
+	it("passes just the actor's playbookMoves when no Astir move is picked yet", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { name: "The Scout" },
+				attributes: { astir: { id: "a1", move: null }, playbookMoves: ["the-scout:field-scout"] }
+			},
+			update: vi.fn()
+		};
+		chooseAstirMove.mockResolvedValue("cantrips:deny");
+
+		await sheet._onAstirMoveAdd();
+
+		expect(chooseAstirMove).toHaveBeenCalledWith("The Scout", ["the-scout:field-scout"]);
+	});
+
+	it("passes an empty already-selected array when the actor has no playbookMoves and no Astir move", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { playbook: { name: "The Scout" }, attributes: { astir: { id: "a1", move: null } } },

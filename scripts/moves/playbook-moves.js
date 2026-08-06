@@ -36,6 +36,12 @@ export const MOVE_POOLS = [
 				key: "the-scout:field-scout",
 				name: "Field Scout",
 				starting: true,
+				// Field Scout and Giant Slayer are alternate identities ("pick either"), not merely
+				// alternate skill picks — exclusiveGroup keeps both the "+" picker and the Astir's own
+				// bonus-move picker from ever offering the sibling once one is picked (see
+				// pickerSection above). The chargen picker already enforces this via pickOneKeys
+				// (starting-moves.js); this closes the same gap in every picker drawing from this pool.
+				exclusiveGroup: "the-scout:starting-move",
 				traits: [],
 				// conflictTier (see PlaybookActorSheet#_conflictTier) raises this actor's Tier for
 				// all physical-conflict purposes while not piloting an Astir — see claude.md's
@@ -61,6 +67,7 @@ export const MOVE_POOLS = [
 				key: "the-scout:giant-slayer",
 				name: "Giant Slayer",
 				starting: true,
+				exclusiveGroup: "the-scout:starting-move",
 				traits: [],
 				conflictTier: 3,
 				description:
@@ -1329,8 +1336,7 @@ export const MOVE_POOLS = [
 				// (every roll's Dice-select lock) and #_onMoveResolved (auto-flip on 10+/6-).
 				uses: [{
 					key: "dispelled",
-					label: "Dispelled (advantage on every roll, until you fail a move with a 6-) — unchecked: " +
-						"haunted (disadvantage on every roll, until you succeed with a 10+)"
+					label: "Dispelled"
 				}],
 				grantsHauntedStandingRoll: { useKey: "dispelled" },
 				description:
@@ -1344,10 +1350,16 @@ export const MOVE_POOLS = [
 				name: "The Old Blood",
 				traits: [],
 				// Real: +CHANNEL becomes an offered rollable trait on Exchange Blows/Strike Decisively,
-				// additive not replacing — exact shape Turn Unearthly (the-paradigm:turn-unearthly) already
-				// uses, resolved generically by moves-mixin.js#_moveTraits (no new code needed beyond this
-				// declaration).
-				addsTraitToMove: { moveKeys: ["exchange-blows", "strike-decisively"], trait: "channel" },
+				// additive not replacing — same addsTraitToMove shape Turn Unearthly (the-paradigm:
+				// turn-unearthly) uses, but gated `requiresUnmounted: true` since this move's own text
+				// ("if you are outside your Astir and fighting on foot") restricts the grant to when no
+				// frame is mounted, unlike Turn Unearthly's unconditional text. Resolved generically by
+				// moves-mixin.js#_moveTraits (no new code needed beyond this declaration).
+				addsTraitToMove: {
+					moveKeys: ["exchange-blows", "strike-decisively"],
+					trait: "channel",
+					requiresUnmounted: true
+				},
 				description:
 					"<p>If you are outside your Astir and fighting on foot, you can exchange blows and strike " +
 					"decisively with +CHANNEL when attempting to cause physical harm. When appropriate, you will " +
@@ -1362,41 +1374,41 @@ export const MOVE_POOLS = [
 				name: "Wretched Visage",
 				traits: [],
 				description:
-					"<p>Your death-touched nature is impossible to fully hide. When you reveal what you truly " +
-					"are, or let your wretched visage show through, anyone who sees it and isn't already " +
-					"accustomed to horrors like you takes the risk (horrified) before they can act against " +
-					"you.</p>"
+					"<p>Nobody can look directly at you without taking a risk, friend or foe. People shy " +
+					"from your presence, and turn to avoid your gaze.</p>"
 			},
 			{
 				key: "the-wither:fresh-hells",
 				name: "Fresh Hells",
 				traits: [],
 				description:
-					"<p>You have seen, and continue to see, more of what waits beyond death than anyone should. " +
-					"Whenever a Sortie threatens to escalate into deeper danger, you may reveal a fresh hell " +
-					"drawn from your own expertise—some worse threat was already there, waiting, and you're " +
-					"the only one who noticed in time to say so.</p>"
+					"<p>When you weave magic to terrify, sicken or disgust, you can affect even the most jaded " +
+					"or strong-willed individuals, regardless of their experience with the profane.</p>"
 			},
 			{
 				key: "the-wither:abyssal-summons",
 				name: "Abyssal Summons",
 				traits: [],
 				description:
-					"<p>You may call upon lesser spirits, wraiths, or the unquiet dead already lingering nearby " +
-					"to fight alongside you for the rest of the Scene. They ask for something in return—only " +
-					"you and your Director know what.</p>"
+					"<p>When you weave magic, you are capable of disrupting that which anchors us in place and " +
+					"time, and can reach out to wrest a person free of their current location and conjure them " +
+					"to yours, regardless of distance. To do so, you must either have a strong bond with them " +
+					"(i.e a GRAVITY clock), possession of something of deep personal importance to them, or for " +
+					"them to have a peril you have inflicted.</p>"
 			},
 			{
 				key: "the-wither:dark-guarantees",
 				name: "Dark Guarantees",
-				// A conditional future-roll buff sealed by a promise, same "no hook yet" shape The Arity
-				// Method's own second sentence (confidence + advantage on a future roll) leaves descriptive —
+				// "Act with confidence and advantage on that move" has no roll to hook into: both born-to-die
+				// (this same pool, above) and the subsystems move it triggers are traits: [] with no results
+				// or flatHold — neither is ever rollable, so there is no move-roll for roll-effects.js to lock
+				// Confidence/Advantage onto. "Take a peril instead of a risk" needs no code either — Dangers
+				// are already manually typed risk/peril by the player (tracking-mixin.js). Stays descriptive,
 				// see claude.md's "systems that do not exist yet".
 				traits: [],
 				description:
-					"<p>You may offer someone a guarantee, sealed in blood, shadow, or breath. If they accept, " +
-					"they act with confidence on their next move. The price of breaking a guarantee you've " +
-					"made is yours to decide, and it is never small.</p>"
+					"<p>When you use born to die, you may take a peril instead of a risk. If you do, act with " +
+					"confidence and advantage on that move.</p>"
 			}
 		]
 	},
@@ -1422,11 +1434,14 @@ export const MOVE_POOLS = [
 			{
 				key: "the-adrift:snakes-in-the-grass",
 				name: "Snakes In The Grass",
-				// "Hold 1... make your next move with advantage" is a bank-for-next-roll system this module
-				// doesn't have anywhere (roll-modifier stacking — see claude.md's "systems that do not exist
-				// yet"), and the payoff at 3 hold is a Director-facing narrative beat, not something the player
-				// spends. Prose only.
+				// The "hold 1" resource itself is a plain flatHold pool like B-Plot's own (Activate adds 1,
+				// plus the usual manual stepper) — "make your next move with advantage" is the one piece
+				// this module can't mechanize (a bank-for-next-roll system — roll-modifier stacking, see
+				// claude.md's "systems that do not exist yet"), and the payoff at 3 hold is a Director-
+				// facing narrative beat, not something the player spends. Both stay prose in the
+				// description; only the counter itself is tracked.
 				traits: [],
+				flatHold: 1,
 				description:
 					"<p>When you are cowed or guilted into something you have no stake in, hold 1 and make your " +
 					"next move with advantage. Once you have 3 hold, the Authority or another third party will " +
@@ -1436,7 +1451,24 @@ export const MOVE_POOLS = [
 				key: "the-adrift:walk-on-part-in-the-war",
 				name: "Walk-on Part In The War",
 				traits: [],
-				addsTraitToMove: { moveKeys: ["exchange-blows", "strike-decisively"], trait: "home" },
+				// "While piloting your Astir" — requiresAstirMounted mirrors The Old Blood's own
+				// requiresUnmounted (see moves-mixin.js's addsTraitToMove resolution), but the opposite
+				// polarity and specifically the Astir, not any mounted frame: an Ardent doesn't count,
+				// since this move's text names the Astir by name, not "your frame" generically.
+				addsTraitToMove: { moveKeys: ["exchange-blows", "strike-decisively"], trait: "home", requiresAstirMounted: true },
+				// Nothing in this module auto-applies a roll consequence beyond writing hold (see
+				// claude.md's "Manual trackers, not enforcement") — Overheating is always a checkbox the
+				// player ticks by hand. Rather than leave the reminder only in this move's own
+				// description (easy to miss, since this move is never itself rolled), it also surfaces on
+				// Exchange Blows/Strike Decisively's own chat card on a 6- — see moves-mixin.js's
+				// _grantedFailureReminderForMove and moves.js#rollMove's extraFailureReminder handling.
+				// Same requiresAstirMounted gate as the trait grant above — no reminder to tick a box
+				// that was never offered as an option in the first place.
+				addsFailureReminderToMove: {
+					moveKeys: ["exchange-blows", "strike-decisively"],
+					reminder: "Tick 'overheating' on your Astir",
+					requiresAstirMounted: true
+				},
 				description:
 					"<p>You can exchange blows and strike decisively with +HOME when attempting to cause physical " +
 					"harm while piloting your Astir. On a 6-, tick 'overheating' on your Astir in addition to any " +
@@ -1446,14 +1478,13 @@ export const MOVE_POOLS = [
 				key: "the-adrift:lead-role-in-a-cage",
 				name: "Lead Role In A Cage",
 				traits: [],
-				// Unlike Don't Follow Me's real DEFY trait (never in Lead a Sortie's base traits/fixedTraits),
-				// "home" isn't offered on Lead a Sortie at all until this move adds it, so it needs BOTH
-				// addsTraitToMove (to make "home" available as an option) AND grantsTraitOnMove (to lock the
-				// move to it) — without the former, the latter's lock would resolve against a traits list
-				// that never contains "home" and silently fail (see moves-mixin.js#_grantedTraitForMove's own
-				// comment about a key that isn't actually offered resolving to no lock at all).
+				// "Roll with +HOME instead of the listed traits" reads like a hard lock, but the trigger
+				// ("when you're pressured into leading a Sortie") is a fictional judgment call, not every
+				// Lead a Sortie roll — so this only makes +HOME available as an option (unlike Don't Follow
+				// Me's real DEFY grant, which locks unconditionally because its own trigger, a Downtime
+				// Scene, has no in-between case to leave up to the table). "Home" isn't offered on Lead a
+				// Sortie at all until this move adds it (see moves-mixin.js's _moveTraits).
 				addsTraitToMove: { moveKey: "lead-a-sortie", trait: "home" },
-				grantsTraitOnMove: { moveKey: "lead-a-sortie", trait: "home" },
 				description:
 					"<p>When you're pressured into leading a Sortie, roll with +HOME instead of the listed " +
 					"traits.</p>"
@@ -1523,6 +1554,152 @@ export const MOVE_POOLS = [
 				description:
 					"<p>When you clear a peril from another character or their Astir, they make their next bite " +
 					"the dust with either confidence or desperation: their choice, at the time.</p>"
+			}
+		]
+	},
+	{
+		key: "the-advocate",
+		label: "The Advocate",
+		playbookName: "The Advocate",
+		moves: [
+			{
+				key: "the-advocate:earthly-ally",
+				name: "Earthly Ally",
+				// Earthly Ally and Titanic are alternate identities ("pick either"), not merely
+				// alternate skill picks — exclusiveGroup keeps both the "+" picker and the Astir's own
+				// bonus-move picker from ever offering the sibling once one is picked (see
+				// pickerSection in this file). The chargen picker already enforces this via
+				// pickOneKeys (starting-moves.js); this closes the same gap in every other picker
+				// drawing from this pool.
+				exclusiveGroup: "the-advocate:starting-move",
+				// The location-conditional CHANNEL variance ("+1 in areas where nature has been destroyed,
+				// +3 in areas of unmarked natural beauty") can't be mechanized — there's no location-state
+				// system anywhere in this module (see claude.md's "systems that do not exist yet"). Prose only.
+				traits: [],
+				description:
+					"<p>You are person-sized, and pilot an Astir as usual—though your Astir is likely a " +
+					"natural work, grown through magical rituals or built using sustainable materials. Your " +
+					"CHANNEL is treated as +1 in areas where nature has been destroyed, and +3 in areas of " +
+					"unmarked natural beauty. When you teach someone a truth about the natural world, advance " +
+					"a GRAVITY clock if you have one with them.</p>"
+			},
+			{
+				key: "the-advocate:titanic",
+				name: "Titanic",
+				exclusiveGroup: "the-advocate:starting-move",
+				traits: [],
+				// "You may use subsystems even while not in your Astir form" needs zero code: subsystems
+				// (moves.js SPECIAL_MOVES) is never gated on the mounted frame at all — only the Astir Moves
+				// group (Parts + the Astir's own unique Move) forces `gated: mountedFrame?.id !== "astir"`
+				// in getData, and the per-Part Expended `uses` checkbox in playbook-actor-sheet.hbs
+				// (.move-use-checkbox) renders with no gated/disabled binding regardless of mounted state.
+				// This clause is already true today with no changes needed anywhere.
+				description:
+					"<p>You yourself are a force of nature, capable of taking a form as mighty as any dragon, " +
+					"giant or war machine. Your Astir is this secondary form, and you may shift between it and " +
+					"whatever your usual appearance is at will. You may use subsystems even while not in your " +
+					"Astir form, temporarily manifesting parts of its power. When you destroy something that " +
+					"threatens nature directly, advance a GRAVITY clock with someone surprised by your power.</p>"
+			},
+			{
+				key: "the-advocate:woodland-whispers",
+				name: "Woodland Whispers",
+				traits: [],
+				description:
+					"<p>When the world is suffering, it whispers to you. You know where it is hurting, and who " +
+					"is to blame.</p>"
+			},
+			{
+				key: "the-advocate:all-things-great-and-small",
+				name: "All Things Great And Small",
+				traits: [],
+				description:
+					"<p>You have a deep and broad knowledge of all living creatures (either through study or " +
+					"your magic) and can easily identify their habitats, natural predators, food sources and " +
+					"common illnesses among other things.</p>"
+			},
+			{
+				key: "the-advocate:a-greener-world",
+				name: "A Greener World",
+				traits: [],
+				// "12+" is a result tier above 10+, which doesn't exist in this module — moveResultTier has
+				// exactly three tiers (success/mixed/failure). Per claude.md's "systems that do not exist
+				// yet", this stays descriptive.
+				description:
+					"<p>When you roll +CHANNEL and get a result of 12+, new flora and fauna starts to spring " +
+					"to life in the area, even in ruined places. Wildlife that had been forced out begins to " +
+					"return, and infertile ground is made fertile once again.</p>"
+			},
+			{
+				key: "the-advocate:built-different",
+				name: "Built Different",
+				traits: [],
+				// The "Requires: Titanic" prerequisite is unenforced, consistent with every other
+				// move-level prerequisite in this module. "You become tier IV" needs no mechanic either —
+				// Tier is already a freely player-editable field within the Astir's existing 3-4 range
+				// (ASTIR_TIER_MIN/ASTIR_TIER_MAX in astir.js already allow 4) — this move just narrates
+				// picking the top of that existing range.
+				description:
+					"<p>Your Astir-sized form is your only one: you have no other shape you can take. This is " +
+					"inconvenient in many situations, on account of you being very very large. As a " +
+					"trade-off, you become tier IV.</p>"
+			},
+			{
+				key: "the-advocate:natures-bounty",
+				name: "Nature's Bounty",
+				traits: ["channel"],
+				results: {
+					success: "Everyone gains an additional token during the next Downtime if they spend it " +
+						"here.",
+					mixed: "As above, but you must either give up leading a Scene yourself, or your usual 2 " +
+						"tokens.",
+					failure: null
+				},
+				description:
+					"<p>When you imbue a place with life, using your connections to the natural world to " +
+					"support and bolster it, roll +CHANNEL.</p>" +
+					"<p>On a 10+, everyone gains an additional token during the next Downtime if they spend " +
+					"it here. On a 7-9, as above, but you must either give up;</p>" +
+					"<ul>" +
+					"<li>Leading a Scene yourself.</li>" +
+					"<li>Your usual 2 tokens.</li>" +
+					"</ul>" +
+					"<p>You may freely roll this before Downtime begins if you don't get chance to during the " +
+					"Sortie, though your Director might impose disadvantage, desperation, or even rule that " +
+					"the move is impossible based on your location. It's hard to invoke the life and force of " +
+					"nature in the middle of a completely man-made structure, for example.</p>"
+			},
+			{
+				key: "the-advocate:chimaeric",
+				name: "Chimaeric",
+				traits: [],
+				// No creature-shapeshifting/"form" tracking system exists anywhere in this module (see
+				// claude.md's "systems that do not exist yet"). The Titanic branch's "choose a Part or
+				// Weapon to take as an Extra every Sortie" needs no new mechanism either — Astir Parts/
+				// Weapons are already freely added/removed at any time via the existing Astir tab controls,
+				// with no per-Sortie cap to swap around (unlike Ardents' own ARDENT_MAX_LOADOUT — the Astir
+				// itself has no such cap, per astir.js and the Astir mixin). Prose only.
+				description:
+					"<p>You are able to freely invoke and weave together the power of different parts of " +
+					"nature. If you have Earthly Ally, you may temporarily take the form of any creature you " +
+					"have seen (though you must weave magic to turn into something notably larger than " +
+					"yourself). Being put in peril undoes your shapeshifting. If you have Titanic, your " +
+					"secondary form becomes mutable: you may choose a Part or Weapon to take as an Extra " +
+					"every Sortie. You may choose a different one every time.</p>"
+			},
+			{
+				key: "the-advocate:lay-down-roots",
+				name: "Lay Down Roots",
+				traits: [],
+				// No death/incapacitation system exists anywhere in this module — "when you die" is
+				// narrative flavor text describing what happens, the same treatment the-wither:
+				// number-of-the-beast's own "killed in a spectacular fashion" text gets above (see
+				// claude.md's "systems that do not exist yet"). The "Requires: Nature's Bounty"
+				// prerequisite is unenforced, like every other move-level prerequisite in this module.
+				description:
+					"<p>When you die, you become one with the earth. Life springs forth in the brightest of " +
+					"hues, flourishing in your wake: nature's bounty applies permanently here, and can never " +
+					"be undone or removed.</p>"
 			}
 		]
 	},
@@ -1899,8 +2076,25 @@ export function pickerMove(move) {
 	};
 }
 
+// Moves sharing an `exclusiveGroup` can never both be offered — generalizes equipment.js's own
+// `exclusiveGroup` concept (there: an exclusive checkbox group; here: a picker-time filter, since
+// moves are added one at a time through modal pickers rather than toggled in place). Only Field
+// Scout/Giant Slayer and Earthly Ally/Titanic use this today — their own rules text presents each
+// pair as alternate identities, not merely alternate skill picks, unlike every other pool's moves
+// (deliberately unpoliced elsewhere, see claude.md's "Pool restrictions are deliberately not
+// enforced").
+function selectedExclusiveGroups(selectedKeys) {
+	return new Set(selectedKeys.map((key) => findPlaybookMove(key)?.exclusiveGroup).filter(Boolean));
+}
+
+// Filters a pool down to the picker's offered moves: already-selected moves are dropped (so
+// nothing can be taken twice) and, on top of that, any move whose exclusiveGroup is already
+// covered by a selected move is dropped too (see selectedExclusiveGroups above).
 export function pickerSection(pool, selectedKeys, { note = pool.note, open = false } = {}) {
-	const moves = pool.moves.filter((move) => !selectedKeys.includes(move.key));
+	const excludedGroups = selectedExclusiveGroups(selectedKeys);
+	const moves = pool.moves.filter((move) =>
+		!selectedKeys.includes(move.key) && !(move.exclusiveGroup && excludedGroups.has(move.exclusiveGroup))
+	);
 	if (!moves.length) return null;
 	return { key: pool.key, label: pool.label, note, open, moves: moves.map(pickerMove) };
 }
