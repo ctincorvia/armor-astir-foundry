@@ -132,6 +132,28 @@
 				"PLAYER": "OBSERVER",
 				"ASSISTANT": "OWNER"
 			}
+		},
+		{
+			"name": "basic-playbook-revenant",
+			"label": "Basic Playbook - The Revenant",
+			"path": "packs/basic-playbook-revenant",
+			"type": "Actor",
+			"system": "pbta",
+			"ownership": {
+				"PLAYER": "OBSERVER",
+				"ASSISTANT": "OWNER"
+			}
+		},
+		{
+			"name": "basic-playbook-summoner",
+			"label": "Basic Playbook - The Summoner",
+			"path": "packs/basic-playbook-summoner",
+			"type": "Actor",
+			"system": "pbta",
+			"ownership": {
+				"PLAYER": "OBSERVER",
+				"ASSISTANT": "OWNER"
+			}
 		}
 	],
 	"relationships": {

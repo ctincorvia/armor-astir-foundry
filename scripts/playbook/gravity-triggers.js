@@ -28,7 +28,11 @@ export const GRAVITY_TRIGGERS = {
 			"When you teach someone a truth about the natural world, advance a GRAVITY clock if you have one with them.",
 		"the-advocate:titanic":
 			"When you destroy something that threatens nature directly, advance a GRAVITY clock with someone surprised by your power."
-	}
+	},
+	"the-revenant":
+		"When you use your never quite free move, advance a GRAVITY clock with someone who doesn't want you to move on.",
+	"the-summoner":
+		"When you part ways with an ally from binding, advance a GRAVITY clock with someone who will remember them fondly."
 };
 
 export function gravityTriggerForPlaybook(playbookSlug, pickedMoveKeys = []) {

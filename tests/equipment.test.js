@@ -1320,9 +1320,9 @@ describe("chooseEquipmentCatalogItem", () => {
 			classes: ["armor-astir", "equipment-catalog-picker"],
 			width: 560,
 			height: 700,
-			resizable: true,
-			render: wirePickerTabs
+			resizable: true
 		});
+		expect(Dialog.mock.calls.at(-1)[0].render).toBe(wirePickerTabs);
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
@@ -1334,7 +1334,7 @@ describe("chooseEquipmentCatalogItem", () => {
 		await Promise.resolve();
 
 		const state = fakePickerTabsHtml();
-		Dialog.mock.calls.at(-1)[1].render(state.html);
+		Dialog.mock.calls.at(-1)[0].render(state.html);
 
 		expect(state.handler).toEqual(expect.any(Function));
 
@@ -1443,9 +1443,9 @@ describe("chooseWeapon", () => {
 			classes: ["armor-astir", "weapon-picker"],
 			width: 560,
 			height: 700,
-			resizable: true,
-			render: wirePickerTabs
+			resizable: true
 		});
+		expect(Dialog.mock.calls.at(-1)[0].render).toBe(wirePickerTabs);
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
@@ -1457,7 +1457,7 @@ describe("chooseWeapon", () => {
 		await Promise.resolve();
 
 		const state = fakePickerTabsHtml();
-		Dialog.mock.calls.at(-1)[1].render(state.html);
+		Dialog.mock.calls.at(-1)[0].render(state.html);
 
 		expect(state.handler).toEqual(expect.any(Function));
 

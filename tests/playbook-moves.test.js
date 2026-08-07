@@ -367,6 +367,106 @@ describe("MOVE_POOLS - the-advocate", () => {
 	});
 });
 
+describe("MOVE_POOLS - the-revenant", () => {
+	it("registers The Revenant's own pool with 9 moves", () => {
+		const revenant = MOVE_POOLS.find((pool) => pool.key === "the-revenant");
+
+		expect(revenant.label).toBe("The Revenant");
+		expect(revenant.playbookName).toBe("The Revenant");
+		expect(revenant.moves).toHaveLength(9);
+	});
+
+	it("rolls Never Quite Free with +CHANNEL and a full 3-tier results object, no forced Desperation", () => {
+		const neverQuiteFree = findPlaybookMove("the-revenant:never-quite-free");
+
+		expect(neverQuiteFree.traits).toEqual(["channel"]);
+		expect(neverQuiteFree.results.success).toBeTruthy();
+		expect(neverQuiteFree.results.mixed).toBeTruthy();
+		expect(neverQuiteFree.results.failure).toBeTruthy();
+		expect(neverQuiteFree.forcesDesperationAtMaxPerils).toBeUndefined();
+	});
+
+	it("rolls Joyride with +CHANNEL and no failure result", () => {
+		const joyride = findPlaybookMove("the-revenant:joyride");
+
+		expect(joyride.traits).toEqual(["channel"]);
+		expect(joyride.results.success).toBeTruthy();
+		expect(joyride.results.mixed).toBeTruthy();
+		expect(joyride.results.failure).toBeNull();
+	});
+
+	it("gives I Know You a flat +3 FAMILIARITY fixedTraits entry and no actor-read traits", () => {
+		const iKnowYou = findPlaybookMove("the-revenant:i-know-you");
+
+		expect(iKnowYou.traits).toEqual([]);
+		expect(iKnowYou.fixedTraits).toEqual([{ key: "familiarity", label: "FAMILIARITY", value: 3 }]);
+		expect(iKnowYou.results.success).toBeTruthy();
+		expect(iKnowYou.results.mixed).toBeTruthy();
+		expect(iKnowYou.results.failure).toBeNull();
+	});
+
+	it("gives Ancient Recall a 3-point flat hold and an automatic-success grant scoped to two basic moves", () => {
+		const ancientRecall = findPlaybookMove("the-revenant:ancient-recall");
+
+		expect(ancientRecall.flatHold).toBe(3);
+		expect(ancientRecall.grantsAutomaticSuccess).toEqual({
+			cost: 1,
+			moves: ["dispel-uncertainties", "read-the-room"]
+		});
+	});
+});
+
+describe("MOVE_POOLS - the-summoner", () => {
+	it("registers The Summoner's own pool with 9 moves", () => {
+		const summoner = MOVE_POOLS.find((pool) => pool.key === "the-summoner");
+
+		expect(summoner.label).toBe("The Summoner");
+		expect(summoner.playbookName).toBe("The Summoner");
+		expect(summoner.moves).toHaveLength(9);
+	});
+
+	it("gives Eidolon Drive empty traits, summonsAlly, and a Sortie-scoped Summoned uses checkbox", () => {
+		const eidolonDrive = findPlaybookMove("the-summoner:eidolon-drive");
+
+		expect(eidolonDrive.traits).toEqual([]);
+		expect(eidolonDrive.summonsAlly).toBe(true);
+		expect(eidolonDrive.uses).toEqual([{ key: "summoned", label: "Summoned", period: "Sortie" }]);
+	});
+
+	it("flags Binding with grantsBoundAlliesRoster and empty traits", () => {
+		const binding = findPlaybookMove("the-summoner:binding");
+
+		expect(binding.traits).toEqual([]);
+		expect(binding.grantsBoundAlliesRoster).toBe(true);
+	});
+
+	it("flags Helping Hands with grantsDowntimeAllySlot and empty traits", () => {
+		const helpingHands = findPlaybookMove("the-summoner:helping-hands");
+
+		expect(helpingHands.traits).toEqual([]);
+		expect(helpingHands.grantsDowntimeAllySlot).toBe(true);
+	});
+
+	it("flags Living Drive with grantsUnpilotedAstirMove targeting Eidolon Drive", () => {
+		const livingDrive = findPlaybookMove("the-summoner:living-drive");
+
+		expect(livingDrive.traits).toEqual([]);
+		expect(livingDrive.grantsUnpilotedAstirMove).toEqual({ moveKey: "the-summoner:eidolon-drive" });
+	});
+
+	it("gives every other Additional Move (prose-only) empty traits", () => {
+		for (const key of [
+			"the-summoner:enduring-support",
+			"the-summoner:bonded-in-blood",
+			"the-summoner:spritecraft",
+			"the-summoner:dynamic-entry",
+			"the-summoner:conveyance"
+		]) {
+			expect(findPlaybookMove(key).traits).toEqual([]);
+		}
+	});
+});
+
 describe("findPlaybookMove", () => {
 	it("finds a move by key across every pool", () => {
 		expect(findPlaybookMove(BULLHEADED).name).toBe("Bullheaded");

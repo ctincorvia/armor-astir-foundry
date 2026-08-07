@@ -674,6 +674,10 @@ export async function chooseAstirPart(selectedKeys = [], catalog = ASTIR_PART_CA
 		new Dialog({
 			title,
 			content,
+			// Foundry's Dialog only ever invokes data.render, not options.render (see
+			// client/ui/dialog.js's `this.data.render(...)` call) — this is the DialogData
+			// argument, same as configureEquipment's own tag-total wiring (equipment.js).
+			render: wirePickerTabs,
 			buttons: {
 				add: {
 					label: "Add",
@@ -687,8 +691,7 @@ export async function chooseAstirPart(selectedKeys = [], catalog = ASTIR_PART_CA
 			classes: ["armor-astir", "equipment-catalog-picker"],
 			width: 560,
 			height: 700,
-			resizable: true,
-			render: wirePickerTabs
+			resizable: true
 		}).render(true);
 	});
 }
@@ -711,6 +714,9 @@ export async function chooseAstirWeapon(catalog = ASTIR_WEAPON_CATALOG, { title 
 		new Dialog({
 			title,
 			content,
+			// See chooseAstirPart's own render comment — must be DialogData.render, not an options
+			// field, for Foundry to actually invoke it.
+			render: wirePickerTabs,
 			buttons: {
 				add: {
 					label: "Add",
@@ -724,8 +730,7 @@ export async function chooseAstirWeapon(catalog = ASTIR_WEAPON_CATALOG, { title 
 			classes: ["armor-astir", "equipment-catalog-picker"],
 			width: 560,
 			height: 700,
-			resizable: true,
-			render: wirePickerTabs
+			resizable: true
 		}).render(true);
 	});
 }

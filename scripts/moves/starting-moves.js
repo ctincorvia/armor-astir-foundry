@@ -122,6 +122,29 @@ export const STARTING_MOVE_POOLS = [
 		grantedKeys: [],
 		pickOneKeys: ["the-advocate:earthly-ally", "the-advocate:titanic"],
 		chooseCount: 0
+	},
+	{
+		playbookName: "The Revenant",
+		poolKey: "the-revenant",
+		// "You start with the never quite free and unfettered moves" — both unconditionally granted,
+		// no pick involved. Unlike every other CHANNEL-granting playbook above, the Revenant's own
+		// text explicitly denies it an Astir Move ("Your Astir does not have an Astir move: whatever
+		// powered that died when you did") — needs no code, since astir.js's chooseAstirMove is
+		// already an optional pick nobody is forced to make.
+		grantedKeys: ["the-revenant:never-quite-free", "the-revenant:unfettered"],
+		pickOneKeys: [],
+		chooseCount: 0
+	},
+	{
+		playbookName: "The Summoner",
+		poolKey: "the-summoner",
+		// "You start with eidolon drive as your Astir Move, and the binding move" — Eidolon Drive is
+		// the Astir's own unique move, handled the same generic way every other CHANNEL-granting
+		// playbook's own comment above describes (astir.js's chooseAstirMove/astirMoveSections), so
+		// only Binding is a starting-move-budget grant here.
+		grantedKeys: ["the-summoner:binding"],
+		pickOneKeys: [],
+		chooseCount: 0
 	}
 ];
 

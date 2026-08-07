@@ -325,6 +325,44 @@ describe("STARTING_GEAR_POOLS", () => {
 		expect(advocate.groups[0].chooseCount).toBe(2);
 		expect(advocate.groups[0].items).toHaveLength(4);
 	});
+
+	it("grants The Revenant Deathly Grip I, a melee/bane weapon", () => {
+		const revenant = findStartingGearPool("The Revenant");
+
+		expect(revenant.grantedItems).toHaveLength(1);
+		expect(revenant.grantedItems[0]).toMatchObject({
+			key: "the-revenant:deathly-grip-i",
+			kind: "weapon",
+			tags: ["melee", "bane"]
+		});
+	});
+
+	it("gives The Revenant 1 of 3 Spectral Aspects to choose from", () => {
+		const revenant = findStartingGearPool("The Revenant");
+
+		expect(revenant.groups).toHaveLength(1);
+		expect(revenant.groups[0].chooseCount).toBe(1);
+		expect(revenant.groups[0].items).toHaveLength(3);
+	});
+
+	it("grants The Summoner Conjured Blade I, a melee/bane weapon", () => {
+		const summoner = findStartingGearPool("The Summoner");
+
+		expect(summoner.grantedItems).toHaveLength(1);
+		expect(summoner.grantedItems[0]).toMatchObject({
+			key: "the-summoner:conjured-blade-i",
+			kind: "weapon",
+			tags: ["melee", "bane"]
+		});
+	});
+
+	it("gives The Summoner 2 of 4 Summoner Gear items to choose from", () => {
+		const summoner = findStartingGearPool("The Summoner");
+
+		expect(summoner.groups).toHaveLength(1);
+		expect(summoner.groups[0].chooseCount).toBe(2);
+		expect(summoner.groups[0].items).toHaveLength(4);
+	});
 });
 
 describe("findStartingGearPool", () => {
@@ -391,9 +429,9 @@ describe("chooseStartingGear", () => {
 			classes: ["armor-astir", "starting-gear-picker"],
 			width: 560,
 			height: 700,
-			resizable: true,
-			render: wirePickerTabs
+			resizable: true
 		});
+		expect(Dialog.mock.calls.at(-1)[0].render).toBe(wirePickerTabs);
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
@@ -405,7 +443,7 @@ describe("chooseStartingGear", () => {
 		await Promise.resolve();
 
 		const state = fakePickerTabsHtml();
-		Dialog.mock.calls.at(-1)[1].render(state.html);
+		Dialog.mock.calls.at(-1)[0].render(state.html);
 
 		expect(state.handler).toEqual(expect.any(Function));
 

@@ -9,6 +9,7 @@ import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js"
 const ARCANE_AUGMENTS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:arcane-augments");
 const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loose");
 const PATRON = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:patron");
+const HELPING_HANDS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:helping-hands");
 
 describe("PlaybookActorSheet#getData - traits", () => {
 	it("defaults every trait to value 0, no bonus, and enabled when system.stats is empty", () => {
@@ -406,6 +407,61 @@ describe("PlaybookActorSheet#getData - downtimeTokens", () => {
 		const data = sheet.getData();
 
 		expect(data.downtimeTokens).toEqual({ value: 1, max: 3 });
+	});
+});
+
+describe("PlaybookActorSheet#_downtimeTokensMax - Helping Hands' Downtime Ally bonus", () => {
+	it("adds no bonus without Helping Hands picked, even with a downtimeAlly somehow present", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [], downtimeAlly: { name: "Pip", powerInvested: 0 } } }
+		};
+
+		expect(sheet._downtimeTokensMax()).toBe(3);
+	});
+
+	it("adds no bonus with Helping Hands picked but no Downtime Ally bound", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [HELPING_HANDS.key] } } };
+
+		expect(sheet._downtimeTokensMax()).toBe(3);
+	});
+
+	it("adds +1 with Helping Hands picked and a Downtime Ally bound", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { playbookMoves: [HELPING_HANDS.key], downtimeAlly: { name: "Pip", powerInvested: 0 } }
+			}
+		};
+
+		expect(sheet._downtimeTokensMax()).toBe(4);
+	});
+
+	it("stacks additively on top of a per-move ceiling like Debrief's own downtimeTokensMax", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [HELPING_HANDS.key, "the-commander:debrief"],
+					downtimeAlly: { name: "Pip", powerInvested: 0 }
+				}
+			}
+		};
+
+		// Debrief's own downtimeTokensMax (4) plus the +1 Downtime Ally bonus.
+		expect(sheet._downtimeTokensMax()).toBe(5);
+	});
+
+	it("is reflected in getData's downtimeTokens.max", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { playbookMoves: [HELPING_HANDS.key], downtimeAlly: { name: "Pip", powerInvested: 0 } }
+			}
+		};
+
+		expect(sheet.getData().downtimeTokens.max).toBe(4);
 	});
 });
 

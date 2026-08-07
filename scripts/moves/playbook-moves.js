@@ -1704,6 +1704,349 @@ export const MOVE_POOLS = [
 		]
 	},
 	{
+		key: "the-revenant",
+		label: "The Revenant",
+		playbookName: "The Revenant",
+		moves: [
+			{
+				key: "the-revenant:never-quite-free",
+				name: "Never Quite Free",
+				// Unconditionally granted (see starting-moves.js's grantedKeys) — same no-`starting`-
+				// marker-needed treatment every other unconditional starting move gets.
+				traits: ["channel"],
+				// "This move replaces bite the dust for you" is table/fiction guidance only — there is
+				// no "replace a basic move" mechanism anywhere in this codebase (Dark Rebirth/The Arity
+				// Method both augment bite-the-dust rather than hide it), so bite-the-dust stays
+				// rollable on the sheet as normal; a Revenant player is simply expected not to use it.
+				// No forcesDesperationAtMaxPerils either — unlike bite-the-dust, this move's own rules
+				// text never restates that clause, so it isn't backfilled here. The 6- result's CHANNEL
+				// reduction and "you pass on" consequence is prose only, manually executed by the
+				// player — the same manual-tracker convention Once the War's Over's identical "you will
+				// perish" text gets.
+				description:
+					"<p>This move replaces bite the dust for you. You have already died once, and it is " +
+					"incredibly difficult to vanquish what has remained of you: when you are defenceless " +
+					"or risk harm so severe it might destroy you outright, roll +CHANNEL;</p>" +
+					"<p>On a 10+, your spirit lashes out at those that would try to strike you down: they " +
+					"are forced to take a risk and you may clear one if you have any.</p>" +
+					"<p>On a 7-9, you struggle to keep it together: take disadvantage on your next " +
+					"move.</p>" +
+					"<p>On a 6-, you survive at the cost of weakening your remaining tie to this world. " +
+					"Reduce your CHANNEL by 1—if this would reduce it below 0, you are no longer able to " +
+					"hold yourself and your Astir together. You pass on, leaving it and this world " +
+					"behind.</p>",
+				results: {
+					success: "Your spirit lashes out at those that would try to strike you down: they " +
+						"are forced to take a risk and you may clear one if you have any.",
+					mixed: "You struggle to keep it together: take disadvantage on your next move.",
+					failure: "You survive at the cost of weakening your remaining tie to this world. " +
+						"Reduce your CHANNEL by 1—if this would reduce it below 0, you are no longer " +
+						"able to hold yourself and your Astir together. You pass on, leaving it and this " +
+						"world behind."
+				}
+			},
+			{
+				key: "the-revenant:unfettered",
+				name: "Unfettered",
+				traits: [],
+				description:
+					"<p>You are, broadly speaking, unaffected by toxins, diseases, hunger, thirst, or any " +
+					"other typical biological or material concerns you were bound by in life. Ignore " +
+					"them entirely. Additionally, any magic or device that tracks or detects the living " +
+					"does not function on you, and any magic that would specifically kill rather than " +
+					"causing harm that might result in death is ineffective on you also. You're already " +
+					"dead.</p>"
+			},
+			{
+				key: "the-revenant:joyride",
+				name: "Joyride",
+				traits: ["channel"],
+				// Two consequences here have no mechanical hook and stay narrated: (a) "your old Astir
+				// falls quiet and you take control of this one instead" — system.attributes.astir is a
+				// hard 1:1 singleton on the actor with zero cross-actor transfer architecture, so
+				// there's nowhere in the data model to move this Astir's state to; (b) "act in
+				// desperation until you roll a 10+" — no "locked in Desperation until a specific future
+				// roll" mechanism exists anywhere (Confidence/Desperation is a per-roll dialog choice,
+				// not standing state). Both are per claude.md's "systems that do not exist yet".
+				description:
+					"<p>You may transfer your spectral being into another Astir. Take disadvantage if " +
+					"there is already a Channeler controlling it, and roll +CHANNEL;</p>" +
+					"<p>On a 10+, your old Astir falls quiet and you take control of this one instead. " +
+					"Your mark transfers to it, also.</p>" +
+					"<p>On a 7-9, as above, but you struggle to control this new form: act in " +
+					"desperation until you roll a 10+.</p>",
+				results: {
+					success: "Your old Astir falls quiet and you take control of this one instead. Your " +
+						"mark transfers to it, also.",
+					mixed: "As above, but you struggle to control this new form: act in desperation " +
+						"until you roll a 10+.",
+					failure: null
+				}
+			},
+			{
+				key: "the-revenant:knower-of-ruin",
+				name: "Knower Of Ruin",
+				traits: [],
+				description:
+					"<p>When you look over the remains of a battle, you can easily piece together how it " +
+					"went and who took part. You can bring forth the spirits of anyone who perished there " +
+					"for a short time to talk to them, though they remember little beyond the battle " +
+					"itself.</p>"
+			},
+			{
+				key: "the-revenant:aint-no-grave",
+				name: "Ain't No Grave",
+				traits: [],
+				// Forcing an already-posted different move's own 6- result up to a 10+ after rolling a
+				// second, specific move (never-quite-free) has no precedent or hook anywhere in this
+				// codebase — the closest cousin, grantsAutomaticSuccess, only ever flags the *current*
+				// roll, never a separate earlier one already posted to chat. Left descriptive per
+				// claude.md's "systems that do not exist yet"; the player and Director resolve this by
+				// hand at the table.
+				description:
+					"<p>When you make a move (other than never quite free) and roll a 6-, you may roll " +
+					"never quite free in desperation to, regardless of outcome, upgrade that result to a " +
+					"10+.</p>"
+			},
+			{
+				key: "the-revenant:ravenous-spectre",
+				name: "Ravenous Spectre",
+				traits: [],
+				// A deferred, one-shot Advantage grant consumed by a future cool-off roll has no
+				// precedent (the existing grantsAdvantageOnMove family is a standing/permanent lock, not
+				// single-use), and "causing a living being to be in peril" isn't tracked actor state
+				// anywhere. Left descriptive per claude.md's "systems that do not exist yet"; apply
+				// Advantage by hand via the roll dialog's own Dice select when it comes up.
+				description:
+					"<p>When you cause a living being to be in peril, take advantage when you next cool " +
+					"off as you draw momentum or vigour from them.</p>"
+			},
+			{
+				key: "the-revenant:i-know-you",
+				name: "I Know You",
+				traits: [],
+				// "Roll +3" with no trait/stat selection — a hardcoded fixedTraits entry, the same
+				// shape Lead a Sortie's own CREW uses (moves.js), except here the value is a flat
+				// constant rather than resolved off any actor. This is what makes the move rollable at
+				// all — see moves-mixin.js's `rollable` gate, which now also checks
+				// fixedTraits.length. The described "-1 per future use" diminishing bonus is not
+				// automated: the sheet always offers +3, and the diminishing return is a manual table
+				// detail the player tracks by hand.
+				fixedTraits: [{ key: "familiarity", label: "FAMILIARITY", value: 3 }],
+				description:
+					"<p>At any time, you or the Director may declare that a character had some " +
+					"familiarity with you before you died. Roll +3;</p>" +
+					"<p>On a 10+, they were intimately familiar with you: choose one of your Hooks that " +
+					"you still share. They will help you follow it where they can, unless forced to do " +
+					"otherwise. Reduce the amount you add to this roll in the future by 1.</p>" +
+					"<p>On a 7-9, they were loosely familiar with you: choose one of your Hooks that they " +
+					"are still undecided about. They might not help you, but they will not stop you " +
+					"following it unless forced to.</p>",
+				results: {
+					success: "They were intimately familiar with you: choose one of your Hooks that you " +
+						"still share. They will help you follow it where they can, unless forced to do " +
+						"otherwise. Reduce the amount you add to this roll in the future by 1.",
+					mixed: "They were loosely familiar with you: choose one of your Hooks that they are " +
+						"still undecided about. They might not help you, but they will not stop you " +
+						"following it unless forced to.",
+					failure: null
+				}
+			},
+			{
+				key: "the-revenant:ancient-recall",
+				name: "Ancient Recall",
+				traits: [],
+				flatHold: 3,
+				// Mirrors Once the War's Over's own cost-per-spend shape, restricted via The Arity
+				// Method's `moves` field to exactly the two moves named in the rules text. No `period`:
+				// nothing in this move's own text scopes the hold to a Sortie or Scene, so it isn't
+				// cleared by either Refresh button — same treatment Hot-blooded's own hold gets. "When
+				// you run out of hold, you lose this move" is a prose reminder only — nothing in this
+				// codebase ever auto-revokes a picked move.
+				grantsAutomaticSuccess: { cost: 1, moves: ["dispel-uncertainties", "read-the-room"] },
+				description:
+					"<p>Hold 3. You may spend a point of this hold to succeed on a dispel uncertainties " +
+					"or a read the room as per a 10+, describing how your past life gave you familiarity " +
+					"with the situation or subject at hand. When you run out of hold, you lose this " +
+					"move.</p>"
+			},
+			{
+				key: "the-revenant:rioting-souls",
+				name: "Rioting Souls",
+				traits: [],
+				description:
+					"<p>Wherever you go, vengeful spirits of the deceased rise up to join you. They can " +
+					"do little by their own, but their presence is very capable of drowning out magic " +
+					"used to communicate or observe/listen from a distance. They can also be directed to " +
+					"act as a distraction, though they cannot do both at the same time.</p>"
+			}
+		]
+	},
+	{
+		key: "the-summoner",
+		label: "The Summoner",
+		playbookName: "The Summoner",
+		moves: [
+			{
+				key: "the-summoner:eidolon-drive",
+				name: "Eidolon Drive",
+				// This is the Summoner's Astir Move, picked like any other via the Astir tab's own "+
+				// Astir Move" picker (chooseAstirMove/_onAstirMoveAdd — see astir-mixin.js), not a
+				// forced grant — no playbook has ever needed a bespoke mechanism to pre-grant an Astir
+				// Move, and Eidolon Drive is Summoner's only Astir-move-shaped pick anyway.
+				traits: [],
+				// Renders a Summon button in place of Roll/Activate (see moves-mixin.js's
+				// _moveGroupMoves) — its own roll options come from whatever move the player rolls
+				// next (see the unconditional eidolon-drive-ally trait push in _moveTraits), not from
+				// a roll of its own.
+				summonsAlly: true,
+				// The "once per Scene" tracker — nothing in this module differentiates a Scene
+				// boundary from a Sortie boundary for a manual reset button (see claude.md's Manual
+				// trackers note), so this is cleared by Refresh Sortie like every other Sortie-scoped
+				// uses checkbox, via period: "Sortie".
+				uses: [{ key: "summoned", label: "Summoned", period: "Sortie" }],
+				description:
+					"<p>This is your Astir Move—if you ever get a new Astir, it can be transferred into the " +
+					"new one during Downtime, replacing any Astir Move it might have had. Once per Scene, " +
+					"you may power up your eidolon drive to summon an ally from binding. When you do so, " +
+					"you may immediately make a move using their approach and trait at +3. They remain by " +
+					"your side for the rest of the Scene, giving you access to their trait at +1. Their " +
+					"tier is equal to your Astir's.</p>"
+			},
+			{
+				key: "the-summoner:binding",
+				name: "Binding",
+				// Granted unconditionally via starting-moves.js's grantedKeys (every Summoner starts
+				// with this), so no `starting: true` — that flag is reserved for a pick-one starting
+				// choice (see Field Scout/Giant Slayer's own comment), which this isn't.
+				traits: [],
+				// Renders the Bound Allies roster (Social tab — see summoner-mixin.js's
+				// _boundAlliesData) once picked. A declarative flag, evaluated generically, rather
+				// than a hardcoded move-key check — the same "behaviour that depends on actor state
+				// goes in the sheet" pattern grantsHomeInsteadOfChannel (home-mixin.js) already
+				// establishes for Adrift's own single-mandatory-move mechanic.
+				grantsBoundAlliesRoster: true,
+				description:
+					"<p>You may magically bind powerful creatures (or groups of weaker ones) to you, " +
+					"allowing you to draw them through time and space to your location to aid you " +
+					"temporarily. You might do this through force, or you might acquire willing aid " +
+					"through other means. However you do it, give them an amount of your Astir's Power " +
+					"to perform the binding. This Power is returned 1 point at a time each time that " +
+					"ally is summoned via eidolon drive, or all at once if they are released or leave " +
+					"your service otherwise. Write down your ally's name, their approach, and a " +
+					"trait.</p>" +
+					"<p>Manage your bound allies from the Bound Allies roster on the Social tab: name, " +
+					"approach, trait, and a running Power Invested total per ally, with Invest Power and " +
+					"Release controls.</p>"
+			},
+			{
+				key: "the-summoner:enduring-support",
+				name: "Enduring Support",
+				// "Use their approach instead of your own" — the same manual, non-enforced
+				// substitution the Arcane/Divine/Elemental/Mundane/Profane equipment tags already
+				// model (see equipment.js: system.attributes.approach is a single persistent field
+				// with no "actively equipped" state, so a temporary override stays descriptive).
+				// Prose only.
+				traits: [],
+				description:
+					"<p>After you summon an ally with your eidolon drive, you may use their approach " +
+					"instead of your own for the rest of the Sortie.</p>"
+			},
+			{
+				key: "the-summoner:bonded-in-blood",
+				name: "Bonded In Blood",
+				// Taking a peril is already the existing Danger "Add" controls
+				// (system.attributes.dangers), same reasoning as Cantrips' Fire-Eater/Selfless. "Act
+				// with advantage on your next roll" is the grant-Advantage-to-literally-the-next-roll
+				// pattern repeatedly left unmechanized elsewhere (Dark Guarantees, If I Go There Will
+				// Be Trouble — both cite claude.md's "systems that do not exist yet"); applied by hand
+				// at the table via the roll dialog's own Dice select. Allies "won't (or can't) abandon
+				// your service" is pure fiction with no tracked state to hook — Release already
+				// requires an explicit player click regardless of how an ally was bound.
+				traits: [],
+				description:
+					"<p>You may voluntarily take a peril as part of binding an ally: this counts as an " +
+					"extra 1 Power's worth of binding, on top of any you choose to give. If you do so, " +
+					"make your first move after summoning them with advantage. Allies bound with bonded " +
+					"in blood won't (or can't) abandon your service until all their Power is returned " +
+					"point-by-point.</p>"
+			},
+			{
+				key: "the-summoner:spritecraft",
+				name: "Spritecraft",
+				// Identical in shape to Commander's Withdraw ("start or advance a 4-step clock") —
+				// prose only; the player manually adds a 4-step Clock via the existing Clocks section
+				// (Social tab) and manages the resulting ally through the ordinary Bound Allies roster
+				// once it's ready.
+				traits: [],
+				description:
+					"<p>You may magically create allies for yourself during Downtime as long-term " +
+					"projects, requiring a 4-step clock to be filled. They can only sustain themselves " +
+					"for a single Sortie's worth of aid, but you may choose what approach they are, and " +
+					"they reserve none of your Astir's Power.</p>"
+			},
+			{
+				key: "the-summoner:dynamic-entry",
+				name: "Dynamic Entry",
+				// Conditionally applying a weapon tag (bane) to a specific triggered attack — weapon
+				// tags are static, actor-authored data (see equipment.js's EQUIPMENT_TAGS), not
+				// something a move can attach on the fly; no analogous mechanism exists anywhere in
+				// this module. Prose only, per claude.md's "systems that do not exist yet".
+				traits: [],
+				description:
+					"<p>When you summon an ally and immediately exchange blows or strike decisively via " +
+					"them, that attack is considered to have the bane tag.</p>"
+			},
+			{
+				key: "the-summoner:helping-hands",
+				name: "Helping Hands",
+				traits: [],
+				// Renders the single-slot Downtime Ally control (Downtime tab — see
+				// summoner-mixin.js's _downtimeAllyData) once picked, and raises the Downtime Tokens
+				// cap by 1 while an ally is bound there (see progression-mixin.js's
+				// _downtimeTokensMax) — both a declarative flag, generically evaluated, the same
+				// pattern grantsBoundAlliesRoster establishes for Binding above.
+				grantsDowntimeAllySlot: true,
+				description:
+					"<p>You may also bind an ally to help you in Downtime instead of on Sorties. When " +
+					"you do so, instead of writing a trait and their approach, take +1 token during " +
+					"Downtime. You may only have one ally bound to you for Downtimes, but 1 Power's " +
+					"worth of binding will sustain them for as long as they are in your service.</p>"
+			},
+			{
+				key: "the-summoner:conveyance",
+				name: "Conveyance",
+				// Cross-actor Astir linking/portals between two players' own Astirs — no analogous
+				// mechanism exists anywhere in this module (every roll/state change is scoped to one
+				// actor's own sheet). Prose only, per claude.md's "systems that do not exist yet".
+				traits: [],
+				description:
+					"<p>When another Channeler lays a hand on your eidolon drive, they may link their " +
+					"Astir to yours. During Downtime, or when you weave magic, you may open a portal " +
+					"between your Astirs. If you wove magic to do this, it closes at the end of the " +
+					"Scene or potentially earlier as a consequence of another move.</p>"
+			},
+			{
+				key: "the-summoner:living-drive",
+				name: "Living Drive",
+				traits: [],
+				// "You may use it outside of an Astir" — ungates Eidolon Drive's Summon button (and
+				// Roll/Activate generally, were it ever to gain one) from the Astir Moves group's
+				// mounted-frame check specifically (see moves-mixin.js's
+				// _grantsUnpilotedAstirMove/_movesData). The rest of the text needs no code: bound
+				// allies already always display the Astir's own tier regardless of piloted state (see
+				// _moveTraits' unconditional eidolon-drive-ally push), and this character's own
+				// on-foot Tier already defaults to tier I with nothing here that would raise it.
+				grantsUnpilotedAstirMove: { moveKey: "the-summoner:eidolon-drive" },
+				description:
+					"<p>You are your eidolon drive. You may use it outside of an Astir, and your " +
+					"binding allies are still considered to be the same tier as your Astir: though you " +
+					"yourself are tier I as usual. If you have the conveyance move, you may open a " +
+					"portal between an Astir and you.</p>"
+			}
+		]
+	},
+	{
 		key: "cantrips",
 		label: "Cantrips",
 		note: "Any playbook may take these in place of a move from their own pool.",

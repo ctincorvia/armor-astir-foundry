@@ -589,6 +589,105 @@ export const STARTING_GEAR_POOLS = [
 				]
 			}
 		]
+	},
+	{
+		playbookName: "The Revenant",
+		freeformNotes: [
+			"1 Astir III, built on the Astir & Ardents tab.",
+			"A keepsake or souvenir."
+		],
+		grantedItems: [
+			{
+				key: "the-revenant:deathly-grip-i",
+				name: "Deathly Grip I",
+				description: "A touch that closes around the living with the cold, patient grip of the " +
+					"grave.",
+				kind: "weapon",
+				tags: ["melee", "bane"]
+			}
+		],
+		groups: [
+			{
+				key: "the-revenant:spectral-aspect",
+				label: "Choose 1 Spectral Aspect.",
+				chooseCount: 1,
+				items: [
+					{
+						key: "the-revenant:ethereal-form",
+						name: "Ethereal Form",
+						description: "Your spirit may separate itself from the Astir, and float freely."
+					},
+					{
+						key: "the-revenant:kinship",
+						name: "Kinship",
+						description: "Other ghosts regard you as a friend."
+					},
+					{
+						key: "the-revenant:puppeteer",
+						name: "Puppeteer",
+						description: "You can possess corpses."
+					}
+				]
+			}
+		]
+	},
+	{
+		playbookName: "The Summoner",
+		freeformNotes: [
+			"1 Astir III, built on the Astir & Ardents tab.",
+			"Clothes that match your look."
+		],
+		grantedItems: [
+			{
+				key: "the-summoner:conjured-blade-i",
+				name: "Conjured Blade I",
+				description: "A blade of pure magical force, given shape and edge for exactly as long as " +
+					"it's needed.",
+				kind: "weapon",
+				tags: ["melee", "bane"]
+			}
+		],
+		groups: [
+			{
+				key: "the-summoner:gear",
+				label: "Choose 2 Summoner Gear.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-summoner:ribboned-staff-i",
+						name: "Ribboned Staff I",
+						description: "A staff trailing enchanted ribbons that lash out to strike at range.",
+						kind: "weapon",
+						tags: ["ranged"]
+					},
+					{
+						key: "the-summoner:gifted-dagger-i",
+						name: "Gifted Dagger I",
+						// The "mundane" tag key is not a real EQUIPMENT_TAGS entry (see equipment.js) -
+						// resolveEquipmentTags silently drops it. Mirrors the-wither's Wicked Blade I/
+						// the-advocate's Sharp Sickle I precedent, which already ship this exact same
+						// inert tag.
+						description: "A plain blade, a gift from the first ally ever bound.",
+						kind: "weapon",
+						tags: ["melee", "mundane"]
+					},
+					{
+						key: "the-summoner:sidearm-i",
+						name: "Sidearm I",
+						description: "The typical protections afforded to Astir pilots: a reliable tool " +
+							"capable of firing bursts of light arcane energy.",
+						kind: "weapon",
+						tags: ["ranged", "defensive"]
+					},
+					{
+						key: "the-summoner:shield-broach-i",
+						name: "Shield Broach I",
+						description: "A small worn charm that flares to ward off harm.",
+						tags: ["ward"]
+					}
+				]
+			}
+		]
 	}
 ];
 
@@ -630,6 +729,10 @@ export async function chooseStartingGear(playbookName, pools = STARTING_GEAR_POO
 		new Dialog({
 			title: "Choose Starting Gear",
 			content,
+			// Foundry's Dialog only ever invokes data.render, not options.render (see
+			// client/ui/dialog.js's `this.data.render(...)` call) — this is the DialogData
+			// argument, same as configureEquipment's own tag-total wiring (equipment.js).
+			render: wirePickerTabs,
 			buttons: {
 				add: {
 					label: "Add",
@@ -656,8 +759,7 @@ export async function chooseStartingGear(playbookName, pools = STARTING_GEAR_POO
 			classes: ["armor-astir", "starting-gear-picker"],
 			width: 560,
 			height: 700,
-			resizable: true,
-			render: wirePickerTabs
+			resizable: true
 		}).render(true);
 	});
 }

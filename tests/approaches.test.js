@@ -37,6 +37,17 @@ describe("availableApproaches", () => {
 		expect(availableApproaches("the-advocate").map((a) => a.key)).toEqual(["elemental"]);
 	});
 
+	it("restricts The Revenant to Profane or Divine", () => {
+		// availableApproaches filters APPROACHES in APPROACHES' own declared order (mundane, arcane,
+		// divine, profane, elemental), not PLAYBOOK_APPROACHES' own key order — divine sorts ahead
+		// of profane there.
+		expect(availableApproaches("the-revenant").map((a) => a.key)).toEqual(["divine", "profane"]);
+	});
+
+	it("restricts The Summoner to Elemental or Profane", () => {
+		expect(availableApproaches("the-summoner").map((a) => a.key)).toEqual(["profane", "elemental"]);
+	});
+
 	it("falls back to every approach for a playbook with no restriction entry", () => {
 		expect(PLAYBOOK_APPROACHES["some-future-playbook"]).toBeUndefined();
 		expect(availableApproaches("some-future-playbook")).toEqual(APPROACHES);

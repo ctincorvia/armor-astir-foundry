@@ -172,6 +172,8 @@
 										<button type="button" class="move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Roll</button>
 										{{else if activatable}}
 										<button type="button" class="move-activate{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Activate</button>
+										{{else if summonable}}
+										<button type="button" class="move-summon{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Summon</button>
 										{{/if}}
 										<button type="button" class="move-description{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}}>Description</button>
 										{{#if ../removable}}
@@ -909,6 +911,34 @@
 						</ol>
 					</section>
 					{{/if}}
+				{{#if boundAllies}}
+				<section class="bound-allies">
+					<div class="section-header">
+						<h3>Bound Allies</h3>
+						<div class="section-header-actions">
+							<button type="button" class="bound-ally-add icon-add-button" title="Bind an Ally" aria-label="Bind an Ally">+</button>
+						</div>
+					</div>
+					<ol class="entry-list bound-ally-list">
+						{{#each boundAllies.list}}
+						<li class="entry-list-item{{#if summoned}} summoned{{/if}}" data-entry-id="{{id}}">
+							<div class="entry-list-row">
+								<input type="text" class="entry-list-field bound-ally-field bound-ally-name" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Ally name"/>
+								<select class="entry-list-field bound-ally-field bound-ally-approach" data-entry-id="{{id}}" data-field="approach">
+									{{selectOptions ../boundAllies.approaches selected=approach valueAttr="key" labelAttr="label" blank="— Approach —"}}
+								</select>
+								<select class="entry-list-field bound-ally-field bound-ally-trait" data-entry-id="{{id}}" data-field="trait">
+									{{selectOptions ../boundAllies.traits selected=trait valueAttr="key" labelAttr="label" blank="— Trait —"}}
+								</select>
+								<span class="bound-ally-power">Power Invested: {{powerInvested}}</span>
+								<button type="button" class="bound-ally-invest icon-add-button labeled-add-button{{#unless ../boundAllies.canInvest}} disabled{{/unless}}" data-entry-id="{{id}}" {{#unless ../boundAllies.canInvest}}disabled{{/unless}} title="Invest 1 Power" aria-label="Invest 1 Power">+1 Power</button>
+								<button type="button" class="bound-ally-release icon-add-button labeled-add-button" data-entry-id="{{id}}" aria-label="Release ally">Release</button>
+							</div>
+						</li>
+						{{/each}}
+					</ol>
+				</section>
+				{{/if}}
 				</div>
 				<div class="tab" data-group="primary" data-tab="advancement">
 					<section class="advancement">
@@ -946,6 +976,19 @@
 							<span class="power-value">{{downtimeTokens.value}} / {{downtimeTokens.max}}</span>
 							<button type="button" class="power-step downtime-tokens-step downtime-tokens-increment" data-delta="1">+</button>
 						</div>
+						{{#if downtimeAlly}}
+						<div class="power-control downtime-ally-control">
+							<label class="power-label">Downtime Ally</label>
+							{{#if downtimeAlly.exists}}
+							<input type="text" class="downtime-ally-name-input" value="{{downtimeAlly.name}}" placeholder="Ally name"/>
+							<button type="button" class="downtime-ally-invest icon-add-button labeled-add-button{{#unless downtimeAlly.canInvest}} disabled{{/unless}}" {{#unless downtimeAlly.canInvest}}disabled{{/unless}} title="Invest 1 Power" aria-label="Invest 1 Power">+1 Power</button>
+							<span class="power-value">Power Invested: {{downtimeAlly.powerInvested}}</span>
+							<button type="button" class="downtime-ally-release icon-add-button labeled-add-button" aria-label="Release Downtime Ally">Release</button>
+							{{else}}
+							<button type="button" class="downtime-ally-add icon-add-button labeled-add-button" title="Bind a Downtime Ally" aria-label="Bind a Downtime Ally">+ Bind Downtime Ally</button>
+							{{/if}}
+						</div>
+						{{/if}}
 					</section>
 				</div>
 				<div class="tab" data-group="primary" data-tab="cosmetic">

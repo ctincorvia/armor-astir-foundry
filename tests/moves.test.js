@@ -23,6 +23,9 @@ const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 // The one real move carrying separateHold — a roll-tiered hold grant routed into its own
 // per-move pool instead of the shared system.resources.hold field (see playbook-moves.js).
 const MOBILITY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-scout:mobility");
+// The one real move carrying fixedTraits alongside Lead a Sortie's own CREW — a flat, hardcoded
+// "Roll +3" with no actor-stat lookup at all (see playbook-moves.js).
+const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
 const WEATHER_THE_STORM = BASIC_MOVES.find((m) => m.key === "weather-the-storm");
 const READ_THE_ROOM = BASIC_MOVES.find((m) => m.key === "read-the-room");
 const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertainties");
@@ -1580,6 +1583,32 @@ describe("rollMove - lead a sortie", () => {
 		await rollMove(actor, LEAD_A_SORTIE, crew);
 
 		expect(Roll).toHaveBeenCalledWith(`2d${DIE_FACES} + @mod`, { mod: 0 });
+	});
+});
+
+describe("rollMove - I Know You (flat +3 FAMILIARITY, no actor stat)", () => {
+	it("rolls the FAMILIARITY fixed trait's own +3 value rather than any actor stat", async () => {
+		// familiarity is deliberately absent from actor.system.stats entirely — a fixedTraits value
+		// is never looked up on the actor, same as Lead a Sortie's own CREW above.
+		const actor = { system: { stats: {} } };
+		const familiarity = { key: "familiarity", label: "FAMILIARITY", value: 3 };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, I_KNOW_YOU, familiarity);
+
+		expect(Roll).toHaveBeenCalledWith(`2d${DIE_FACES} + @mod`, { mod: 3 });
+	});
+
+	it("shows a +FAMILIARITY badge on the chat card, the same trait?.label path Lead a Sortie's CREW badge uses", async () => {
+		const actor = { system: { stats: {} } };
+		const familiarity = { key: "familiarity", label: "FAMILIARITY", value: 3 };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await rollMove(actor, I_KNOW_YOU, familiarity);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			traitLabel: "FAMILIARITY"
+		}));
 	});
 });
 

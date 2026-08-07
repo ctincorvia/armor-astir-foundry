@@ -433,6 +433,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.downtimeTokens.value": 3
 		});
 	});
@@ -459,6 +460,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.downtimeTokens.value": 3
 		});
 	});
@@ -478,6 +480,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.downtimeTokens.value": 3
 		});
 	});
@@ -501,6 +504,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.downtimeTokens.value": 3
 		});
 	});
@@ -527,6 +531,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.downtimeTokens.value": 3
 		});
 	});

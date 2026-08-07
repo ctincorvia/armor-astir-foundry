@@ -1075,6 +1075,7 @@
    button unreadable. This keeps the disabled state in the same amethyst/moonstone family. */
 .armor-astir.sheet .move-roll.disabled,
 .armor-astir.sheet .move-activate.disabled,
+.armor-astir.sheet .move-summon.disabled,
 .armor-astir.sheet .controls-mount-up.disabled,
 .armor-astir.sheet .controls-dismount.disabled,
 .armor-astir.sheet .witch-boons-choose.disabled {
@@ -1105,6 +1106,7 @@
    the player acts on, so both track the primary role. */
 .armor-astir.sheet .move-roll,
 .armor-astir.sheet .move-activate,
+.armor-astir.sheet .move-summon,
 .armor-astir.sheet .icon-add-button,
 .armor-astir.sheet .danger-add,
 .armor-astir.sheet .astir-create,
@@ -1122,6 +1124,7 @@
 
 .armor-astir.sheet .move-roll:not(.disabled):hover,
 .armor-astir.sheet .move-activate:not(.disabled):hover,
+.armor-astir.sheet .move-summon:not(.disabled):hover,
 .armor-astir.sheet .icon-add-button:not(.disabled):hover,
 .armor-astir.sheet .danger-add:hover,
 .armor-astir.sheet .astir-create:hover,

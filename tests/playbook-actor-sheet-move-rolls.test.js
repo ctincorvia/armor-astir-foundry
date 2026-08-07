@@ -35,6 +35,7 @@ const BITE_THE_DUST = BASIC_MOVES.find((m) => m.key === "bite-the-dust");
 const WEAVE_MAGIC = BASIC_MOVES.find((m) => m.key === "weave-magic");
 const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
+const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
 const WEAPON_CONDUIT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:weapon-conduit");
 const WARDING = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:warding");
 const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:artifact");
@@ -91,6 +92,23 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: DENY.key } } });
 
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DENY, config.trait, config);
+	});
+
+	it("offers I Know You's flat +3 FAMILIARITY fixedTrait, with no actor stat contributing", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+		const familiarity = { key: "familiarity", label: "FAMILIARITY", value: 3 };
+		const config = { trait: familiarity, advantage: "none", effect: "none" };
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: I_KNOW_YOU.key } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			I_KNOW_YOU,
+			[familiarity],
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, I_KNOW_YOU, familiarity, config);
 	});
 
 	it("still opens the roll dialog for help or hinder, which has no stat traits at all", async () => {

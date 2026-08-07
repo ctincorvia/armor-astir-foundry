@@ -18,6 +18,7 @@ import { EquipmentSheetMixin } from "./playbook-sheet/equipment-mixin.js";
 import { MovesSheetMixin } from "./playbook-sheet/moves-mixin.js";
 import { PatronSheetMixin } from "./playbook-sheet/patron-mixin.js";
 import { HomeSheetMixin } from "./playbook-sheet/home-mixin.js";
+import { SummonerSheetMixin } from "./playbook-sheet/summoner-mixin.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
 
@@ -173,7 +174,13 @@ export class PlaybookActorSheet extends ActorSheet {
 		// Love, Love, the same "object once a granting move/part is installed, else null" treatment
 		// an Ardent's Repair Tokens already establishes for a conditionally-present section.
 		data.home = this._homeMove() ? this._homeData() : null;
+		// The Summoner's Bound Allies roster (Social tab) — same "object once a granting move is
+		// installed, else null" gating as Home above (see summoner-mixin.js's _boundAlliesData).
+		data.boundAllies = this._boundAlliesData();
 		data.advancements = this._advancementsData();
+		// Helping Hands' single Downtime Ally slot (Downtime tab) — same gating shape as Bound
+		// Allies above, computed here alongside downtimeTokens since both live on the Downtime tab.
+		data.downtimeAlly = this._downtimeAllyData();
 		return data;
 	}
 
@@ -241,6 +248,15 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".witch-boons-relinquish").on("click", this._onWitchBoonsRelinquish.bind(this));
 		html.find(".home-value-step").on("click", this._onHomeValueStep.bind(this));
 		html.find(".home-clock-step").on("click", this._onHomeProgressStep.bind(this));
+		html.find(".bound-ally-add").on("click", this._onBoundAllyAdd.bind(this));
+		html.find(".bound-ally-release").on("click", this._onBoundAllyRelease.bind(this));
+		html.find(".bound-ally-field").on("change", this._onBoundAllyFieldChange.bind(this));
+		html.find(".bound-ally-invest").on("click", this._onBoundAllyInvestPower.bind(this));
+		html.find(".downtime-ally-add").on("click", this._onDowntimeAllyAdd.bind(this));
+		html.find(".downtime-ally-release").on("click", this._onDowntimeAllyRelease.bind(this));
+		html.find(".downtime-ally-name-input").on("change", this._onDowntimeAllyNameChange.bind(this));
+		html.find(".downtime-ally-invest").on("click", this._onDowntimeAllyInvestPower.bind(this));
+		html.find(".move-summon").on("click", this._onEidolonDriveSummon.bind(this));
 		html.find(".starting-moves-add").on("click", this._onStartingMovesAdd.bind(this));
 		html.find(".playbook-move-add").on("click", this._onPlaybookMoveAdd.bind(this));
 		html.find(".playbook-move-remove").on("click", this._onPlaybookMoveRemove.bind(this));
@@ -298,7 +314,8 @@ export class PlaybookActorSheet extends ActorSheet {
 Object.assign(
 	PlaybookActorSheet.prototype,
 	TrackingSheetMixin, ProgressionSheetMixin, ArdentSheetMixin, FramesSheetMixin,
-	AstirSheetMixin, EquipmentSheetMixin, MovesSheetMixin, PatronSheetMixin, HomeSheetMixin
+	AstirSheetMixin, EquipmentSheetMixin, MovesSheetMixin, PatronSheetMixin, HomeSheetMixin,
+	SummonerSheetMixin
 );
 
 export function registerPlaybookActorSheet() {

@@ -400,9 +400,9 @@ describe("chooseAstirPart", () => {
 			classes: ["armor-astir", "equipment-catalog-picker"],
 			width: 560,
 			height: 700,
-			resizable: true,
-			render: wirePickerTabs
+			resizable: true
 		});
+		expect(Dialog.mock.calls.at(-1)[0].render).toBe(wirePickerTabs);
 	});
 
 	it("wires picker tab switching via the dialog's render option", async () => {
@@ -411,7 +411,7 @@ describe("chooseAstirPart", () => {
 		await Promise.resolve();
 
 		const state = fakePickerTabsHtml();
-		Dialog.mock.calls.at(-1)[1].render(state.html);
+		Dialog.mock.calls.at(-1)[0].render(state.html);
 
 		expect(state.handler).toEqual(expect.any(Function));
 	});
@@ -513,9 +513,9 @@ describe("chooseAstirWeapon", () => {
 			classes: ["armor-astir", "equipment-catalog-picker"],
 			width: 560,
 			height: 700,
-			resizable: true,
-			render: wirePickerTabs
+			resizable: true
 		});
+		expect(Dialog.mock.calls.at(-1)[0].render).toBe(wirePickerTabs);
 	});
 
 	it("wires picker tab switching via the dialog's render option", async () => {
@@ -524,7 +524,7 @@ describe("chooseAstirWeapon", () => {
 		await Promise.resolve();
 
 		const state = fakePickerTabsHtml();
-		Dialog.mock.calls.at(-1)[1].render(state.html);
+		Dialog.mock.calls.at(-1)[0].render(state.html);
 
 		expect(state.handler).toEqual(expect.any(Function));
 	});

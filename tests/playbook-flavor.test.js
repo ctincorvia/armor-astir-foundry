@@ -122,6 +122,44 @@ describe("PLAYBOOK_FLAVOR", () => {
 			expect(question).toBeTruthy();
 		}
 	});
+
+	it("gives The Revenant four LOOK prompts, each with a label and text", () => {
+		for (const entry of PLAYBOOK_FLAVOR["the-revenant"].look) {
+			expect(entry.label).toBeTruthy();
+			expect(entry.text).toBeTruthy();
+		}
+		expect(PLAYBOOK_FLAVOR["the-revenant"].look).toHaveLength(4);
+	});
+
+	it("gives The Revenant its two intro paragraphs", () => {
+		expect(PLAYBOOK_FLAVOR["the-revenant"].intro).toHaveLength(2);
+	});
+
+	it("gives The Revenant eight Consider questions", () => {
+		expect(PLAYBOOK_FLAVOR["the-revenant"].consider).toHaveLength(8);
+		for (const question of PLAYBOOK_FLAVOR["the-revenant"].consider) {
+			expect(question).toBeTruthy();
+		}
+	});
+
+	it("gives The Summoner four LOOK prompts, each with a label and text", () => {
+		for (const entry of PLAYBOOK_FLAVOR["the-summoner"].look) {
+			expect(entry.label).toBeTruthy();
+			expect(entry.text).toBeTruthy();
+		}
+		expect(PLAYBOOK_FLAVOR["the-summoner"].look).toHaveLength(4);
+	});
+
+	it("gives The Summoner its two intro paragraphs", () => {
+		expect(PLAYBOOK_FLAVOR["the-summoner"].intro).toHaveLength(2);
+	});
+
+	it("gives The Summoner seven Consider questions", () => {
+		expect(PLAYBOOK_FLAVOR["the-summoner"].consider).toHaveLength(7);
+		for (const question of PLAYBOOK_FLAVOR["the-summoner"].consider) {
+			expect(question).toBeTruthy();
+		}
+	});
 });
 
 describe("defaultLookText", () => {

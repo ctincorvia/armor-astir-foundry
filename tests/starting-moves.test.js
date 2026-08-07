@@ -149,6 +149,22 @@ describe("STARTING_MOVE_POOLS", () => {
 		expect(advocate.pickOneKeys).toEqual(["the-advocate:earthly-ally", "the-advocate:titanic"]);
 		expect(advocate.chooseCount).toBe(0);
 	});
+
+	it("grants The Revenant exactly Never Quite Free and Unfettered, with nothing to pick", () => {
+		const revenant = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Revenant");
+
+		expect(revenant.grantedKeys).toEqual(["the-revenant:never-quite-free", "the-revenant:unfettered"]);
+		expect(revenant.pickOneKeys).toEqual([]);
+		expect(revenant.chooseCount).toBe(0);
+	});
+
+	it("grants The Summoner exactly Binding, with nothing to pick", () => {
+		const summoner = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Summoner");
+
+		expect(summoner.grantedKeys).toEqual(["the-summoner:binding"]);
+		expect(summoner.pickOneKeys).toEqual([]);
+		expect(summoner.chooseCount).toBe(0);
+	});
 });
 
 describe("findStartingMovePool", () => {

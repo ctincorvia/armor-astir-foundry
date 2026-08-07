@@ -58,7 +58,14 @@ export const ProgressionSheetMixin = {
 	// picked moves the same way _conflictTier's own base does for conflictTier.
 	_downtimeTokensMax() {
 		const picked = resolvePlaybookMoves(this._playbookMoves());
-		return picked.reduce((max, move) => Math.max(max, move.downtimeTokensMax ?? 0), DOWNTIME_TOKENS_MAX_BASE);
+		const base = picked.reduce((max, move) => Math.max(max, move.downtimeTokensMax ?? 0), DOWNTIME_TOKENS_MAX_BASE);
+		// Helping Hands (Summoner — see playbook-moves.js's grantsDowntimeAllySlot): "take +1 token
+		// during Downtime" while a Downtime Ally is bound. An additive, conditionally-active bonus
+		// rather than a per-move ceiling like downtimeTokensMax above, so it's summed on top of the
+		// existing reduce rather than folded into it — see summoner-mixin.js's _downtimeAllyData.
+		const helpingHandsBonus = picked.some((move) => move.grantsDowntimeAllySlot)
+			&& this.actor.system.attributes?.downtimeAlly ? 1 : 0;
+		return base + helpingHandsBonus;
 	},
 	_advancements() {
 		return this.actor.system.attributes?.advancements ?? {};

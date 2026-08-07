@@ -32,6 +32,16 @@ describe("gravityTriggerForPlaybook", () => {
 		expect(GRAVITY_TRIGGERS["the-adrift"]).toContain("+HOME");
 	});
 
+	it("gives The Revenant its trigger", () => {
+		expect(gravityTriggerForPlaybook("the-revenant")).toBe(GRAVITY_TRIGGERS["the-revenant"]);
+		expect(GRAVITY_TRIGGERS["the-revenant"]).toContain("never quite free");
+	});
+
+	it("gives The Summoner its trigger", () => {
+		expect(gravityTriggerForPlaybook("the-summoner")).toBe(GRAVITY_TRIGGERS["the-summoner"]);
+		expect(GRAVITY_TRIGGERS["the-summoner"]).toContain("binding");
+	});
+
 	it("returns null for a playbook with no known trigger", () => {
 		expect(GRAVITY_TRIGGERS["some-future-playbook"]).toBeUndefined();
 		expect(gravityTriggerForPlaybook("some-future-playbook")).toBeNull();

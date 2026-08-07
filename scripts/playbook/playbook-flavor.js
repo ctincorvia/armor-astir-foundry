@@ -266,6 +266,63 @@ export const PLAYBOOK_FLAVOR = {
 			"Name a place of natural beauty that has been scarred by the conflict.",
 			"Name a place of natural beauty that you still hope to preserve."
 		]
+	},
+	"the-revenant": {
+		look: [
+			{ label: "You look:", text: "maimed, ethereal, stoic, tired or cruel" },
+			{ label: "Your Astir is marked with:", text: "ethereal vapours, creeping mold, dark stains, deep wounds" },
+			{ label: "Your magic is like:", text: "haunted echoes, chilling winds, ominous whispers, bad vibes" },
+			{ label: "When you launch your Astir, you say:", text: "________________" }
+		],
+		intro: [
+			"For most, the heel of empire grinds you to dust once—and only once. But when you died, " +
+				"your spirit didn't leave. It is stuck here, bound to the very machine you died in, until " +
+				"it too crumbles into dust: or until your work is done. Revenants are unliving echoes of " +
+				"Channelers, bound still to the machines they piloted in life, until their work is done.",
+			"To play a Revenant is to play the spectre of a fallen Channeler, haunting the Astir they " +
+				"died in. You are bound to it, holding it together and powering it even in death. If your " +
+				"body remains, it is entombed within it. Unfettered outlines some of the benefits of being " +
+				"deceased, while moves like I know you and ancient recall allow you to explore your old " +
+				"life. Consider;"
+		],
+		consider: [
+			"How did you die?",
+			"What family did you leave behind, if any?",
+			"Do you know what caused you to persist?",
+			"Did you have any previous relationship with death?",
+			"Who or what are you holding on for?",
+			"What do you think passing on looks like?",
+			"What kind of bodily autonomy have you been left with?",
+			"What earthly pleasures can you still feel?"
+		]
+	},
+	"the-summoner": {
+		look: [
+			{ label: "You look:", text: "noble, naive, wizened, bizarre or friendly" },
+			{ label: "You wear:", text: "pilot jumpsuit, military uniform, dress uniform, traditional robes" },
+			{ label: "Your magic is like:", text: "distant chimes, fireside embers, yawning portals, rushing winds" },
+			{ label: "When you launch your Astir, you say:", text: "________________" }
+		],
+		intro: [
+			"Allies are an important thing, both in life and in warfare. Few kinds of Channeler embody " +
+				"this ethos better than Summoners: those capable of not just forming strong bonds with " +
+				"magical creatures and spirits, but also conjuring them forth in times of need to gain " +
+				"their aid. Such expertise can leave individuals vulnerable and unprotected if they have " +
+				"no time to conjure a powerful ally—but more than a match for numerous foes when they do.",
+			"To play a Summoner is to make allies of the powerful and strange, and to involve them in " +
+				"your conflict. Eidolon drive and binding form your core skillset, and moves like " +
+				"enduring support and helping hands let you get other forms of aid from your summoned " +
+				"allies."
+		],
+		consider: [
+			"Does your family have a history of being Summoners?",
+			"Do you consider summoning something ordered and hermetic, or more loose and spiritual?",
+			"Who or what was the first ally you ever bound?",
+			"Do you call yourself a Summoner, or something else?",
+			"What was your place in your community before the conflict began?",
+			"Do you have any kind of traditional outfit or pieces of clothing?",
+			"Is there a region in the world most associated with Summoners?"
+		]
 	}
 };
 

@@ -43,6 +43,7 @@ const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-alli
 const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
 const INPUT_CHANNEL = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:input-channel");
 const DIVINATION_CODEX = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:divination-codex");
+const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
 
 beforeEach(() => {
 	postMoveDescription.mockClear();
@@ -191,6 +192,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						summonable: false,
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
@@ -211,6 +213,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						summonable: false,
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
@@ -229,6 +232,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						summonable: false,
 						descriptionGated: false,
 						trackHold: true,
 						separateHoldPool: false,
@@ -247,6 +251,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						summonable: false,
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
@@ -263,6 +268,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						summonable: false,
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
@@ -283,6 +289,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						summonable: false,
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
@@ -306,6 +313,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						summonable: false,
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
@@ -325,6 +333,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						summonable: false,
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
@@ -343,6 +352,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						summonable: false,
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
@@ -377,6 +387,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: true,
 						activatable: false,
+						summonable: false,
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
@@ -393,6 +404,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: false,
 						rollable: false,
 						activatable: false,
+						summonable: false,
 						descriptionGated: false,
 						trackHold: false,
 						separateHoldPool: false,
@@ -411,6 +423,7 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						gated: true,
 						rollable: false,
 						activatable: true,
+						summonable: false,
 						descriptionGated: true,
 						trackHold: true,
 						separateHoldPool: true,
@@ -518,6 +531,7 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 			gated: false,
 			rollable: true,
 			activatable: false,
+			summonable: false,
 			descriptionGated: false,
 			trackHold: false,
 			separateHoldPool: false,
@@ -588,6 +602,16 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 
 		expect(move.rollable).toBe(false);
 		expect(move.activatable).toBe(false);
+		expect(move.gated).toBe(false);
+	});
+
+	it("shows a Roll button for a fixedTraits-only move with no actor stats to roll (I Know You)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { playbookMoves: [I_KNOW_YOU.key] } } };
+
+		const [move] = playbookGroup(sheet.getData()).moves;
+
+		expect(move.rollable).toBe(true);
 		expect(move.gated).toBe(false);
 	});
 

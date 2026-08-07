@@ -117,10 +117,16 @@ export const MovesSheetMixin = {
 			// Every entry in this group — parts and the Astir's own unique move alike — only does
 			// anything while the Astir specifically is the mounted frame (see claude.md's Piloted
 			// note), so `gated` is forced on top of whatever gating a part already has, the same
-			// disabled-Roll/Activate treatment channelGated already gives b-plot.
+			// disabled-Roll/Activate treatment channelGated already gives b-plot. Living Drive
+			// (Summoner — see _grantsUnpilotedAstirMove) is the one exception: it ungates Eidolon
+			// Drive specifically from the mounted-frame half of this check, so a picked move's own
+			// gating (summonGated, e.g.) still applies even then.
 			moveGroups.push({
 				label: "Astir Moves",
-				moves: this._moveGroupMoves(astirMoves).map((move) => ({ ...move, gated: move.gated || mountedFrame?.id !== "astir" }))
+				moves: this._moveGroupMoves(astirMoves).map((move) => ({
+					...move,
+					gated: move.gated || (mountedFrame?.id !== "astir" && !this._grantsUnpilotedAstirMove(move))
+				}))
 			});
 		}
 		for (const ardent of ardents) {
@@ -179,6 +185,11 @@ export const MovesSheetMixin = {
 			// requiresChannelDisabled) — distinct from the traits-empty gating below (Weave
 			// Magic), which never blocks reading a move's own description.
 			const channelGated = Boolean(move.requiresChannelDisabled) && !channelDisabled;
+			// Eidolon Drive's Summon button (Summoner — see playbook-moves.js's summonsAlly) has
+			// nothing to summon with zero bound allies, so it's disabled the same way every other
+			// gated action button in this module is, rather than left to _onEidolonDriveSummon's
+			// own defensive no-op guard alone.
+			const summonGated = Boolean(move.summonsAlly) && this._boundAllies().length === 0;
 			return {
 				key: move.key,
 				name: move.name,
@@ -187,8 +198,9 @@ export const MovesSheetMixin = {
 				// currently disabled for this actor (e.g. Weave Magic without Channel — a move
 				// with no traits by design, like Help or Hinder, is never gated this way), OR
 				// when the move is explicitly gated the opposite way, off Channel being enabled
-				// (b-plot, via channelGated above).
-				gated: (move.traits.length > 0 && traits.length === 0) || channelGated,
+				// (b-plot, via channelGated above), OR (Eidolon Drive) there's no bound ally to
+				// summon at all (summonGated above).
+				gated: (move.traits.length > 0 && traits.length === 0) || channelGated || summonGated,
 				// Whether this move rolls anything at all, based on its static definition rather
 				// than the actor-filtered trait list above — a gated move (e.g. Weave Magic with
 				// Channel disabled) still shows a disabled Roll button, but a move with no traits or
@@ -197,9 +209,14 @@ export const MovesSheetMixin = {
 				// `traits` is deliberately empty (see that move's own comment on why "home" can't
 				// live there) and it grants itself +HOME via a self-targeting addsTraitToMove, so
 				// rollable also checks for that grant — a real trait to roll, just not one recorded
-				// on the move's own static traits array.
+				// on the move's own static traits array. A move with a non-empty fixedTraits (e.g.
+				// I Know You's flat +3 FAMILIARITY, see playbook-moves.js) is likewise rollable
+				// purely off that hardcoded entry — _moveTraits already merges fixedTraits into its
+				// returned array unconditionally, so there's a real trait to roll here too, just
+				// never one read off the actor.
 				rollable: move.traits.length > 0
 					|| Boolean(move.conditions)
+					|| Boolean(move.fixedTraits?.length)
 					|| resolvePlaybookMoves(this._playbookMoves())
 						.some((m) => m.addsTraitToMove?.moveKey === move.key || m.addsTraitToMove?.moveKeys?.includes(move.key)),
 				// Moves with a flat hold grant (B-Plot) show an Activate button in place of Roll —
@@ -210,6 +227,11 @@ export const MovesSheetMixin = {
 				activatable: Boolean(move.flatHold)
 					|| Boolean(move.showsReadTheRoomQuestions)
 					|| Boolean(move.activateChoices),
+				// Eidolon Drive's Summon button (Summoner) — replaces Roll/Activate in the template
+				// exactly the way flatHold replaces Roll with Activate above; see summoner-mixin.js's
+				// _onEidolonDriveSummon for the handler, and summonGated above for why it's disabled
+				// with no bound ally.
+				summonable: Boolean(move.summonsAlly),
 				// Weave Magic's description stays readable even while its Roll button is gated —
 				// you can still learn what the move does. B-Plot is different: being "in the
 				// b-plot" isn't something a Channel-enabled character can do at all, so its
@@ -276,6 +298,24 @@ export const MovesSheetMixin = {
 			label: trait.label,
 			value: (this.actor.system.stats?.[trait.key]?.value ?? 0) + (traitBonuses[trait.key] ?? 0)
 		}));
+		// Eidolon Drive's summoned ally (Summoner) — offered on every move, not scoped to this move's
+		// own declared traits, mirroring the rules text ("you may immediately make a move using their
+		// approach and trait at +3 [then] access to their trait at +1 ... for the rest of the
+		// Scene"). Unconditional, like the Input Channel/Love Love Love pushes below, but placed
+		// first since it isn't gated on this move rolling any particular trait at all — see
+		// summoner-mixin.js for the write side (_onEidolonDriveSummon/_consumeEidolonDriveBonus).
+		const eidolonDrive = this._eidolonDrive();
+		const summonedAlly = eidolonDrive.summonedAllyId
+			? this._boundAllies().find((ally) => ally.id === eidolonDrive.summonedAllyId)
+			: null;
+		if (summonedAlly) {
+			const traitLabel = TRAITS.find((trait) => trait.key === summonedAlly.trait)?.label ?? summonedAlly.trait;
+			actorTraits.push({
+				key: "eidolon-drive-ally",
+				label: `${summonedAlly.name || "Summoned Ally"} (${traitLabel})`,
+				value: eidolonDrive.bonusUsed ? 1 : 3
+			});
+		}
 		// Input Channel (see astir.js) offers +CHANNEL on any move, bypassing both that move's own
 		// traits list and Channel's disabled gate — only while installed on the currently mounted
 		// frame (Astir or Ardent alike — see _mountedParts), and only added once (a move that
@@ -387,6 +427,14 @@ export const MovesSheetMixin = {
 		const granting = resolvePlaybookMoves(this._playbookMoves())
 			.find((m) => m.grantsAdvantageOnMove?.moveKey === move.key);
 		return granting?.grantsAdvantageOnMove.advantage ?? null;
+	},
+	// Living Drive's "you may use [eidolon drive] outside of an Astir" (Summoner — see
+	// playbook-moves.js's grantsUnpilotedAstirMove) — the single-target-move shape
+	// _grantedTraitForMove/_grantedAdvantageForMove already use, checked by _movesData's Astir
+	// Moves group to skip the mounted-frame half of its own gating for Eidolon Drive specifically.
+	_grantsUnpilotedAstirMove(move) {
+		return resolvePlaybookMoves(this._playbookMoves())
+			.some((m) => m.grantsUnpilotedAstirMove?.moveKey === move.key);
 	},
 	// Walk-on Part In The War's "tick 'overheating' on a 6-" (see playbook-moves.js's
 	// addsFailureReminderToMove) — a move-specific reminder text appended to a *different* move's
@@ -709,6 +757,11 @@ export const MovesSheetMixin = {
 		// applied on the Guided "Take 7-9" early-return path above — no trait was actually rolled
 		// there, so nothing to advance.
 		if (config.trait?.key === "home") await this._advanceHome();
+		// Eidolon Drive's one-time +3 (Summoner) flips to the ongoing +1 the moment the player
+		// actually rolls with the summoned ally's trait — mirrors the +HOME hook immediately above.
+		// Only fires once per summon: _consumeEidolonDriveBonus itself no-ops once bonusUsed is
+		// already true, the same defensive shape _advanceHome's own clamp gives +HOME.
+		if (config.trait?.key === "eidolon-drive-ally") await this._consumeEidolonDriveBonus();
 		await this._onMoveResolved(move, result.dice, result.tier);
 	},
 	// Runs after a move resolves — whether via a real roll (dice present) or Guided's "Take 7-9"

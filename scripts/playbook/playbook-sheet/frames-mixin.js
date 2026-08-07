@@ -200,6 +200,13 @@ export const FramesSheetMixin = {
 		if (this._astirParts().some((part) => part.grantsPotionsOnLeadASortie)) {
 			updates["system.attributes.astir.potions"] = { red: 0, blue: 0, yellow: 0 };
 		}
+		// Eidolon Drive's "once per Scene" Summoned checkbox (see summoner-mixin.js) already clears
+		// above via _refreshPeriod("Sortie")'s own generic ALL_MOVES walk (the uses entry itself
+		// carries period: "Sortie" for exactly this reason — this module has no Scene-boundary
+		// button of its own, see claude.md's Manual trackers note). The active summon itself doesn't
+		// live in moveUses though, so it's reset here alongside it — the ally's +3/+1 grant
+		// shouldn't outlive the Sortie it was summoned in.
+		updates["system.attributes.eidolonDrive"] = { summonedAllyId: null, bonusUsed: false };
 		updates["system.attributes.downtimeTokens.value"] = this._downtimeTokensMax();
 		this.actor.update(updates);
 	}

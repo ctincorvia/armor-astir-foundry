@@ -12,7 +12,9 @@ export const PLAYBOOKS = [
 	{ packId: "armor-astir.basic-playbook-witch", name: "The Witch" },
 	{ packId: "armor-astir.basic-playbook-wither", name: "The Wither" },
 	{ packId: "armor-astir.basic-playbook-adrift", name: "The Adrift" },
-	{ packId: "armor-astir.basic-playbook-advocate", name: "The Advocate" }
+	{ packId: "armor-astir.basic-playbook-advocate", name: "The Advocate" },
+	{ packId: "armor-astir.basic-playbook-revenant", name: "The Revenant" },
+	{ packId: "armor-astir.basic-playbook-summoner", name: "The Summoner" }
 ];
 
 async function getPlaybookSourceData(playbook) {

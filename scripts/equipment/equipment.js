@@ -710,6 +710,10 @@ export async function chooseEquipmentCatalogItem(kind, catalog = EQUIPMENT_CATAL
 		new Dialog({
 			title: kind === "weapon" ? "Pick a Weapon" : "Pick Gear",
 			content,
+			// Foundry's Dialog only ever invokes data.render, not options.render (see
+			// client/ui/dialog.js's `this.data.render(...)` call) — this is the DialogData
+			// argument, same as configureEquipment's own tag-total wiring above.
+			render: wirePickerTabs,
 			buttons: {
 				add: {
 					label: "Add",
@@ -729,8 +733,7 @@ export async function chooseEquipmentCatalogItem(kind, catalog = EQUIPMENT_CATAL
 			classes: ["armor-astir", "equipment-catalog-picker"],
 			width: 560,
 			height: 700,
-			resizable: true,
-			render: wirePickerTabs
+			resizable: true
 		}).render(true);
 	});
 }
@@ -839,6 +842,9 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 		new Dialog({
 			title: "Choose a Weapon",
 			content,
+			// See chooseEquipmentCatalogItem's own render comment — must be DialogData.render, not
+			// an options field, for Foundry to actually invoke it.
+			render: wirePickerTabs,
 			buttons: {
 				choose: {
 					label: "Choose",
@@ -857,8 +863,7 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 			classes: ["armor-astir", "weapon-picker"],
 			width: 560,
 			height: 700,
-			resizable: true,
-			render: wirePickerTabs
+			resizable: true
 		}).render(true);
 	});
 }
