@@ -13,6 +13,7 @@ import {
 	UNARMED,
 	WEAPON_RANGE_GROUP,
 	WEAPON_SCALES,
+	buildTagReference,
 	chooseEquipmentCatalogItem,
 	chooseWeapon,
 	configureEquipment,
@@ -20,7 +21,9 @@ import {
 	findCatalogEquipment,
 	findEquipmentTag,
 	groupEquipmentTags,
-	resolveEquipmentTags
+	resolveEquipmentTags,
+	wirePickerTabs,
+	withTagLabels
 } from "../scripts/equipment/equipment.js";
 
 const BLITZ = EQUIPMENT_TAGS.find((tag) => tag.key === "blitz");
@@ -271,6 +274,102 @@ describe("groupEquipmentTags", () => {
 
 	it("returns an empty list for an empty input", () => {
 		expect(groupEquipmentTags([])).toEqual([]);
+	});
+});
+
+describe("withTagLabels", () => {
+	it("resolves an item's tag keys to their labels", () => {
+		expect(withTagLabels({ key: "fixture-item", tags: ["fixture-positive", "fixture-negative"] }, FIXTURE_TAGS)).toEqual({
+			key: "fixture-item",
+			tags: ["fixture-positive", "fixture-negative"],
+			tagLabels: ["Fixture Positive", "Fixture Negative"]
+		});
+	});
+
+	it("defaults to an empty tagLabels array when the item has no tags field", () => {
+		expect(withTagLabels({ key: "fixture-item" }, FIXTURE_TAGS)).toEqual({
+			key: "fixture-item",
+			tagLabels: []
+		});
+	});
+
+	it("spreads the rest of the item through untouched", () => {
+		const item = { key: "fixture-item", name: "Fixture Item", description: "d", tags: [] };
+		expect(withTagLabels(item, FIXTURE_TAGS)).toEqual({ ...item, tagLabels: [] });
+	});
+});
+
+describe("buildTagReference", () => {
+	it("unions and groups tag keys referenced across a list of items", () => {
+		const items = [
+			{ key: "a", tags: ["fixture-positive"] },
+			{ key: "b", tags: ["fixture-negative"] }
+		];
+
+		expect(buildTagReference(items, FIXTURE_TAGS)).toEqual({
+			tagGroups: [
+				{ label: "Minor Drawbacks (-1)", tags: [FIXTURE_TAGS[1]] },
+				{ label: "Rare Benefits (+2)", tags: [FIXTURE_TAGS[0]] }
+			],
+			hasTags: true
+		});
+	});
+
+	it("dedupes a tag key shared by two items", () => {
+		const items = [
+			{ key: "a", tags: ["fixture-positive"] },
+			{ key: "b", tags: ["fixture-positive"] }
+		];
+
+		expect(buildTagReference(items, FIXTURE_TAGS).tagGroups).toEqual([
+			{ label: "Rare Benefits (+2)", tags: [FIXTURE_TAGS[0]] }
+		]);
+	});
+
+	it("reports hasTags false and an empty tagGroups for an empty item list", () => {
+		expect(buildTagReference([], FIXTURE_TAGS)).toEqual({ tagGroups: [], hasTags: false });
+	});
+
+	it("reports hasTags false when no item carries a tags field at all", () => {
+		const items = [{ key: "a" }, { key: "b" }];
+		expect(buildTagReference(items, FIXTURE_TAGS)).toEqual({ tagGroups: [], hasTags: false });
+	});
+});
+
+// Fakes the jQuery `.find(selector)` chain wirePickerTabs uses: `[data-picker-tab]` resolves an
+// object exposing `.on("click", handler)` (to capture the handler) and `.removeClass`; any other
+// selector (the per-target `[data-picker-tab='...']`/`[data-picker-tab-panel]` lookups) resolves
+// an object exposing `.addClass`/`.removeClass`, recording which selector each was called on.
+function fakePickerTabsHtml() {
+	const state = { handler: null, addClassCalls: [], removeClassCalls: [] };
+	state.html = {
+		find: (selector) => ({
+			on: (event, handler) => { state.handler = handler; },
+			addClass: (cls) => { state.addClassCalls.push([selector, cls]); },
+			removeClass: (cls) => { state.removeClassCalls.push([selector, cls]); }
+		})
+	};
+	return state;
+}
+
+describe("wirePickerTabs", () => {
+	it("wires a click handler onto [data-picker-tab]", () => {
+		const state = fakePickerTabsHtml();
+		wirePickerTabs(state.html);
+
+		expect(state.handler).toEqual(expect.any(Function));
+	});
+
+	it("switches the active tab and panel to the clicked target", () => {
+		const state = fakePickerTabsHtml();
+		wirePickerTabs(state.html);
+
+		state.handler({ currentTarget: { dataset: { pickerTab: "tags" } } });
+
+		expect(state.removeClassCalls).toContainEqual(["[data-picker-tab]", "active"]);
+		expect(state.addClassCalls).toContainEqual(["[data-picker-tab='tags']", "active"]);
+		expect(state.removeClassCalls).toContainEqual(["[data-picker-tab-panel]", "active"]);
+		expect(state.addClassCalls).toContainEqual(["[data-picker-tab-panel='tags']", "active"]);
 	});
 });
 
@@ -1159,6 +1258,12 @@ describe("findCatalogEquipment", () => {
 	});
 });
 
+// A catalog independent of FIXTURE_CATALOG above (whose items all carry tags: []), carrying a
+// real EQUIPMENT_TAGS key so the hasTags: true branch of buildTagReference gets real coverage.
+const FIXTURE_CATALOG_WITH_TAGS = [
+	{ key: "fixture-tagged-weapon", name: "Fixture Tagged Weapon", kind: "weapon", description: "t", tags: ["blitz"], scale: "foot" }
+];
+
 describe("chooseEquipmentCatalogItem", () => {
 	it("renders the picker template filtered to the given kind", async () => {
 		const promise = chooseEquipmentCatalogItem("weapon", FIXTURE_CATALOG);
@@ -1166,8 +1271,72 @@ describe("chooseEquipmentCatalogItem", () => {
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-catalog-picker"), {
-			items: [FIXTURE_CATALOG[0], FIXTURE_CATALOG[1]]
+			items: [
+				{ ...FIXTURE_CATALOG[0], tagLabels: [] },
+				{ ...FIXTURE_CATALOG[1], tagLabels: [] }
+			],
+			itemsTabLabel: "Weapons",
+			tagGroups: [],
+			hasTags: false
 		});
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("labels the items tab Gear when picking gear", async () => {
+		const promise = chooseEquipmentCatalogItem("gear", FIXTURE_CATALOG);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({ itemsTabLabel: "Gear" }));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("includes a Tags reference when an item carries a real tag key", async () => {
+		const promise = chooseEquipmentCatalogItem("weapon", FIXTURE_CATALOG_WITH_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-catalog-picker"), {
+			items: [{ ...FIXTURE_CATALOG_WITH_TAGS[0], tagLabels: [BLITZ.label] }],
+			itemsTabLabel: "Weapons",
+			tagGroups: [{ label: "Strong Benefits (+1)", tags: [BLITZ] }],
+			hasTags: true
+		});
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("opens the dialog sized larger than Dialog's default, resizable, with picker tabs wired", async () => {
+		const promise = chooseEquipmentCatalogItem("weapon", FIXTURE_CATALOG);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[1]).toEqual({
+			classes: ["armor-astir", "equipment-catalog-picker"],
+			width: 560,
+			height: 700,
+			resizable: true,
+			render: wirePickerTabs
+		});
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("wires picker tab switching via the dialog's render option", async () => {
+		const promise = chooseEquipmentCatalogItem("weapon", FIXTURE_CATALOG);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakePickerTabsHtml();
+		Dialog.mock.calls.at(-1)[1].render(state.html);
+
+		expect(state.handler).toEqual(expect.any(Function));
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
@@ -1253,8 +1422,44 @@ describe("chooseWeapon", () => {
 			options: [
 				{ key: "w1", name: "Halberd", value: 3, tagLabels: ["Fixture Positive", "Fixture Spendable"] },
 				{ key: "w2", name: "Sidearm", value: 0, tagLabels: [] }
-			]
+			],
+			tagGroups: [
+				{ label: "Strong Benefits (+1)", tags: [FIXTURE_TAGS[2]] },
+				{ label: "Rare Benefits (+2)", tags: [FIXTURE_TAGS[0]] }
+			],
+			hasTags: true
 		});
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("opens the dialog sized larger than Dialog's default, resizable, with picker tabs wired", async () => {
+		const promise = chooseWeapon(FIXTURE_WEAPONS, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[1]).toEqual({
+			classes: ["armor-astir", "weapon-picker"],
+			width: 560,
+			height: 700,
+			resizable: true,
+			render: wirePickerTabs
+		});
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("wires picker tab switching via the dialog's render option", async () => {
+		const promise = chooseWeapon(FIXTURE_WEAPONS, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakePickerTabsHtml();
+		Dialog.mock.calls.at(-1)[1].render(state.html);
+
+		expect(state.handler).toEqual(expect.any(Function));
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
@@ -1298,7 +1503,9 @@ describe("chooseWeapon", () => {
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("weapon-picker"), {
-			options: [{ key: "w3", name: "Fists", value: 0, tagLabels: [] }]
+			options: [{ key: "w3", name: "Fists", value: 0, tagLabels: [] }],
+			tagGroups: [],
+			hasTags: false
 		});
 
 		Dialog.mock.calls.at(-1)[0].close();

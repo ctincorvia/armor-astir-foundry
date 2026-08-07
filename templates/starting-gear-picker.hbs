@@ -1,41 +1,76 @@
 <form class="armor-astir-starting-gear-picker">
-	{{#if grantedItems.length}}
-	<p class="starting-gear-picker-instructions">You start with these.</p>
-	<ol class="starting-gear-picker-list">
-		{{#each grantedItems}}
-		<li class="starting-gear-picker-item starting-gear-picker-item-granted">
-			<span class="starting-gear-picker-name">{{name}}</span>
-			<div class="starting-gear-picker-description">{{description}}</div>
-		</li>
-		{{/each}}
-	</ol>
+	{{#if hasTags}}
+	<nav class="picker-tabs">
+		<a class="picker-tab active" data-picker-tab="starting-gear">Starting Gear</a>
+		<a class="picker-tab" data-picker-tab="tags">Tags</a>
+	</nav>
 	{{/if}}
-	{{#if groups.length}}
-	{{#each groups}}
-	<p class="starting-gear-picker-instructions">{{label}}</p>
-	<ol class="starting-gear-picker-list">
-		{{#each items}}
-		<li class="starting-gear-picker-item">
-			<label class="starting-gear-picker-option">
-				<input type="checkbox" name="starting-gear-item-{{../key}}" value="{{key}}"/>
+	<div class="picker-tab-panel active" data-picker-tab-panel="starting-gear">
+		{{#if grantedItems.length}}
+		<p class="starting-gear-picker-instructions">You start with these.</p>
+		<ol class="starting-gear-picker-list">
+			{{#each grantedItems}}
+			<li class="starting-gear-picker-item starting-gear-picker-item-granted">
 				<span class="starting-gear-picker-name">{{name}}</span>
-			</label>
-			<div class="starting-gear-picker-description">{{description}}</div>
-		</li>
+				<div class="starting-gear-picker-description">{{description}}</div>
+				{{#if tagLabels.length}}
+				<div class="starting-gear-picker-tags">
+					{{#each tagLabels}}<span class="starting-gear-picker-tag">{{this}}</span>{{/each}}
+				</div>
+				{{/if}}
+			</li>
+			{{/each}}
+		</ol>
+		{{/if}}
+		{{#if groups.length}}
+		{{#each groups}}
+		<p class="starting-gear-picker-instructions">{{label}}</p>
+		<ol class="starting-gear-picker-list">
+			{{#each items}}
+			<li class="starting-gear-picker-item">
+				<label class="starting-gear-picker-option">
+					<input type="checkbox" name="starting-gear-item-{{../key}}" value="{{key}}"/>
+					<span class="starting-gear-picker-name">{{name}}</span>
+				</label>
+				<div class="starting-gear-picker-description">{{description}}</div>
+				{{#if tagLabels.length}}
+				<div class="starting-gear-picker-tags">
+					{{#each tagLabels}}<span class="starting-gear-picker-tag">{{this}}</span>{{/each}}
+				</div>
+				{{/if}}
+			</li>
+			{{/each}}
+		</ol>
 		{{/each}}
-	</ol>
-	{{/each}}
-	{{/if}}
-	{{#unless grantedItems.length}}
-	{{#unless groups.length}}
-	<p class="starting-gear-picker-empty">There is no starting equipment list for this playbook yet.</p>
-	{{/unless}}
-	{{/unless}}
-	{{#if freeformNotes.length}}
-	<ul class="starting-gear-picker-notes">
-		{{#each freeformNotes}}
-		<li>{{this}}</li>
+		{{/if}}
+		{{#unless grantedItems.length}}
+		{{#unless groups.length}}
+		<p class="starting-gear-picker-empty">There is no starting equipment list for this playbook yet.</p>
+		{{/unless}}
+		{{/unless}}
+		{{#if freeformNotes.length}}
+		<ul class="starting-gear-picker-notes">
+			{{#each freeformNotes}}
+			<li>{{this}}</li>
+			{{/each}}
+		</ul>
+		{{/if}}
+	</div>
+	{{#if hasTags}}
+	<div class="picker-tab-panel" data-picker-tab-panel="tags">
+		{{#each tagGroups}}
+		<details class="picker-tag-reference-group">
+			<summary class="picker-tag-reference-group-label">{{label}}</summary>
+			<div class="picker-tag-reference-list">
+				{{#each tags}}
+				<div class="picker-tag-reference">
+					<span class="picker-tag-reference-label">{{label}} ({{value}})</span>
+					{{#if description}}<div class="picker-tag-reference-description">{{description}}</div>{{/if}}
+				</div>
+				{{/each}}
+			</div>
+		</details>
 		{{/each}}
-	</ul>
+	</div>
 	{{/if}}
 </form>

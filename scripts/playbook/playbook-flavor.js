@@ -108,6 +108,37 @@ export const PLAYBOOK_FLAVOR = {
 			"Have you ever negotiated with the Authority before?"
 		]
 	},
+	"the-arcanist": {
+		look: [
+			{ label: "You look:", text: "smart, bookish, wily, anxious or imposing" },
+			{ label: "You wear:", text: "pilot jumpsuit, military uniform, dress uniform, fancy robes" },
+			{ label: "Your magic is like:", text: "roaring elements, bright and neon, abstract and formless, formulaic and defined" },
+			{ label: "When you launch your Astir, you say:", text: "________________" }
+		],
+		intro: [
+			"Arcanists are careful, prepared magic-users. This is most apparent in their use of " +
+				"'rituals'—magical tactics and enhancements preemptively cast before they embark onto the " +
+				"battlefield. Arcanists typically attain the magical mastery they have through formal " +
+				"study, and while good at making plans and full of useful knowledge, they often don't deal " +
+				"well with surprises.",
+			"Playing an Arcanist often means calling your shot, either through your choice of rituals or " +
+				"through plans you make in the heat of action. Once you have advanced and can take new " +
+				"ones, other moves like expend rituals and reshape make it easier to respond to situations " +
+				"you haven't prepared for. Consider;"
+		],
+		consider: [
+			"What does formal magical study look like in your world?",
+			"Is this something open and public, like an academy, or private, like training passed down " +
+				"through a family lineage? Was it tied to military service?",
+			"Do you have a familiar or bonded item you use to focus your magic?",
+			"What does performing your rituals entail?",
+			"Where did you get your Astir? Is it stolen from a military force? A family heirloom? Does it " +
+				"belong to the Cause?",
+			"Do all Arcanists study where you did, or are there multiple schools of thought?",
+			"Are people like you openly referred to as Arcanists? If not, is there another name for what " +
+				"you are?"
+		]
+	},
 	"the-paradigm": {
 		look: [
 			{ label: "You look:", text: "serious, haughty, caring, wise or zealous" },

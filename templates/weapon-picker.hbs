@@ -1,24 +1,49 @@
 <form class="armor-astir-weapon-picker">
-	<ol class="weapon-picker-list">
-		<li class="weapon-picker-item">
-			<label class="weapon-picker-option">
-				<input type="radio" name="weapon" value="unarmed" checked/>
-				<span class="weapon-picker-name">Unarmed</span>
-			</label>
-		</li>
-		{{#each options}}
-		<li class="weapon-picker-item">
-			<label class="weapon-picker-option">
-				<input type="radio" name="weapon" value="{{key}}"/>
-				<span class="weapon-picker-name">{{name}}</span>
-				<span class="weapon-picker-value">Value {{value}}</span>
-			</label>
-			{{#if tagLabels.length}}
-			<div class="weapon-picker-tags">
-				{{#each tagLabels}}<span class="weapon-picker-tag">{{this}}</span>{{/each}}
+	{{#if hasTags}}
+	<nav class="picker-tabs">
+		<a class="picker-tab active" data-picker-tab="items">Weapons</a>
+		<a class="picker-tab" data-picker-tab="tags">Tags</a>
+	</nav>
+	{{/if}}
+	<div class="picker-tab-panel active" data-picker-tab-panel="items">
+		<ol class="weapon-picker-list">
+			<li class="weapon-picker-item">
+				<label class="weapon-picker-option">
+					<input type="radio" name="weapon" value="unarmed" checked/>
+					<span class="weapon-picker-name">Unarmed</span>
+				</label>
+			</li>
+			{{#each options}}
+			<li class="weapon-picker-item">
+				<label class="weapon-picker-option">
+					<input type="radio" name="weapon" value="{{key}}"/>
+					<span class="weapon-picker-name">{{name}}</span>
+					<span class="weapon-picker-value">Value {{value}}</span>
+				</label>
+				{{#if tagLabels.length}}
+				<div class="weapon-picker-tags">
+					{{#each tagLabels}}<span class="weapon-picker-tag">{{this}}</span>{{/each}}
+				</div>
+				{{/if}}
+			</li>
+			{{/each}}
+		</ol>
+	</div>
+	{{#if hasTags}}
+	<div class="picker-tab-panel" data-picker-tab-panel="tags">
+		{{#each tagGroups}}
+		<details class="picker-tag-reference-group">
+			<summary class="picker-tag-reference-group-label">{{label}}</summary>
+			<div class="picker-tag-reference-list">
+				{{#each tags}}
+				<div class="picker-tag-reference">
+					<span class="picker-tag-reference-label">{{label}} ({{value}})</span>
+					{{#if description}}<div class="picker-tag-reference-description">{{description}}</div>{{/if}}
+				</div>
+				{{/each}}
 			</div>
-			{{/if}}
-		</li>
+		</details>
 		{{/each}}
-	</ol>
+	</div>
+	{{/if}}
 </form>

@@ -7,7 +7,7 @@ import {
 	chooseStartingGear,
 	findStartingGearPool
 } from "../scripts/equipment/starting-gear.js";
-import { findEquipmentTag } from "../scripts/equipment/equipment.js";
+import { findEquipmentTag, wirePickerTabs } from "../scripts/equipment/equipment.js";
 
 // A fixture pool set independent of the real STARTING_GEAR_POOLS (currently Scout/Impostor
 // content), mirroring the injectable `pools`/`playbooks` pattern MOVE_POOLS/playbookMoveSections
@@ -47,6 +47,17 @@ const FIXTURE_POOLS = [
 	{ playbookName: "Fixture Empty Playbook", grantedItems: [], groups: [] }
 ];
 
+// A separate, minimal fixture pool (not the shared FIXTURE_POOLS above, whose exact item
+// positions/counts other tests key off for chooseCount clamping) carrying a real EQUIPMENT_TAGS
+// key, so buildTagReference's hasTags: true branch gets real coverage.
+const FIXTURE_TAGGED_POOLS = [
+	{
+		playbookName: "Fixture Tagged Playbook",
+		grantedItems: [{ key: "fixture-tagged:granted", name: "Granted Blade", description: "g", kind: "weapon", tags: ["melee"] }],
+		groups: []
+	}
+];
+
 // Fakes the jQuery `.find("[name='starting-gear-item-<groupKey>']:checked").map(...).get()` chain
 // chooseStartingGear uses to read each group's checked boxes, mirroring fakeEquipmentHtml's
 // tag-checkbox branch in tests/equipment.test.js. `checkedByGroupKey` maps a group key to the
@@ -59,6 +70,20 @@ function fakeStartingGearHtml(checkedByGroupKey) {
 			return { map: (fn) => ({ get: () => checkedKeys.map((value, index) => fn(index, { value })) }) };
 		}
 	};
+}
+
+// Fakes the jQuery `.find(selector)` chain wirePickerTabs uses, mirroring the equivalent fake in
+// tests/equipment.test.js.
+function fakePickerTabsHtml() {
+	const state = { handler: null };
+	state.html = {
+		find: () => ({
+			on: (event, handler) => { state.handler = handler; },
+			addClass: () => {},
+			removeClass: () => {}
+		})
+	};
+	return state;
 }
 
 beforeEach(() => {
@@ -330,10 +355,59 @@ describe("chooseStartingGear", () => {
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("starting-gear-picker"), {
-			grantedItems: FIXTURE_POOLS[0].grantedItems,
-			groups: FIXTURE_POOLS[0].groups,
-			freeformNotes: FIXTURE_POOLS[0].freeformNotes
+			grantedItems: FIXTURE_POOLS[0].grantedItems.map((item) => ({ ...item, tagLabels: [] })),
+			groups: FIXTURE_POOLS[0].groups.map((group) => ({
+				...group,
+				items: group.items.map((item) => ({ ...item, tagLabels: [] }))
+			})),
+			freeformNotes: FIXTURE_POOLS[0].freeformNotes,
+			tagGroups: [],
+			hasTags: false
 		});
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("includes a Tags reference when an item carries a real tag key", async () => {
+		const promise = chooseStartingGear("Fixture Tagged Playbook", FIXTURE_TAGGED_POOLS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("starting-gear-picker"), expect.objectContaining({
+			hasTags: true
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("opens the dialog sized larger than Dialog's default, resizable, with picker tabs wired", async () => {
+		const promise = chooseStartingGear("Fixture Playbook", FIXTURE_POOLS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[1]).toEqual({
+			classes: ["armor-astir", "starting-gear-picker"],
+			width: 560,
+			height: 700,
+			resizable: true,
+			render: wirePickerTabs
+		});
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("wires picker tab switching via the dialog's render option", async () => {
+		const promise = chooseStartingGear("Fixture Playbook", FIXTURE_POOLS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakePickerTabsHtml();
+		Dialog.mock.calls.at(-1)[1].render(state.html);
+
+		expect(state.handler).toEqual(expect.any(Function));
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;

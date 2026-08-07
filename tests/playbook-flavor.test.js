@@ -51,6 +51,25 @@ describe("PLAYBOOK_FLAVOR", () => {
 		expect(PLAYBOOK_FLAVOR["the-scout"].intro).toBeUndefined();
 	});
 
+	it("gives The Arcanist four LOOK prompts, each with a label and text", () => {
+		for (const entry of PLAYBOOK_FLAVOR["the-arcanist"].look) {
+			expect(entry.label).toBeTruthy();
+			expect(entry.text).toBeTruthy();
+		}
+		expect(PLAYBOOK_FLAVOR["the-arcanist"].look).toHaveLength(4);
+	});
+
+	it("gives The Arcanist its two intro paragraphs", () => {
+		expect(PLAYBOOK_FLAVOR["the-arcanist"].intro).toHaveLength(2);
+	});
+
+	it("gives The Arcanist seven Consider questions", () => {
+		expect(PLAYBOOK_FLAVOR["the-arcanist"].consider).toHaveLength(7);
+		for (const question of PLAYBOOK_FLAVOR["the-arcanist"].consider) {
+			expect(question).toBeTruthy();
+		}
+	});
+
 	it("gives The Wither four LOOK prompts, each with a label and text", () => {
 		for (const entry of PLAYBOOK_FLAVOR["the-wither"].look) {
 			expect(entry.label).toBeTruthy();
@@ -148,6 +167,17 @@ describe("defaultConsiderText", () => {
 			expect(html).toContain(`<p>${paragraph}</p>`);
 		}
 		for (const question of PLAYBOOK_FLAVOR["the-adrift"].consider) {
+			expect(html).toContain(`<li>${question}</li>`);
+		}
+		expect(html.indexOf("<p>")).toBeLessThan(html.indexOf("<ul>"));
+	});
+
+	it("renders The Arcanist's intro paragraphs ahead of its Consider questions", () => {
+		const html = defaultConsiderText("the-arcanist");
+		for (const paragraph of PLAYBOOK_FLAVOR["the-arcanist"].intro) {
+			expect(html).toContain(`<p>${paragraph}</p>`);
+		}
+		for (const question of PLAYBOOK_FLAVOR["the-arcanist"].consider) {
 			expect(html).toContain(`<li>${question}</li>`);
 		}
 		expect(html.indexOf("<p>")).toBeLessThan(html.indexOf("<ul>"));

@@ -1,3 +1,5 @@
+import { buildTagReference, wirePickerTabs, withTagLabels } from "./equipment.js";
+
 export const STARTING_GEAR_PICKER_TEMPLATE = "modules/armor-astir/templates/starting-gear-picker.hbs";
 
 // The default tag-value budget for a pool's custom weapon (see customWeaponNote below), and the
@@ -611,10 +613,17 @@ export async function chooseStartingGear(playbookName, pools = STARTING_GEAR_POO
 	const pool = findStartingGearPool(playbookName, pools);
 	if (!pool) return null;
 
+	// buildTagReference and the per-item tagLabels annotations below are both computed off the
+	// raw pool data — pool.grantedItems/pool.groups themselves are never reassigned, so the Add
+	// callback's own truncation/clamping logic (which reads pool.groups directly) can't
+	// accidentally resolve against a tag-labeled clone.
+	const { tagGroups, hasTags } = buildTagReference([...pool.grantedItems, ...pool.groups.flatMap((group) => group.items)]);
 	const content = await renderTemplate(STARTING_GEAR_PICKER_TEMPLATE, {
-		grantedItems: pool.grantedItems,
-		groups: pool.groups,
-		freeformNotes: pool.freeformNotes ?? []
+		grantedItems: pool.grantedItems.map((item) => withTagLabels(item)),
+		groups: pool.groups.map((group) => ({ ...group, items: group.items.map((item) => withTagLabels(item)) })),
+		freeformNotes: pool.freeformNotes ?? [],
+		tagGroups,
+		hasTags
 	});
 
 	return new Promise((resolve) => {
@@ -643,6 +652,12 @@ export async function chooseStartingGear(playbookName, pools = STARTING_GEAR_POO
 			},
 			default: "add",
 			close: () => resolve(null)
-		}, { classes: ["armor-astir", "starting-gear-picker"] }).render(true);
+		}, {
+			classes: ["armor-astir", "starting-gear-picker"],
+			width: 560,
+			height: 700,
+			resizable: true,
+			render: wirePickerTabs
+		}).render(true);
 	});
 }

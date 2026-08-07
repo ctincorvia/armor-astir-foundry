@@ -698,7 +698,13 @@ export function findCatalogEquipment(key, catalog = EQUIPMENT_CATALOG) {
 // keeps the Weapons and Gear buttons wired to the same function with a one-argument difference.
 export async function chooseEquipmentCatalogItem(kind, catalog = EQUIPMENT_CATALOG) {
 	const items = catalog.filter((item) => item.kind === kind);
-	const content = await renderTemplate(EQUIPMENT_CATALOG_PICKER_TEMPLATE, { items });
+	const { tagGroups, hasTags } = buildTagReference(items);
+	const content = await renderTemplate(EQUIPMENT_CATALOG_PICKER_TEMPLATE, {
+		items: items.map((item) => withTagLabels(item)),
+		itemsTabLabel: kind === "weapon" ? "Weapons" : "Gear",
+		tagGroups,
+		hasTags
+	});
 
 	return new Promise((resolve) => {
 		new Dialog({
@@ -719,7 +725,13 @@ export async function chooseEquipmentCatalogItem(kind, catalog = EQUIPMENT_CATAL
 			},
 			default: "add",
 			close: () => resolve(null)
-		}, { classes: ["armor-astir", "equipment-catalog-picker"] }).render(true);
+		}, {
+			classes: ["armor-astir", "equipment-catalog-picker"],
+			width: 560,
+			height: 700,
+			resizable: true,
+			render: wirePickerTabs
+		}).render(true);
 	});
 }
 
@@ -775,6 +787,39 @@ export function groupEquipmentTags(tagList) {
 		.filter((group) => group.tags.length > 0);
 }
 
+// Adds a tagLabels array (possibly empty) to an equipment-catalog-shaped item for chip display —
+// shared by every equipment-catalog-picker.hbs consumer so the renderTemplate data shape never
+// diverges based on whether the item actually carries tags.
+export function withTagLabels(item, tags = EQUIPMENT_TAGS) {
+	return { ...item, tagLabels: resolveEquipmentTags(item.tags ?? [], tags).map((tag) => tag.label) };
+}
+
+// Collects the union of tag keys referenced across a list of items (each optionally carrying a
+// .tags array — some, like Astir Parts, never do), resolves + groups them via the existing
+// groupEquipmentTags, and reports whether there's anything to show. Feeds the "Tags" reference
+// tab shared by every picker below — hasTags is false whenever every item's tags resolve to
+// nothing (e.g. chooseAstirPart's Parts), so that picker's template renders with no tab nav at all.
+export function buildTagReference(items, tags = EQUIPMENT_TAGS) {
+	const keys = [...new Set(items.flatMap((item) => item.tags ?? []))];
+	const tagGroups = groupEquipmentTags(resolveEquipmentTags(keys, tags));
+	return { tagGroups, hasTags: tagGroups.length > 0 };
+}
+
+// Wires the click-to-switch-tab behavior shared by weapon-picker.hbs / equipment-catalog-picker.hbs
+// / starting-gear-picker.hbs's own [data-picker-tab]/[data-picker-tab-panel] markup — a bare Foundry
+// Dialog has no TabsV2 controller of its own. Safe to pass unconditionally as every affected
+// Dialog's `render`: when a template only rendered the tab-less single panel (hasTags false),
+// [data-picker-tab] simply matches nothing.
+export function wirePickerTabs(html) {
+	html.find("[data-picker-tab]").on("click", (event) => {
+		const target = event.currentTarget.dataset.pickerTab;
+		html.find("[data-picker-tab]").removeClass("active");
+		html.find(`[data-picker-tab='${target}']`).addClass("active");
+		html.find("[data-picker-tab-panel]").removeClass("active");
+		html.find(`[data-picker-tab-panel='${target}']`).addClass("active");
+	});
+}
+
 // Opens the "which weapon" prompt for a usesWeapon move (see moves.js,
 // PlaybookActorSheet#_onMoveRoll) and resolves the chosen weapon's id, UNARMED, or null if
 // dismissed. Mirrors chooseEquipmentCatalogItem's promise/Dialog/resolve-null shape. Assumes
@@ -787,7 +832,8 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 		value: equipmentValue(weapon.tags ?? [], tags),
 		tagLabels: resolveEquipmentTags(weapon.tags ?? [], tags).map((tag) => tag.label)
 	}));
-	const content = await renderTemplate(WEAPON_PICKER_TEMPLATE, { options });
+	const { tagGroups, hasTags } = buildTagReference(weapons, tags);
+	const content = await renderTemplate(WEAPON_PICKER_TEMPLATE, { options, tagGroups, hasTags });
 
 	return new Promise((resolve) => {
 		new Dialog({
@@ -807,7 +853,13 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 			},
 			default: "choose",
 			close: () => resolve(null)
-		}, { classes: ["armor-astir", "weapon-picker"] }).render(true);
+		}, {
+			classes: ["armor-astir", "weapon-picker"],
+			width: 560,
+			height: 700,
+			resizable: true,
+			render: wirePickerTabs
+		}).render(true);
 	});
 }
 

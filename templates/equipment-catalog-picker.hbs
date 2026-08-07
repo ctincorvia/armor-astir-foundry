@@ -1,17 +1,47 @@
 <form class="armor-astir-equipment-catalog-picker">
-	{{#if items.length}}
-	<ol class="equipment-catalog-picker-list">
-		{{#each items}}
-		<li class="equipment-catalog-picker-item">
-			<label class="equipment-catalog-picker-option">
-				<input type="radio" name="catalog-item" value="{{key}}"/>
-				<span class="equipment-catalog-picker-name">{{name}}</span>
-			</label>
-			<div class="equipment-catalog-picker-description">{{{description}}}</div>
-		</li>
+	{{#if hasTags}}
+	<nav class="picker-tabs">
+		<a class="picker-tab active" data-picker-tab="items">{{itemsTabLabel}}</a>
+		<a class="picker-tab" data-picker-tab="tags">Tags</a>
+	</nav>
+	{{/if}}
+	<div class="picker-tab-panel active" data-picker-tab-panel="items">
+		{{#if items.length}}
+		<ol class="equipment-catalog-picker-list">
+			{{#each items}}
+			<li class="equipment-catalog-picker-item">
+				<label class="equipment-catalog-picker-option">
+					<input type="radio" name="catalog-item" value="{{key}}"/>
+					<span class="equipment-catalog-picker-name">{{name}}</span>
+				</label>
+				<div class="equipment-catalog-picker-description">{{{description}}}</div>
+				{{#if tagLabels.length}}
+				<div class="equipment-catalog-picker-tags">
+					{{#each tagLabels}}<span class="equipment-catalog-picker-tag">{{this}}</span>{{/each}}
+				</div>
+				{{/if}}
+			</li>
+			{{/each}}
+		</ol>
+		{{else}}
+		<p class="equipment-catalog-picker-empty">There is nothing in the catalog for this yet.</p>
+		{{/if}}
+	</div>
+	{{#if hasTags}}
+	<div class="picker-tab-panel" data-picker-tab-panel="tags">
+		{{#each tagGroups}}
+		<details class="picker-tag-reference-group">
+			<summary class="picker-tag-reference-group-label">{{label}}</summary>
+			<div class="picker-tag-reference-list">
+				{{#each tags}}
+				<div class="picker-tag-reference">
+					<span class="picker-tag-reference-label">{{label}} ({{value}})</span>
+					{{#if description}}<div class="picker-tag-reference-description">{{description}}</div>{{/if}}
+				</div>
+				{{/each}}
+			</div>
+		</details>
 		{{/each}}
-	</ol>
-	{{else}}
-	<p class="equipment-catalog-picker-empty">There is nothing in the catalog for this yet.</p>
+	</div>
 	{{/if}}
 </form>

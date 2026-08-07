@@ -1,5 +1,13 @@
 import { APPROACHES } from "../core/approaches.js";
-import { DRAIN_GROUP, EQUIPMENT_CATALOG_PICKER_TEMPLATE, EQUIPMENT_TAGS, resolveEquipmentTags } from "../equipment/equipment.js";
+import {
+	DRAIN_GROUP,
+	EQUIPMENT_CATALOG_PICKER_TEMPLATE,
+	EQUIPMENT_TAGS,
+	buildTagReference,
+	resolveEquipmentTags,
+	wirePickerTabs,
+	withTagLabels
+} from "../equipment/equipment.js";
 import { MOVE_POOLS, PLAYBOOK_MOVE_PICKER_TEMPLATE, findPlaybookMove, pickerSection } from "../moves/playbook-moves.js";
 
 // Astirs aren't their own documents (see claude.md) — one lives at system.attributes.astir on the
@@ -654,7 +662,13 @@ export function findCatalogAstirWeapon(key, catalog = ASTIR_WEAPON_CATALOG) {
 // filtered catalog — see ardentParts) with Ardent-appropriate copy, rather than a second dialog.
 export async function chooseAstirPart(selectedKeys = [], catalog = ASTIR_PART_CATALOG, { title = "Add an Astir Part" } = {}) {
 	const items = catalog.filter((part) => !selectedKeys.includes(part.key));
-	const content = await renderTemplate(EQUIPMENT_CATALOG_PICKER_TEMPLATE, { items });
+	const { tagGroups, hasTags } = buildTagReference(items);
+	const content = await renderTemplate(EQUIPMENT_CATALOG_PICKER_TEMPLATE, {
+		items: items.map((item) => withTagLabels(item)),
+		itemsTabLabel: "Parts",
+		tagGroups,
+		hasTags
+	});
 
 	return new Promise((resolve) => {
 		new Dialog({
@@ -669,7 +683,13 @@ export async function chooseAstirPart(selectedKeys = [], catalog = ASTIR_PART_CA
 			},
 			default: "add",
 			close: () => resolve(null)
-		}, { classes: ["armor-astir", "equipment-catalog-picker"] }).render(true);
+		}, {
+			classes: ["armor-astir", "equipment-catalog-picker"],
+			width: 560,
+			height: 700,
+			resizable: true,
+			render: wirePickerTabs
+		}).render(true);
 	});
 }
 
@@ -679,7 +699,13 @@ export async function chooseAstirPart(selectedKeys = [], catalog = ASTIR_PART_CA
 // template, same as regular equipment. `title` is overridable for the same reason chooseAstirPart's
 // is — see ardent.js's ardentWeapons.
 export async function chooseAstirWeapon(catalog = ASTIR_WEAPON_CATALOG, { title = "Pick an Astir Weapon" } = {}) {
-	const content = await renderTemplate(EQUIPMENT_CATALOG_PICKER_TEMPLATE, { items: catalog });
+	const { tagGroups, hasTags } = buildTagReference(catalog);
+	const content = await renderTemplate(EQUIPMENT_CATALOG_PICKER_TEMPLATE, {
+		items: catalog.map((item) => withTagLabels(item)),
+		itemsTabLabel: "Weapons",
+		tagGroups,
+		hasTags
+	});
 
 	return new Promise((resolve) => {
 		new Dialog({
@@ -694,7 +720,13 @@ export async function chooseAstirWeapon(catalog = ASTIR_WEAPON_CATALOG, { title 
 			},
 			default: "add",
 			close: () => resolve(null)
-		}, { classes: ["armor-astir", "equipment-catalog-picker"] }).render(true);
+		}, {
+			classes: ["armor-astir", "equipment-catalog-picker"],
+			width: 560,
+			height: 700,
+			resizable: true,
+			render: wirePickerTabs
+		}).render(true);
 	});
 }
 

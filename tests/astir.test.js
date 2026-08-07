@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { APPROACHES } from "../scripts/core/approaches.js";
-import { DRAIN_GROUP, findEquipmentTag } from "../scripts/equipment/equipment.js";
+import { DRAIN_GROUP, findEquipmentTag, wirePickerTabs } from "../scripts/equipment/equipment.js";
 import { findPlaybookMove } from "../scripts/moves/playbook-moves.js";
 import {
 	ASTIR_CORES,
@@ -30,6 +30,20 @@ import {
 // tests/equipment.test.js and tests/playbook-moves.test.js.
 function fakePickerHtml(checkedValue) {
 	return { find: () => ({ val: () => checkedValue }) };
+}
+
+// Fakes the jQuery `.find(selector)` chain wirePickerTabs uses, mirroring the equivalent fake in
+// tests/equipment.test.js.
+function fakePickerTabsHtml() {
+	const state = { handler: null };
+	state.html = {
+		find: () => ({
+			on: (event, handler) => { state.handler = handler; },
+			addClass: () => {},
+			removeClass: () => {}
+		})
+	};
+	return state;
 }
 
 beforeEach(() => {
@@ -358,7 +372,12 @@ describe("chooseAstirPart", () => {
 
 		expect(renderTemplate).toHaveBeenCalledWith(
 			expect.stringContaining("equipment-catalog-picker"),
-			{ items: FIXTURE_PARTS }
+			{
+				items: FIXTURE_PARTS.map((part) => ({ ...part, tagLabels: [] })),
+				itemsTabLabel: "Parts",
+				tagGroups: [],
+				hasTags: false
+			}
 		);
 	});
 
@@ -367,7 +386,34 @@ describe("chooseAstirPart", () => {
 		await Promise.resolve();
 		await Promise.resolve();
 
-		expect(renderTemplate).toHaveBeenCalledWith(expect.any(String), { items: [FIXTURE_PARTS[1]] });
+		expect(renderTemplate).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+			items: [{ ...FIXTURE_PARTS[1], tagLabels: [] }]
+		}));
+	});
+
+	it("opens the dialog sized larger than Dialog's default, resizable, with picker tabs wired", async () => {
+		chooseAstirPart([], FIXTURE_PARTS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[1]).toEqual({
+			classes: ["armor-astir", "equipment-catalog-picker"],
+			width: 560,
+			height: 700,
+			resizable: true,
+			render: wirePickerTabs
+		});
+	});
+
+	it("wires picker tab switching via the dialog's render option", async () => {
+		chooseAstirPart([], FIXTURE_PARTS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakePickerTabsHtml();
+		Dialog.mock.calls.at(-1)[1].render(state.html);
+
+		expect(state.handler).toEqual(expect.any(Function));
 	});
 
 	it("resolves the checked part's key", async () => {
@@ -429,13 +475,58 @@ describe("chooseAstirPart", () => {
 
 describe("chooseAstirWeapon", () => {
 	const FIXTURE_CATALOG = [{ key: "fixture-astir-weapon", name: "Fixture Astir Weapon", description: "d", tags: [] }];
+	// A second fixture with a real EQUIPMENT_TAGS key, so the hasTags: true branch gets coverage.
+	const FIXTURE_TAGGED_CATALOG = [
+		{ key: "fixture-tagged-astir-weapon", name: "Fixture Tagged Astir Weapon", description: "d", tags: ["blitz"] }
+	];
 
 	it("renders the equipment catalog picker template with the whole catalog", async () => {
 		chooseAstirWeapon(FIXTURE_CATALOG);
 		await Promise.resolve();
 		await Promise.resolve();
 
-		expect(renderTemplate).toHaveBeenCalledWith(expect.any(String), { items: FIXTURE_CATALOG });
+		expect(renderTemplate).toHaveBeenCalledWith(expect.any(String), {
+			items: [{ ...FIXTURE_CATALOG[0], tagLabels: [] }],
+			itemsTabLabel: "Weapons",
+			tagGroups: [],
+			hasTags: false
+		});
+	});
+
+	it("includes a Tags reference when the catalog carries a real tag key", async () => {
+		chooseAstirWeapon(FIXTURE_TAGGED_CATALOG);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+			items: [{ ...FIXTURE_TAGGED_CATALOG[0], tagLabels: ["Blitz"] }],
+			hasTags: true
+		}));
+	});
+
+	it("opens the dialog sized larger than Dialog's default, resizable, with picker tabs wired", async () => {
+		chooseAstirWeapon(FIXTURE_CATALOG);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[1]).toEqual({
+			classes: ["armor-astir", "equipment-catalog-picker"],
+			width: 560,
+			height: 700,
+			resizable: true,
+			render: wirePickerTabs
+		});
+	});
+
+	it("wires picker tab switching via the dialog's render option", async () => {
+		chooseAstirWeapon(FIXTURE_CATALOG);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakePickerTabsHtml();
+		Dialog.mock.calls.at(-1)[1].render(state.html);
+
+		expect(state.handler).toEqual(expect.any(Function));
 	});
 
 	it("resolves the chosen catalog item", async () => {

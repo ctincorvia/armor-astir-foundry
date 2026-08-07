@@ -449,7 +449,13 @@
 
 /* Sticky rather than a second clipped scroll region — see .sheet-body below for why. No
    background needed: unlike .sheet-tabs below, .dangers-column sits beside the tab content, not
-   above it, so nothing ever scrolls underneath it once it's stuck. */
+   above it, so nothing ever scrolls underneath it once it's stuck — .sheet-header/.status-row
+   are gone from view (scrolled fully past y:0) by the time this is stuck, not hiding behind it.
+   padding-top is deliberately on the sticky element itself, not a gap left in .window-content
+   above it (see that rule's own comment for why the latter reintroduces the scroll-leak bug this
+   is fixing) — matches .sheet-tabs' own top padding below so the two columns still start flush
+   together once stuck, instead of landing flush against the window header with no breathing room
+   (the "meshing"/jittery look a first attempt at this had). */
 .armor-astir.sheet .dangers-column {
 	display: flex;
 	flex-direction: column;
@@ -461,6 +467,7 @@
 	min-width: 0;
 	position: sticky;
 	top: 0;
+	padding-top: var(--aa-space-3);
 }
 
 .armor-astir.sheet .sheet-tabs-column {
@@ -793,10 +800,26 @@
    letting the moves/equipment/etc. content scrolling underneath this stuck nav win the paint order
    in practice, so a sliver of the last-scrolled row showed through above the nav instead of staying
    hidden behind its opaque background. This pins the nav unambiguously on top. */
+/* The extra top padding (vs. the other three sides) is breathing room from the window header once
+   this is stuck flush against .window-content's top edge — matches .dangers-column's own added
+   padding-top for the same reason (see its comment) and by the same amount, so the two columns
+   don't land flush against the window header with nothing between them. No border-top directly on
+   this element for the same reason .dangers-panel (nested inside the padded .dangers-column)
+   doesn't carry its own border on the outer sticky column either: a border paints at an element's
+   own outer edge, *before* its padding, so one here would stay flush against the window header
+   even once the padding pushed the tab labels down, doubling up against the window header's own
+   border-bottom instead of separating from it. See the ::before rule below for the border this
+   lost — same idea as .dangers-panel's nesting, without needing a template change to add a real
+   nested element. border-top: none is a separate override of a *different* border than the one
+   just discussed — core Foundry's own public/css/style.css applies `.sheet nav.sheet-tabs { margin:
+   4px 0; border-top/border-bottom: 1px solid var(--color-border-light-primary); }` to any sheet's
+   tab nav generically (this selector's higher specificity already wins over margin/border-bottom
+   above without needing !important); its border-top was the actual extra line sitting between this
+   nav and .spotlight above it — nothing to do with this module's own (already-absent) border-top. */
 .armor-astir.sheet .sheet-tabs {
 	margin: 0 0 var(--aa-space-3);
-	padding: var(--aa-space-1) var(--aa-space-2);
-	border-top: var(--aa-border);
+	padding: var(--aa-space-3) var(--aa-space-2) var(--aa-space-1);
+	border-top: none;
 	border-bottom: 2px solid var(--aa-primary);
 	position: sticky;
 	top: 0;
@@ -804,6 +827,23 @@
 	background: #fff url("/systems/pbta/assets/concrete-seamless.webp");
 	justify-content: flex-start;
 	gap: var(--aa-space-3);
+}
+
+/* Restores a visible top edge for alignment against .dangers-panel's own border, which (being
+   nested inside the padded .dangers-column, unlike anything here) sits var(--aa-space-3) below
+   .dangers-column's top edge — without this, .sheet-tabs has no visible marker at all for where
+   its equivalent padding-top starts (its background reads as plain white against the page), so
+   the two looked misaligned side by side despite having identical padding. Positioned via the
+   sticky .sheet-tabs itself as containing block (position: sticky establishes one for absolutely
+   positioned descendants the same as relative/fixed do) rather than a real border-top on .sheet-tabs
+   — see that rule's own comment for why a real border there reintroduces the window-header seam. */
+.armor-astir.sheet .sheet-tabs::before {
+	content: "";
+	position: absolute;
+	top: var(--aa-space-3);
+	left: 0;
+	right: 0;
+	border-top: var(--aa-border);
 }
 
 .armor-astir.sheet .sheet-tabs .item {
@@ -905,13 +945,27 @@
 	padding-right: var(--aa-space-2);
 }
 
-/* Hides .window-content's scrollbar handle/track without disabling scrolling itself — overflow-y
-   stays auto, this only removes the visual affordance. scrollbar-width/-ms-overflow-style cover
-   Firefox/old Edge; ::-webkit-scrollbar covers Chromium, which is what Foundry's own client runs
-   on. */
+/* Core Foundry's .window-content carries its own top padding (--paddingY, 1rem — see
+   public/css/foundry2.css). Sticky elements measure "top: 0" from that padding's inner edge, not
+   the window's true top edge, which leaves a paddingY-tall band between the two that nothing
+   covers: scrolled tab content is still unclipped there (overflow only clips once content scrolls
+   fully past the padding box), so it becomes visible passing through that band above the stuck
+   .dangers-column/.sheet-tabs before disappearing — this is what was showing moves "above" the tab
+   nav while scrolling despite .sheet-tabs' z-index already keeping it visually on top wherever the
+   two actually overlap. Moving that padding onto the form itself (below) closes the gap: once
+   .window-content has no top padding of its own, "top: 0" really does mean the window's top edge,
+   with nothing left for scrolled content to peek through above it. */
 .window-app.armor-astir.playbook .window-content {
+	padding-top: 0;
 	scrollbar-width: none;
 	-ms-overflow-style: none;
+}
+
+/* Reproduces the padding-top this rule just removed from .window-content, on the one flex child
+   that receives it (see above) — so the header still starts the same distance from the window's
+   top edge as every other Foundry sheet. */
+.armor-astir.sheet.playbook {
+	padding-top: var(--paddingY);
 }
 
 .window-app.armor-astir.playbook .window-content::-webkit-scrollbar {
@@ -1881,7 +1935,9 @@
    weapon picker's tag pills. The secondary color marks them as belonging to the player's own
    move/gear; -dark because they carry white text (see the role-token note at the top). */
 .armor-astir.playbook-move-picker .move-picker-trait,
-.armor-astir.weapon-picker .weapon-picker-tag {
+.armor-astir.weapon-picker .weapon-picker-tag,
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-tag,
+.armor-astir.starting-gear-picker .starting-gear-picker-tag {
 	padding: 2px 6px;
 	border-radius: var(--aa-radius);
 	background: var(--aa-secondary-dark);
@@ -2110,4 +2166,101 @@
 	flex-wrap: wrap;
 	gap: var(--aa-space-1);
 	margin-left: 22px;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-tags {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-1);
+	margin-left: 22px;
+}
+
+.armor-astir.starting-gear-picker .starting-gear-picker-tags {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-1);
+	margin-left: 22px;
+}
+
+/* Shared "tabs inside a Dialog" chrome — weapon-picker.hbs, equipment-catalog-picker.hbs and
+   starting-gear-picker.hbs all wire the same [data-picker-tab]/[data-picker-tab-panel] markup via
+   wirePickerTabs (equipment.js), since a bare Foundry Dialog has no TabsV2 controller of its own.
+   Visually mirrors .armor-astir.sheet .sheet-tabs .item above. Scoped bare under .armor-astir
+   (not per-dialog-class) since it's genuinely identical across all three dialogs — matching the
+   existing precedent for cross-dialog concerns (.dialog-content, .dialog-buttons, radio inputs). */
+.armor-astir .picker-tabs {
+	display: flex;
+	flex-direction: row;
+	gap: var(--aa-space-3);
+	margin: 0 0 var(--aa-space-2);
+	padding-bottom: var(--aa-space-1);
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir .picker-tab {
+	padding-bottom: 2px;
+	border-bottom: 2px solid transparent;
+	font-weight: 700;
+	font-size: 12px;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	color: var(--color-text-dark-secondary, #666);
+	cursor: pointer;
+}
+
+.armor-astir .picker-tab:hover {
+	color: var(--aa-primary-dark);
+}
+
+.armor-astir .picker-tab.active {
+	border-bottom-color: var(--aa-primary);
+	color: var(--aa-primary-dark);
+}
+
+/* The manual equivalent of core's `.tab[data-tab]:not(.active) { display: none }` rule (see
+   claude.md's Sheet styling notes) — needed since [data-picker-tab-panel] isn't core's own
+   [data-tab], so core's rule doesn't apply to it. */
+.armor-astir .picker-tab-panel {
+	display: none;
+}
+
+.armor-astir .picker-tab-panel.active {
+	display: block;
+}
+
+/* The Tags reference tab's own accordion — same spacing/color treatment as
+   .equipment-editor-tag-group* above, just without the checkbox row, since this is a browsing
+   reference rather than a form. Every group starts closed (no "open" state to preserve). */
+.armor-astir .picker-tag-reference-group {
+	margin-bottom: var(--aa-space-2);
+	padding-bottom: var(--aa-space-1);
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir .picker-tag-reference-group-label {
+	padding: var(--aa-space-1) 0;
+	font-weight: bold;
+	color: var(--aa-primary-dark);
+	cursor: pointer;
+}
+
+.armor-astir .picker-tag-reference-list {
+	padding: 0 0 0 var(--aa-space-2);
+}
+
+.armor-astir .picker-tag-reference {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir .picker-tag-reference-label {
+	font-weight: bold;
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir .picker-tag-reference-description {
+	margin-top: 2px;
+	font-size: 12px;
+	opacity: 0.8;
 }
