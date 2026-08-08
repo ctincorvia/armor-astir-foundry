@@ -2,7 +2,9 @@ import { choosePlaybookMove, resolvePlaybookMoves } from "../../moves/playbook-m
 import { patronChannelBonus, traitBonusesFor } from "../../moves/trait-bonuses.js";
 import { TRAITS } from "../../core/traits.js";
 import { chooseCarrier, findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
-import { UNARMED, chooseWeapon } from "../../equipment/equipment.js";
+import { TIER_MIN, UNARMED, chooseWeapon } from "../../equipment/equipment.js";
+import { getTargetedNpc } from "../../moves/target-tier.js";
+import { approachAdvantageStack } from "../../moves/approach-matchup.js";
 import { findAstirPart } from "../../frames/astir.js";
 import { rolledDoubles } from "../../moves/roll-effects.js";
 import { chooseStartingMoves, findStartingMovePool, playbookGrantsHomeInsteadOfChannel } from "../../moves/starting-moves.js";
@@ -168,6 +170,11 @@ export const MovesSheetMixin = {
 		// too, or b-plot would wrongly stay available to a playbook that's meant to lose access to it.
 		const channelDisabled = Boolean(this.actor.system.stats?.channel?.disabled)
 			&& !playbookGrantsHomeInsteadOfChannel(this.actor.system.playbook?.name);
+		// Never Quite Free (see playbook-moves.js's disablesMove) — the inverse of
+		// grantsUnpilotedAstirMove: a picked move can explicitly gate a different move rather
+		// than ungate one. Resolved once here, same shape channelDisabled already establishes,
+		// then matched per-move below.
+		const disablingMoves = resolvePlaybookMoves(this._playbookMoves()).filter((m) => m.disablesMove);
 		return moves.map((move) => {
 			const traits = this._moveTraits(move);
 			// Read-the-room's roll-tiered hold lives in pbta's shared system.resources.hold
@@ -188,8 +195,29 @@ export const MovesSheetMixin = {
 			// Eidolon Drive's Summon button (Summoner — see playbook-moves.js's summonsAlly) has
 			// nothing to summon with zero bound allies, so it's disabled the same way every other
 			// gated action button in this module is, rather than left to _onEidolonDriveSummon's
-			// own defensive no-op guard alone.
-			const summonGated = Boolean(move.summonsAlly) && this._boundAllies().length === 0;
+			// own defensive no-op guard alone. Also gated once an ally is already active this Scene
+			// (a second Summon would silently overwrite the current one, since the data model only
+			// ever holds one summonedAllyId at a time) — Refresh Scene (which already clears
+			// eidolonDrive) is what re-enables the button.
+			const summonGated = Boolean(move.summonsAlly)
+				&& (this._boundAllies().length === 0 || Boolean(this._eidolonDrive().summonedAllyId));
+			// Bite the Dust, disabled by Never Quite Free (see disablingMoves above) — finds the
+			// picked move, if any, whose disablesMove.moveKey targets this move.
+			const disabledBy = disablingMoves.find((m) => m.disablesMove.moveKey === move.key);
+			// The move-card "who's summoned" info line (Summoner) — only for the move that actually
+			// grants the summon, and only once something real is summoned; every other move (and
+			// Eidolon Drive itself with nothing summoned) omits the key entirely below rather than
+			// setting it to null/undefined, so the large moveGroups toEqual snapshot in
+			// tests/playbook-actor-sheet-moves.test.js never needs to gain a new field for moves that
+			// aren't Eidolon Drive.
+			const summonedAlly = move.summonsAlly ? this._summonedAlly() : null;
+			const summonedAllyInfo = summonedAlly
+				? {
+					name: summonedAlly.name || "Summoned Ally",
+					traitLabel: TRAITS.find((t) => t.key === summonedAlly.trait)?.label ?? summonedAlly.trait,
+					value: this._eidolonDrive().bonusUsed ? 1 : 3
+				}
+				: null;
 			return {
 				key: move.key,
 				name: move.name,
@@ -199,8 +227,9 @@ export const MovesSheetMixin = {
 				// with no traits by design, like Help or Hinder, is never gated this way), OR
 				// when the move is explicitly gated the opposite way, off Channel being enabled
 				// (b-plot, via channelGated above), OR (Eidolon Drive) there's no bound ally to
-				// summon at all (summonGated above).
-				gated: (move.traits.length > 0 && traits.length === 0) || channelGated || summonGated,
+				// summon at all (summonGated above), OR a different picked move explicitly disables
+				// this one (Never Quite Free disabling Bite the Dust, via disabledBy above).
+				gated: (move.traits.length > 0 && traits.length === 0) || channelGated || summonGated || Boolean(disabledBy),
 				// Whether this move rolls anything at all, based on its static definition rather
 				// than the actor-filtered trait list above — a gated move (e.g. Weave Magic with
 				// Channel disabled) still shows a disabled Roll button, but a move with no traits or
@@ -232,6 +261,16 @@ export const MovesSheetMixin = {
 				// _onEidolonDriveSummon for the handler, and summonGated above for why it's disabled
 				// with no bound ally.
 				summonable: Boolean(move.summonsAlly),
+				// See summonedAllyInfo above — omitted entirely (not `null`/`undefined`) for every
+				// move but Eidolon Drive with a real summon active, so no other move's object
+				// literal in the moveGroups toEqual snapshot needs to change.
+				...(summonedAllyInfo && { summonedAllyInfo }),
+				// Bite the Dust's hover explanation for why its Roll button is disabled (Never Quite
+				// Free) — drives the template's data-gate-tooltip attribute, the same CSS-only
+				// tooltip mechanism weapon quick-roll buttons and the Witch's "Choose 2 Boons" button
+				// already use. Omitted entirely (not `null`/`undefined`) for every other move, same
+				// conditional-spread reasoning summonedAllyInfo above already follows.
+				...(disabledBy && { gatedTooltip: `Replaced by ${disabledBy.name}` }),
 				// Weave Magic's description stays readable even while its Roll button is gated —
 				// you can still learn what the move does. B-Plot is different: being "in the
 				// b-plot" isn't something a Channel-enabled character can do at all, so its
@@ -305,9 +344,7 @@ export const MovesSheetMixin = {
 		// first since it isn't gated on this move rolling any particular trait at all — see
 		// summoner-mixin.js for the write side (_onEidolonDriveSummon/_consumeEidolonDriveBonus).
 		const eidolonDrive = this._eidolonDrive();
-		const summonedAlly = eidolonDrive.summonedAllyId
-			? this._boundAllies().find((ally) => ally.id === eidolonDrive.summonedAllyId)
-			: null;
+		const summonedAlly = this._summonedAlly();
 		if (summonedAlly) {
 			const traitLabel = TRAITS.find((trait) => trait.key === summonedAlly.trait)?.label ?? summonedAlly.trait;
 			actorTraits.push({
@@ -382,9 +419,11 @@ export const MovesSheetMixin = {
 				});
 			}
 		}
-		const fixedTraits = (move.fixedTraits ?? []).map((trait) => (
-			trait.key === "crew" ? { ...trait, value: this._crewFixedTraitValue() } : trait
-		));
+		const fixedTraits = (move.fixedTraits ?? []).map((trait) => {
+			if (trait.key === "crew") return { ...trait, value: this._crewFixedTraitValue() };
+			if (trait.key === "familiarity") return { ...trait, value: this._familiarityValue() };
+			return trait;
+		});
 		return [...actorTraits, ...fixedTraits];
 	},
 	// The single-Carrier case _moveTraits needs for display, and _rollMove's starting point
@@ -392,6 +431,14 @@ export const MovesSheetMixin = {
 	_crewFixedTraitValue() {
 		const carriers = findCarrierActors();
 		return carriers.length === 1 ? carriers[0].system.stats?.crew?.value ?? 0 : 0;
+	},
+	// I Know You's FAMILIARITY (see playbook-moves.js's grantsFamiliarityTrait) — overrides the
+	// move's static +3 fixedTraits placeholder with a live read off the actor's own familiarity
+	// stat, the same override _moveTraits already applies for CREW above. 3 is the same starting
+	// value the static placeholder carried, so an actor who hasn't touched the new stepper yet
+	// still rolls exactly what they always did.
+	_familiarityValue() {
+		return this.actor.system.stats?.familiarity?.value ?? 3;
 	},
 	// Field Scout's "read the room with confidence, always" (see playbook-moves.js's
 	// grantsEffectOnMove) — locks a specific *other* move's Effect regardless of which move is
@@ -428,6 +475,31 @@ export const MovesSheetMixin = {
 			.find((m) => m.grantsAdvantageOnMove?.moveKey === move.key);
 		return granting?.grantsAdvantageOnMove.advantage ?? null;
 	},
+	// Tier-vs-Tier and Approach-vs-Approach against a single targeted NPC (see claude.md's World
+	// actors / target-tier.js's getTargetedNpc), each worth one signed stack of Advantage/
+	// Disadvantage (Tier: +1 higher / -1 lower / 0 equal; Approach: its type wheel — see
+	// approach-matchup.js), summed and resolved to one of roll-effects.js's ADVANTAGE_STATES. A net
+	// 0 (e.g. a favorable Approach cancelled out by an unfavorable Tier) leaves the Dice select
+	// unlocked rather than forcing "None" — this only ever narrows the roll when the two signals
+	// agree, or exactly one of them applies. Gated on the move's existing usesWeapon flag rather
+	// than hardcoded move keys — true for exactly Exchange Blows/Strike Decisively today, but any
+	// future usesWeapon move picks this up automatically, matching the module's "declarative flag,
+	// evaluated generically" convention.
+	_targetMatchupAdvantage(move) {
+		if (!move.usesWeapon) return null;
+		const target = getTargetedNpc();
+		if (!target) return null;
+		const targetTier = target.system.attributes?.tier ?? TIER_MIN;
+		const tierStack = Math.sign(this._conflictTier().effective - targetTier);
+		const attackerApproach = this._effectiveApproach().effective;
+		const targetApproach = target.system.attributes?.approach ?? "";
+		const stacks = tierStack + approachAdvantageStack(attackerApproach, targetApproach);
+		if (stacks === 2) return "advantage2";
+		if (stacks === 1) return "advantage";
+		if (stacks === -1) return "disadvantage";
+		if (stacks === -2) return "disadvantage2";
+		return null;
+	},
 	// Living Drive's "you may use [eidolon drive] outside of an Astir" (Summoner — see
 	// playbook-moves.js's grantsUnpilotedAstirMove) — the single-target-move shape
 	// _grantedTraitForMove/_grantedAdvantageForMove already use, checked by _movesData's Astir
@@ -454,26 +526,32 @@ export const MovesSheetMixin = {
 		return granting?.addsFailureReminderToMove.reminder ?? null;
 	},
 	// Every move flagged grantsAutomaticSuccess (Hot-blooded, Once the War's Over, The Arity
-	// Method, Dark Rebirth — see playbook-moves.js) can spend its own hold pool, `uses` checkbox,
-	// or (Dark Rebirth) put the actor in peril to treat the move currently being rolled as a
-	// success, matching each move's own "succeed as if you'd rolled a 10+" text. Unlike a reroll
-	// tag or an equipment spend, this isn't tied to the weapon being used — it's actor-wide, so
-	// every flagged move (not just ones on this actor's picked pools — a hold/uses value can only
-	// be non-zero if the move was actually picked and activated, so there's nothing to additionally
-	// check there) is considered fresh for every roll. `moves` (The Arity Method, Dark Rebirth)
-	// restricts the offer to specific move keys, the same field/meaning as equipment.js's own
-	// reroll.moves.
+	// Method, Dark Rebirth, Ancient Recall, Ain't No Grave — see playbook-moves.js) can spend its
+	// own hold pool, `uses` checkbox, (Dark Rebirth) put the actor in peril, or (Ain't No Grave)
+	// spend nothing at all to treat the move currently being rolled as a success, matching each
+	// move's own "succeed as if you'd rolled a 10+" text. Unlike a reroll tag or an equipment
+	// spend, this isn't tied to the weapon being used — it's actor-wide, so every flagged move
+	// (not just ones on this actor's picked pools — a hold/uses value can only be non-zero if the
+	// move was actually picked and activated, so there's nothing to additionally check there) is
+	// considered fresh for every roll. `moves` (The Arity Method, Dark Rebirth) restricts the offer
+	// to specific move keys, the same field/meaning as equipment.js's own reroll.moves — the
+	// inverse, `excludeMoves` (Ain't No Grave), drops one specific move key from an otherwise
+	// unrestricted offer (excluding its own source move, Never Quite Free, from being upgraded by
+	// itself).
 	_availableAutomaticSuccess(move) {
 		// A hold-cost source (Hot-blooded, Once the War's Over) is naturally excluded for an actor
 		// who never picked it: moveHold reads 0, and cost is always positive. A useKey source (The
 		// Arity Method) has no such natural floor — an unset uses checkbox (never picked) reads
 		// exactly the same as an unchecked one (picked, not yet spent) — and Dark Rebirth's costsPeril
-		// reads actor-wide Danger state with no per-move field at all. Both need an explicit "was this
-		// actually picked" check; picked moves are resolved once here rather than per-source.
+		// reads actor-wide Danger state with no per-move field at all. Ain't No Grave's costless
+		// source (none of cost/useKey/costsPeril set) has the same "never picked" ambiguity a useKey
+		// source does — nothing to read that's zero by default — so it needs the same explicit check.
+		// Picked moves are resolved once here rather than per-source.
 		const pickedKeys = resolvePlaybookMoves(this._playbookMoves()).map((m) => m.key);
 		return ALL_MOVES
 			.filter((m) => m.grantsAutomaticSuccess)
 			.filter((m) => !m.grantsAutomaticSuccess.moves || m.grantsAutomaticSuccess.moves.includes(move.key))
+			.filter((m) => !m.grantsAutomaticSuccess.excludeMoves?.includes(move.key))
 			.filter((m) => {
 				const { cost, useKey, costsPeril } = m.grantsAutomaticSuccess;
 				// Dark Rebirth's "cost" (see playbook-moves.js) is a fresh Danger of type peril rather
@@ -485,9 +563,16 @@ export const MovesSheetMixin = {
 					const dangers = this._dangers();
 					return dangers.length < DANGER_MAX && dangers.every((danger) => danger.type !== "peril");
 				}
-				return useKey
-					? pickedKeys.includes(m.key) && !this.actor.system.attributes?.moveUses?.[m.key]?.[useKey]
-					: (this.actor.system.attributes?.moveHold?.[m.key]?.value ?? 0) >= cost;
+				if (useKey) {
+					return pickedKeys.includes(m.key) && !this.actor.system.attributes?.moveUses?.[m.key]?.[useKey];
+				}
+				if (cost != null) {
+					return (this.actor.system.attributes?.moveHold?.[m.key]?.value ?? 0) >= cost;
+				}
+				// Ain't No Grave (see playbook-moves.js) — no hold/uses/peril spend at all, so the only
+				// gate is whether the actor picked the granting move in the first place, the same
+				// pickedKeys check costsPeril/useKey already make above.
+				return pickedKeys.includes(m.key);
 			})
 			.map((m) => ({ key: m.key, name: m.name, ...m.grantsAutomaticSuccess }));
 	},
@@ -663,9 +748,11 @@ export const MovesSheetMixin = {
 		// Don't Follow Me's single-target-move grant wins if it and Cold Company's standing haunted-
 		// state lock somehow both apply — in practice these two moves live on mutually exclusive
 		// playbooks (Impostor / Wither), so this ordering is a defensive tie-break, not an expected
-		// real-world collision. An Astir Part's own reactive spend.advantage (Artifact) still wins
-		// over either, per configureMoveRoll's own precedence — untouched by this change.
-		const lockedAdvantage = this._grantedAdvantageForMove(move) ?? this._coldCompanyAdvantage();
+		// real-world collision. The combined Tier+Approach targeting signal (_targetMatchupAdvantage)
+		// sits lowest in this chain — it only ever fires when nothing else has already forced the
+		// Advantage axis. An Astir Part's own reactive spend.advantage (Artifact) still wins over all
+		// three, per configureMoveRoll's own precedence — untouched by this change.
+		const lockedAdvantage = this._grantedAdvantageForMove(move) ?? this._coldCompanyAdvantage() ?? this._targetMatchupAdvantage(move);
 		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
 		const astirPartSpends = this._astirPartSpends(lockedEffect);
 		// Omitted entirely rather than passed as `false` when not guided — configureMoveRoll

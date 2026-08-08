@@ -74,6 +74,30 @@ describe("PlaybookActorSheet#getData - astir", () => {
 		expect(sheet.getData().astir.available).toBe(false);
 	});
 
+	it("is unavailable when channel is disabled and no playbook move grants Astir access", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 0, disabled: true } },
+				attributes: { playbookMoves: [] }
+			}
+		};
+
+		expect(sheet.getData().astir.available).toBe(false);
+	});
+
+	it("is available when channel is disabled but Mechanical Aria has been picked (The Icon)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 0, disabled: true } },
+				attributes: { playbookMoves: ["the-icon:mechanical-aria"] }
+			}
+		};
+
+		expect(sheet.getData().astir.available).toBe(true);
+	});
+
 	it("always exposes the core catalog and tier bounds, even with no Astir", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: {} } };

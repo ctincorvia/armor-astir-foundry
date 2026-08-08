@@ -79,6 +79,44 @@ describe("PlaybookActorSheet#_boundAllies/_eidolonDrive/_downtimeAlly", () => {
 	});
 });
 
+describe("PlaybookActorSheet#_summonedAlly", () => {
+	it("is null when eidolonDrive is unset", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._summonedAlly()).toBeNull();
+	});
+
+	it("resolves the bound ally matching the stored summonedAllyId", () => {
+		const sheet = new PlaybookActorSheet();
+		const ally = { id: "a1", name: "Vex", trait: "talk" };
+		sheet.actor = {
+			system: {
+				attributes: {
+					boundAllies: [ally],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
+				}
+			}
+		};
+
+		expect(sheet._summonedAlly()).toEqual(ally);
+	});
+
+	it("is null when the stored summonedAllyId no longer resolves (e.g. Released)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					boundAllies: [],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
+				}
+			}
+		};
+
+		expect(sheet._summonedAlly()).toBeNull();
+	});
+});
+
 describe("PlaybookActorSheet#_bindingMove/_helpingHandsMove", () => {
 	it("are undefined when neither move is picked", () => {
 		const sheet = new PlaybookActorSheet();
@@ -519,6 +557,24 @@ describe("PlaybookActorSheet#_onEidolonDriveSummon", () => {
 		expect(Dialog).not.toHaveBeenCalled();
 	});
 
+	it("no-ops when an ally is already summoned this Scene, even with multiple bound allies", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					boundAllies: [{ id: "a1", name: "Vex" }, { id: "a2", name: "Ossa" }],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._onEidolonDriveSummon({ currentTarget: { dataset: { move: EIDOLON_DRIVE.key } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+		expect(Dialog).not.toHaveBeenCalled();
+	});
+
 	it("summons the sole ally directly with exactly one bound, with no Astir to return Power to", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
@@ -530,8 +586,7 @@ describe("PlaybookActorSheet#_onEidolonDriveSummon", () => {
 
 		expect(Dialog).not.toHaveBeenCalled();
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.eidolonDrive": { summonedAllyId: "a1", bonusUsed: false },
-			[`system.attributes.moveUses.${EIDOLON_DRIVE.key}.summoned`]: true
+			"system.attributes.eidolonDrive": { summonedAllyId: "a1", bonusUsed: false }
 		});
 	});
 
@@ -552,7 +607,6 @@ describe("PlaybookActorSheet#_onEidolonDriveSummon", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.eidolonDrive": { summonedAllyId: "a1", bonusUsed: false },
-			[`system.attributes.moveUses.${EIDOLON_DRIVE.key}.summoned`]: true,
 			"system.attributes.boundAllies": [{ id: "a1", name: "Vex", powerInvested: 1 }],
 			// Astir Power is already at its base max (4) with no parts — the +1 return clamps there.
 			"system.attributes.astir.power": 4
@@ -597,8 +651,7 @@ describe("PlaybookActorSheet#_onEidolonDriveSummon", () => {
 		await promise;
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.eidolonDrive": { summonedAllyId: "a2", bonusUsed: false },
-			[`system.attributes.moveUses.${EIDOLON_DRIVE.key}.summoned`]: true
+			"system.attributes.eidolonDrive": { summonedAllyId: "a2", bonusUsed: false }
 		});
 	});
 
@@ -766,6 +819,23 @@ describe("PlaybookActorSheet#_moveGroupMoves - Eidolon Drive's Summon button", (
 		expect(entry.gated).toBe(false);
 	});
 
+	it("is gated once an ally is already summoned this Scene, even with bound allies available", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					boundAllies: [{ id: "a1" }],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
+				}
+			}
+		};
+
+		const [entry] = sheet._moveGroupMoves([EIDOLON_DRIVE]);
+
+		expect(entry.gated).toBe(true);
+	});
+
 	it("leaves an ordinary move's summonable false", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: {}, attributes: {} } };
@@ -773,6 +843,66 @@ describe("PlaybookActorSheet#_moveGroupMoves - Eidolon Drive's Summon button", (
 		const [entry] = sheet._moveGroupMoves([BINDING]);
 
 		expect(entry.summonable).toBe(false);
+	});
+
+	it("omits summonedAllyInfo entirely with nothing summoned", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { boundAllies: [] } } };
+
+		const [entry] = sheet._moveGroupMoves([EIDOLON_DRIVE]);
+
+		expect("summonedAllyInfo" in entry).toBe(false);
+	});
+
+	it("includes summonedAllyInfo at +3 before the one-time bonus is used", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					boundAllies: [{ id: "a1", name: "Vex", trait: "talk" }],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
+				}
+			}
+		};
+
+		const [entry] = sheet._moveGroupMoves([EIDOLON_DRIVE]);
+
+		expect(entry.summonedAllyInfo).toEqual({ name: "Vex", traitLabel: "TALK", value: 3 });
+	});
+
+	it("includes summonedAllyInfo at +1 once the one-time bonus has been used", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					boundAllies: [{ id: "a1", name: "Vex", trait: "talk" }],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: true }
+				}
+			}
+		};
+
+		const [entry] = sheet._moveGroupMoves([EIDOLON_DRIVE]);
+
+		expect(entry.summonedAllyInfo).toEqual({ name: "Vex", traitLabel: "TALK", value: 1 });
+	});
+
+	it("omits summonedAllyInfo for an ordinary move even while an ally is summoned", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					boundAllies: [{ id: "a1", name: "Vex", trait: "talk" }],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
+				}
+			}
+		};
+
+		const [entry] = sheet._moveGroupMoves([BINDING]);
+
+		expect("summonedAllyInfo" in entry).toBe(false);
 	});
 });
 
@@ -922,9 +1052,19 @@ describe("chooseSummonAlly", () => {
 
 		const dialogData = Dialog.mock.calls.at(-1)[0];
 		expect(dialogData.title).toBe("Summon an Ally");
-		expect(dialogData.buttons.a1.label).toBe("Vex");
+		// Neither approach nor trait is set, so the label is just name + Power (defaulting to 0).
+		expect(dialogData.buttons.a1.label).toBe("Vex (Power 0)");
 		// Falls back to "Unnamed Ally" for an ally with no stored name.
-		expect(dialogData.buttons.a2.label).toBe("Unnamed Ally");
+		expect(dialogData.buttons.a2.label).toBe("Unnamed Ally (Power 0)");
+	});
+
+	it("joins approach and trait labels and reports the invested Power when both are set", () => {
+		const fullAlly = { id: "a3", name: "Ossa", approach: "profane", trait: "talk", powerInvested: 2 };
+
+		chooseSummonAlly([fullAlly]);
+
+		const dialogData = Dialog.mock.calls.at(-1)[0];
+		expect(dialogData.buttons.a3.label).toBe("Ossa — Profane, TALK (Power 2)");
 	});
 
 	it("resolves the clicked ally's id", async () => {
@@ -1066,7 +1206,6 @@ describe("PlaybookActorSheet#_onEidolonDriveSummon - nullish defaults", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.eidolonDrive": { summonedAllyId: "a1", bonusUsed: false },
-			[`system.attributes.moveUses.${EIDOLON_DRIVE.key}.summoned`]: true,
 			// Math.max(0, (missing powerInvested = 0) - 1) = 0.
 			"system.attributes.boundAllies": [{ id: "a1", name: "Vex", powerInvested: 0 }],
 			// astirMaxPower([], []) = 4; (missing power = 0) + 1 = 1.

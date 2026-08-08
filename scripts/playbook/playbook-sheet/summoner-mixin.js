@@ -12,7 +12,13 @@ export function chooseSummonAlly(allies) {
 	return new Promise((resolve) => {
 		const buttons = {};
 		for (const ally of allies) {
-			buttons[ally.id] = { label: ally.name || "Unnamed Ally", callback: () => resolve(ally.id) };
+			const name = ally.name || "Unnamed Ally";
+			const approachLabel = APPROACHES.find((a) => a.key === ally.approach)?.label;
+			const traitLabel = TRAITS.find((t) => t.key === ally.trait)?.label;
+			const details = [approachLabel, traitLabel].filter(Boolean).join(", ");
+			const power = ally.powerInvested ?? 0;
+			const label = details ? `${name} — ${details} (Power ${power})` : `${name} (Power ${power})`;
+			buttons[ally.id] = { label, callback: () => resolve(ally.id) };
 		}
 
 		new Dialog({
@@ -36,6 +42,16 @@ export const SummonerSheetMixin = {
 	},
 	_eidolonDrive() {
 		return this.actor.system.attributes?.eidolonDrive ?? { summonedAllyId: null, bonusUsed: false };
+	},
+	// The single "which bound ally is currently summoned" lookup, shared by moves-mixin.js's
+	// _moveTraits (the roll-dialog trait option) and _moveGroupMoves (the move-card info line) so
+	// the id→ally resolution only lives in one place. null whenever nothing is summoned, or when
+	// the stored id no longer resolves (e.g. the ally was Released while somehow still marked
+	// summoned — defensive, since _onBoundAllyRelease already clears eidolonDrive in that case).
+	_summonedAlly() {
+		const { summonedAllyId } = this._eidolonDrive();
+		if (!summonedAllyId) return null;
+		return this._boundAllies().find((ally) => ally.id === summonedAllyId) ?? null;
 	},
 	_downtimeAlly() {
 		return this.actor.system.attributes?.downtimeAlly ?? null;
@@ -185,6 +201,11 @@ export const SummonerSheetMixin = {
 		if (!move) return;
 		const allies = this._boundAllies();
 		if (!allies.length) return;
+		// Mirrors _onMountUp's own precedent for guarding a handler against a click landing on an
+		// already-disabled button — the Summon button is disabled via _moveGroupMoves' summonGated the
+		// moment an ally is already active this Scene, but a click can still land on it, so this is
+		// the defensive no-op backing that gating.
+		if (this._eidolonDrive().summonedAllyId) return;
 
 		// Every id offered by chooseSummonAlly's own buttons comes straight from `allies` itself, so
 		// the lookup below can't miss once a real (non-null) id resolves — same closed-world
@@ -198,8 +219,7 @@ export const SummonerSheetMixin = {
 
 		const astir = this._astir();
 		const updates = {
-			"system.attributes.eidolonDrive": { summonedAllyId: ally.id, bonusUsed: false },
-			[`system.attributes.moveUses.${move.key}.summoned`]: true
+			"system.attributes.eidolonDrive": { summonedAllyId: ally.id, bonusUsed: false }
 		};
 		// Returns 1 Power to the summoned ally, mirroring _regainAstirPower's clamp-to-max shape in
 		// astir-mixin.js — a no-Astir actor never has anything invested to begin with (Invest Power

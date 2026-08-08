@@ -48,6 +48,10 @@ describe("availableApproaches", () => {
 		expect(availableApproaches("the-summoner").map((a) => a.key)).toEqual(["profane", "elemental"]);
 	});
 
+	it("restricts The Icon to Mundane", () => {
+		expect(availableApproaches("the-icon").map((a) => a.key)).toEqual(["mundane"]);
+	});
+
 	it("falls back to every approach for a playbook with no restriction entry", () => {
 		expect(PLAYBOOK_APPROACHES["some-future-playbook"]).toBeUndefined();
 		expect(availableApproaches("some-future-playbook")).toEqual(APPROACHES);

@@ -32,7 +32,10 @@ export const GRAVITY_TRIGGERS = {
 	"the-revenant":
 		"When you use your never quite free move, advance a GRAVITY clock with someone who doesn't want you to move on.",
 	"the-summoner":
-		"When you part ways with an ally from binding, advance a GRAVITY clock with someone who will remember them fondly."
+		"When you part ways with an ally from binding, advance a GRAVITY clock with someone who will remember them fondly.",
+	"the-icon":
+		"Whenever you act against one of your Hooks, advance a GRAVITY clock with someone who sees " +
+		"you as inspirational or expects highly from you."
 };
 
 export function gravityTriggerForPlaybook(playbookSlug, pickedMoveKeys = []) {

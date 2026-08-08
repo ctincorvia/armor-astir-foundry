@@ -384,6 +384,7 @@ describe("MOVE_POOLS - the-revenant", () => {
 		expect(neverQuiteFree.results.mixed).toBeTruthy();
 		expect(neverQuiteFree.results.failure).toBeTruthy();
 		expect(neverQuiteFree.forcesDesperationAtMaxPerils).toBeUndefined();
+		expect(neverQuiteFree.disablesMove).toEqual({ moveKey: "bite-the-dust" });
 	});
 
 	it("rolls Joyride with +CHANNEL and no failure result", () => {
@@ -403,6 +404,20 @@ describe("MOVE_POOLS - the-revenant", () => {
 		expect(iKnowYou.results.success).toBeTruthy();
 		expect(iKnowYou.results.mixed).toBeTruthy();
 		expect(iKnowYou.results.failure).toBeNull();
+	});
+
+	it("flags I Know You as granting a live FAMILIARITY trait", () => {
+		const iKnowYou = findPlaybookMove("the-revenant:i-know-you");
+
+		expect(iKnowYou.grantsFamiliarityTrait).toBe(true);
+	});
+
+	it("gives Ain't No Grave a costless automatic-success offer excluding Never Quite Free", () => {
+		const aintNoGrave = findPlaybookMove("the-revenant:aint-no-grave");
+
+		expect(aintNoGrave.grantsAutomaticSuccess).toEqual({
+			excludeMoves: ["the-revenant:never-quite-free"]
+		});
 	});
 
 	it("gives Ancient Recall a 3-point flat hold and an automatic-success grant scoped to two basic moves", () => {
@@ -425,12 +440,14 @@ describe("MOVE_POOLS - the-summoner", () => {
 		expect(summoner.moves).toHaveLength(9);
 	});
 
-	it("gives Eidolon Drive empty traits, summonsAlly, and a Sortie-scoped Summoned uses checkbox", () => {
+	it("gives Eidolon Drive empty traits and summonsAlly, with no uses checkbox of its own", () => {
 		const eidolonDrive = findPlaybookMove("the-summoner:eidolon-drive");
 
 		expect(eidolonDrive.traits).toEqual([]);
 		expect(eidolonDrive.summonsAlly).toBe(true);
-		expect(eidolonDrive.uses).toEqual([{ key: "summoned", label: "Summoned", period: "Sortie" }]);
+		// The "once per Scene" grant is tracked entirely via system.attributes.eidolonDrive (see
+		// summoner-mixin.js), not a uses checkbox.
+		expect(eidolonDrive.uses).toBeUndefined();
 	});
 
 	it("flags Binding with grantsBoundAlliesRoster and empty traits", () => {
@@ -463,6 +480,51 @@ describe("MOVE_POOLS - the-summoner", () => {
 			"the-summoner:conveyance"
 		]) {
 			expect(findPlaybookMove(key).traits).toEqual([]);
+		}
+	});
+});
+
+describe("MOVE_POOLS - the-icon", () => {
+	it("registers The Icon's own pool with 9 moves", () => {
+		const icon = MOVE_POOLS.find((pool) => pool.key === "the-icon");
+
+		expect(icon.label).toBe("The Icon");
+		expect(icon.playbookName).toBe("The Icon");
+		expect(icon.moves).toHaveLength(9);
+	});
+
+	it("gives Performance and Bardic Inspiration a 3-point flat hold and no results", () => {
+		const performance = findPlaybookMove("the-icon:performance");
+		const bardicInspiration = findPlaybookMove("the-icon:bardic-inspiration");
+
+		expect(performance.traits).toEqual([]);
+		expect(performance.flatHold).toBe(3);
+		expect(performance.results).toBeUndefined();
+
+		expect(bardicInspiration.traits).toEqual([]);
+		expect(bardicInspiration.flatHold).toBe(3);
+		expect(bardicInspiration.results).toBeUndefined();
+	});
+
+	it("flags Mechanical Aria with grantsAstirAccessWithoutChannel and empty traits", () => {
+		const mechanicalAria = findPlaybookMove("the-icon:mechanical-aria");
+
+		expect(mechanicalAria.traits).toEqual([]);
+		expect(mechanicalAria.grantsAstirAccessWithoutChannel).toBe(true);
+	});
+
+	it("gives every other move (prose-only) empty traits and no results", () => {
+		for (const key of [
+			"the-icon:power",
+			"the-icon:change-of-heart",
+			"the-icon:touchstone",
+			"the-icon:you-should-see-me-in-a-crown",
+			"the-icon:showstopper",
+			"the-icon:perspective"
+		]) {
+			const move = findPlaybookMove(key);
+			expect(move.traits).toEqual([]);
+			expect(move.results).toBeUndefined();
 		}
 	});
 });

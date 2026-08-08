@@ -688,6 +688,53 @@ export const STARTING_GEAR_POOLS = [
 				]
 			}
 		]
+	},
+	{
+		playbookName: "The Icon",
+		freeformNotes: [
+			"A magical instrument or other artistic tool.",
+			"Multiple sets of clothes that match your look."
+		],
+		grantedItems: [],
+		groups: [
+			{
+				key: "the-icon:iconic-perks",
+				label: "Choose 2 Iconic Perks.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-icon:bodyguards-i",
+						name: "Bodyguards I",
+						description: "Conjured protectors that flare into being around you, striking at " +
+							"anyone who threatens you.",
+						kind: "weapon",
+						tags: ["melee", "area", "ward"]
+					},
+					{
+						key: "the-icon:broad-appeal",
+						name: "Broad Appeal",
+						description: "Everybody recognises you."
+					},
+					{
+						key: "the-icon:personal-fortune",
+						name: "Personal Fortune",
+						description: "Act with advantage anywhere money makes a difference."
+					},
+					{
+						key: "the-icon:influencer",
+						name: "Influencer",
+						description: "Nobody turns down your counsel or input on the basis of position/rank."
+					},
+					{
+						key: "the-icon:personalised-sidearm-i",
+						name: "Personalised Sidearm I",
+						description: "A sidearm made to match your look, as recognisable as it is functional.",
+						kind: "weapon",
+						tags: ["ranged", "defensive"]
+					}
+				]
+			}
+		]
 	}
 ];
 

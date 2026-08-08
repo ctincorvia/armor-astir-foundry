@@ -95,10 +95,14 @@ export class PlaybookActorSheet extends ActorSheet {
 		// Computed here, same reason isCommander/isWitch are: no Handlebars equality helper is
 		// registered in this module.
 		data.isParadigm = playbookSlug === "the-paradigm";
-		// Rendered next to the Approach select in the header — see claude.md's Character Tier
-		// notes: on-foot Tier and Approach are the same kind of "how you fight outside your Astir"
+		// Rendered next to the Tier readout in the header — see claude.md's Character Tier notes:
+		// on-foot Tier and Approach are the same kind of "how you fight outside your Astir"
 		// property. Derived fresh every render, not stored — see _conflictTier.
 		data.tier = this._conflictTier();
+		// The Approach counterpart to data.tier just above — see _effectiveApproach, which mirrors
+		// _conflictTier's own mounted-frame fallback so a piloted Astir/Ardent with its own Approach
+		// is what actually drives target-matchup Advantage, not the character's persisted one.
+		data.approach = this._effectiveApproach();
 		data.traits = this._traitsData();
 		const astir = this._astir();
 		data.spotlight = this._spotlightData();

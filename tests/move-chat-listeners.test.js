@@ -326,6 +326,36 @@ describe("onRenderMoveChat/handleAutomaticSuccess (Hot-blooded/Once the War's Ov
 		});
 	});
 
+	it("spends a costless source (Ain't No Grave) with no actor.update for the spend, only re-rendering the flavor", async () => {
+		const COSTLESS_SOURCE = { key: "the-revenant:aint-no-grave", name: "Ain't No Grave" };
+		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const offer = {
+			actorId: "actor1",
+			moveKey: "exchange-blows",
+			flavorArgs: { tier: "failure", conditions: [] },
+			sources: [COSTLESS_SOURCE]
+		};
+		const message = { flags: { "armor-astir": { automaticSuccess: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.automaticSuccessHandler({ currentTarget: { disabled: false, dataset: { source: COSTLESS_SOURCE.key } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).not.toHaveBeenCalled();
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, {
+			tier: "success",
+			conditions: [{ key: "automatic-success", label: "Automatic Success (Ain't No Grave)" }],
+			tierLabel: MOVE_RESULT_LABELS.success,
+			resultText: EXCHANGE_BLOWS.results.success,
+			reminders: null,
+			automaticSuccess: []
+		});
+		expect(message.update).toHaveBeenCalledWith({ flavor: "<div>updated</div>" });
+	});
+
 	it("does nothing when the actor no longer exists", async () => {
 		game.actors.get.mockReturnValue(undefined);
 		const offer = { actorId: "gone", moveKey: "exchange-blows", flavorArgs: {}, sources: [HOT_BLOODED_SOURCE] };

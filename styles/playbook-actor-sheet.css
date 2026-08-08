@@ -371,6 +371,14 @@
 	color: var(--aa-primary);
 }
 
+/* The summoned ally's own alternate trait value (Summoner's Eidolon Drive), not a
+   stacking bonus like .trait-bonus above — it replaces which trait/value the player would
+   roll, it does not add to this one — so it's parenthesized instead of prefixed with a "+".
+   Same token, same reasoning: amethyst at full strength is already ~8.7:1, no -dark needed. */
+.armor-astir.sheet .trait-ally-bonus {
+	color: var(--aa-primary);
+}
+
 .armor-astir.sheet .spotlight-track {
 	display: flex;
 	flex-direction: row;
@@ -529,6 +537,16 @@
 .armor-astir.sheet .danger-risk .danger-label {
 	font-weight: normal;
 	color: inherit;
+}
+
+/* Marks the currently-summoned ally on the Bound Allies roster (see claude.md's Astir section on
+   Eidolon Drive) — the roster's own left-border + tint treatment, same shape as .danger-peril
+   above, but in secondary tokens since this is the player's own tracked state (which ally is
+   active right now), not chrome. Since Eidolon Drive's redundant uses checkbox was removed, this
+   is now the only on-sheet indicator of who's summoned, so it has to read clearly at a glance. */
+.armor-astir.sheet .entry-list-item.summoned {
+	border-left: 3px solid var(--aa-secondary-dark);
+	background: var(--aa-secondary-tint);
 }
 
 /* Paradigm's Shaken checkbox on a Tenet (a Hook entry, isParadigm-gated — see claude.md's Tenets
@@ -1006,6 +1024,27 @@
 	font-weight: 700;
 }
 
+/* Wraps .move-name (and, once summoned, .move-summon-info below) as .move's own first grid
+   column — see claude.md's note on wrapping an optional {{#if}} in a flex container: with
+   summonedAllyInfo absent, Handlebars leaves only whitespace-only text where the <p> would go,
+   which never becomes a flex item, so this collapses to just the name. No padding of its own —
+   the spacing already lives on .move itself. */
+.armor-astir.sheet .move-name-column {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+}
+
+/* Eidolon Drive's "who's summoned" readout (Summoner) — a plain informational line, not a
+   derived-number annotation like .trait-ally-bonus, so it gets the module's usual small/muted
+   secondary-text treatment (see .equipment-tag-description's identical font-size/opacity) rather
+   than a color role token. */
+.armor-astir.sheet .move-summon-info {
+	margin: 0;
+	font-size: 11px;
+	opacity: 0.8;
+}
+
 .armor-astir.sheet .move-row-controls {
 	display: flex;
 	flex-direction: row;
@@ -1345,12 +1384,14 @@
    native tooltip on *any* element with a data-tooltip attribute, so reusing that name doubled up
    with Foundry's own black tooltip. */
 .armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip],
-.armor-astir.sheet .witch-boons-choose.disabled[data-gate-tooltip] {
+.armor-astir.sheet .witch-boons-choose.disabled[data-gate-tooltip],
+.armor-astir.sheet .move-roll.disabled[data-gate-tooltip] {
 	position: relative;
 }
 
 .armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip]:hover::after,
-.armor-astir.sheet .witch-boons-choose.disabled[data-gate-tooltip]:hover::after {
+.armor-astir.sheet .witch-boons-choose.disabled[data-gate-tooltip]:hover::after,
+.armor-astir.sheet .move-roll.disabled[data-gate-tooltip]:hover::after {
 	content: attr(data-gate-tooltip);
 	position: absolute;
 	bottom: 100%;

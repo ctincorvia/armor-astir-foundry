@@ -45,12 +45,16 @@ async function handleAutomaticSuccess(message, offer, sourceKey) {
 		});
 	} else if (source.useKey) {
 		await actor.update({ [`system.attributes.moveUses.${source.key}.${source.useKey}`]: true });
-	} else {
+	} else if (source.cost != null) {
 		const current = actor.system.attributes?.moveHold?.[source.key]?.value ?? 0;
 		await actor.update({
 			[`system.attributes.moveHold.${source.key}.value`]: Math.max(HOLD_MIN, current - source.cost)
 		});
 	}
+	// Ain't No Grave (see playbook-moves.js/PlaybookActorSheet#_availableAutomaticSuccess) — a
+	// costless source (none of costsPeril/useKey/cost set) has nothing to spend at all, so there's
+	// no actor.update for the spend itself; it falls straight through to the flavor re-render below,
+	// same as every other source.
 
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
 		...offer.flavorArgs,

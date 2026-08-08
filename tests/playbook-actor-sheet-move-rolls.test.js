@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	...(await importOriginal()),
@@ -986,6 +986,256 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, config);
+	});
+});
+
+// Combined Tier+Approach Advantage on Exchange Blows/Strike Decisively (see moves-mixin.js's
+// _targetMatchupAdvantage): Tier comparison contributes +1/-1/0 (higher/lower/equal), the Approach
+// type wheel (approach-matchup.js) contributes its own +1/-1/0, and the two are summed before
+// resolving to an ADVANTAGE_STATES key — a net 0 leaves the Dice select unlocked. Field Scout's
+// conflictTier: 2 (see playbook-moves.js) is used to raise the roller's Tier above the default 1,
+// which every NPC's own Tier floors at too (TIER_MIN), so "higher Tier" can be exercised without it.
+describe("PlaybookActorSheet#_onMoveRoll - combined Tier+Approach Advantage from a targeted NPC", () => {
+	const clashTalkStats = { clash: { value: 0 }, talk: { value: 0 } };
+
+	function npcTarget(tier, approach) {
+		return { actor: { type: "armor-astir.npc", system: { attributes: { tier, approach } } } };
+	}
+
+	afterEach(() => {
+		delete game.user.targets;
+	});
+
+	it("locks Advantage when this actor's Tier exceeds the single targeted NPC's Tier (Tier alone, Approach neutral)", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: clashTalkStats, attributes: { playbookMoves: ["the-scout:field-scout"] } } };
+		game.user.targets = new Set([npcTarget(1)]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: "advantage", lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	it("treats a targeted NPC missing its stored Tier as TIER_MIN", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: clashTalkStats, attributes: { playbookMoves: ["the-scout:field-scout"] } } };
+		game.user.targets = new Set([{ actor: { type: "armor-astir.npc", system: { attributes: {} } } }]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: "advantage", lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	it("does not lock either axis when Tier is equal and Approach is neutral", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: clashTalkStats, attributes: { playbookMoves: ["the-scout:field-scout"] } } };
+		game.user.targets = new Set([npcTarget(2)]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	// The new symmetric half of the Tier signal: previously a lower Tier was a no-op (null); it now
+	// locks Disadvantage the same way a higher Tier locks Advantage.
+	it("locks Disadvantage when the targeted NPC's Tier is higher than this actor's own (Tier alone)", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: clashTalkStats, attributes: {} } };
+		game.user.targets = new Set([npcTarget(3)]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "strike-decisively" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			STRIKE_DECISIVELY,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: "disadvantage", lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	it("locks Advantage from a favorable Approach matchup alone, with equal Tier", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: clashTalkStats, attributes: { approach: "mundane" } } };
+		game.user.targets = new Set([npcTarget(1, "arcane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: "advantage", lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	it("locks Disadvantage from an unfavorable Approach matchup alone, with equal Tier", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: clashTalkStats, attributes: { approach: "arcane" } } };
+		game.user.targets = new Set([npcTarget(1, "mundane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: "disadvantage", lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	it("locks Advantage x2 when Tier and Approach both favor this actor", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: clashTalkStats,
+				attributes: { playbookMoves: ["the-scout:field-scout"], approach: "mundane" }
+			}
+		};
+		game.user.targets = new Set([npcTarget(1, "arcane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: "advantage2", lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	it("locks Disadvantage x2 when Tier and Approach both favor the targeted NPC", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: clashTalkStats, attributes: { approach: "arcane" } } };
+		game.user.targets = new Set([npcTarget(3, "mundane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: "disadvantage2", lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	it("leaves the Dice select unlocked when a favorable Approach cancels an unfavorable Tier (net 0)", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: clashTalkStats, attributes: { approach: "mundane" } } };
+		game.user.targets = new Set([npcTarget(2, "arcane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	it("treats a missing Approach on this actor as neutral, even when the targeted NPC has a real one", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: clashTalkStats, attributes: {} } };
+		game.user.targets = new Set([npcTarget(1, "arcane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	it("leaves a non-usesWeapon move unaffected even with a valid target favoring the actor on both Tier and Approach", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { playbookMoves: ["the-scout:field-scout"], approach: "mundane" }
+			}
+		};
+		game.user.targets = new Set([npcTarget(1, "arcane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			DISPEL_UNCERTAINTIES,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	// Cold Company's standing lock (see _coldCompanyAdvantage) sits ahead of this combined signal in
+	// the precedence chain — its haunted state resolves to "disadvantage", the opposite of what the
+	// Tier match alone would compute here, so a passing test proves the ordering rather than just
+	// happening to agree with it.
+	it("lets Cold Company's standing Advantage-axis lock win over a higher-Tier target match", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: clashTalkStats,
+				attributes: { playbookMoves: ["the-scout:field-scout", "the-wither:cold-company"] }
+			}
+		};
+		game.user.targets = new Set([npcTarget(1)]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: "disadvantage", lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+
+	// Regression for the bug this describe block's own comment doesn't yet cover: the roller's
+	// Approach used to be read straight off the character's own persisted system.attributes.approach
+	// with no regard for a mounted Astir/Ardent's own, different Approach (see _effectiveApproach in
+	// progression-mixin.js). Here the character's persisted Approach (arcane) is neutral against the
+	// target's own (arcane vs arcane ties), but the mounted Astir's Approach (mundane) beats it — Tier
+	// is held equal (both 3) so the Advantage lock below can only be coming from the Approach signal,
+	// and only from the frame's Approach, not the actor's own.
+	it("uses the mounted Astir's own Approach for the target matchup, not the character's persisted one", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			name: "Vanguard",
+			system: {
+				stats: clashTalkStats,
+				attributes: {
+					approach: "arcane",
+					astir: { tier: 3, approach: "mundane", piloted: true }
+				}
+			}
+		};
+		game.user.targets = new Set([npcTarget(3, "arcane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			{ lockedEffect: null, lockedAdvantage: "advantage", lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
 	});
 });
 

@@ -19,7 +19,8 @@
 		"Actor": {
 			"carrier": {},
 			"authority": {},
-			"cause": {}
+			"cause": {},
+			"npc": {}
 		}
 	},
 	"packs": [
@@ -148,6 +149,17 @@
 			"name": "basic-playbook-summoner",
 			"label": "Basic Playbook - The Summoner",
 			"path": "packs/basic-playbook-summoner",
+			"type": "Actor",
+			"system": "pbta",
+			"ownership": {
+				"PLAYER": "OBSERVER",
+				"ASSISTANT": "OWNER"
+			}
+		},
+		{
+			"name": "basic-playbook-icon",
+			"label": "Basic Playbook - The Icon",
+			"path": "packs/basic-playbook-icon",
 			"type": "Actor",
 			"system": "pbta",
 			"ownership": {

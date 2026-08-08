@@ -20,8 +20,9 @@
 		<div class="approach-swap">
 			<label>Approach</label>
 			<select name="system.attributes.approach">
-				{{selectOptions approachOptions selected=data.system.attributes.approach valueAttr="key" labelAttr="label" blank="— Choose —"}}
+				{{selectOptions approachOptions selected=approach.base valueAttr="key" labelAttr="label" blank="— Choose —"}}
 			</select>
+			{{#if approach.fromFrame}}<span class="approach-frame-note">(from {{approach.frameName}}: {{approach.effectiveLabel}})</span>{{/if}}
 		</div>
 		<div class="tier-readout">
 			<label>Tier</label>
@@ -37,7 +38,7 @@
 					<label class="trait-label">{{label}}</label>
 					<div class="trait-control">
 						<button type="button" class="trait-step trait-decrement" data-trait="{{key}}" data-delta="-1" {{#if disabled}}disabled{{/if}}>-</button>
-						<span class="trait-value">{{value}}{{#if bonus}}<span class="trait-bonus">+{{bonus}}</span>{{/if}}</span>
+						<span class="trait-value">{{value}}{{#if bonus}}<span class="trait-bonus">+{{bonus}}</span>{{/if}}{{#if allyBonus}}<span class="trait-ally-bonus"> ({{allyBonus}})</span>{{/if}}</span>
 						<button type="button" class="trait-step trait-increment" data-trait="{{key}}" data-delta="1" {{#if disabled}}disabled{{/if}}>+</button>
 					</div>
 				</li>
@@ -129,7 +130,12 @@
 						<ol class="move-list">
 							{{#each moves}}
 							<li class="move" data-move="{{key}}">
-								<span class="move-name">{{name}}</span>
+								<div class="move-name-column">
+									<span class="move-name">{{name}}</span>
+									{{#if summonedAllyInfo}}
+									<p class="move-summon-info">Summoned: {{summonedAllyInfo.name}} ({{summonedAllyInfo.traitLabel}}) — currently +{{summonedAllyInfo.value}}</p>
+									{{/if}}
+								</div>
 								<div class="move-row-controls">
 									{{#if trackHold}}
 									<div class="hold-control">
@@ -169,7 +175,7 @@
 									{{/if}}
 									<div class="move-controls">
 										{{#if rollable}}
-										<button type="button" class="move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Roll</button>
+										<button type="button" class="move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{#if gatedTooltip}} data-gate-tooltip="{{gatedTooltip}}"{{/if}}{{/if}}>Roll</button>
 										{{else if activatable}}
 										<button type="button" class="move-activate{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Activate</button>
 										{{else if summonable}}

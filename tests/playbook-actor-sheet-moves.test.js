@@ -44,6 +44,7 @@ const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:per
 const INPUT_CHANNEL = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:input-channel");
 const DIVINATION_CODEX = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:divination-codex");
 const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
+const NEVER_QUITE_FREE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:never-quite-free");
 
 beforeEach(() => {
 	postMoveDescription.mockClear();
@@ -990,6 +991,19 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 		const weaveMagic = data.moveGroups[0].moves.find((m) => m.key === "weave-magic");
 		expect(weaveMagic.gated).toBe(true);
 		expect(weaveMagic.descriptionGated).toBe(false);
+	});
+
+	it("gates bite the dust's Roll button once Never Quite Free is picked, with a tooltip explaining why", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: {}, attributes: { playbookMoves: [NEVER_QUITE_FREE.key] } }
+		};
+
+		const data = sheet.getData();
+
+		const biteTheDust = data.moveGroups[0].moves.find((m) => m.key === "bite-the-dust");
+		expect(biteTheDust.gated).toBe(true);
+		expect(biteTheDust.gatedTooltip).toBe("Replaced by Never Quite Free");
 	});
 });
 

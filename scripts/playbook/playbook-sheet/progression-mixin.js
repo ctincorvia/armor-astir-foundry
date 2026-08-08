@@ -1,5 +1,6 @@
 import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { TRAITS } from "../../core/traits.js";
+import { APPROACHES } from "../../core/approaches.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../advancements.js";
 
 const TRAIT_MIN = -3;
@@ -52,6 +53,27 @@ export const ProgressionSheetMixin = {
 		}
 		return { base: base + bonus, effective: base + bonus, fromFrame: false };
 	},
+	// The Approach counterpart to _conflictTier's own frame-fallback pattern — while a frame is
+	// mounted, `effective` is that frame's own Approach instead of the character's persisted one,
+	// since a target-matchup Advantage roll (see moves-mixin.js's _targetMatchupAdvantage) needs to
+	// compare whichever Approach is actually fighting, the same reasoning that already drives Tier.
+	// Unlike Tier, which always has a numeric default (CHARACTER_TIER_DEFAULT) and so never needs to
+	// fall through, a frame's own Approach can be unset ("") — an Astir/Ardent doesn't require one
+	// to be created — so this falls back to `base` in that case rather than reporting `fromFrame`.
+	_effectiveApproach() {
+		const base = this.actor.system.attributes?.approach ?? "";
+		const frame = this._mountedFrame();
+		if (frame?.approach) {
+			return {
+				base,
+				effective: frame.approach,
+				effectiveLabel: APPROACHES.find((a) => a.key === frame.approach)?.label ?? frame.approach,
+				fromFrame: true,
+				frameName: frame.name
+			};
+		}
+		return { base, effective: base, fromFrame: false };
+	},
 	// Downtime Tokens' effective max (see getData's downtimeTokens, _onDowntimeTokensStep,
 	// _onRefreshSortie) — DOWNTIME_TOKENS_MAX_BASE unless a picked move raises it via its own
 	// declarative downtimeTokensMax flag (Commander's Debrief: 4 total), taking the max across
@@ -75,12 +97,40 @@ export const ProgressionSheetMixin = {
 	// getData, since nothing else in getData needs this actor's trait bonuses.
 	_traitsData() {
 		const traitBonuses = this._traitBonuses();
-		return TRAITS.map(({ key, label }) => {
+		// Eidolon Drive's summoned-ally annotation (Summoner — see moves-mixin.js's identical
+		// summonedAllyInfo.value computation on the move card) — the trait row matching the
+		// summoned ally's own trait key additionally shows what that ally currently grants, at +3
+		// before the bonus is used on a roll and +1 after. Resolved once here rather than per-trait,
+		// since at most one TRAITS entry can ever match (_summonedAlly returns a single ally, if any).
+		const summonedAlly = this._summonedAlly();
+		const traits = TRAITS.map(({ key, label }) => {
 			const stat = this.actor.system.stats?.[key];
 			const value = stat?.value ?? 0;
 			const bonus = traitBonuses[key] ?? 0;
-			return { key, label, value, bonus, total: value + bonus, disabled: stat?.disabled ?? false };
+			const allyBonus = summonedAlly?.trait === key ? (this._eidolonDrive().bonusUsed ? 1 : 3) : null;
+			return {
+				key,
+				label,
+				value,
+				bonus,
+				total: value + bonus,
+				disabled: stat?.disabled ?? false,
+				...(allyBonus && { allyBonus })
+			};
 		});
+		// I Know You's FAMILIARITY (see playbook-moves.js's grantsFamiliarityTrait) — a real, stepped
+		// actor stat, but deliberately not folded into the shared TRAITS catalog above (that catalog
+		// is rendered for every playbook, and would wrongly surface FAMILIARITY for every non-Revenant
+		// actor too). Appended only once the actor has actually picked I Know You, mirroring the same
+		// "declarative flag, evaluated generically in the sheet" convention every other picked-move
+		// effect in this file already follows. No trait bonus/summoned-ally annotation applies to a
+		// virtual trait like this — bonus is always 0, matching fixedTraits' own no-bonus treatment
+		// elsewhere.
+		if (resolvePlaybookMoves(this._playbookMoves()).some((m) => m.grantsFamiliarityTrait)) {
+			const value = this.actor.system.stats?.familiarity?.value ?? 3;
+			traits.push({ key: "familiarity", label: "FAMILIARITY", value, bonus: 0, total: value, disabled: false });
+		}
+		return traits;
 	},
 	// Spotlight is a single 0-6 counter (system.attributes.spotlight.value) rendered as 6 steps
 	// filled from the bottom up — always visible (not Channel-gated) since it tracks whose turn it

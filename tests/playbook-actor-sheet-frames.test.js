@@ -330,7 +330,8 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 			"system.attributes.equipment": [{ ...entry, spent: ["cursed", "dangerous"] }],
 			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
-			"system.resources.hold.value": 0
+			"system.resources.hold.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false }
 		});
 	});
 
@@ -354,7 +355,8 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
-			"system.resources.hold.value": 0
+			"system.resources.hold.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false }
 		});
 	});
 
@@ -373,7 +375,8 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
-			"system.resources.hold.value": 0
+			"system.resources.hold.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false }
 		});
 	});
 
@@ -386,7 +389,8 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
-			"system.resources.hold.value": 0
+			"system.resources.hold.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false }
 		});
 	});
 
@@ -405,7 +409,28 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
-			"system.resources.hold.value": 0
+			"system.resources.hold.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false }
+		});
+	});
+
+	it("clears Eidolon Drive's active summon — the real rules boundary for it", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { eidolonDrive: { summonedAllyId: "a1", bonusUsed: true } },
+				resources: { hold: { value: 0 } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshScene();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
+			"system.attributes.moveHold.the-scout:mobility.value": 0,
+			"system.resources.hold.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false }
 		});
 	});
 });

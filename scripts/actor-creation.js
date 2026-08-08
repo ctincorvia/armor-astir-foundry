@@ -1,4 +1,5 @@
 import { playbookGrantsHomeInsteadOfChannel } from "./moves/starting-moves.js";
+import { TIER_MIN } from "./equipment/equipment.js";
 
 // Each playbook is a compendium Actor (see claude.md, "Domain conventions"). Adding a new
 // playbook means adding an entry here plus its own compendium pack; no other code changes.
@@ -14,7 +15,8 @@ export const PLAYBOOKS = [
 	{ packId: "armor-astir.basic-playbook-adrift", name: "The Adrift" },
 	{ packId: "armor-astir.basic-playbook-advocate", name: "The Advocate" },
 	{ packId: "armor-astir.basic-playbook-revenant", name: "The Revenant" },
-	{ packId: "armor-astir.basic-playbook-summoner", name: "The Summoner" }
+	{ packId: "armor-astir.basic-playbook-summoner", name: "The Summoner" },
+	{ packId: "armor-astir.basic-playbook-icon", name: "The Icon" }
 ];
 
 async function getPlaybookSourceData(playbook) {
@@ -158,6 +160,15 @@ export const WORLD_ACTOR_KINDS = [
 		type: "armor-astir.cause",
 		name: "Cause",
 		buildSystem: () => ({ attributes: { factions: [] } })
+	},
+	{
+		key: "npc",
+		type: "armor-astir.npc",
+		name: "NPC",
+		buildSystem: () => ({
+			details: { description: { value: "" } },
+			attributes: { approach: "", tier: TIER_MIN }
+		})
 	}
 ];
 

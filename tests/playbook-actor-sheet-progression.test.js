@@ -10,6 +10,7 @@ const ARCANE_AUGMENTS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:a
 const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loose");
 const PATRON = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:patron");
 const HELPING_HANDS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:helping-hands");
+const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
 
 describe("PlaybookActorSheet#getData - traits", () => {
 	it("defaults every trait to value 0, no bonus, and enabled when system.stats is empty", () => {
@@ -125,6 +126,120 @@ describe("PlaybookActorSheet#getData - traits", () => {
 		const data = sheet.getData();
 
 		expect(data.traits.find((t) => t.key === "channel")).toEqual({ key: "channel", label: "CHANNEL", value: 2, bonus: 0, total: 2, disabled: false });
+	});
+
+	it("omits allyBonus from every trait by default, with no ally summoned", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { talk: { value: 0 } } } };
+
+		const data = sheet.getData();
+
+		expect(data.traits.every((t) => !("allyBonus" in t))).toBe(true);
+	});
+
+	it("adds the summoned ally's own allyBonus (+3) to the trait row matching its trait", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { talk: { value: 0 } },
+				attributes: {
+					boundAllies: [{ id: "a1", name: "Vex", trait: "talk" }],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.traits.find((t) => t.key === "talk").allyBonus).toBe(3);
+	});
+
+	it("drops the summoned ally's allyBonus to +1 once the one-time bonus has been used", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { talk: { value: 0 } },
+				attributes: {
+					boundAllies: [{ id: "a1", name: "Vex", trait: "talk" }],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: true }
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.traits.find((t) => t.key === "talk").allyBonus).toBe(1);
+	});
+
+	it("leaves a different, non-matching trait row without allyBonus even with an ally summoned", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { talk: { value: 0 }, clash: { value: 0 } },
+				attributes: {
+					boundAllies: [{ id: "a1", name: "Vex", trait: "talk" }],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect("allyBonus" in data.traits.find((t) => t.key === "clash")).toBe(false);
+	});
+
+	it("appends a FAMILIARITY trait row reflecting the actor's own stat once I Know You is picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 0 }, familiarity: { value: 1 } },
+				attributes: { playbookMoves: [I_KNOW_YOU.key] }
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.traits.find((t) => t.key === "familiarity")).toEqual({
+			key: "familiarity",
+			label: "FAMILIARITY",
+			value: 1,
+			bonus: 0,
+			total: 1,
+			disabled: false
+		});
+	});
+
+	it("defaults the FAMILIARITY trait row to 3 once I Know You is picked but system.stats.familiarity is absent", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { channel: { value: 0 } }, attributes: { playbookMoves: [I_KNOW_YOU.key] } }
+		};
+
+		const data = sheet.getData();
+
+		expect(data.traits.find((t) => t.key === "familiarity")).toEqual({
+			key: "familiarity",
+			label: "FAMILIARITY",
+			value: 3,
+			bonus: 0,
+			total: 3,
+			disabled: false
+		});
+	});
+
+	it("omits the FAMILIARITY trait row when I Know You isn't picked, even for another Revenant move", () => {
+		const sheet = new PlaybookActorSheet();
+		const NEVER_QUITE_FREE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:never-quite-free");
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 0 } },
+				attributes: { playbookMoves: [NEVER_QUITE_FREE.key] }
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.traits.find((t) => t.key === "familiarity")).toBeUndefined();
 	});
 });
 

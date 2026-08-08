@@ -165,6 +165,14 @@ describe("STARTING_MOVE_POOLS", () => {
 		expect(summoner.pickOneKeys).toEqual([]);
 		expect(summoner.chooseCount).toBe(0);
 	});
+
+	it("grants The Icon exactly Performance, plus 2 to choose", () => {
+		const icon = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Icon");
+
+		expect(icon.grantedKeys).toEqual(["the-icon:performance"]);
+		expect(icon.pickOneKeys).toEqual([]);
+		expect(icon.chooseCount).toBe(2);
+	});
 });
 
 describe("findStartingMovePool", () => {

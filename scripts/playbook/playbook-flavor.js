@@ -323,6 +323,30 @@ export const PLAYBOOK_FLAVOR = {
 			"Do you have any kind of traditional outfit or pieces of clothing?",
 			"Is there a region in the world most associated with Summoners?"
 		]
+	},
+	"the-icon": {
+		look: [
+			{ label: "You look:", text: "stylish, confusing, transgressive, glamorous or naive" },
+			{ label: "You wear:", text: "cutting-edge fashions, your own designs, dress uniform, experimental looks" },
+			{ label: "Your medium is:", text: "music, poetry or literature, public speech, modelling, acting" }
+		],
+		intro: [
+			"Icons come in all kinds: from visionary artists, to firebrand public speakers, to " +
+				"groundbreaking performers. They stoke the people and drive culture, becoming rally " +
+				"points for public opinion and focus: especially during divisive times. Moves like " +
+				"bardic inspiration and power let you support your team, whilst mechanical aria lets " +
+				"you step from stage to battlefield in an Astir of your own."
+		],
+		consider: [
+			"What do you do for a living?",
+			"Do you have a brand or stage name people know more readily than your real one?",
+			"What compelled you to throw in with the Cause?",
+			"Are you still actively famous, or did you leave that life behind?",
+			"What kind of colours and iconography do people associate with you?",
+			"Has the Cause adopted any of the above?",
+			"What do you want out of your role in the Cause?",
+			"Do you have fans within the Authority?"
+		]
 	}
 };
 

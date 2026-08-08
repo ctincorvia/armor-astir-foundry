@@ -14,6 +14,7 @@ import {
 	resolveAstirParts
 } from "../../frames/astir.js";
 import { configureEquipment } from "../../equipment/equipment.js";
+import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { playbookGrantsHomeInsteadOfChannel } from "../../moves/starting-moves.js";
 
 // The Astir itself — its own identity/loadout fields, plus every reactive Astir Part effect
@@ -35,12 +36,19 @@ export const AstirSheetMixin = {
 	// playbook, so it must count as available here too, or its own Astir tab would wrongly show the
 	// "requires the CHANNEL trait" locked note forever.
 	//
+	// The Icon reaches the same outcome a second way: Mechanical Aria (playbook-moves.js) grants an
+	// Astir specifically calibrated for a CHANNEL-less pilot. Unlike Adrift's playbook-wide guaranteed
+	// substitution, this route is scoped to the individual actor — it only applies once this specific
+	// character has picked Mechanical Aria as an advancement, so it's resolved off the actor's own
+	// picked playbookMoves rather than the playbook slug.
+	//
 	// astirParts/astirMove/equipment/astirWeapons are all computed once in getData (shared with the
 	// Moves/Equipment data methods) and passed in here rather than recomputed.
 	_astirData(astir, astirParts, astirMove, equipment, astirWeapons) {
 		return {
 			available: !this.actor.system.stats?.channel?.disabled
-				|| playbookGrantsHomeInsteadOfChannel(this.actor.system.playbook?.name),
+				|| playbookGrantsHomeInsteadOfChannel(this.actor.system.playbook?.name)
+				|| resolvePlaybookMoves(this._playbookMoves()).some((m) => m.grantsAstirAccessWithoutChannel),
 			exists: Boolean(astir),
 			cores: ASTIR_CORES,
 			tierMin: ASTIR_TIER_MIN,

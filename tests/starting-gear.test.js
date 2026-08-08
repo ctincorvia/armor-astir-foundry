@@ -363,6 +363,25 @@ describe("STARTING_GEAR_POOLS", () => {
 		expect(summoner.groups[0].chooseCount).toBe(2);
 		expect(summoner.groups[0].items).toHaveLength(4);
 	});
+
+	it("gives The Icon no granted items and 2 of 5 Iconic Perks to choose from", () => {
+		const icon = findStartingGearPool("The Icon");
+
+		expect(icon.grantedItems).toHaveLength(0);
+		expect(icon.groups).toHaveLength(1);
+		expect(icon.groups[0].chooseCount).toBe(2);
+		expect(icon.groups[0].items).toHaveLength(5);
+	});
+
+	it("gives Bodyguards I a melee/area/ward weapon shape", () => {
+		const icon = findStartingGearPool("The Icon");
+		const bodyguards = icon.groups[0].items.find((item) => item.key === "the-icon:bodyguards-i");
+
+		expect(bodyguards).toMatchObject({
+			kind: "weapon",
+			tags: ["melee", "area", "ward"]
+		});
+	});
 });
 
 describe("findStartingGearPool", () => {

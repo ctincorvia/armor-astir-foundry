@@ -239,6 +239,151 @@ describe("PlaybookActorSheet#getData", () => {
 
 		expect(data.tier).toEqual({ base: 2, effective: 2, fromFrame: false });
 	});
+
+	it("defaults an actor with no persisted Approach and no mounted frame to an empty Approach", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {} };
+
+		const data = sheet.getData();
+
+		expect(data.approach).toEqual({ base: "", effective: "", fromFrame: false });
+	});
+
+	it("reports the actor's own persisted Approach when no frame is mounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { approach: "mundane" } } };
+
+		const data = sheet.getData();
+
+		expect(data.approach).toEqual({ base: "mundane", effective: "mundane", fromFrame: false });
+	});
+
+	it("reads Approach off the Astir instead of the actor's own while piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			name: "Vanguard",
+			system: {
+				attributes: {
+					approach: "mundane",
+					astir: { tier: 4, approach: "arcane", piloted: true }
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.approach).toEqual({
+			base: "mundane",
+			effective: "arcane",
+			effectiveLabel: "Arcane",
+			fromFrame: true,
+			frameName: "Vanguard"
+		});
+	});
+
+	it("reads Approach off an Ardent instead of the actor's own while it's the mounted frame", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			name: "Vanguard",
+			system: {
+				attributes: {
+					approach: "mundane",
+					ardents: [{ id: "ar1", name: "Warhound", tier: 3, approach: "divine", piloted: true }]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.approach).toEqual({
+			base: "mundane",
+			effective: "divine",
+			effectiveLabel: "Divine",
+			fromFrame: true,
+			frameName: "Warhound"
+		});
+	});
+
+	it("falls back to the actor's own Approach when the mounted frame's own Approach is unset", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			name: "Vanguard",
+			system: {
+				attributes: {
+					approach: "mundane",
+					astir: { tier: 4, piloted: true }
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.approach).toEqual({ base: "mundane", effective: "mundane", fromFrame: false });
+	});
+
+	it("reports the mounted frame's Approach even when the actor's own persisted Approach is unset", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			name: "Vanguard",
+			system: {
+				attributes: {
+					astir: { tier: 4, approach: "profane", piloted: true }
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.approach).toEqual({
+			base: "",
+			effective: "profane",
+			effectiveLabel: "Profane",
+			fromFrame: true,
+			frameName: "Vanguard"
+		});
+	});
+
+	it("reverts to the actor's own Approach once dismounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					approach: "mundane",
+					astir: { tier: 4, approach: "arcane", piloted: false }
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.approach).toEqual({ base: "mundane", effective: "mundane", fromFrame: false });
+	});
+
+	// Defensive fallback: every real Approach key on a frame resolves to a real APPROACHES label,
+	// but a frame's Approach is player-set free-form stored data like any other attribute, so this
+	// covers the same "key no longer resolves" possibility resolveAstirParts/resolvePlaybookMoves
+	// already guard against elsewhere, rather than assuming it can't happen.
+	it("falls back to the raw key as effectiveLabel when the mounted frame's Approach isn't a recognized key", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			name: "Vanguard",
+			system: {
+				attributes: {
+					astir: { tier: 4, approach: "unknown", piloted: true }
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.approach).toEqual({
+			base: "",
+			effective: "unknown",
+			effectiveLabel: "unknown",
+			fromFrame: true,
+			frameName: "Vanguard"
+		});
+	});
 });
 
 describe("PlaybookActorSheet#activateListeners", () => {

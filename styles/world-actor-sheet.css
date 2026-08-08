@@ -27,10 +27,12 @@
 	color: var(--aa-primary-dark);
 }
 
-/* Shared by Crew's stepper and every generic entry-list counter step (Authority's Division
-   Strength/Disfavor, Cause's Faction Grip — see world-actor-sheet.js's _onEntryCounterStep) —
-   same small +/- control everywhere it appears. */
+/* Shared by Crew's stepper, the NPC sheet's Tier stepper (see npc-actor-sheet.js's _onTierStep),
+   and every generic entry-list counter step (Authority's Division Strength/Disfavor, Cause's
+   Faction Grip — see world-actor-sheet.js's _onEntryCounterStep) — same small +/- control
+   everywhere it appears. */
 .armor-astir.sheet .crew-step,
+.armor-astir.sheet .tier-step,
 .armor-astir.sheet .entry-list-counter-step {
 	width: 22px;
 	height: 22px;
@@ -43,6 +45,7 @@
 }
 
 .armor-astir.sheet .crew-step:hover,
+.armor-astir.sheet .tier-step:hover,
 .armor-astir.sheet .entry-list-counter-step:hover {
 	border-color: var(--aa-primary);
 	color: var(--aa-primary-dark);

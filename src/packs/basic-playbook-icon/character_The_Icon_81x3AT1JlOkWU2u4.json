@@ -1,5 +1,5 @@
 {
-	"name": "The Revenant",
+	"name": "The Icon",
 	"type": "character",
 	"img": "icons/svg/mystery-man.svg",
 	"effects": [],
@@ -14,8 +14,8 @@
 			}
 		},
 		"playbook": {
-			"name": "The Revenant",
-			"slug": "the-revenant",
+			"name": "The Icon",
+			"slug": "the-icon",
 			"uuid": ""
 		},
 		"stats": {
@@ -24,13 +24,12 @@
 			"clash": { "value": 0 },
 			"talk": { "value": 0 },
 			"know": { "value": 0 },
-			"channel": { "value": 3 },
-			"familiarity": { "value": 3 }
+			"channel": { "value": 0, "disabled": true }
 		},
-		"attributes": { "approach": "profane" }
+		"attributes": { "approach": "mundane" }
 	},
 	"prototypeToken": {
-		"name": "The Revenant",
+		"name": "The Icon",
 		"actorLink": true,
 		"disposition": 1,
 		"texture": {
@@ -50,7 +49,7 @@
 		"modifiedTime": null,
 		"lastModifiedBy": null
 	},
-	"_id": "EJXjjG11",
+	"_id": "81x3AT1JlOkWU2u4",
 	"sort": 0,
-	"_key": "!actors!EJXjjG11"
+	"_key": "!actors!81x3AT1JlOkWU2u4"
 }

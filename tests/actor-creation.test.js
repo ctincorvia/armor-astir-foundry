@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { TIER_MIN } from "../scripts/equipment/equipment.js";
 import {
 	choosePlaybook,
 	chooseActorKind,
@@ -14,6 +15,7 @@ const SCOUT = PLAYBOOKS[0];
 const CARRIER_KIND = WORLD_ACTOR_KINDS.find((k) => k.key === "carrier");
 const AUTHORITY_KIND = WORLD_ACTOR_KINDS.find((k) => k.key === "authority");
 const CAUSE_KIND = WORLD_ACTOR_KINDS.find((k) => k.key === "cause");
+const NPC_KIND = WORLD_ACTOR_KINDS.find((k) => k.key === "npc");
 
 beforeEach(() => {
 	vi.resetAllMocks();
@@ -425,6 +427,25 @@ describe("createWorldActor", () => {
 			{ renderSheet: true }
 		);
 	});
+
+	it("creates an npc actor with a blank approach and tier at TIER_MIN", async () => {
+		Actor.create.mockResolvedValue({ id: "new-npc" });
+
+		await createWorldActor(NPC_KIND);
+
+		expect(Actor.create).toHaveBeenCalledWith(
+			{
+				name: "NPC",
+				type: "armor-astir.npc",
+				folder: null,
+				system: {
+					details: { description: { value: "" } },
+					attributes: { approach: "", tier: TIER_MIN }
+				}
+			},
+			{ renderSheet: true }
+		);
+	});
 });
 
 describe("chooseActorKind", () => {
@@ -432,7 +453,7 @@ describe("chooseActorKind", () => {
 		const promise = chooseActorKind();
 
 		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		expect(Object.keys(dialogOptions.buttons)).toEqual(["playbook", "carrier", "authority", "cause"]);
+		expect(Object.keys(dialogOptions.buttons)).toEqual(["playbook", "carrier", "authority", "cause", "npc"]);
 
 		dialogOptions.buttons.carrier.callback();
 
@@ -504,7 +525,7 @@ describe("registerPlaybookActorCreation", () => {
 		const clickResult = clickHandler(event);
 
 		const kindDialogOptions = Dialog.mock.calls.at(-1)[0];
-		expect(Object.keys(kindDialogOptions.buttons)).toEqual(["playbook", "carrier", "authority", "cause"]);
+		expect(Object.keys(kindDialogOptions.buttons)).toEqual(["playbook", "carrier", "authority", "cause", "npc"]);
 		kindDialogOptions.buttons.playbook.callback();
 		// The kind dialog's callback only resolves chooseActorKind's promise — onCreateEntryClick's
 		// continuation (which opens the playbook dialog) runs as a follow-up microtask.
@@ -620,7 +641,8 @@ describe("registerPlaybookActorCreation", () => {
 	it.each([
 		["carrier", CARRIER_KIND],
 		["authority", AUTHORITY_KIND],
-		["cause", CAUSE_KIND]
+		["cause", CAUSE_KIND],
+		["npc", NPC_KIND]
 	])("creates a %s actor directly, with no second dialog", async (key, kind) => {
 		Actor.create.mockResolvedValue({ id: `new-${key}` });
 

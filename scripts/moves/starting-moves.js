@@ -145,6 +145,13 @@ export const STARTING_MOVE_POOLS = [
 		grantedKeys: ["the-summoner:binding"],
 		pickOneKeys: [],
 		chooseCount: 0
+	},
+	{
+		playbookName: "The Icon",
+		poolKey: "the-icon",
+		grantedKeys: ["the-icon:performance"],
+		pickOneKeys: [],
+		chooseCount: 2
 	}
 ];
 

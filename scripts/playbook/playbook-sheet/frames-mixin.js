@@ -23,6 +23,7 @@ export const FramesSheetMixin = {
 				id: "astir",
 				name: this.actor.system.details?.callsign?.value || this.actor.name,
 				tier: astir.tier ?? ASTIR_TIER_MIN,
+				approach: astir.approach ?? "",
 				piloted: Boolean(astir.piloted),
 				parts: astir.parts ?? []
 			});
@@ -33,6 +34,7 @@ export const FramesSheetMixin = {
 				id: ardent.id,
 				name: ardent.name || ARDENT_DEFAULT_NAME,
 				tier: ardent.tier ?? ARDENT_TIER_DEFAULT,
+				approach: ardent.approach ?? "",
 				piloted: Boolean(ardent.piloted),
 				parts: ardent.parts ?? []
 			});
@@ -183,6 +185,12 @@ export const FramesSheetMixin = {
 			}
 		}
 		updates["system.resources.hold.value"] = HOLD_MIN;
+		// Eidolon Drive's active summon (see summoner-mixin.js) is scoped "for the rest of the
+		// Scene" by its own text, so this is the real rules boundary for it — the primary clear
+		// point, not the generic ALL_MOVES uses walk above (Eidolon Drive has no uses entry at all,
+		// see playbook-moves.js). _onRefreshSortie below clears the same field again as a defensive
+		// superset, since ending a Sortie always also ends its current Scene.
+		updates["system.attributes.eidolonDrive"] = { summonedAllyId: null, bonusUsed: false };
 		this.actor.update(updates);
 	},
 	// Clears every Sortie-scoped spend/uses checkbox, plus the flat hold pools (B-Plot, Get Out of
@@ -200,12 +208,11 @@ export const FramesSheetMixin = {
 		if (this._astirParts().some((part) => part.grantsPotionsOnLeadASortie)) {
 			updates["system.attributes.astir.potions"] = { red: 0, blue: 0, yellow: 0 };
 		}
-		// Eidolon Drive's "once per Scene" Summoned checkbox (see summoner-mixin.js) already clears
-		// above via _refreshPeriod("Sortie")'s own generic ALL_MOVES walk (the uses entry itself
-		// carries period: "Sortie" for exactly this reason — this module has no Scene-boundary
-		// button of its own, see claude.md's Manual trackers note). The active summon itself doesn't
-		// live in moveUses though, so it's reset here alongside it — the ally's +3/+1 grant
-		// shouldn't outlive the Sortie it was summoned in.
+		// Eidolon Drive's active summon (see summoner-mixin.js) is primarily cleared by Refresh
+		// Scene above, the actual rules boundary ("for the rest of the Scene"). This is a defensive
+		// superset of that: ending a Sortie always also ends its current (last) Scene, so a player
+		// who clicks Refresh Sortie without first clicking Refresh Scene shouldn't carry a stale
+		// summon into the next Sortie.
 		updates["system.attributes.eidolonDrive"] = { summonedAllyId: null, bonusUsed: false };
 		updates["system.attributes.downtimeTokens.value"] = this._downtimeTokensMax();
 		this.actor.update(updates);

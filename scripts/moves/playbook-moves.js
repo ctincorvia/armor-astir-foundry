@@ -1714,15 +1714,15 @@ export const MOVE_POOLS = [
 				// Unconditionally granted (see starting-moves.js's grantedKeys) — same no-`starting`-
 				// marker-needed treatment every other unconditional starting move gets.
 				traits: ["channel"],
-				// "This move replaces bite the dust for you" is table/fiction guidance only — there is
-				// no "replace a basic move" mechanism anywhere in this codebase (Dark Rebirth/The Arity
-				// Method both augment bite-the-dust rather than hide it), so bite-the-dust stays
-				// rollable on the sheet as normal; a Revenant player is simply expected not to use it.
-				// No forcesDesperationAtMaxPerils either — unlike bite-the-dust, this move's own rules
-				// text never restates that clause, so it isn't backfilled here. The 6- result's CHANNEL
-				// reduction and "you pass on" consequence is prose only, manually executed by the
-				// player — the same manual-tracker convention Once the War's Over's identical "you will
-				// perish" text gets.
+				// "This move replaces bite the dust for you" is now mechanically enforced via
+				// disablesMove: picking this move disables bite-the-dust's Roll button (see
+				// moves-mixin.js's _moveGroupMoves), rather than leaving the player expected to
+				// simply not roll it. No forcesDesperationAtMaxPerils either — unlike bite-the-dust,
+				// this move's own rules text never restates that clause, so it isn't backfilled here.
+				// The 6- result's CHANNEL reduction and "you pass on" consequence stays prose only,
+				// manually executed by the player — the same manual-tracker convention Once the War's
+				// Over's identical "you will perish" text gets.
+				disablesMove: { moveKey: "bite-the-dust" },
 				description:
 					"<p>This move replaces bite the dust for you. You have already died once, and it is " +
 					"incredibly difficult to vanquish what has remained of you: when you are defenceless " +
@@ -1797,12 +1797,21 @@ export const MOVE_POOLS = [
 				key: "the-revenant:aint-no-grave",
 				name: "Ain't No Grave",
 				traits: [],
-				// Forcing an already-posted different move's own 6- result up to a 10+ after rolling a
-				// second, specific move (never-quite-free) has no precedent or hook anywhere in this
-				// codebase — the closest cousin, grantsAutomaticSuccess, only ever flags the *current*
-				// roll, never a separate earlier one already posted to chat. Left descriptive per
-				// claude.md's "systems that do not exist yet"; the player and Director resolve this by
-				// hand at the table.
+				// The literal rules text ("roll never quite free ... to upgrade THAT [separate,
+				// already-posted] result") has no precedent anywhere in this codebase — every existing
+				// grantsAutomaticSuccess source only ever flags the *current* roll, never a different,
+				// earlier one already posted to chat (see claude.md's "systems that do not exist
+				// yet"). Confirmed with the design owner: rather than build that, this reuses
+				// grantsAutomaticSuccess as an offer on the *current* roll of any other qualifying
+				// move, spending nothing — no hold/uses/peril, since the source object below carries
+				// none of `cost`/`useKey`/`costsPeril` (see _availableAutomaticSuccess's costless
+				// fallback branch). The move's own precondition ("you separately rolled never quite
+				// free in desperation") is a manual, self-enforced narrative requirement the player
+				// handles before clicking, the same non-enforcement stance every other unmodeled
+				// precondition in this module already takes. excludeMoves keeps the offer from ever
+				// applying to Never Quite Free's own roll, since upgrading that roll with itself makes
+				// no sense.
+				grantsAutomaticSuccess: { excludeMoves: ["the-revenant:never-quite-free"] },
 				description:
 					"<p>When you make a move (other than never quite free) and roll a 6-, you may roll " +
 					"never quite free in desperation to, regardless of outcome, upgrade that result to a " +
@@ -1826,12 +1835,22 @@ export const MOVE_POOLS = [
 				name: "I Know You",
 				traits: [],
 				// "Roll +3" with no trait/stat selection — a hardcoded fixedTraits entry, the same
-				// shape Lead a Sortie's own CREW uses (moves.js), except here the value is a flat
-				// constant rather than resolved off any actor. This is what makes the move rollable at
-				// all — see moves-mixin.js's `rollable` gate, which now also checks
-				// fixedTraits.length. The described "-1 per future use" diminishing bonus is not
-				// automated: the sheet always offers +3, and the diminishing return is a manual table
-				// detail the player tracks by hand.
+				// shape Lead a Sortie's own CREW uses (moves.js), except the static value here is a
+				// placeholder: grantsFamiliarityTrait (below) makes it a real actor stat instead,
+				// overridden dynamically the same way CREW's own static entry is (see
+				// moves-mixin.js's _moveTraits/_familiarityValue). This is what makes the move
+				// rollable at all — see moves-mixin.js's `rollable` gate, which now also checks
+				// fixedTraits.length.
+				//
+				// grantsFamiliarityTrait adds a real "familiarity" trait row (stepper, -3..3) to the
+				// Traits panel, but only while this move is picked (see progression-mixin.js's
+				// _traitsData) — never folded into the shared TRAITS catalog, since that would wrongly
+				// surface FAMILIARITY for every non-Revenant actor too. The described "-1 per future
+				// use" diminishing bonus is now automated via that stepper: the player decrements it
+				// by hand after a 10+, the same manual-tracker convention every other stepped trait
+				// already follows (_onTraitStep has no dependency on the TRAITS catalog, so it works
+				// for familiarity unchanged).
+				grantsFamiliarityTrait: true,
 				fixedTraits: [{ key: "familiarity", label: "FAMILIARITY", value: 3 }],
 				description:
 					"<p>At any time, you or the Director may declare that a character had some " +
@@ -1900,11 +1919,11 @@ export const MOVE_POOLS = [
 				// next (see the unconditional eidolon-drive-ally trait push in _moveTraits), not from
 				// a roll of its own.
 				summonsAlly: true,
-				// The "once per Scene" tracker — nothing in this module differentiates a Scene
-				// boundary from a Sortie boundary for a manual reset button (see claude.md's Manual
-				// trackers note), so this is cleared by Refresh Sortie like every other Sortie-scoped
-				// uses checkbox, via period: "Sortie".
-				uses: [{ key: "summoned", label: "Summoned", period: "Sortie" }],
+				// The "once per Scene" grant is tracked entirely via system.attributes.eidolonDrive
+				// (see summoner-mixin.js's _onEidolonDriveSummon/_eidolonDrive) — its summonedAllyId/
+				// bonusUsed shape, not a uses checkbox — and cleared by Refresh Scene (the real rules
+				// boundary), with Refresh Sortie clearing it too as a defensive superset (see
+				// frames-mixin.js). There's no uses entry for this move at all.
 				description:
 					"<p>This is your Astir Move—if you ever get a new Astir, it can be transferred into the " +
 					"new one during Downtime, replacing any Astir Move it might have had. Once per Scene, " +
@@ -2043,6 +2062,147 @@ export const MOVE_POOLS = [
 					"binding allies are still considered to be the same tier as your Astir: though you " +
 					"yourself are tier I as usual. If you have the conveyance move, you may open a " +
 					"portal between an Astir and you.</p>"
+			}
+		]
+	},
+	{
+		key: "the-icon",
+		label: "The Icon",
+		playbookName: "The Icon",
+		moves: [
+			{
+				key: "the-icon:performance",
+				name: "Performance",
+				// Unconditionally granted (see starting-moves.js's grantedKeys) — same no-`starting`-
+				// marker-needed treatment every other unconditional starting move gets.
+				//
+				// "This move replaces b-plot for you" is table/fiction guidance only — same treatment
+				// Never Quite Free's own "replaces bite the dust" text gets (playbook-moves.js's
+				// the-revenant pool above): b-plot stays rollable/activatable on the sheet as normal, an
+				// Icon player is simply expected not to use it. The three spend options are all narrated
+				// consequences with nothing in this codebase to hook into (one actor's move affecting
+				// another actor's already-made roll, Hooks as tracked data, a "distracted/interrupted"
+				// status) — per claude.md's "systems that do not exist yet", only the flatHold pool
+				// itself is coded; the spends stay prose.
+				traits: [],
+				flatHold: 3,
+				description:
+					"<p>This move replaces b-plot for you. When you lead a grand performance rather than " +
+					"being directly involved in a Sortie — broadcast far and wide through magical means — " +
+					"name one or two actors that attend in person, and hold 3. During the Sortie, you may " +
+					"spend it 1-for-1 to do the following;</p>" +
+					"<ul>" +
+					"<li>Increase another player's level of success on a move one step, before or after " +
+					"they roll.</li>" +
+					"<li>Name an actor present—they are deeply affected by your performance, either " +
+					"taking one of your Hooks to heart, or taking the direct opposite (your choice).</li>" +
+					"<li>Hit a crescendo that gives time for your allies to think, as everyone listening " +
+					"is distracted/interrupted by your performance.</li>" +
+					"</ul>"
+			},
+			{
+				key: "the-icon:power",
+				name: "Power",
+				// "They gain a point of Spotlight" needs one actor's move to grant Spotlight to a
+				// different actor entirely — Spotlight is tracked per-sheet with no cross-actor grant
+				// mechanism anywhere in this module. Prose only, per claude.md's "systems that do not
+				// exist yet".
+				traits: [],
+				description:
+					"<p>When someone does something notable and dangerous on your behalf, whether you " +
+					"ordered them to or not, they gain a point of Spotlight.</p>"
+			},
+			{
+				key: "the-icon:bardic-inspiration",
+				name: "Bardic Inspiration",
+				// Same flat, roll-less hold shape as B-Plot/Hot-blooded — "at the beginning of a Sortie"
+				// isn't a tracked trigger, so Activate is the player's own call for when that's happened.
+				// "Add a d4 to any roll, before or after it is made" has no hook to a specific die-face
+				// mechanic anywhere in this module (roll-modifier stacking doesn't exist — see claude.md's
+				// "systems that do not exist yet"), so only the hold pool itself is coded; applying the d4
+				// stays a manual, narrated adjustment.
+				traits: [],
+				flatHold: 3,
+				description:
+					"<p>At the beginning of a Sortie, hold 3. You may spend this hold 1-for-1 to add a d4 " +
+					"to any roll, before or after it is made.</p>"
+			},
+			{
+				key: "the-icon:change-of-heart",
+				name: "Change Of Heart",
+				traits: [],
+				description:
+					"<p>Whenever you give a performance, other players may loosen or deepen any of their " +
+					"Hooks as they please.</p>"
+			},
+			{
+				key: "the-icon:touchstone",
+				name: "Touchstone",
+				traits: [],
+				description:
+					"<p>You have your finger on the pulse of the Carrier and the people on it; you " +
+					"understand them as well as the Captain, and have a good feel for how they might view " +
+					"any given situation.</p>"
+			},
+			{
+				key: "the-icon:you-should-see-me-in-a-crown",
+				name: "You Should See Me In A Crown",
+				// "Requires: Touchstone" is descriptive only — consistent with pool membership not being
+				// enforced, move prerequisites stay prose (see claude.md's "Adding move content"); the
+				// picker never checks whether Touchstone is also picked.
+				traits: [],
+				description:
+					"<p>Requires: Touchstone</p>" +
+					"<p>When you talk, people listen. Unless someone already intends to harm you (or you're " +
+					"actively putting them in danger), people will always at least stop and consider your " +
+					"words. You do not need to roll to convince people to do something that is in their own " +
+					"best interests or that you have a convincing case for, and your attempts to do " +
+					"anything beyond that are made in confidence.</p>"
+			},
+			{
+				key: "the-icon:mechanical-aria",
+				name: "Mechanical Aria",
+				traits: [],
+				// The one real mechanic in this pool — see astir-mixin.js's _astirData `available`
+				// field, which now also checks for this flag among the actor's picked playbook moves
+				// (the same move-scoped route grantsHomeInsteadOfChannel takes for The Adrift, except
+				// that one is a guaranteed playbook-wide substitution while this only applies once an
+				// Icon has actually picked Mechanical Aria as an advancement). "Cannot pilot other
+				// Astirs" needs no code — an actor can only ever have one Astir at all (see claude.md's
+				// Astir section). "May use subsystems" needs no code either — Subsystems (an Astir Part)
+				// has never checked CHANNEL.
+				grantsAstirAccessWithoutChannel: true,
+				description:
+					"<p>You acquire an Astir III specially designed and calibrated to be piloted by you, " +
+					"built as per the usual custom Astir rules. It's likely equipped with equipment that " +
+					"is very flashy and loud.</p>" +
+					"<p>You cannot pilot other Astirs, and do not have a +CHANNEL trait, though you may " +
+					"use subsystems.</p>"
+			},
+			{
+				key: "the-icon:showstopper",
+				name: "Showstopper",
+				// "Requires: Bardic Inspiration" is descriptive only, same treatment You Should See Me In
+				// A Crown's own Touchstone requirement gets above. Both upgrades reference mechanics
+				// Bardic Inspiration itself never coded (the d4 application) or that don't exist anywhere
+				// in this module (advancing a GRAVITY clock as a move side-effect), so this stays prose
+				// too, per claude.md's "systems that do not exist yet".
+				traits: [],
+				description:
+					"<p>Requires: Bardic Inspiration</p>" +
+					"<p>When you use bardic inspiration, you may increase a roll by a d6 instead of a d4. " +
+					"When you use bardic inspiration on a roll made by someone you have a GRAVITY clock " +
+					"with, advance it.</p>"
+			},
+			{
+				key: "the-icon:perspective",
+				name: "Perspective",
+				traits: [],
+				description:
+					"<p>When you look at an incomplete work—whether a piece of art or something far " +
+					"simpler—you can always envision what was intended to complete it and exactly what " +
+					"would be needed to finish the work, and also something grander and far more " +
+					"difficult.</p>"
 			}
 		]
 	},

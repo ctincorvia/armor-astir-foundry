@@ -42,6 +42,11 @@ describe("gravityTriggerForPlaybook", () => {
 		expect(GRAVITY_TRIGGERS["the-summoner"]).toContain("binding");
 	});
 
+	it("gives The Icon its trigger", () => {
+		expect(gravityTriggerForPlaybook("the-icon")).toBe(GRAVITY_TRIGGERS["the-icon"]);
+		expect(GRAVITY_TRIGGERS["the-icon"]).toContain("inspirational");
+	});
+
 	it("returns null for a playbook with no known trigger", () => {
 		expect(GRAVITY_TRIGGERS["some-future-playbook"]).toBeUndefined();
 		expect(gravityTriggerForPlaybook("some-future-playbook")).toBeNull();

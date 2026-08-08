@@ -160,6 +160,25 @@ describe("PLAYBOOK_FLAVOR", () => {
 			expect(question).toBeTruthy();
 		}
 	});
+
+	it("gives The Icon three LOOK prompts, each with a label and text", () => {
+		for (const entry of PLAYBOOK_FLAVOR["the-icon"].look) {
+			expect(entry.label).toBeTruthy();
+			expect(entry.text).toBeTruthy();
+		}
+		expect(PLAYBOOK_FLAVOR["the-icon"].look).toHaveLength(3);
+	});
+
+	it("gives The Icon its one intro paragraph", () => {
+		expect(PLAYBOOK_FLAVOR["the-icon"].intro).toHaveLength(1);
+	});
+
+	it("gives The Icon eight Consider questions", () => {
+		expect(PLAYBOOK_FLAVOR["the-icon"].consider).toHaveLength(8);
+		for (const question of PLAYBOOK_FLAVOR["the-icon"].consider) {
+			expect(question).toBeTruthy();
+		}
+	});
 });
 
 describe("defaultLookText", () => {

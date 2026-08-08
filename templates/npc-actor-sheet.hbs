@@ -1,0 +1,27 @@
+<form class="{{cssClass}}" autocomplete="off">
+	<header class="sheet-header">
+		<img class="profile-img" src="{{actor.img}}" data-edit="img" alt="{{actor.name}}"/>
+		<div class="form-group">
+			<label>Name</label>
+			<input type="text" name="name" value="{{actor.name}}" placeholder="Name"/>
+		</div>
+	</header>
+	<section class="description">
+		<h3>Description</h3>
+		<textarea name="system.details.description.value" placeholder="Describe this NPC…">{{description}}</textarea>
+	</section>
+	<section class="approach">
+		<h3>Approach</h3>
+		<select class="npc-approach-select">
+			{{selectOptions approachOptions selected=approach valueAttr="key" labelAttr="label" blank="— Choose —"}}
+		</select>
+	</section>
+	<section class="tier">
+		<h3>Tier</h3>
+		<div class="trait-control">
+			<button type="button" class="tier-step" data-delta="-1" aria-label="Decrease Tier">-</button>
+			<span class="trait-value">{{tier.value}}</span>
+			<button type="button" class="tier-step" data-delta="1" aria-label="Increase Tier">+</button>
+		</div>
+	</section>
+</form>
