@@ -22,7 +22,6 @@ import {
 import { resolveAstirParts } from "../../frames/astir.js";
 import { ARDENT_DEFAULT_NAME, ARDENT_PART_CATALOG } from "../../frames/ardent.js";
 import { ALL_MOVES } from "../../moves/all-moves.js";
-import { DANGER_MAX } from "./tracking-mixin.js";
 
 // Basic, Special and Playbook moves' shared roll pipeline (see claude.md's Moves sections) — move
 // definitions themselves live in moves.js/playbook-moves.js/astir.js/ardent.js; this mixin owns
@@ -40,7 +39,7 @@ export const MovesSheetMixin = {
 	// full AND every one of those Dangers is a Peril, not just any Peril present.
 	_allDangersArePeril() {
 		const dangers = this._dangers();
-		return dangers.length >= DANGER_MAX && dangers.every((danger) => danger.type === "peril");
+		return dangers.length >= this._dangerMax() && dangers.every((danger) => danger.type === "peril");
 	},
 	// weave-magic's forcesDesperationOnShakenTenet reads this the same way bite-the-dust's
 	// forcesDesperationAtMaxPerils reads _allDangersArePeril above — evaluated generically off any
@@ -526,6 +525,25 @@ export const MovesSheetMixin = {
 		return resolvePlaybookMoves(this._playbookMoves())
 			.some((m) => m.grantsUnpilotedAstirMove?.moveKey === move.key);
 	},
+	// Fire Support (The Captain): "you may exchange blows and strike decisively ... using ... the
+	// Carrier's weaponry" (see playbook-moves.js's grantsCarrierWeaponAccess) — the same single-
+	// target-move-list shape addsTraitToMove's moveKeys form uses, checked by _onMoveRoll to decide
+	// whether to fold the world's Carrier weapons into this roll's weapon choice.
+	_grantsCarrierWeaponAccess(move) {
+		return resolvePlaybookMoves(this._playbookMoves())
+			.some((m) => m.grantsCarrierWeaponAccess?.moveKeys?.includes(move.key));
+	},
+	// Human Resources (The Captain): "when you read the room, you may also choose from the
+	// following questions" (see playbook-moves.js's addsQuestionsToMove) — the single-target-move
+	// shape _grantedTraitForMove/_grantedAdvantageForMove already use, but returning a whole
+	// question list rather than one key/value, since there's nothing on the target move itself to
+	// resolve against (contrast addsTraitToMove, which locks/offers one of the target move's own
+	// real trait options).
+	_grantedQuestionsForMove(move) {
+		const granting = resolvePlaybookMoves(this._playbookMoves())
+			.find((m) => m.addsQuestionsToMove?.moveKey === move.key);
+		return granting?.addsQuestionsToMove.questions ?? null;
+	},
 	// Walk-on Part In The War's "tick 'overheating' on a 6-" (see playbook-moves.js's
 	// addsFailureReminderToMove) — a move-specific reminder text appended to a *different* move's
 	// chat card on failure, for a consequence this module has no automatic tracker for (see
@@ -579,7 +597,7 @@ export const MovesSheetMixin = {
 				if (costsPeril) {
 					if (!pickedKeys.includes(m.key)) return false;
 					const dangers = this._dangers();
-					return dangers.length < DANGER_MAX && dangers.every((danger) => danger.type !== "peril");
+					return dangers.length < this._dangerMax() && dangers.every((danger) => danger.type !== "peril");
 				}
 				if (useKey) {
 					return pickedKeys.includes(m.key) && !this.actor.system.attributes?.moveUses?.[m.key]?.[useKey];
@@ -705,7 +723,24 @@ export const MovesSheetMixin = {
 		let weapon;
 		if (move.usesWeapon) {
 			const mountedFrameId = this._mountedFrame()?.id ?? null;
-			const weapons = this._weapons().filter((w) => this._weaponFrameId(w) === mountedFrameId);
+			let weapons = this._weapons().filter((w) => this._weaponFrameId(w) === mountedFrameId);
+			// Fire Support (The Captain — see _grantsCarrierWeaponAccess/playbook-moves.js's
+			// grantsCarrierWeaponAccess): "using ... the Carrier's weaponry" folds the world's Carrier
+			// weapons into this move's own weapon choice, on top of this actor's own. Only offered
+			// when exactly one Carrier exists in the world — zero or multiple is left unresolved here
+			// (no prompt, no throw), the same simplification _crewFixedTraitValue already makes for
+			// CREW's own display value. Each Carrier weapon is shallow-copied and flagged fromCarrier
+			// (never mutating the Carrier's own stored array) so _rollMove can skip every write path
+			// that would otherwise try to record spend/tag/uses state onto an object living in a
+			// different actor's own equipment array — see that flag's own comment there.
+			if (this._grantsCarrierWeaponAccess(move)) {
+				const carriers = findCarrierActors();
+				if (carriers.length === 1) {
+					const carrierWeapons = (carriers[0].system.attributes?.weapons ?? [])
+						.map((w) => ({ ...w, fromCarrier: true }));
+					weapons = [...weapons, ...carrierWeapons];
+				}
+			}
 			if (weapons.length) {
 				const weaponId = await chooseWeapon(weapons);
 				if (weaponId === null) return;
@@ -767,7 +802,17 @@ export const MovesSheetMixin = {
 		// — see its own comment; Tier's own signal feeds the Advantage axis instead, independently, via
 		// lockedAdvantage below) sits lowest of all: it's a passive read of the current target, so any
 		// of the above five sources — each a more specific or more deliberate lock — wins over it.
-		const forced = this._forcedWeaponEffect(weapon);
+		// A weapon "borrowed" from the world's Carrier (Fire Support — see _onMoveRoll's
+		// grantsCarrierWeaponAccess handling) lives in a different actor's own equipment array, not
+		// this actor's — so none of the spend/tag/reroll/Guided machinery below, which all read or
+		// write this actor's own equipment/Astir Part state, may ever be evaluated against it.
+		// Mirrors CarrierActorSheet#_onWeaponMoveRoll's own scope cut for the Carrier's own weapon
+		// rolls (carrier-actor-sheet.js): that handler never offers equipment spends, Astir Part
+		// spends, reroll or Guided either — a Carrier weapon roll is deliberately just a trait plus
+		// a name on the chat card, nothing more, and a Fire Support roll using one gets exactly the
+		// same treatment rather than risking a write onto an object this actor doesn't own.
+		const fromCarrier = Boolean(weapon?.fromCarrier);
+		const forced = fromCarrier ? null : this._forcedWeaponEffect(weapon);
 		const lockedEffect = (move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null)
 			?? (move.forcesDesperationOnShakenTenet && this._hasShakenTenet() ? "desperation" : null)
 			?? forced?.effect
@@ -791,8 +836,8 @@ export const MovesSheetMixin = {
 		// spend.advantage (Artifact) still wins over all three, per configureMoveRoll's own precedence —
 		// untouched by this change.
 		const lockedAdvantage = this._grantedAdvantageForMove(move) ?? this._coldCompanyAdvantage() ?? this._targetTierAdvantage(move);
-		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
-		const astirPartSpends = this._astirPartSpends(lockedEffect);
+		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
+		const astirPartSpends = fromCarrier ? [] : this._astirPartSpends(lockedEffect);
 		// Omitted entirely rather than passed as `false` when not guided — configureMoveRoll
 		// already defaults it to false itself, and this keeps every non-Guided call's options
 		// shape exactly as it was before Guided existed, same treatment `reroll` gets below. Spell
@@ -802,7 +847,7 @@ export const MovesSheetMixin = {
 		// be installed on the Astir, never an Ardent (see ardent.js's ardentParts) — but this reads
 		// generically off _mountedParts() rather than special-casing the Astir, the same convention
 		// every other reactive part effect in this file follows.
-		const guided = this._weaponIsGuided(weapon) || this._mountedParts().some((part) => part.grantsGuided);
+		const guided = (!fromCarrier && this._weaponIsGuided(weapon)) || this._mountedParts().some((part) => part.grantsGuided);
 		const config = await configureMoveRoll(move, traits, {
 			lockedEffect,
 			lockedAdvantage,
@@ -846,7 +891,7 @@ export const MovesSheetMixin = {
 		// _weaponTagLabels), recorded on the chat card even when nothing was spent (see rollMove in
 		// moves.js). reroll is only ever attached for a usesWeapon move too — rollMove itself
 		// decides whether to actually offer it, based on whether this attempt fails (see moves.js).
-		const reroll = this._availableReroll(move, weapon);
+		const reroll = fromCarrier ? null : this._availableReroll(move, weapon);
 		// The derived Trait bonus for whichever trait the player actually chose (see
 		// trait-bonuses.js) — moves.js#rollMove re-reads an actor trait's live stat value directly
 		// rather than trusting config.trait.value (see its own comment), so the bonus has to reach
@@ -859,12 +904,17 @@ export const MovesSheetMixin = {
 		// Walk-on Part In The War's overheating reminder (see _grantedFailureReminderForMove) — only
 		// ever shown by moves.js#rollMove on an actual 6-, so it's harmless to always pass through.
 		const extraFailureReminder = this._grantedFailureReminderForMove(move);
+		// Human Resources' extra Read the Room questions (see _grantedQuestionsForMove) — arrives
+		// pre-resolved via options, exactly like spentPartLabels/weaponLabel already do, so moves.js
+		// never needs to import playbook-moves.js (see claude.md's import-direction note).
+		const extraQuestions = this._grantedQuestionsForMove(move);
 		const baseOptions = {
 			...config,
 			...(traitBonus && { traitBonus }),
 			...(spentPartLabels.length && { spentPartLabels }),
 			...(automaticSuccess.length && { automaticSuccess }),
 			...(extraFailureReminder && { extraFailureReminder }),
+			...(extraQuestions && { extraQuestions }),
 			// Number Of The Beast (see playbook-moves.js) — applies to every roll this actor makes,
 			// not just one move key, so this is folded in unconditionally rather than gated on `move`.
 			...(this._hasExplodingSixes() && { explodeOnSix: true }),

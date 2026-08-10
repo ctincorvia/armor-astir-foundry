@@ -798,6 +798,61 @@ export const STARTING_GEAR_POOLS = [
 				]
 			}
 		]
+	},
+	{
+		playbookName: "The Captain",
+		// "2 Crew/Carrier Bonuses" and "Clothes that match your look" are both narrative-only (see
+		// this file's own freeformNotes doc comment) — no Crew/Carrier "bonus" system exists
+		// anywhere in this module to model the four listed options against (mirrors The Scout's own
+		// "Any tier I weapons that feel appropriate" treatment above).
+		freeformNotes: [
+			"2 Crew/Carrier Bonuses — Marine Infantry (they'll fight tooth and nail to defend the " +
+				"Carrier), Civilian Quarters (can safely accommodate refugees), Construct Bay (Steed " +
+				"Ardents for everyone) or Cloaking Rituals (can hide the Carrier from sight).",
+			"Clothes that match your look."
+		],
+		grantedItems: [],
+		groups: [
+			{
+				key: "the-captain:ornate-gear",
+				label: "Choose 1 Ornate Gear.",
+				chooseCount: 1,
+				items: [
+					{
+						key: "the-captain:gilded-sidearm-i",
+						name: "Gilded Sidearm I",
+						description: "An ornately engraved sidearm, built as much for ceremony as for combat.",
+						kind: "weapon",
+						tags: ["ranged", "versatile"]
+					},
+					{
+						key: "the-captain:ruinlock-i",
+						name: "Ruinlock I",
+						description: "A ritually-fouled firearm that spits caustic, corroding shot.",
+						kind: "weapon",
+						// "reload, ruin, profane" — profane is a real EQUIPMENT_TAGS entry (see
+						// equipment.js's APPROACHES.map spread), not just flavor text.
+						tags: ["ranged", "reload", "ruin", "profane"]
+					},
+					{
+						key: "the-captain:duelists-blade-i",
+						name: "Duelist's Blade I",
+						description: "A slender, well-balanced blade built for a fast, decisive duel.",
+						kind: "weapon",
+						tags: ["melee", "bane", "decisive"]
+					},
+					{
+						key: "the-captain:arcane-mantle-i",
+						name: "Arcane Mantle I",
+						description: "A woven mantle humming with faint wardings, deflecting harm.",
+						kind: "weapon",
+						// "defensive, arcane" — arcane is a real EQUIPMENT_TAGS entry, same as profane
+						// above.
+						tags: ["ranged", "defensive", "arcane"]
+					}
+				]
+			}
+		]
 	}
 ];
 

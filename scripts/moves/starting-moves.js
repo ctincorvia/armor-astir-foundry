@@ -159,6 +159,22 @@ export const STARTING_MOVE_POOLS = [
 		grantedKeys: ["the-attendant:master-servant"],
 		pickOneKeys: [],
 		chooseCount: 2
+	},
+	{
+		playbookName: "The Captain",
+		poolKey: "the-captain",
+		grantedKeys: ["the-captain:in-command"],
+		pickOneKeys: [
+			"the-captain:tactical-genius",
+			"the-captain:force-multiplier",
+			"the-captain:surprise-requisition",
+			"the-captain:fire-support",
+			"the-captain:information-network",
+			"the-captain:born-leader",
+			"the-captain:human-resources",
+			"the-captain:coordinator"
+		],
+		chooseCount: 2
 	}
 ];
 

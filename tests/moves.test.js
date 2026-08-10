@@ -1875,6 +1875,49 @@ describe("rollMove - hold", () => {
 			questions: null
 		}));
 	});
+
+	// The Captain's Human Resources (see playbook-moves.js's addsQuestionsToMove) merges its own
+	// extra question list onto whichever move actually rolls, arriving pre-resolved via
+	// options.extraQuestions (see PlaybookActorSheet#_grantedQuestionsForMove) so this module never
+	// needs to import playbook-moves.js.
+	it("merges options.extraQuestions onto the move's own question list on a hit", async () => {
+		const actor = { system: { stats: { sense: { value: 0 } } }, update: vi.fn() };
+		const sense = TRAITS.find((t) => t.key === "sense");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [5, 5] });
+
+		await rollMove(actor, READ_THE_ROOM, sense, { extraQuestions: ["What is the crew's mood like?"] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			questions: [...READ_THE_ROOM.questions, "What is the crew's mood like?"]
+		}));
+	});
+
+	it("offers only options.extraQuestions when the move itself defines no questions", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [5, 5] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { extraQuestions: ["An extra question."] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			questions: ["An extra question."]
+		}));
+	});
+
+	it("still suppresses questions (including extraQuestions) on a failure for a move without questionsOnFailure", async () => {
+		const actor = { system: { stats: { defy: { value: 0 } } }, update: vi.fn() };
+		const defy = TRAITS.find((t) => t.key === "defy");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, MOBILITY, defy, { extraQuestions: ["An extra question."] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			questions: null
+		}));
+	});
 });
 
 describe("rollMove - separateHold (Mobility)", () => {

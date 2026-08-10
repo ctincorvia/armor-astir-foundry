@@ -375,6 +375,34 @@ export const PLAYBOOK_FLAVOR = {
 			"Are you a believer in the Cause, or just here to serve?",
 			"Do you consider yourself an equal with those around you, or simply furniture?"
 		]
+	},
+	"the-captain": {
+		look: [
+			{ label: "You look:", text: "noble, upright, callow, eager or intimidating" },
+			{ label: "You wear:", text: "immaculate uniform, casual clothes, armoured clothing, officer's coat" },
+			{ label: "You lead with:", text: "gut feelings, well-informed advice, stoic instruction, tested experience" }
+		],
+		intro: [
+			"Responsible for the crew and their mission, the Captain provides support on missions by " +
+				"leading the crew and harnessing the Carrier's equipment and weaponry. Captains can even " +
+				"provide temporary upgrades and refits for Constructs deployed on a sortie, or level their " +
+				"tactical know-how into better positioning on the battlefield.",
+			"While playing a Captain, you're in command of the group's Carrier and its crew. This lets " +
+				"you roll several moves with the Carrier's +CREW trait instead of your own when " +
+				"commanding it—which is either a blessing or a curse, depending on what that CREW value " +
+				"is. Additionally, while at the helm of your Carrier you can take 4 dangers rather than 3 " +
+				"before you're defenceless, meaning you're tough to take down in a straight fight. All " +
+				"those hands on deck add up, after all. Many of your other moves revolve around " +
+				"supporting other players, like surprise requisition and fire support."
+		],
+		consider: [
+			"Were you formally schooled as a Captain? How exclusive are such schools?",
+			"Who appointed you Captain of this Carrier?",
+			"Have you served with another crew before?",
+			"Are you used to helming ships this big?",
+			"Have you served with a military before? Are you a commissioned officer?",
+			"What exactly is your place on the Carrier's bridge?"
+		]
 	}
 };
 

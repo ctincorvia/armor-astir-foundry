@@ -744,6 +744,13 @@ export async function rollMove(actor, move, trait, options = {}) {
 
 	const reminders = buildReminders(tier, effect, options.extraFailureReminder);
 
+	// Human Resources' extra questions (see PlaybookActorSheet#_grantedQuestionsForMove) merge onto
+	// the move's own question list, if any — this module never imports playbook-moves.js (see
+	// claude.md's import-direction note), so the extra list arrives pre-resolved via
+	// options.extraQuestions exactly like weaponLabel/spentPartLabels already do, rather than
+	// resolving playbook moves here itself.
+	const combinedQuestions = [...(move.questions ?? []), ...(options.extraQuestions ?? [])];
+
 	// options.reroll (see PlaybookActorSheet#_availableReroll) is only ever set for a usesWeapon
 	// move whose chosen weapon still has an unspent Decisive/Defensive/Versatile tag matching this
 	// move — but the reroll itself (Decisive: "reroll a failed strike decisively") only ever
@@ -830,7 +837,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 		// questionPrompts/questions move except Read the Room (questionsOnFailure) has nothing to
 		// choose from on a miss, even when its failure questionPrompt still has explanatory text
 		// (e.g. Mobility's "You hold nothing.").
-		questions: (tier !== "failure" || move.questionsOnFailure) ? (move.questions ?? null) : null,
+		questions: (tier !== "failure" || move.questionsOnFailure) ? (combinedQuestions.length ? combinedQuestions : null) : null,
 		reroll: Boolean(rerollOffer),
 		automaticSuccess: automaticSuccessOffer,
 		heatUp: Boolean(heatUpOffer),

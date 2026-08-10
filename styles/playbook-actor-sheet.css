@@ -483,6 +483,15 @@
 	min-width: 0;
 }
 
+.armor-astir.sheet .at-helm-label {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	margin: 0 0 var(--aa-space-2);
+	font-weight: bold;
+}
+
 .armor-astir.sheet .defenseless-label {
 	margin: 0 0 var(--aa-space-2);
 	padding: var(--aa-space-1) var(--aa-space-2);

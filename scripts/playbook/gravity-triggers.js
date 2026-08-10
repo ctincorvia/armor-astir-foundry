@@ -38,7 +38,10 @@ export const GRAVITY_TRIGGERS = {
 		"you as inspirational or expects highly from you.",
 	"the-attendant":
 		"Whenever you put protecting your Employer ahead of the Sortie's goals, advance a GRAVITY " +
-		"clock with someone who disagrees with your actions."
+		"clock with someone who disagrees with your actions.",
+	"the-captain":
+		"When anyone rolls a 6 or below while rolling +CREW, advance a GRAVITY clock with someone " +
+		"who has put their trust in you."
 };
 
 export function gravityTriggerForPlaybook(playbookSlug, pickedMoveKeys = []) {

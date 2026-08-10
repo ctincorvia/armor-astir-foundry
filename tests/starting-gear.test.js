@@ -400,6 +400,42 @@ describe("STARTING_GEAR_POOLS", () => {
 
 		expect(watchdogs).toMatchObject({ tags: ["ward"] });
 	});
+
+	it("gives The Captain no granted items and one 4-item Ornate Gear group", () => {
+		const captain = findStartingGearPool("The Captain");
+
+		expect(captain.grantedItems).toHaveLength(0);
+		expect(captain.groups).toHaveLength(1);
+		expect(captain.groups[0].chooseCount).toBe(1);
+		expect(captain.groups[0].items).toHaveLength(4);
+	});
+
+	it("puts The Captain's Crew/Carrier Bonuses and clothes note in freeformNotes, not modeled items", () => {
+		const captain = findStartingGearPool("The Captain");
+
+		expect(captain.freeformNotes.some((note) => note.includes("Crew/Carrier Bonuses"))).toBe(true);
+		expect(captain.freeformNotes).toContain("Clothes that match your look.");
+	});
+
+	it("gives Ruinlock I a ranged/reload/ruin/profane weapon shape", () => {
+		const captain = findStartingGearPool("The Captain");
+		const ruinlock = captain.groups[0].items.find((item) => item.key === "the-captain:ruinlock-i");
+
+		expect(ruinlock).toMatchObject({
+			kind: "weapon",
+			tags: ["ranged", "reload", "ruin", "profane"]
+		});
+	});
+
+	it("gives Arcane Mantle I a ranged/defensive/arcane weapon shape", () => {
+		const captain = findStartingGearPool("The Captain");
+		const mantle = captain.groups[0].items.find((item) => item.key === "the-captain:arcane-mantle-i");
+
+		expect(mantle).toMatchObject({
+			kind: "weapon",
+			tags: ["ranged", "defensive", "arcane"]
+		});
+	});
 });
 
 describe("findStartingGearPool", () => {

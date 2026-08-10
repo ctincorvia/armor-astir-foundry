@@ -181,6 +181,23 @@ describe("STARTING_MOVE_POOLS", () => {
 		expect(attendant.pickOneKeys).toEqual([]);
 		expect(attendant.chooseCount).toBe(2);
 	});
+
+	it("grants The Captain exactly In Command, plus 2 chosen from the other 8", () => {
+		const captain = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Captain");
+
+		expect(captain.grantedKeys).toEqual(["the-captain:in-command"]);
+		expect(captain.pickOneKeys).toEqual([
+			"the-captain:tactical-genius",
+			"the-captain:force-multiplier",
+			"the-captain:surprise-requisition",
+			"the-captain:fire-support",
+			"the-captain:information-network",
+			"the-captain:born-leader",
+			"the-captain:human-resources",
+			"the-captain:coordinator"
+		]);
+		expect(captain.chooseCount).toBe(2);
+	});
 });
 
 describe("findStartingMovePool", () => {

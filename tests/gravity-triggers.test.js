@@ -52,6 +52,11 @@ describe("gravityTriggerForPlaybook", () => {
 		expect(GRAVITY_TRIGGERS["the-attendant"]).toContain("Employer");
 	});
 
+	it("gives The Captain its trigger", () => {
+		expect(gravityTriggerForPlaybook("the-captain")).toBe(GRAVITY_TRIGGERS["the-captain"]);
+		expect(GRAVITY_TRIGGERS["the-captain"]).toContain("+CREW");
+	});
+
 	it("returns null for a playbook with no known trigger", () => {
 		expect(GRAVITY_TRIGGERS["some-future-playbook"]).toBeUndefined();
 		expect(gravityTriggerForPlaybook("some-future-playbook")).toBeNull();

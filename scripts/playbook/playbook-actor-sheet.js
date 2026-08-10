@@ -95,6 +95,13 @@ export class PlaybookActorSheet extends ActorSheet {
 		// Computed here, same reason isCommander/isWitch are: no Handlebars equality helper is
 		// registered in this module.
 		data.isParadigm = playbookSlug === "the-paradigm";
+		// Gates the "At the Helm" checkbox (Dangers panel) — exclusive to The Captain (see
+		// tracking-mixin.js's _dangerMax/_onAtHelmToggle and playbook-moves.js's In Command). Same
+		// "no Handlebars equality helper" reason isCommander/isWitch/isParadigm are computed here.
+		data.isCaptain = playbookSlug === "the-captain";
+		// The checkbox's own bound value — computed regardless of isCaptain, same "compute
+		// regardless, gate the render" pattern data.aceCrew/data.witch already establish.
+		data.atHelm = Boolean(this.actor.system.attributes?.atHelm);
 		// Rendered next to the Tier readout in the header — see claude.md's Character Tier notes:
 		// on-foot Tier and Approach are the same kind of "how you fight outside your Astir"
 		// property. Derived fresh every render, not stored — see _conflictTier.
@@ -227,6 +234,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".danger-add-toggle").on("click", this._onDangerAddToggle.bind(this));
 		html.find(".danger-add").on("click", this._onDangerAdd.bind(this));
 		html.find(".danger-remove").on("click", this._onDangerRemove.bind(this));
+		html.find(".at-helm-checkbox").on("change", this._onAtHelmToggle.bind(this));
 		html.find(".burden-add").on("click", this._onBurdenAdd.bind(this));
 		html.find(".burden-remove").on("click", this._onBurdenRemove.bind(this));
 		html.find(".burden-label-input").on("change", this._onBurdenLabelChange.bind(this));

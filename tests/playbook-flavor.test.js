@@ -198,6 +198,25 @@ describe("PLAYBOOK_FLAVOR", () => {
 			expect(question).toBeTruthy();
 		}
 	});
+
+	it("gives The Captain three LOOK prompts, each with a label and text", () => {
+		for (const entry of PLAYBOOK_FLAVOR["the-captain"].look) {
+			expect(entry.label).toBeTruthy();
+			expect(entry.text).toBeTruthy();
+		}
+		expect(PLAYBOOK_FLAVOR["the-captain"].look).toHaveLength(3);
+	});
+
+	it("gives The Captain its two intro paragraphs", () => {
+		expect(PLAYBOOK_FLAVOR["the-captain"].intro).toHaveLength(2);
+	});
+
+	it("gives The Captain six Consider questions", () => {
+		expect(PLAYBOOK_FLAVOR["the-captain"].consider).toHaveLength(6);
+		for (const question of PLAYBOOK_FLAVOR["the-captain"].consider) {
+			expect(question).toBeTruthy();
+		}
+	});
 });
 
 describe("defaultLookText", () => {

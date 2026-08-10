@@ -582,6 +582,90 @@ describe("MOVE_POOLS - the-attendant", () => {
 	});
 });
 
+describe("MOVE_POOLS - the-captain", () => {
+	it("registers The Captain's own pool with 9 moves", () => {
+		const captain = MOVE_POOLS.find((pool) => pool.key === "the-captain");
+
+		expect(captain.label).toBe("The Captain");
+		expect(captain.playbookName).toBe("The Captain");
+		expect(captain.moves).toHaveLength(9);
+	});
+
+	it("gives In Command empty traits and no results — the Danger cap is mechanized elsewhere", () => {
+		const inCommand = findPlaybookMove("the-captain:in-command");
+
+		expect(inCommand.traits).toEqual([]);
+		expect(inCommand.results).toBeUndefined();
+	});
+
+	it("gives Tactical Genius and Force Multiplier empty traits and no flatHold/results", () => {
+		for (const key of ["the-captain:tactical-genius", "the-captain:force-multiplier"]) {
+			const move = findPlaybookMove(key);
+			expect(move.traits).toEqual([]);
+			expect(move.flatHold).toBeUndefined();
+			expect(move.results).toBeUndefined();
+		}
+	});
+
+	it("gives Surprise Requisition a CREW fixedTraits entry and a full 3-tier results object", () => {
+		const surpriseRequisition = findPlaybookMove("the-captain:surprise-requisition");
+
+		expect(surpriseRequisition.traits).toEqual([]);
+		expect(surpriseRequisition.fixedTraits).toEqual([{ key: "crew", label: "CREW", value: 0 }]);
+		expect(surpriseRequisition.results.success).toBeTruthy();
+		expect(surpriseRequisition.results.mixed).toBeTruthy();
+		expect(surpriseRequisition.results.failure).toBeNull();
+	});
+
+	it("gives Fire Support a KNOW addsTraitToMove grant and a grantsCarrierWeaponAccess flag on Exchange Blows and Strike Decisively", () => {
+		const fireSupport = findPlaybookMove("the-captain:fire-support");
+
+		expect(fireSupport.traits).toEqual([]);
+		expect(fireSupport.addsTraitToMove).toEqual({
+			moveKeys: ["exchange-blows", "strike-decisively"],
+			trait: "know"
+		});
+		expect(fireSupport.grantsCarrierWeaponAccess).toEqual({
+			moveKeys: ["exchange-blows", "strike-decisively"]
+		});
+	});
+
+	it("gives Information Network a TALK addsTraitToMove grant on Dispel Uncertainties", () => {
+		const informationNetwork = findPlaybookMove("the-captain:information-network");
+
+		expect(informationNetwork.traits).toEqual([]);
+		expect(informationNetwork.addsTraitToMove).toEqual({ moveKey: "dispel-uncertainties", trait: "talk" });
+	});
+
+	it("gives Born Leader a standing advantage grant on Lead a Sortie", () => {
+		const bornLeader = findPlaybookMove("the-captain:born-leader");
+
+		expect(bornLeader.traits).toEqual([]);
+		expect(bornLeader.grantsAdvantageOnMove).toEqual({ moveKey: "lead-a-sortie", advantage: "advantage" });
+	});
+
+	it("gives Human Resources three extra Read the Room questions", () => {
+		const humanResources = findPlaybookMove("the-captain:human-resources");
+
+		expect(humanResources.traits).toEqual([]);
+		expect(humanResources.addsQuestionsToMove).toEqual({
+			moveKey: "read-the-room",
+			questions: [
+				"What is the crew's mood like?",
+				"Who is responsible for a problem on-board the Carrier?",
+				"What could be a problem for the crew in the immediate future?"
+			]
+		});
+	});
+
+	it("gives Coordinator (prose-only) empty traits and no results", () => {
+		const coordinator = findPlaybookMove("the-captain:coordinator");
+
+		expect(coordinator.traits).toEqual([]);
+		expect(coordinator.results).toBeUndefined();
+	});
+});
+
 describe("findPlaybookMove", () => {
 	it("finds a move by key across every pool", () => {
 		expect(findPlaybookMove(BULLHEADED).name).toBe("Bullheaded");

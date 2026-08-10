@@ -70,13 +70,26 @@ export const TrackingSheetMixin = {
 	// full.
 	_dangersData() {
 		const dangers = this._dangers();
+		const max = this._dangerMax();
 		return {
-			max: DANGER_MAX,
+			max,
 			list: dangers.map((danger) => ({ ...danger, isPeril: danger.type === "peril" })),
-			atMax: dangers.length >= DANGER_MAX,
-			canAdd: dangers.length < DANGER_MAX,
-			addOpen: this._dangerAddOpen && dangers.length < DANGER_MAX
+			atMax: dangers.length >= max,
+			canAdd: dangers.length < max,
+			addOpen: this._dangerAddOpen && dangers.length < max
 		};
+	},
+	// The Captain's In Command ("you are defenceless at 4 dangers ... rather than 3 ... while at
+	// the helm of your Carrier" — see playbook-moves.js) is the one playbook-conditional exception
+	// to the otherwise-flat DANGER_MAX ceiling above. Gated on both the playbook AND the manual At
+	// the Helm checkbox (system.attributes.atHelm — see _onAtHelmToggle, getData's data.atHelm):
+	// a Captain who has stepped away from the Carrier's helm is defenceless at 3 like everyone
+	// else, and the flag itself does nothing on any other playbook's actor (see getData's own
+	// isCaptain-gated template markup) — this is a self-scoped read of this actor's own Danger
+	// cap, not a cross-actor effect.
+	_dangerMax() {
+		const atHelm = Boolean(this.actor.system.attributes?.atHelm);
+		return this.actor.system.playbook?.slug === "the-captain" && atHelm ? 4 : DANGER_MAX;
 	},
 	// Gravity Clocks live in the Social tab: up to 5 independent progress tracks, each with its own
 	// label, a Spotlight-style fill track, and a separate 1-3 value. Unlike Spotlight (one
@@ -147,7 +160,7 @@ export const TrackingSheetMixin = {
 		const label = labelInput.value.trim();
 
 		const current = this._dangers();
-		if (!label || current.length >= DANGER_MAX) return;
+		if (!label || current.length >= this._dangerMax()) return;
 
 		this.actor.update({
 			"system.attributes.dangers": [...current, { id: foundry.utils.randomID(), type: typeSelect.value, label }]
@@ -163,6 +176,12 @@ export const TrackingSheetMixin = {
 		const { dangerId } = event.currentTarget.dataset;
 		const current = this._dangers();
 		this.actor.update({ "system.attributes.dangers": current.filter((danger) => danger.id !== dangerId) });
+	},
+	// The Captain's "At the Helm" checkbox (see _dangerMax, getData's isCaptain-gated template
+	// markup) — a plain boolean toggle, same shape as _onAstirOverheatingToggle/
+	// _onAdvancementToggle.
+	_onAtHelmToggle(event) {
+		this.actor.update({ "system.attributes.atHelm": event.currentTarget.checked });
 	},
 	// Burdens (see claude.md's Social tab notes, _burdens above) — plain text entries, no max, no
 	// type select: a blank one is appended immediately (unlike Dangers' add-controls row, which

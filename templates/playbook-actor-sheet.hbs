@@ -67,6 +67,12 @@
 					</div>
 					{{/if}}
 				</div>
+				{{#if isCaptain}}
+				<label class="at-helm-label">
+					<input type="checkbox" class="at-helm-checkbox" {{#if atHelm}}checked{{/if}}/>
+					At the Helm
+				</label>
+				{{/if}}
 				{{#if dangers.atMax}}
 				<p class="defenseless-label">DEFENSELESS</p>
 				{{/if}}
