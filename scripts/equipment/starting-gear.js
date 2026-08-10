@@ -735,6 +735,69 @@ export const STARTING_GEAR_POOLS = [
 				]
 			}
 		]
+	},
+	{
+		playbookName: "The Attendant",
+		freeformNotes: ["Clothing that matches your look."],
+		grantedItems: [],
+		groups: [
+			{
+				key: "the-attendant:defensive-weapon",
+				label: "Choose 1 Defensive Weapon.",
+				chooseCount: 1,
+				items: [
+					{
+						key: "the-attendant:sword-cane-i",
+						name: "Sword Cane I",
+						description: "A cane that conceals a slender blade, drawn in an instant.",
+						kind: "weapon",
+						tags: ["melee", "defensive", "concealable"]
+					},
+					{
+						key: "the-attendant:fan-of-knives",
+						name: "Fan Of Knives",
+						description: "An ornamental fan that flicks outward in a spray of hidden blades.",
+						kind: "weapon",
+						tags: ["ranged", "defensive", "area"]
+					},
+					{
+						key: "the-attendant:wand-rifle-i",
+						name: "Wand-rifle I",
+						description: "A slender rifle disguised as a walking cane's counterpart, firing with precise, forceful impact.",
+						kind: "weapon",
+						tags: ["sniper", "defensive", "impact"]
+					}
+				]
+			},
+			{
+				key: "the-attendant:retinue-staff",
+				label: "Choose 2 Retinue Staff.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-attendant:artificers",
+						name: "Artificers",
+						description: "+1 token towards repairs & magic or mechanical long-term projects."
+					},
+					{
+						key: "the-attendant:maids",
+						name: "Maids",
+						description: "Everything is kept clean and orderly: anything lost or hidden is always found."
+					},
+					{
+						key: "the-attendant:cooks",
+						name: "Cooks",
+						description: "Everyone makes their first roll during a Sortie in confidence after a good meal."
+					},
+					{
+						key: "the-attendant:watchdogs",
+						name: "Watchdogs",
+						description: "Never surprised by attackers on foot.",
+						tags: ["ward"]
+					}
+				]
+			}
+		]
 	}
 ];
 

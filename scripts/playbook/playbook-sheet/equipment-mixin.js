@@ -13,6 +13,7 @@ import {
 	chooseStartingGear,
 	findStartingGearPool
 } from "../../equipment/starting-gear.js";
+import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 
 // Custom-made equipment (see claude.md's Domain conventions) — weapons and gear share one array,
 // distinguished by `kind`, with tags as the separate catalog (see equipment.js). Owns every
@@ -23,6 +24,20 @@ export const EquipmentSheetMixin = {
 	},
 	_weapons() {
 		return this._equipment().filter((item) => item.kind === "weapon");
+	},
+	// Signed & Sealed (The Attendant): "any weapon you wield gains the messy and decisive tags" —
+	// every picked move's own grantsWeaponTags flag, unioned and deduped, the same declarative-
+	// flag-evaluated-generically convention every other cross-cutting move flag in this codebase
+	// follows. A read-time union only, never persisted onto the equipment entry itself.
+	_grantedWeaponTagKeys() {
+		const picked = resolvePlaybookMoves(this._playbookMoves());
+		return [...new Set(picked.flatMap((move) => move.grantsWeaponTags ?? []))];
+	},
+	// A weapon entry's effective tag-key list: its own stored tags plus any move-granted ones,
+	// deduped. Gear is untouched — grantsWeaponTags only ever applies to weapons.
+	_weaponTagKeys(entry) {
+		if (entry.kind !== "weapon") return entry.tags ?? [];
+		return [...new Set([...(entry.tags ?? []), ...this._grantedWeaponTagKeys()])];
 	},
 	// getData's Equipment tab shape. weaponMoves/astirWeapons/ardentWeaponEntriesById are all
 	// computed once in getData (shared with the Astir/Ardent data methods, which render the same
@@ -71,7 +86,7 @@ export const EquipmentSheetMixin = {
 	// would read as whichever frame is currently mounted, which is meaningless here: a mundane
 	// weapon is already gated off entirely while mounted — see _weaponGateTooltip).
 	_equipmentEntry(entry, weaponMoves = [], frame = null) {
-		const tags = resolveEquipmentTags(entry.tags ?? []).map((tag) => ({
+		const tags = resolveEquipmentTags(this._weaponTagKeys(entry)).map((tag) => ({
 			key: tag.key,
 			label: tag.label,
 			value: tag.value,
@@ -92,7 +107,7 @@ export const EquipmentSheetMixin = {
 			name: entry.name,
 			description: entry.description,
 			tags,
-			value: equipmentValue(entry.tags ?? []),
+			value: equipmentValue(this._weaponTagKeys(entry)),
 			...(entry.kind === "weapon" && {
 				scale: (entry.astir || entry.ardent) ? "astir" : entry.scale,
 				scaleLabel: (entry.astir || entry.ardent)
@@ -135,7 +150,7 @@ export const EquipmentSheetMixin = {
 			if (entry.kind === "weapon" && this._weaponFrameId(entry) !== mountedFrameId) continue;
 			if (scoped && entry.kind === "weapon" && entry.id !== weapon?.id) continue;
 			const spent = entry.spent ?? [];
-			for (const tagKey of entry.tags ?? []) {
+			for (const tagKey of this._weaponTagKeys(entry)) {
 				if (spent.includes(tagKey)) continue;
 				const tag = findEquipmentTag(tagKey);
 				// A spend with no `effect` (Ward, Vorpal, One-Use, Refresh, Dangerous) only tracks
@@ -189,7 +204,7 @@ export const EquipmentSheetMixin = {
 	_forcedWeaponEffect(weapon) {
 		if (!weapon) return null;
 		const spent = weapon.spent ?? [];
-		for (const tagKey of weapon.tags ?? []) {
+		for (const tagKey of this._weaponTagKeys(weapon)) {
 			if (spent.includes(tagKey)) continue;
 			const tag = findEquipmentTag(tagKey);
 			if (tag?.forcesEffect) return { tagKey, effect: tag.forcesEffect.effect };
@@ -204,7 +219,7 @@ export const EquipmentSheetMixin = {
 	_availableReroll(move, weapon) {
 		if (!weapon) return null;
 		const spent = weapon.spent ?? [];
-		for (const tagKey of weapon.tags ?? []) {
+		for (const tagKey of this._weaponTagKeys(weapon)) {
 			if (spent.includes(tagKey)) continue;
 			const tag = findEquipmentTag(tagKey);
 			if (tag?.reroll?.moves.includes(move.key)) return { equipmentId: weapon.id, tagKey };
@@ -216,7 +231,7 @@ export const EquipmentSheetMixin = {
 	// — it's just always offerable as long as the weapon carries the tag.
 	_weaponIsGuided(weapon) {
 		if (!weapon) return false;
-		return (weapon.tags ?? []).some((tagKey) => findEquipmentTag(tagKey)?.guided);
+		return this._weaponTagKeys(weapon).some((tagKey) => findEquipmentTag(tagKey)?.guided);
 	},
 	// The chosen weapon's full tag list, comma-joined for the chat card (see moves.js#rollMove's
 	// weaponTags doc) — unlike _equipmentSpends this isn't limited to spendable tags or gated by
@@ -224,7 +239,7 @@ export const EquipmentSheetMixin = {
 	// for Unarmed/no weapon and for a weapon with no tags, matching weaponLabel's own null cases.
 	_weaponTagLabels(weapon) {
 		if (!weapon) return null;
-		const labels = resolveEquipmentTags(weapon.tags ?? []).map((tag) => tag.label);
+		const labels = resolveEquipmentTags(this._weaponTagKeys(weapon)).map((tag) => tag.label);
 		return labels.length ? labels.join(", ") : null;
 	},
 	// Marks each checked equipment spend (see configureMoveRoll's Equipment section) as spent on

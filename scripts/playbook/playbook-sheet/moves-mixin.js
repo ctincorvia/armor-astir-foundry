@@ -4,7 +4,7 @@ import { TRAITS } from "../../core/traits.js";
 import { chooseCarrier, findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
 import { TIER_MIN, UNARMED, chooseWeapon } from "../../equipment/equipment.js";
 import { getTargetedNpc } from "../../moves/target-tier.js";
-import { approachAdvantageStack } from "../../moves/approach-matchup.js";
+import { approachMatchupStack } from "../../moves/approach-matchup.js";
 import { findAstirPart } from "../../frames/astir.js";
 import { rolledDoubles } from "../../moves/roll-effects.js";
 import { chooseStartingMoves, findStartingMovePool, playbookGrantsHomeInsteadOfChannel } from "../../moves/starting-moves.js";
@@ -483,29 +483,39 @@ export const MovesSheetMixin = {
 			.find((m) => m.grantsAdvantageOnMove?.moveKey === move.key);
 		return granting?.grantsAdvantageOnMove.advantage ?? null;
 	},
-	// Tier-vs-Tier and Approach-vs-Approach against a single targeted NPC (see claude.md's World
-	// actors / target-tier.js's getTargetedNpc), each worth one signed stack of Advantage/
-	// Disadvantage (Tier: +1 higher / -1 lower / 0 equal; Approach: its type wheel — see
-	// approach-matchup.js), summed and resolved to one of roll-effects.js's ADVANTAGE_STATES. A net
-	// 0 (e.g. a favorable Approach cancelled out by an unfavorable Tier) leaves the Dice select
-	// unlocked rather than forcing "None" — this only ever narrows the roll when the two signals
-	// agree, or exactly one of them applies. Gated on the move's existing usesWeapon flag rather
-	// than hardcoded move keys — true for exactly Exchange Blows/Strike Decisively today, but any
-	// future usesWeapon move picks this up automatically, matching the module's "declarative flag,
-	// evaluated generically" convention.
-	_targetMatchupAdvantage(move) {
+	// Tier-vs-Tier against a single targeted NPC (see claude.md's World actors / target-tier.js's
+	// getTargetedNpc) — the Advantage-axis half of the target-matchup pair, independent of Approach
+	// (see _targetMatchupEffect below, its Effect-axis sibling): the two signals no longer sum, so
+	// this alone never reaches a x2 state. +1 higher / -1 lower / 0 equal, resolved to Advantage/
+	// Disadvantage. Gated on the move's existing usesWeapon flag rather than hardcoded move keys —
+	// true for exactly Exchange Blows/Strike Decisively today, but any future usesWeapon move picks
+	// this up automatically, matching the module's "declarative flag, evaluated generically"
+	// convention.
+	_targetTierAdvantage(move) {
 		if (!move.usesWeapon) return null;
 		const target = getTargetedNpc();
 		if (!target) return null;
 		const targetTier = target.system.attributes?.tier ?? TIER_MIN;
 		const tierStack = Math.sign(this._conflictTier().effective - targetTier);
+		if (tierStack === 1) return "advantage";
+		if (tierStack === -1) return "disadvantage";
+		return null;
+	},
+	// Approach-vs-Approach against a single targeted NPC — the Effect-axis half of the target-
+	// matchup pair, independent of Tier (see _targetTierAdvantage above). Countering a foe's
+	// Approach (the type wheel — see approach-matchup.js) grants Confidence; being countered grants
+	// Desperation; a tie, an unknown Approach on either side, or a non-adjacent pairing grants
+	// neither. Same usesWeapon gating as _targetTierAdvantage, for the same "declarative flag,
+	// evaluated generically" reason.
+	_targetMatchupEffect(move) {
+		if (!move.usesWeapon) return null;
+		const target = getTargetedNpc();
+		if (!target) return null;
 		const attackerApproach = this._effectiveApproach().effective;
 		const targetApproach = target.system.attributes?.approach ?? "";
-		const stacks = tierStack + approachAdvantageStack(attackerApproach, targetApproach);
-		if (stacks === 2) return "advantage2";
-		if (stacks === 1) return "advantage";
-		if (stacks === -1) return "disadvantage";
-		if (stacks === -2) return "disadvantage2";
+		const stack = approachMatchupStack(attackerApproach, targetApproach);
+		if (stack === 1) return "confidence";
+		if (stack === -1) return "desperation";
 		return null;
 	},
 	// Living Drive's "you may use [eidolon drive] outside of an Astir" (Summoner — see
@@ -751,14 +761,18 @@ export const MovesSheetMixin = {
 		// sit at the same "reactive/emergency lock" tier, ahead of a forced weapon tag — all three only
 		// ever lock to Desperation today, so there's nothing to actually conflict, but the precedence
 		// keeps a future second forcesEffect value from silently overriding either actor-state read.
-		// Field Scout's standing grantsEffectOnMove (see _grantedEffectForMove) sits last: it's a
+		// Field Scout's standing grantsEffectOnMove (see _grantedEffectForMove) sits next: it's a
 		// permanent grant rather than any of the other three's emergency/reactive lock, so anything
-		// already forcing an axis wins over it.
+		// already forcing an axis wins over it. The target-matchup Approach signal (_targetMatchupEffect
+		// — see its own comment; Tier's own signal feeds the Advantage axis instead, independently, via
+		// lockedAdvantage below) sits lowest of all: it's a passive read of the current target, so any
+		// of the above five sources — each a more specific or more deliberate lock — wins over it.
 		const forced = this._forcedWeaponEffect(weapon);
 		const lockedEffect = (move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null)
 			?? (move.forcesDesperationOnShakenTenet && this._hasShakenTenet() ? "desperation" : null)
 			?? forced?.effect
 			?? this._grantedEffectForMove(move)
+			?? this._targetMatchupEffect(move)
 			?? null;
 		// Don't Follow Me's own pair — see _grantedTraitForMove/_grantedAdvantageForMove. The
 		// granted trait key is resolved against this roll's own final `traits` list (rather than
@@ -770,11 +784,13 @@ export const MovesSheetMixin = {
 		// Don't Follow Me's single-target-move grant wins if it and Cold Company's standing haunted-
 		// state lock somehow both apply — in practice these two moves live on mutually exclusive
 		// playbooks (Impostor / Wither), so this ordering is a defensive tie-break, not an expected
-		// real-world collision. The combined Tier+Approach targeting signal (_targetMatchupAdvantage)
-		// sits lowest in this chain — it only ever fires when nothing else has already forced the
-		// Advantage axis. An Astir Part's own reactive spend.advantage (Artifact) still wins over all
-		// three, per configureMoveRoll's own precedence — untouched by this change.
-		const lockedAdvantage = this._grantedAdvantageForMove(move) ?? this._coldCompanyAdvantage() ?? this._targetMatchupAdvantage(move);
+		// real-world collision. The target-matchup Tier signal (_targetTierAdvantage — its Approach
+		// sibling, _targetMatchupEffect, feeds lockedEffect above instead, independently, since the two
+		// axes no longer sum into one combined stack) sits lowest in this chain — it only ever fires
+		// when nothing else has already forced the Advantage axis. An Astir Part's own reactive
+		// spend.advantage (Artifact) still wins over all three, per configureMoveRoll's own precedence —
+		// untouched by this change.
+		const lockedAdvantage = this._grantedAdvantageForMove(move) ?? this._coldCompanyAdvantage() ?? this._targetTierAdvantage(move);
 		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
 		const astirPartSpends = this._astirPartSpends(lockedEffect);
 		// Omitted entirely rather than passed as `false` when not guided — configureMoveRoll

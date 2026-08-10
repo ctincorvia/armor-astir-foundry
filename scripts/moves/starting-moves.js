@@ -152,6 +152,13 @@ export const STARTING_MOVE_POOLS = [
 		grantedKeys: ["the-icon:performance"],
 		pickOneKeys: [],
 		chooseCount: 2
+	},
+	{
+		playbookName: "The Attendant",
+		poolKey: "the-attendant",
+		grantedKeys: ["the-attendant:master-servant"],
+		pickOneKeys: [],
+		chooseCount: 2
 	}
 ];
 

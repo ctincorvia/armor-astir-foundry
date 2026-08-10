@@ -55,7 +55,7 @@ export const ProgressionSheetMixin = {
 	},
 	// The Approach counterpart to _conflictTier's own frame-fallback pattern — while a frame is
 	// mounted, `effective` is that frame's own Approach instead of the character's persisted one,
-	// since a target-matchup Advantage roll (see moves-mixin.js's _targetMatchupAdvantage) needs to
+	// since a target-matchup Effect roll (see moves-mixin.js's _targetMatchupEffect) needs to
 	// compare whichever Approach is actually fighting, the same reasoning that already drives Tier.
 	// Unlike Tier, which always has a numeric default (CHARACTER_TIER_DEFAULT) and so never needs to
 	// fall through, a frame's own Approach can be unset ("") — an Astir/Ardent doesn't require one
@@ -70,6 +70,22 @@ export const ProgressionSheetMixin = {
 				effectiveLabel: APPROACHES.find((a) => a.key === frame.approach)?.label ?? frame.approach,
 				fromFrame: true,
 				frameName: frame.name
+			};
+		}
+		// Signed & Sealed (The Attendant): "your approach on foot becomes profane" — resolved
+		// generically off any picked move's own grantsApproachOverride flag, the same declarative-
+		// flag-evaluated-in-the-sheet convention every other cross-cutting move flag in this file
+		// follows, rather than hardcoding the move's key. Only reached once no frame is mounted, since
+		// a mounted frame's own Approach already takes precedence above.
+		const picked = resolvePlaybookMoves(this._playbookMoves());
+		const override = picked.find((move) => move.grantsApproachOverride)?.grantsApproachOverride;
+		if (override) {
+			return {
+				base,
+				effective: override,
+				effectiveLabel: APPROACHES.find((a) => a.key === override)?.label ?? override,
+				fromFrame: false,
+				fromMove: true
 			};
 		}
 		return { base, effective: base, fromFrame: false };

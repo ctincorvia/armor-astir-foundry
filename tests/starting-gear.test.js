@@ -382,6 +382,24 @@ describe("STARTING_GEAR_POOLS", () => {
 			tags: ["melee", "area", "ward"]
 		});
 	});
+
+	it("gives The Attendant no granted items and two groups to choose from", () => {
+		const attendant = findStartingGearPool("The Attendant");
+
+		expect(attendant.grantedItems).toHaveLength(0);
+		expect(attendant.groups).toHaveLength(2);
+		expect(attendant.groups[0].chooseCount).toBe(1);
+		expect(attendant.groups[0].items).toHaveLength(3);
+		expect(attendant.groups[1].chooseCount).toBe(2);
+		expect(attendant.groups[1].items).toHaveLength(4);
+	});
+
+	it("gives Watchdogs a ward tag", () => {
+		const attendant = findStartingGearPool("The Attendant");
+		const watchdogs = attendant.groups[1].items.find((item) => item.key === "the-attendant:watchdogs");
+
+		expect(watchdogs).toMatchObject({ tags: ["ward"] });
+	});
 });
 
 describe("findStartingGearPool", () => {

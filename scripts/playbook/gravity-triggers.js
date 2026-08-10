@@ -35,7 +35,10 @@ export const GRAVITY_TRIGGERS = {
 		"When you part ways with an ally from binding, advance a GRAVITY clock with someone who will remember them fondly.",
 	"the-icon":
 		"Whenever you act against one of your Hooks, advance a GRAVITY clock with someone who sees " +
-		"you as inspirational or expects highly from you."
+		"you as inspirational or expects highly from you.",
+	"the-attendant":
+		"Whenever you put protecting your Employer ahead of the Sortie's goals, advance a GRAVITY " +
+		"clock with someone who disagrees with your actions."
 };
 
 export function gravityTriggerForPlaybook(playbookSlug, pickedMoveKeys = []) {

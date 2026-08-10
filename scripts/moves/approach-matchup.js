@@ -7,10 +7,11 @@ export const APPROACH_CYCLE = ["mundane", "arcane", "divine", "profane", "elemen
 // +1 when `attacker` beats `target`, -1 when `target` beats `attacker`, 0 for a tie, an unknown/
 // unset key, or a non-adjacent pair (each Approach only beats/loses to exactly one other — the
 // other two pairings on the wheel are neutral). Returned as a signed stack count, not an
-// "advantage"/"disadvantage" string, so callers can sum it against other stack-producing signals
-// (see moves-mixin.js's _targetMatchupAdvantage) before resolving to one of roll-effects.js's
-// ADVANTAGE_STATES.
-export function approachAdvantageStack(attacker, target) {
+// "advantage"/"disadvantage" or "confidence"/"desperation" string, so the caller decides which
+// axis it feeds — see moves-mixin.js's _targetMatchupEffect, which resolves this to one of
+// roll-effects.js's EFFECT_STATES (Tier-vs-Tier is the sibling signal that feeds
+// ADVANTAGE_STATES instead, via _targetTierAdvantage, independently of this one).
+export function approachMatchupStack(attacker, target) {
 	const a = APPROACH_CYCLE.indexOf(attacker);
 	const b = APPROACH_CYCLE.indexOf(target);
 	if (a === -1 || b === -1) return 0;

@@ -173,6 +173,14 @@ describe("STARTING_MOVE_POOLS", () => {
 		expect(icon.pickOneKeys).toEqual([]);
 		expect(icon.chooseCount).toBe(2);
 	});
+
+	it("grants The Attendant exactly Master & Servant, plus 2 to choose", () => {
+		const attendant = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Attendant");
+
+		expect(attendant.grantedKeys).toEqual(["the-attendant:master-servant"]);
+		expect(attendant.pickOneKeys).toEqual([]);
+		expect(attendant.chooseCount).toBe(2);
+	});
 });
 
 describe("findStartingMovePool", () => {

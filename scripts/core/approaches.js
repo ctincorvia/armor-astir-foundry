@@ -25,7 +25,8 @@ export const PLAYBOOK_APPROACHES = {
 	"the-advocate": ["elemental"],
 	"the-revenant": ["profane", "divine"],
 	"the-summoner": ["elemental", "profane"],
-	"the-icon": ["mundane"]
+	"the-icon": ["mundane"],
+	"the-attendant": ["mundane"]
 };
 
 export function availableApproaches(playbookSlug) {

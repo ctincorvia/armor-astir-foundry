@@ -347,6 +347,34 @@ export const PLAYBOOK_FLAVOR = {
 			"What do you want out of your role in the Cause?",
 			"Do you have fans within the Authority?"
 		]
+	},
+	"the-attendant": {
+		look: [
+			{ label: "You look:", text: "refined, sinister, ageing, forgettable or panicked" },
+			{ label: "You wear:", text: "exactly what the master demands of you" },
+			{ label: "Your expertise is in:", text: "cooking, housekeeping, entertaining, cleaning, security" }
+		],
+		intro: [
+			"Those of high society, birth or wealth often find themselves in need of good staff. Of all " +
+				"their servants, though, one holds a truly notable position: their head butler. You're " +
+				"responsible for seeing to their every need, organising the rest of their staff, and if it " +
+				"comes to it, laying down your life for them. Anything less would simply be bad service, " +
+				"after all.",
+			"All your moves come with a little extra: a good Attendant is seen but not heard, and a better " +
+				"Attendant can see what is demanded of them with a mere glance. Moves like signed & sealed " +
+				"allow you to play an Attendant with slightly different contractual obligations, whilst moves " +
+				"like dilettante and man of many manners showcase your diverse capabilities."
+		],
+		consider: [
+			"Do you come from any kind of formal schooling?",
+			"Do you use your real name as an Attendant, or a pseudonym?",
+			"Are you proud of the work you do, or is it just a job?",
+			"How do you feel about your Employer? How long have you served them?",
+			"Do you wear any specific colour or emblem of your Employer?",
+			"Has the Cause adopted any of the above?",
+			"Are you a believer in the Cause, or just here to serve?",
+			"Do you consider yourself an equal with those around you, or simply furniture?"
+		]
 	}
 };
 

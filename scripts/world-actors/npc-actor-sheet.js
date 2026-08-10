@@ -6,8 +6,9 @@ export const NPC_ACTOR_TYPE = "armor-astir.npc";
 
 // The NPC is the minimal "something in the world with a Tier" actor (see claude.md, "World
 // actors") — name, description, a freely-picked Approach, and Tier, nothing else. Its purpose is
-// to be a valid target for Tier-comparison rules (see moves-mixin.js's _targetTierAdvantage and
-// target-tier.js) rather than to model a full NPC the way a Playbook character is modeled.
+// to be a valid target for Tier- and Approach-comparison rules (see moves-mixin.js's
+// _targetTierAdvantage/_targetMatchupEffect and target-tier.js) rather than to model a full NPC
+// the way a Playbook character is modeled.
 // Extends ActorSheet directly, not WorldActorSheet: an NPC has no entry-list at all, so inheriting
 // WorldActorSheet's list-CRUD machinery would add nothing but unused surface.
 export class NpcActorSheet extends ActorSheet {

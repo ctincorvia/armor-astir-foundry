@@ -529,6 +529,59 @@ describe("MOVE_POOLS - the-icon", () => {
 	});
 });
 
+describe("MOVE_POOLS - the-attendant", () => {
+	it("registers The Attendant's own pool with 9 moves", () => {
+		const attendant = MOVE_POOLS.find((pool) => pool.key === "the-attendant");
+
+		expect(attendant.label).toBe("The Attendant");
+		expect(attendant.playbookName).toBe("The Attendant");
+		expect(attendant.moves).toHaveLength(9);
+	});
+
+	it("gives Master & Servant a +1 downtimeTokensMax and empty traits", () => {
+		const masterServant = findPlaybookMove("the-attendant:master-servant");
+
+		expect(masterServant.traits).toEqual([]);
+		expect(masterServant.downtimeTokensMax).toBe(1);
+	});
+
+	it("flags Signed & Sealed with grantsApproachOverride and grantsWeaponTags", () => {
+		const signedSealed = findPlaybookMove("the-attendant:signed-sealed");
+
+		expect(signedSealed.traits).toEqual([]);
+		expect(signedSealed.grantsApproachOverride).toBe("profane");
+		expect(signedSealed.grantsWeaponTags).toEqual(["messy", "decisive"]);
+	});
+
+	it("gives Smiling Politely a 0-10 clamped Hold numericTracker", () => {
+		const smilingPolitely = findPlaybookMove("the-attendant:smiling-politely");
+
+		expect(smilingPolitely.numericTrackers).toEqual([
+			{ key: "hold", label: "Hold", min: 0, max: 10 }
+		]);
+	});
+
+	it("gives On Your Feet a once-per-Sortie uses checkbox", () => {
+		const onYourFeet = findPlaybookMove("the-attendant:on-your-feet");
+
+		expect(onYourFeet.uses).toEqual([{ key: "sortie", label: "Used this Sortie", period: "Sortie" }]);
+	});
+
+	it("gives every other move (prose-only) empty traits and no results", () => {
+		for (const key of [
+			"the-attendant:a-drink-sir",
+			"the-attendant:in-blood-terror",
+			"the-attendant:man-of-many-manners",
+			"the-attendant:dilettante",
+			"the-attendant:the-utmost-care"
+		]) {
+			const move = findPlaybookMove(key);
+			expect(move.traits).toEqual([]);
+			expect(move.results).toBeUndefined();
+		}
+	});
+});
+
 describe("findPlaybookMove", () => {
 	it("finds a move by key across every pool", () => {
 		expect(findPlaybookMove(BULLHEADED).name).toBe("Bullheaded");

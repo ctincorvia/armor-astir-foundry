@@ -179,6 +179,25 @@ describe("PLAYBOOK_FLAVOR", () => {
 			expect(question).toBeTruthy();
 		}
 	});
+
+	it("gives The Attendant three LOOK prompts, each with a label and text", () => {
+		for (const entry of PLAYBOOK_FLAVOR["the-attendant"].look) {
+			expect(entry.label).toBeTruthy();
+			expect(entry.text).toBeTruthy();
+		}
+		expect(PLAYBOOK_FLAVOR["the-attendant"].look).toHaveLength(3);
+	});
+
+	it("gives The Attendant its two intro paragraphs", () => {
+		expect(PLAYBOOK_FLAVOR["the-attendant"].intro).toHaveLength(2);
+	});
+
+	it("gives The Attendant eight Consider questions", () => {
+		expect(PLAYBOOK_FLAVOR["the-attendant"].consider).toHaveLength(8);
+		for (const question of PLAYBOOK_FLAVOR["the-attendant"].consider) {
+			expect(question).toBeTruthy();
+		}
+	});
 });
 
 describe("defaultLookText", () => {

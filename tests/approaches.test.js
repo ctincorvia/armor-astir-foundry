@@ -52,6 +52,10 @@ describe("availableApproaches", () => {
 		expect(availableApproaches("the-icon").map((a) => a.key)).toEqual(["mundane"]);
 	});
 
+	it("restricts The Attendant to Mundane", () => {
+		expect(availableApproaches("the-attendant").map((a) => a.key)).toEqual(["mundane"]);
+	});
+
 	it("falls back to every approach for a playbook with no restriction entry", () => {
 		expect(PLAYBOOK_APPROACHES["some-future-playbook"]).toBeUndefined();
 		expect(availableApproaches("some-future-playbook")).toEqual(APPROACHES);
