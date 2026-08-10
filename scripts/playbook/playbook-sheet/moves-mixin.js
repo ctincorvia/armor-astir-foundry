@@ -81,8 +81,8 @@ export const MovesSheetMixin = {
 	// renders add/remove controls (see the template's addable/removable branches). All three run
 	// through the same _moveGroupMoves, so a picked move gets trait filtering, gating, hold tracking
 	// and its Roll/Activate/Description buttons with no extra handling. Display order is basic,
-	// then playbook, then Astir (if any), then each Ardent's own, then special — the character's own
-	// moves read before the fixed reference lists, moveGroups[0] staying Basic for existing tests.
+	// then playbook, then Astir, then each Ardent's own, then special — the character's own moves
+	// read before the fixed reference lists, moveGroups[0] staying Basic for existing tests.
 	//
 	// astirParts/astirMove/frames/mountedFrame/ardents are computed once in getData (shared with the
 	// Astir/Ardent/Equipment data methods) and passed in here rather than recomputed. The "+ Choose
@@ -93,8 +93,17 @@ export const MovesSheetMixin = {
 	// emptiness check, not a one-time flag: cancelling the picker leaves the button available to
 	// retry, and removing every playbook move via "-" brings it back.
 	_movesData(astirParts, astirMove, mountedFrame, ardents, startingMovePool) {
+		// Heat Up and Subsystems (see moves.js) are basic/special moves by definition — every
+		// playbook gets them, with no per-actor picking — but both only ever matter to an Astir
+		// pilot, so they render in the Astir Moves group instead of Basic/Special Moves. Still
+		// resolved off BASIC_MOVES/SPECIAL_MOVES (their canonical list, and what ALL_MOVES's flat
+		// lookup and existing key-based tests key off of — see all-moves.js's own comment: "a move's
+		// section... is purely a sheet-display grouping, not part of its identity") rather than
+		// moved into a new list.
+		const heatUp = BASIC_MOVES.find((m) => m.key === "heat-up");
+		const subsystems = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 		const moveGroups = [
-			{ label: "Basic Moves", moves: this._moveGroupMoves(BASIC_MOVES) },
+			{ label: "Basic Moves", moves: this._moveGroupMoves(BASIC_MOVES.filter((m) => m !== heatUp)) },
 			{
 				label: "Playbook Moves",
 				moves: this._moveGroupMoves(resolvePlaybookMoves(this._playbookMoves())),
@@ -107,30 +116,29 @@ export const MovesSheetMixin = {
 		];
 		// Astir Parts read as moves, and the Astir's one unique move joins them under the same
 		// group — both are picked/removed only from the Astir tab, so unlike Playbook Moves this
-		// group renders no add/remove controls of its own. Inserted here (rather than always
-		// pushed) so it lands between Playbook and Special per the ordering above, and only when
-		// there's something to show — a character with no Astir (or an empty one) leaves moveGroups
-		// exactly as it was before this feature existed. Each Ardent's own installed parts get the
-		// same read-only treatment in their own "<name> Moves" group, right after the Astir's —
+		// group renders no add/remove controls of its own. Each Ardent's own installed parts get
+		// the same read-only treatment in their own "<name> Moves" group, right after the Astir's —
 		// Ardents grant no unique Move (see claude.md's Ardents section), so an Ardent's group is
-		// parts-only.
-		const astirMoves = [...astirParts, ...(astirMove ? [astirMove] : [])];
-		if (astirMoves.length) {
-			// Every entry in this group — parts and the Astir's own unique move alike — only does
-			// anything while the Astir specifically is the mounted frame (see claude.md's Piloted
-			// note), so `gated` is forced on top of whatever gating a part already has, the same
-			// disabled-Roll/Activate treatment channelGated already gives b-plot. Living Drive
-			// (Summoner — see _grantsUnpilotedAstirMove) is the one exception: it ungates Eidolon
-			// Drive specifically from the mounted-frame half of this check, so a picked move's own
-			// gating (summonGated, e.g.) still applies even then.
-			moveGroups.push({
-				label: "Astir Moves",
-				moves: this._moveGroupMoves(astirMoves).map((move) => ({
-					...move,
-					gated: move.gated || (mountedFrame?.id !== "astir" && !this._grantsUnpilotedAstirMove(move))
-				}))
-			});
-		}
+		// parts-only. Unlike before Heat Up/Subsystems joined it, this group is no longer
+		// conditional on astirParts/astirMove existing — heatUp/subsystems mean it's never empty,
+		// and a character with no Astir yet should still be able to read what they do (gated, like
+		// everything else here, rather than hidden — see claude.md's "no precedent for hiding a
+		// control based on state" stance).
+		const astirMoves = [heatUp, subsystems, ...astirParts, ...(astirMove ? [astirMove] : [])];
+		// Every entry in this group — Heat Up, Subsystems, parts, and the Astir's own unique move
+		// alike — only does anything while the Astir specifically is the mounted frame (see
+		// claude.md's Piloted note), so `gated` is forced on top of whatever gating an entry already
+		// has, the same disabled-Roll/Activate treatment channelGated already gives b-plot. Living
+		// Drive (Summoner — see _grantsUnpilotedAstirMove) is the one exception: it ungates Eidolon
+		// Drive specifically from the mounted-frame half of this check, so a picked move's own
+		// gating (summonGated, e.g.) still applies even then.
+		moveGroups.push({
+			label: "Astir Moves",
+			moves: this._moveGroupMoves(astirMoves).map((move) => ({
+				...move,
+				gated: move.gated || (mountedFrame?.id !== "astir" && !this._grantsUnpilotedAstirMove(move))
+			}))
+		});
 		for (const ardent of ardents) {
 			const parts = resolveAstirParts(ardent.parts ?? [], ARDENT_PART_CATALOG);
 			if (!parts.length) continue;
@@ -139,7 +147,7 @@ export const MovesSheetMixin = {
 				moves: this._moveGroupMoves(parts).map((move) => ({ ...move, gated: move.gated || mountedFrame?.id !== ardent.id }))
 			});
 		}
-		moveGroups.push({ label: "Special Moves", moves: this._moveGroupMoves(SPECIAL_MOVES) });
+		moveGroups.push({ label: "Special Moves", moves: this._moveGroupMoves(SPECIAL_MOVES.filter((m) => m !== subsystems)) });
 		return moveGroups;
 	},
 	// Sums every picked playbook move's declarative traitBonus (Arcane Augments, Let Loose) against
@@ -576,6 +584,20 @@ export const MovesSheetMixin = {
 			})
 			.map((m) => ({ key: m.key, name: m.name, ...m.grantsAutomaticSuccess }));
 	},
+	// Heat Up's own gate (see moves.js — the rules text has the player tick their Astir's existing
+	// Overheating checkbox, system.attributes.astir.overheating, to retry a roll). Requires the Astir
+	// specifically to be the mounted frame, same as every other Astir-conditioned effect in this
+	// module (see claude.md's Piloted note) — "pushing your Astir to its limits" only makes sense
+	// while piloting it. A plain boolean, like _availableReroll's own gate check — unlike the Astir
+	// Moves group's own entries (always shown, disabled+tooltipped when ungated), the chat-card
+	// button this drives is only ever rendered when clickable, so there's no unavailable reason to
+	// surface.
+	_availableHeatUp() {
+		const astir = this._astir();
+		if (!astir) return false;
+		if (this._mountedFrame()?.id !== "astir") return false;
+		return !astir.overheating;
+	},
 	_onHoldStep(event) {
 		const { delta } = event.currentTarget.dataset;
 		const current = this.actor.system.resources?.hold?.value ?? 0;
@@ -829,7 +851,10 @@ export const MovesSheetMixin = {
 			...(extraFailureReminder && { extraFailureReminder }),
 			// Number Of The Beast (see playbook-moves.js) — applies to every roll this actor makes,
 			// not just one move key, so this is folded in unconditionally rather than gated on `move`.
-			...(this._hasExplodingSixes() && { explodeOnSix: true })
+			...(this._hasExplodingSixes() && { explodeOnSix: true }),
+			// See _availableHeatUp — unlike reroll, this isn't scoped to a usesWeapon move, so it's
+			// folded in unconditionally here too, same as automaticSuccess above.
+			heatUp: this._availableHeatUp()
 		};
 		const options = weapon !== undefined
 			? {

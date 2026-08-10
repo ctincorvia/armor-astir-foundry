@@ -303,6 +303,16 @@ export const BASIC_MOVES = [
 		}
 	},
 	{
+		key: "heat-up",
+		name: "Heat Up",
+		traits: [],
+		// No roll of its own — see PlaybookActorSheet#_availableHeatUp and rollMove's heatUpOffer
+		// below. The actual mechanic is a button offered on every OTHER roll's chat card.
+		description:
+			"<p>When you push your Astir to its limits and start to heat up, you may tick 'overheating' to retry " +
+			"a roll. The original results are discarded, and you must take the second roll even if it's worse.</p>"
+	},
+	{
 		key: "bite-the-dust",
 		name: "Bite the Dust",
 		traits: ["defy"],
@@ -767,6 +777,25 @@ export async function rollMove(actor, move, trait, options = {}) {
 	// toward.
 	const automaticSuccessOffer = tier !== "success" ? (options.automaticSuccess ?? []) : [];
 
+	// options.heatUp (see PlaybookActorSheet#_availableHeatUp) is unscoped by move key or weapon,
+	// unlike reroll — but like reroll, and unlike automaticSuccess, the button is omitted entirely
+	// (not just disabled) when unavailable, so there's nothing to click on a card where it wouldn't
+	// do anything. No tier restriction either: Heat Up ("you must take the second roll even if it's
+	// worse") is a gamble offered on any result, not just a failure.
+	const heatUpOffer = options.heatUp
+		? {
+			actorId: actor.id,
+			moveKey: move.key,
+			trait,
+			options: {
+				advantage: options.advantage,
+				effect: options.effect,
+				weaponLabel: options.weaponLabel,
+				weaponTags: options.weaponTags
+			}
+		}
+		: null;
+
 	// Pulled into its own variable (rather than inlined into the renderTemplate call, as before)
 	// so the exact args used for this render can also ride along on the message's flags — see
 	// PlaybookActorSheet#handleAutomaticSuccess, which reuses it to regenerate the flavor with only
@@ -804,6 +833,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 		questions: (tier !== "failure" || move.questionsOnFailure) ? (move.questions ?? null) : null,
 		reroll: Boolean(rerollOffer),
 		automaticSuccess: automaticSuccessOffer,
+		heatUp: Boolean(heatUpOffer),
 		showAddAdvantage,
 		showAddDisadvantage
 	};
@@ -820,6 +850,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 		...(automaticSuccessOffer.length && {
 			automaticSuccess: { actorId: actor.id, moveKey: move.key, flavorArgs, sources: automaticSuccessOffer }
 		}),
+		...(heatUpOffer && { heatUp: heatUpOffer }),
 		advantageOffer: {
 			actorId: actor.id,
 			moveKey: move.key,

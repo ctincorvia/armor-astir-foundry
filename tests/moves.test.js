@@ -1529,6 +1529,72 @@ describe("rollMove - automatic success offer (Hot-blooded/Once the War's Over/Th
 	});
 });
 
+describe("rollMove - heat up (Astir Overheating reroll)", () => {
+	// Unlike reroll (failure only) and automaticSuccess (non-success only), Heat Up's own gate
+	// (see PlaybookActorSheet#_availableHeatUp) carries no tier restriction of its own — it's
+	// offered on a success, mixed, and failure roll alike, since the rules text ("you must take
+	// the second roll even if it's worse") is a gamble the player can take on any result.
+	it.each([
+		["success", [6, 6]],
+		["mixed", [3, 4]],
+		["failure", [1, 1]]
+	])("offers heat up, and records everything needed to redo the roll, on a %s result", async (tier, dice) => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, {
+			advantage: "none",
+			effect: "confidence",
+			weaponLabel: "Halberd",
+			weaponTags: "Blitz",
+			heatUp: true
+		});
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ heatUp: true }));
+		const rollInstance = Roll.mock.results.at(-1).value;
+		const flags = rollInstance.toMessage.mock.calls.at(-1)[0].flags["armor-astir"];
+		expect(flags.heatUp).toEqual({
+			actorId: "actor1",
+			moveKey: "exchange-blows",
+			trait: clash,
+			options: { advantage: "none", effect: "confidence", weaponLabel: "Halberd", weaponTags: "Blitz" }
+		});
+	});
+
+	// Unlike the Astir Moves group's own entries (always shown, disabled+tooltipped when
+	// ungated), the chat-card button is omitted entirely when unavailable — there's nothing to
+	// click, so nothing is rendered.
+	it("does not offer heat up when options.heatUp is false", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [6, 6] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { heatUp: false });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ heatUp: false }));
+		const rollInstance = Roll.mock.results.at(-1).value;
+		const flags = rollInstance.toMessage.mock.calls.at(-1)[0].flags["armor-astir"];
+		expect(flags.heatUp).toBeUndefined();
+	});
+
+	it("does not offer heat up when options.heatUp is omitted entirely", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [6, 6] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ heatUp: false }));
+		const rollInstance = Roll.mock.results.at(-1).value;
+		const flags = rollInstance.toMessage.mock.calls.at(-1)[0].flags["armor-astir"];
+		expect(flags.heatUp).toBeUndefined();
+	});
+});
+
 describe("rollMove - dispel uncertainties and weave magic", () => {
 	it("rolls 2d6 plus the KNOW value for dispel uncertainties", async () => {
 		const actor = { system: { stats: { know: { value: 2 } } } };

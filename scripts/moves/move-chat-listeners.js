@@ -20,6 +20,20 @@ async function handleReroll(reroll) {
 	await rollMove(actor, move, reroll.trait, reroll.options);
 }
 
+// Spends Heat Up's cost — ticking the Astir's own Overheating checkbox (see
+// PlaybookActorSheet#_availableHeatUp/_onAstirOverheatingToggle) rather than an equipment tag —
+// then re-rolls exactly like handleReroll: a genuine second Roll, posted as its own fresh chat
+// message rather than editing the original, since the rules text says results are "discarded," not
+// revised.
+async function handleHeatUp(offer) {
+	const actor = game.actors.get(offer.actorId);
+	const move = ALL_MOVES.find((m) => m.key === offer.moveKey);
+	if (!actor || !move) return;
+
+	await actor.update({ "system.attributes.astir.overheating": true });
+	await rollMove(actor, move, offer.trait, offer.options);
+}
+
 // Spends an automatic-success source (see PlaybookActorSheet#_availableAutomaticSuccess/
 // moves.js#rollMove) and edits the already-posted card in place, rather than posting a fresh
 // message the way handleReroll does — there's no re-roll here, just a display change, so there's no
@@ -151,6 +165,14 @@ export function onRenderMoveChat(message, html) {
 			// left at all, but that update is async.
 			event.currentTarget.disabled = true;
 			handleAutomaticSuccess(message, automaticSuccess, event.currentTarget.dataset.source);
+		});
+	}
+
+	const heatUp = message.flags?.["armor-astir"]?.heatUp;
+	if (heatUp) {
+		html.find(".move-heatup").on("click", (event) => {
+			event.currentTarget.disabled = true;
+			handleHeatUp(heatUp);
 		});
 	}
 

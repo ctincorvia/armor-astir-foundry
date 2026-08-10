@@ -375,18 +375,16 @@ describe("PlaybookActorSheet#getData - moves", () => {
 				startingMovesAvailable: false
 			},
 			{
-				label: "Special Moves",
+				label: "Astir Moves",
 				moves: [
 					{
-						key: "lead-a-sortie",
-						name: "Lead a Sortie",
-						traits: [
-							{ key: "know", label: "KNOW", value: 0 },
-							{ key: "defy", label: "DEFY", value: 0 },
-							{ key: "crew", label: "CREW", value: 0 }
-						],
-						gated: false,
-						rollable: true,
+						key: "heat-up",
+						name: "Heat Up",
+						traits: [],
+						// No Astir at all for this actor, so the Astir Moves group's mount-based gating
+						// (see _movesData) forces every entry gated regardless of its own logic.
+						gated: true,
+						rollable: false,
 						activatable: false,
 						summonable: false,
 						descriptionGated: false,
@@ -402,8 +400,34 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						key: "subsystems",
 						name: "Subsystems",
 						traits: [],
-						gated: false,
+						gated: true,
 						rollable: false,
+						activatable: false,
+						summonable: false,
+						descriptionGated: false,
+						trackHold: false,
+						separateHoldPool: false,
+						hold: 0,
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: "",
+						trackers: []
+					}
+				]
+			},
+			{
+				label: "Special Moves",
+				moves: [
+					{
+						key: "lead-a-sortie",
+						name: "Lead a Sortie",
+						traits: [
+							{ key: "know", label: "KNOW", value: 0 },
+							{ key: "defy", label: "DEFY", value: 0 },
+							{ key: "crew", label: "CREW", value: 0 }
+						],
+						gated: false,
+						rollable: true,
 						activatable: false,
 						summonable: false,
 						descriptionGated: false,
@@ -927,13 +951,17 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 		expect(data.moveGroups[0].moves.find((m) => m.key === "help-or-hinder").gated).toBe(false);
 	});
 
+	function specialGroup(data) {
+		return data.moveGroups.find((g) => g.label === "Special Moves");
+	}
+
 	it("gates b-plot when CHANNEL is enabled, the mirror image of weave magic", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: { channel: { value: 1, disabled: false } } } };
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").gated).toBe(true);
+		expect(specialGroup(data).moves.find((m) => m.key === "b-plot").gated).toBe(true);
 	});
 
 	it("gates b-plot when CHANNEL is missing from stats (reads as enabled)", () => {
@@ -942,7 +970,7 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").gated).toBe(true);
+		expect(specialGroup(data).moves.find((m) => m.key === "b-plot").gated).toBe(true);
 	});
 
 	it("un-gates b-plot once CHANNEL is disabled", () => {
@@ -951,17 +979,19 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").gated).toBe(false);
+		expect(specialGroup(data).moves.find((m) => m.key === "b-plot").gated).toBe(false);
 	});
 
-	it("never gates lead a sortie or subsystems off CHANNEL, unlike b-plot", () => {
+	it("never gates lead a sortie off CHANNEL, unlike b-plot", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: { channel: { value: 1, disabled: false } } } };
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[2].moves.find((m) => m.key === "lead-a-sortie").gated).toBe(false);
-		expect(data.moveGroups[2].moves.find((m) => m.key === "subsystems").gated).toBe(false);
+		// Subsystems used to live alongside lead-a-sortie here too, but it's moved to the Astir
+		// Moves group (see _movesData) — its gating is now mount-based, not CHANNEL-based, and is
+		// covered in tests/playbook-actor-sheet-astir.test.js instead.
+		expect(specialGroup(data).moves.find((m) => m.key === "lead-a-sortie").gated).toBe(false);
 	});
 
 	it("also greys out b-plot's Description button when CHANNEL is enabled", () => {
@@ -970,7 +1000,7 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").descriptionGated).toBe(true);
+		expect(specialGroup(data).moves.find((m) => m.key === "b-plot").descriptionGated).toBe(true);
 	});
 
 	it("un-greys b-plot's Description button once CHANNEL is disabled", () => {
@@ -979,7 +1009,7 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").descriptionGated).toBe(false);
+		expect(specialGroup(data).moves.find((m) => m.key === "b-plot").descriptionGated).toBe(false);
 	});
 
 	it("never greys out weave magic's Description button, unlike b-plot", () => {
@@ -1053,7 +1083,7 @@ describe("PlaybookActorSheet#getData - flatHold moves' separate hold pools", () 
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").hold).toBe(2);
+		expect(data.moveGroups.find((g) => g.label === "Special Moves").moves.find((m) => m.key === "b-plot").hold).toBe(2);
 		// Read the Room (a basic move) keeps reading the shared pool, unaffected by moveHold.
 		expect(data.moveGroups[0].moves.find((m) => m.key === "read-the-room").hold).toBe(5);
 	});
@@ -1064,7 +1094,7 @@ describe("PlaybookActorSheet#getData - flatHold moves' separate hold pools", () 
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").hold).toBe(0);
+		expect(data.moveGroups.find((g) => g.label === "Special Moves").moves.find((m) => m.key === "b-plot").hold).toBe(0);
 	});
 
 	it("keeps two different flatHold moves' pools independent, keyed by their own move key", () => {
@@ -1084,7 +1114,7 @@ describe("PlaybookActorSheet#getData - flatHold moves' separate hold pools", () 
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[2].moves.find((m) => m.key === "b-plot").hold).toBe(2);
+		expect(data.moveGroups.find((g) => g.label === "Special Moves").moves.find((m) => m.key === "b-plot").hold).toBe(2);
 		expect(data.moveGroups[1].moves.find((m) => m.key === "soldier:get-out-of-my-way").hold).toBe(1);
 	});
 });

@@ -434,7 +434,7 @@ describe("PlaybookActorSheet#getData - astir", () => {
 });
 
 describe("PlaybookActorSheet#getData - astir moves group", () => {
-	it("adds no Astir Moves group when the Astir has no parts and no unique move", () => {
+	it("always includes Heat Up and Subsystems, even when the Astir has no parts and no unique move", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -443,17 +443,26 @@ describe("PlaybookActorSheet#getData - astir moves group", () => {
 			}
 		};
 
-		expect(sheet.getData().moveGroups.some((g) => g.label === "Astir Moves")).toBe(false);
+		const group = sheet.getData().moveGroups.find((g) => g.label === "Astir Moves");
+
+		expect(group.moves.map((m) => m.key)).toEqual(["heat-up", "subsystems"]);
 	});
 
-	it("adds no Astir Moves group at all when there is no Astir", () => {
+	it("still includes the Astir Moves group, with Heat Up and Subsystems, when there is no Astir at all", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: {} } };
 
-		expect(sheet.getData().moveGroups).toHaveLength(3);
+		const data = sheet.getData();
+
+		expect(data.moveGroups).toHaveLength(4);
+		const group = data.moveGroups.find((g) => g.label === "Astir Moves");
+		expect(group.moves.map((m) => m.key)).toEqual(["heat-up", "subsystems"]);
+		// No Astir at all means the mount-based gating below forces both gated, same as every other
+		// entry in this group without a mounted Astir.
+		expect(group.moves.every((m) => m.gated)).toBe(true);
 	});
 
-	it("lists parts then the unique move, read-only (no addable/removable)", () => {
+	it("lists Heat Up and Subsystems first, then parts, then the unique move, read-only (no addable/removable)", () => {
 		const sheet = new PlaybookActorSheet();
 		const part = ASTIR_PART_CATALOG[0];
 		const move = ASTIR_MOVE_CATALOG[0];
@@ -468,12 +477,12 @@ describe("PlaybookActorSheet#getData - astir moves group", () => {
 
 		const group = sheet.getData().moveGroups.find((g) => g.label === "Astir Moves");
 
-		expect(group.moves.map((m) => m.key)).toEqual([part.key, move.key]);
+		expect(group.moves.map((m) => m.key)).toEqual(["heat-up", "subsystems", part.key, move.key]);
 		expect(group.addable).toBeUndefined();
 		expect(group.removable).toBeUndefined();
 	});
 
-	it("gates every entry — parts and the unique move alike — when the Astir isn't piloted", () => {
+	it("gates every entry — Heat Up, Subsystems, parts and the unique move alike — when the Astir isn't piloted", () => {
 		const sheet = new PlaybookActorSheet();
 		const part = ASTIR_PART_CATALOG[0];
 		const move = ASTIR_MOVE_CATALOG[0];
@@ -507,7 +516,12 @@ describe("PlaybookActorSheet#getData - astir moves group", () => {
 
 		const group = sheet.getData().moveGroups.find((g) => g.label === "Astir Moves");
 
-		expect(group.moves[0].gated).toBe(false);
+		// Heat Up and Subsystems have no gating logic of their own (see moves.js) — with the Astir
+		// piloted, the group's own mount gating no longer forces them either, so both come through
+		// as false, same as the part.
+		expect(group.moves.find((m) => m.key === "heat-up").gated).toBe(false);
+		expect(group.moves.find((m) => m.key === "subsystems").gated).toBe(false);
+		expect(group.moves.find((m) => m.key === part.key).gated).toBe(false);
 	});
 });
 
@@ -780,6 +794,39 @@ describe("PlaybookActorSheet#_onAstirOverheatingToggle", () => {
 		sheet._onAstirOverheatingToggle({ currentTarget: { checked: true } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+// Heat Up's own gate (see moves.js's heat-up move and moves-mixin.js's _availableHeatUp) — the
+// chat-card button is only ever rendered when this is true (see move-chat.hbs's {{#if heatUp}}),
+// so there's no unavailable reason to report, just a plain boolean.
+describe("PlaybookActorSheet#_availableHeatUp", () => {
+	it("is false when the actor has no Astir at all", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._availableHeatUp()).toBe(false);
+	});
+
+	it("is false when the Astir exists but isn't the mounted frame", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: false } } } };
+
+		expect(sheet._availableHeatUp()).toBe(false);
+	});
+
+	it("is false when the Astir is mounted but already overheating", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: true, overheating: true } } } };
+
+		expect(sheet._availableHeatUp()).toBe(false);
+	});
+
+	it("is true when the Astir is mounted and not overheating", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: true, overheating: false } } } };
+
+		expect(sheet._availableHeatUp()).toBe(true);
 	});
 });
 

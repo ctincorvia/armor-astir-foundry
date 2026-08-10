@@ -34,6 +34,10 @@ const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:al
 const FLOURISH_COMPONENT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:flourish-component");
 const SPELL_ROUTINES = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:spell-routines");
 const PATRON = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:patron");
+// _availableHeatUp's own return value for an actor with no Astir at all (see moves-mixin.js) —
+// every fixture in this file lacks one unless a test says otherwise, so _rollMove's baseOptions
+// always threads this same false through to rollMove.
+const NO_HEAT_UP = false;
 
 beforeEach(() => {
 	configureMoveRoll.mockClear();
@@ -442,7 +446,8 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 			...config,
 			weaponLabel: "Rifle",
 			weaponTags: "Defensive",
-			reroll: { equipmentId: "eq1", tagKey: "defensive" }
+			reroll: { equipmentId: "eq1", tagKey: "defensive" },
+			heatUp: NO_HEAT_UP
 		});
 	});
 
@@ -458,7 +463,9 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle", weaponTags: "Decisive" });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle", weaponTags: "Decisive", heatUp: NO_HEAT_UP }
+		);
 	});
 
 	it("does not offer an already-spent reroll tag", async () => {
@@ -472,7 +479,9 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle", weaponTags: "Defensive" });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle", weaponTags: "Defensive", heatUp: NO_HEAT_UP }
+		);
 	});
 
 	it("offers Versatile's reroll for strike-decisively as well as exchange-blows", async () => {
@@ -490,7 +499,8 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 			...config,
 			weaponLabel: "Rifle",
 			weaponTags: "Versatile",
-			reroll: { equipmentId: "eq1", tagKey: "versatile" }
+			reroll: { equipmentId: "eq1", tagKey: "versatile" },
+			heatUp: NO_HEAT_UP
 		});
 	});
 
@@ -509,7 +519,8 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 			...config,
 			weaponLabel: "Rifle",
 			weaponTags: "Defensive",
-			reroll: { equipmentId: "eq1", tagKey: "defensive" }
+			reroll: { equipmentId: "eq1", tagKey: "defensive" },
+			heatUp: NO_HEAT_UP
 		});
 	});
 
@@ -524,7 +535,9 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Fists", weaponTags: null });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Fists", weaponTags: null, heatUp: NO_HEAT_UP }
+		);
 	});
 
 	it("never offers a reroll for Unarmed", async () => {
@@ -537,7 +550,9 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+		);
 	});
 });
 
@@ -561,7 +576,8 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 			...config,
 			weaponLabel: "Unarmed",
 			weaponTags: null,
-			automaticSuccess: [{ key: "the-impostor:hot-blooded", name: "Hot-blooded", cost: 3 }]
+			automaticSuccess: [{ key: "the-impostor:hot-blooded", name: "Hot-blooded", cost: 3 }],
+			heatUp: NO_HEAT_UP
 		});
 	});
 
@@ -578,7 +594,9 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+		);
 	});
 
 	it("treats a missing moveHold pool as 0, offering nothing", async () => {
@@ -591,7 +609,9 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+		);
 	});
 
 	it("offers a useKey source (The Arity Method) when picked and its own uses checkbox is unchecked, restricted to bite-the-dust", async () => {
@@ -607,7 +627,8 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, BITE_THE_DUST, defy, {
 			...config,
 			trait: defy,
-			automaticSuccess: [{ key: "soldier:the-arity-method", name: "The Arity Method", useKey: "sortie", moves: ["bite-the-dust"] }]
+			automaticSuccess: [{ key: "soldier:the-arity-method", name: "The Arity Method", useKey: "sortie", moves: ["bite-the-dust"] }],
+			heatUp: NO_HEAT_UP
 		});
 	});
 
@@ -619,7 +640,7 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, BITE_THE_DUST, defy, { ...config, trait: defy });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, BITE_THE_DUST, defy, { ...config, trait: defy, heatUp: NO_HEAT_UP });
 	});
 
 	it("does not offer The Arity Method once its Sortie use is already checked", async () => {
@@ -638,7 +659,7 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, BITE_THE_DUST, defy, { ...config, trait: defy });
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, BITE_THE_DUST, defy, { ...config, trait: defy, heatUp: NO_HEAT_UP });
 	});
 
 	it("does not offer The Arity Method for a move other than bite-the-dust, even with its use unchecked", async () => {
@@ -651,7 +672,9 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+		);
 	});
 
 	it("offers every qualifying source at once", async () => {
@@ -678,6 +701,72 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 			expect.arrayContaining(["the-impostor:hot-blooded", "soldier:once-the-wars-over"])
 		);
 		expect(options.automaticSuccess).toHaveLength(2);
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - heat up offer (_availableHeatUp threading)", () => {
+	const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none" };
+
+	it("threads _availableHeatUp's false into a non-usesWeapon move's roll options", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { know: { value: 1 } }, attributes: {} },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ ...config, trait: { key: "know", label: "KNOW", value: 1 } });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		const options = rollMove.mock.calls.at(-1)[3];
+		expect(options.heatUp).toBe(false);
+	});
+
+	it("threads _availableHeatUp's true into a non-usesWeapon move's roll options once the Astir is mounted", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { astir: { id: "a1", piloted: true, overheating: false } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ ...config, trait: { key: "know", label: "KNOW", value: 1 } });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		const options = rollMove.mock.calls.at(-1)[3];
+		expect(options.heatUp).toBe(true);
+	});
+
+	it("threads _availableHeatUp's false into a usesWeapon move's roll options, same as any other move", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		const options = rollMove.mock.calls.at(-1)[3];
+		expect(options.heatUp).toBe(false);
+	});
+
+	it("threads _availableHeatUp's true into a usesWeapon move's roll options, not scoped to weapon state the way reroll is", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { equipment: [], astir: { id: "a1", piloted: true, overheating: false } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		const options = rollMove.mock.calls.at(-1)[3];
+		expect(options.heatUp).toBe(true);
 	});
 });
 

@@ -61,6 +61,9 @@
 	{{#if reroll}}
 	<button type="button" class="move-reroll">Reroll (Decisive/Defensive/Versatile)</button>
 	{{/if}}
+	{{#if heatUp}}
+	<button type="button" class="move-heatup">Heat Up (Reroll)</button>
+	{{/if}}
 	{{#each automaticSuccess}}
 	<button type="button" class="move-automatic-success" data-source="{{key}}">Automatic success from {{name}}</button>
 	{{/each}}

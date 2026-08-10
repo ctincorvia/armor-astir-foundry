@@ -25,13 +25,16 @@ beforeEach(() => {
 });
 
 function fakeChatHtml() {
-	const state = { handler: null, automaticSuccessHandler: null, addAdvantageHandler: null, addDisadvantageHandler: null, removed: [] };
+	const state = {
+		handler: null, automaticSuccessHandler: null, heatUpHandler: null, addAdvantageHandler: null, addDisadvantageHandler: null, removed: []
+	};
 	state.html = {
 		find: (selector) => {
 			if (selector === ".move-reroll") return { on: (event, handler) => { state.handler = handler; } };
 			if (selector === ".move-automatic-success") {
 				return { on: (event, handler) => { state.automaticSuccessHandler = handler; } };
 			}
+			if (selector === ".move-heatup") return { on: (event, handler) => { state.heatUpHandler = handler; } };
 			if (selector === ".move-add-advantage") {
 				return { on: (event, handler) => { state.addAdvantageHandler = handler; } };
 			}
@@ -144,6 +147,73 @@ describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
 		await Promise.resolve();
 
 		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.equipment": [] });
+	});
+});
+
+describe("onRenderMoveChat (Heat Up)", () => {
+	it("does nothing for a message with no heat up offer", () => {
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat({ flags: {} }, fake.html);
+
+		expect(fake.heatUpHandler).toBeNull();
+	});
+
+	it("does nothing for a message with no flags at all", () => {
+		const fake = fakeChatHtml();
+
+		expect(() => onRenderMoveChat({}, fake.html)).not.toThrow();
+		expect(fake.heatUpHandler).toBeNull();
+	});
+
+	it("wires the Heat Up button, disabling it on click, ticking Overheating, and rerunning the move", async () => {
+		const actor = { id: "actor1", system: { attributes: { astir: { id: "a1", piloted: true } } }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const heatUp = {
+			actorId: "actor1",
+			moveKey: "exchange-blows",
+			trait: { key: "clash", label: "CLASH", value: 0 },
+			options: { advantage: "none", effect: "none", weaponLabel: "Rifle", weaponTags: null }
+		};
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat({ flags: { "armor-astir": { heatUp } } }, fake.html);
+		const button = { disabled: false };
+		fake.heatUpHandler({ currentTarget: button });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(button.disabled).toBe(true);
+		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.astir.overheating": true });
+		expect(rollMove).toHaveBeenCalledWith(actor, EXCHANGE_BLOWS, heatUp.trait, heatUp.options);
+	});
+
+	it("does nothing when the actor no longer exists", async () => {
+		game.actors.get.mockReturnValue(undefined);
+		const heatUp = { actorId: "gone", moveKey: "exchange-blows", trait: {}, options: {} };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat({ flags: { "armor-astir": { heatUp } } }, fake.html);
+		fake.heatUpHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(rollMove).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the move no longer resolves", async () => {
+		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const heatUp = { actorId: "actor1", moveKey: "not-a-real-move", trait: {}, options: {} };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat({ flags: { "armor-astir": { heatUp } } }, fake.html);
+		fake.heatUpHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).not.toHaveBeenCalled();
+		expect(rollMove).not.toHaveBeenCalled();
 	});
 });
 

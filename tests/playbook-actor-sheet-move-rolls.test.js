@@ -39,6 +39,10 @@ const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know
 const WEAPON_CONDUIT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:weapon-conduit");
 const WARDING = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:warding");
 const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:artifact");
+// _availableHeatUp's own return value for an actor with no Astir at all (see moves-mixin.js) —
+// every fixture in this file lacks one unless a test says otherwise, so _rollMove's baseOptions
+// always threads this same false through to rollMove.
+const NO_HEAT_UP = false;
 
 beforeEach(() => {
 	configureMoveRoll.mockClear();
@@ -91,7 +95,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: DENY.key } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DENY, config.trait, config);
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DENY, config.trait, { ...config, heatUp: NO_HEAT_UP });
 	});
 
 	it("offers I Know You's flat +3 FAMILIARITY fixedTrait, with no actor stat contributing", async () => {
@@ -108,7 +112,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 			[familiarity],
 			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
 		);
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, I_KNOW_YOU, familiarity, config);
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, I_KNOW_YOU, familiarity, { ...config, heatUp: NO_HEAT_UP });
 	});
 
 	it("still opens the roll dialog for help or hinder, which has no stat traits at all", async () => {
@@ -145,7 +149,9 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		// exchange-blows is usesWeapon (see moves.js) and the actor has no equipment at all here,
 		// so the weapon-choice step is skipped straight to "Unarmed" — see
 		// "PlaybookActorSheet#_onMoveRoll - weapon choice" for the chooseWeapon-driven paths.
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, talk, { ...config, weaponLabel: "Unarmed", weaponTags: null });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, EXCHANGE_BLOWS, talk, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+		);
 	});
 
 	it("rolls a no-trait move (Help or Hinder) through to completion with no traitBonus option", async () => {
@@ -160,7 +166,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 			sheet.actor,
 			BASIC_MOVES.find((m) => m.key === "help-or-hinder"),
 			undefined,
-			config
+			{ ...config, heatUp: NO_HEAT_UP }
 		);
 	});
 
@@ -724,7 +730,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [{ ...entry, spent: ["blitz"] }]
 		});
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, config);
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, { ...config, heatUp: NO_HEAT_UP });
 	});
 
 	it("treats a missing spent array as empty when marking a spend", async () => {
@@ -756,7 +762,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, config);
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, { ...config, heatUp: NO_HEAT_UP });
 	});
 
 	it("leaves equipment on other entries untouched when marking a spend", async () => {
@@ -969,7 +975,10 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({ [`system.attributes.moveUses.${ARTIFACT.key}.expended`]: true });
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, {
 			...config,
-			spentPartLabels: [{ key: ARTIFACT.key, label: "Artifact" }]
+			spentPartLabels: [{ key: ARTIFACT.key, label: "Artifact" }],
+			// The actor's astir is piloted (see the fixture above) with overheating unset, so Heat
+			// Up is available here — unlike every other _rollMove test in this file.
+			heatUp: true
 		});
 	});
 
@@ -985,7 +994,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, config);
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, { ...config, heatUp: NO_HEAT_UP });
 	});
 });
 
@@ -1326,7 +1335,9 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: []
 		});
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+		);
 	});
 
 	it("scopes the roll to the chosen weapon and labels it by name", async () => {
@@ -1346,7 +1357,9 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: armed.id, tagKey: "blitz" })]
 		});
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz" });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz", heatUp: NO_HEAT_UP }
+		);
 	});
 
 	it("treats an id chooseWeapon resolved that no longer matches any weapon as Unarmed", async () => {
@@ -1361,7 +1374,9 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+		);
 	});
 
 	it("skips chooseWeapon entirely and rolls Unarmed when the actor has no weapons", async () => {
@@ -1376,7 +1391,9 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "strike-decisively" } } });
 
 		expect(chooseWeapon).not.toHaveBeenCalled();
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, STRIKE_DECISIVELY, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, STRIKE_DECISIVELY, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+		);
 	});
 });
 
@@ -1399,7 +1416,9 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })]
 		});
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz" });
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz", heatUp: NO_HEAT_UP }
+		);
 	});
 
 	it("does nothing for an unrecognized move key", async () => {
