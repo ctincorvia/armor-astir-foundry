@@ -41,7 +41,9 @@ export const GRAVITY_TRIGGERS = {
 		"clock with someone who disagrees with your actions.",
 	"the-captain":
 		"When anyone rolls a 6 or below while rolling +CREW, advance a GRAVITY clock with someone " +
-		"who has put their trust in you."
+		"who has put their trust in you.",
+	"the-artificer":
+		"When you tend to someone's body or Astir, advance a GRAVITY clock with them if you have one."
 };
 
 export function gravityTriggerForPlaybook(playbookSlug, pickedMoveKeys = []) {

@@ -178,6 +178,16 @@
 	margin-left: auto;
 }
 
+/* The always-visible derived-Approach readout under the Approach dropdown, mirroring
+   .tier-value's always-visible treatment below — needs enough weight to actually be noticed,
+   unlike the old easy-to-miss .approach-frame-note it replaces. */
+.armor-astir.sheet .sheet-header .approach-effective-note {
+	font-weight: 700;
+	font-size: 12px;
+	color: var(--aa-secondary-dark);
+	white-space: nowrap;
+}
+
 /* Tier's readout is a single digit, much narrower than its own "Tier" label above it — unlike
    Playbook/Approach, whose select boxes are wider than their labels, so left-aligning (the
    shared rule above) reads fine there but leaves Tier's digit looking stranded under the left
@@ -1136,6 +1146,7 @@
 /* Outline/plain buttons already read fine on a transparent background — mute the border rather
    than the text, so the "disabled" look comes across without hurting legibility. */
 .armor-astir.sheet .move-description.disabled,
+.armor-astir.sheet .move-info.disabled,
 .armor-astir.sheet .hold-step.disabled,
 .armor-astir.sheet .flat-hold-step.disabled,
 .armor-astir.sheet .weapon-move-roll.disabled {
@@ -1196,6 +1207,34 @@
 .armor-astir.sheet .move-description:not(.disabled):hover,
 .armor-astir.sheet .equipment-edit:hover {
 	background: var(--aa-primary-tint);
+}
+
+/* The "?" rules-text popup button — same small-square icon-button treatment as the remove-entry
+   icons above, but bordered/hover-tint like move-description/equipment-edit rather than the plain
+   transparent-border remove icons, since this is a read action, not a destructive one. */
+.armor-astir.sheet .move-info {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: 1px solid var(--aa-primary);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	color: var(--aa-primary-dark);
+	line-height: 1;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .move-info:not(.disabled):hover {
+	background: var(--aa-primary-tint);
+}
+
+/* The move-info dialog's own content padding — content is otherwise unstyled rich text, same
+   .move-description class postMoveDescription's chat card also uses (see move-chat.hbs), scoped
+   here to the dialog root so it never leaks into the chat card's own layout. */
+.armor-astir.move-description-dialog .move-description {
+	padding: var(--aa-space-2);
 }
 
 .armor-astir.sheet .advancement-list {

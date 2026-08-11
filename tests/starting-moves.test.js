@@ -198,6 +198,23 @@ describe("STARTING_MOVE_POOLS", () => {
 		]);
 		expect(captain.chooseCount).toBe(2);
 	});
+
+	it("grants The Artificer exactly Expertise, plus 2 chosen from the other 8", () => {
+		const artificer = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Artificer");
+
+		expect(artificer.grantedKeys).toEqual(["the-artificer:expertise"]);
+		expect(artificer.pickOneKeys).toEqual([
+			"the-artificer:field-testing",
+			"the-artificer:experimenter",
+			"the-artificer:combat-engineer",
+			"the-artificer:jury-rigger",
+			"the-artificer:refined-rituals",
+			"the-artificer:arcane-generator",
+			"the-artificer:its-a-prototype",
+			"the-artificer:counterspell"
+		]);
+		expect(artificer.chooseCount).toBe(2);
+	});
 });
 
 describe("findStartingMovePool", () => {

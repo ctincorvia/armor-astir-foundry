@@ -2,7 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	...(await importOriginal()),
-	postMoveDescription: vi.fn()
+	postMoveDescription: vi.fn(),
+	showMoveDescription: vi.fn()
 }));
 
 // Only the picker dialog is mocked — the pool definitions and resolvePlaybookMoves stay real, so
@@ -20,7 +21,7 @@ vi.mock("../scripts/moves/starting-moves.js", async (importOriginal) => ({
 }));
 
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
-import { BASIC_MOVES, SPECIAL_MOVES, postMoveDescription } from "../scripts/moves/moves.js";
+import { BASIC_MOVES, SPECIAL_MOVES, postMoveDescription, showMoveDescription } from "../scripts/moves/moves.js";
 import { ALL_PLAYBOOK_MOVES, choosePlaybookMove } from "../scripts/moves/playbook-moves.js";
 import { chooseStartingMoves } from "../scripts/moves/starting-moves.js";
 import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
@@ -45,9 +46,12 @@ const INPUT_CHANNEL = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:input
 const DIVINATION_CODEX = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:divination-codex");
 const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
 const NEVER_QUITE_FREE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:never-quite-free");
+const ARCANE_GENERATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-artificer:arcane-generator");
+const COUNTERSPELL = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-artificer:counterspell");
 
 beforeEach(() => {
 	postMoveDescription.mockClear();
+	showMoveDescription.mockClear();
 	choosePlaybookMove.mockClear();
 	chooseStartingMoves.mockClear();
 });
@@ -1399,6 +1403,7 @@ describe("PlaybookActorSheet#activateListeners - moves", () => {
 		expect(html.find).toHaveBeenCalledWith(".move-roll");
 		expect(html.find).toHaveBeenCalledWith(".move-activate");
 		expect(html.find).toHaveBeenCalledWith(".move-description");
+		expect(html.find).toHaveBeenCalledWith(".move-info");
 		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
 	});
 });
@@ -1577,6 +1582,73 @@ describe("PlaybookActorSheet#_moveTraits", () => {
 			{ key: "sense", label: "SENSE", value: 1 }
 		]);
 	});
+
+	it("offers +CHANNEL on any move when Arcane Generator is picked and the Astir is piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, channel: { value: 2, disabled: true } },
+				attributes: {
+					playbookMoves: [ARCANE_GENERATOR.key],
+					astir: { id: "a1", parts: [], piloted: true }
+				}
+			}
+		};
+
+		expect(sheet._moveTraits({ traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 },
+			{ key: "channel", label: "CHANNEL", value: 2 }
+		]);
+	});
+
+	it("does not offer +CHANNEL from Arcane Generator when an Ardent is piloted instead of the Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, channel: { value: 2, disabled: true } },
+				attributes: {
+					playbookMoves: [ARCANE_GENERATOR.key],
+					astir: { id: "a1", parts: [], piloted: false },
+					ardents: [{ id: "ar1", parts: [], piloted: true }]
+				}
+			}
+		};
+
+		expect(sheet._moveTraits({ traits: ["clash"] })).toEqual([{ key: "clash", label: "CLASH", value: 1 }]);
+	});
+
+	it("offers +KNOW on both Exchange Blows and Strike Decisively when Counterspell is picked (addsTraitToMove.moveKeys)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, know: { value: 2 } },
+				attributes: { playbookMoves: [COUNTERSPELL.key] }
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "exchange-blows", traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 },
+			{ key: "know", label: "KNOW", value: 2 }
+		]);
+		expect(sheet._moveTraits({ key: "strike-decisively", traits: ["clash"] })).toEqual([
+			{ key: "clash", label: "CLASH", value: 1 },
+			{ key: "know", label: "KNOW", value: 2 }
+		]);
+	});
+
+	it("does not add +KNOW to an unrelated move just because Counterspell is picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { sense: { value: 1 }, know: { value: 2 } },
+				attributes: { playbookMoves: [COUNTERSPELL.key] }
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "read-the-room", traits: ["sense"] })).toEqual([
+			{ key: "sense", label: "SENSE", value: 1 }
+		]);
+	});
 });
 
 describe("PlaybookActorSheet#_onMoveActivate", () => {
@@ -1736,5 +1808,53 @@ describe("PlaybookActorSheet#_onMoveDescription", () => {
 		await sheet._onMoveDescription({ currentTarget: { dataset: { move: "b-plot" } } });
 
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, B_PLOT);
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveInfo", () => {
+	it("does nothing for an unrecognized move key", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		await sheet._onMoveInfo({ currentTarget: { dataset: { move: "not-a-real-move" } } });
+
+		expect(showMoveDescription).not.toHaveBeenCalled();
+	});
+
+	it("shows the move's description privately, without posting to chat", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		await sheet._onMoveInfo({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(showMoveDescription).toHaveBeenCalledWith(EXCHANGE_BLOWS);
+		expect(postMoveDescription).not.toHaveBeenCalled();
+	});
+
+	it("finds a special move (subsystems) by key, same as a basic move", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		await sheet._onMoveInfo({ currentTarget: { dataset: { move: "subsystems" } } });
+
+		expect(showMoveDescription).toHaveBeenCalledWith(SUBSYSTEMS);
+	});
+
+	it("finds a playbook move by its pool-prefixed key, same as a basic move", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		await sheet._onMoveInfo({ currentTarget: { dataset: { move: BULLHEADED.key } } });
+
+		expect(showMoveDescription).toHaveBeenCalledWith(BULLHEADED);
+	});
+
+	it("shows b-plot's description even when it's gated (CHANNEL enabled)", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		await sheet._onMoveInfo({ currentTarget: { dataset: { move: "b-plot" } } });
+
+		expect(showMoveDescription).toHaveBeenCalledWith(B_PLOT);
 	});
 });

@@ -78,17 +78,19 @@ export const ProgressionSheetMixin = {
 		// follows, rather than hardcoding the move's key. Only reached once no frame is mounted, since
 		// a mounted frame's own Approach already takes precedence above.
 		const picked = resolvePlaybookMoves(this._playbookMoves());
-		const override = picked.find((move) => move.grantsApproachOverride)?.grantsApproachOverride;
-		if (override) {
+		const overrideMove = picked.find((move) => move.grantsApproachOverride);
+		if (overrideMove) {
+			const override = overrideMove.grantsApproachOverride;
 			return {
 				base,
 				effective: override,
 				effectiveLabel: APPROACHES.find((a) => a.key === override)?.label ?? override,
 				fromFrame: false,
-				fromMove: true
+				fromMove: true,
+				moveName: overrideMove.name
 			};
 		}
-		return { base, effective: base, fromFrame: false };
+		return { base, effective: base, effectiveLabel: APPROACHES.find((a) => a.key === base)?.label ?? base, fromFrame: false };
 	},
 	// Downtime Tokens' effective max (see getData's downtimeTokens, _onDowntimeTokensStep,
 	// _onRefreshSortie) — DOWNTIME_TOKENS_MAX_BASE unless a picked move raises it via its own

@@ -666,6 +666,84 @@ describe("MOVE_POOLS - the-captain", () => {
 	});
 });
 
+describe("MOVE_POOLS - the-artificer", () => {
+	it("registers The Artificer's own pool with 9 moves", () => {
+		const artificer = MOVE_POOLS.find((pool) => pool.key === "the-artificer");
+
+		expect(artificer.label).toBe("The Artificer");
+		expect(artificer.playbookName).toBe("The Artificer");
+		expect(artificer.moves).toHaveLength(9);
+	});
+
+	it("gives Expertise and Field Testing empty traits and no results", () => {
+		for (const key of ["the-artificer:expertise", "the-artificer:field-testing"]) {
+			const move = findPlaybookMove(key);
+			expect(move.traits).toEqual([]);
+			expect(move.results).toBeUndefined();
+		}
+	});
+
+	it("gives Experimenter empty traits and no results", () => {
+		const experimenter = findPlaybookMove("the-artificer:experimenter");
+
+		expect(experimenter.traits).toEqual([]);
+		expect(experimenter.results).toBeUndefined();
+	});
+
+	it("gives Combat Engineer a tierBonus of 1 and no results", () => {
+		const combatEngineer = findPlaybookMove("the-artificer:combat-engineer");
+
+		expect(combatEngineer.traits).toEqual([]);
+		expect(combatEngineer.tierBonus).toBe(1);
+		expect(combatEngineer.results).toBeUndefined();
+	});
+
+	it("gives Jury-Rigger a KNOW roll and a full 3-tier results object", () => {
+		const juryRigger = findPlaybookMove("the-artificer:jury-rigger");
+
+		expect(juryRigger.traits).toEqual(["know"]);
+		expect(juryRigger.results.success).toContain("Choose 3");
+		expect(juryRigger.results.mixed).toContain("Choose 2");
+		expect(juryRigger.results.failure).toBeNull();
+	});
+
+	it("gives Refined Rituals a flatHold of 3 and no results", () => {
+		const refinedRituals = findPlaybookMove("the-artificer:refined-rituals");
+
+		expect(refinedRituals.traits).toEqual([]);
+		expect(refinedRituals.flatHold).toBe(3);
+		expect(refinedRituals.results).toBeUndefined();
+	});
+
+	it("gives Arcane Generator grantsChannelOnAnyMove, a KNOW roll and a full 3-tier results object", () => {
+		const arcaneGenerator = findPlaybookMove("the-artificer:arcane-generator");
+
+		expect(arcaneGenerator.grantsChannelOnAnyMove).toBe(true);
+		expect(arcaneGenerator.traits).toEqual(["know"]);
+		expect(arcaneGenerator.results.success).toBeTruthy();
+		expect(arcaneGenerator.results.mixed).toContain("Choose 1");
+		expect(arcaneGenerator.results.failure).toBeNull();
+	});
+
+	it("gives It's A Prototype a once-per-Sortie uses entry and no results", () => {
+		const itsAPrototype = findPlaybookMove("the-artificer:its-a-prototype");
+
+		expect(itsAPrototype.traits).toEqual([]);
+		expect(itsAPrototype.uses).toEqual([{ key: "sortie", label: "Used this Sortie", period: "Sortie" }]);
+		expect(itsAPrototype.results).toBeUndefined();
+	});
+
+	it("gives Counterspell a KNOW addsTraitToMove grant on Exchange Blows and Strike Decisively", () => {
+		const counterspell = findPlaybookMove("the-artificer:counterspell");
+
+		expect(counterspell.traits).toEqual([]);
+		expect(counterspell.addsTraitToMove).toEqual({
+			moveKeys: ["exchange-blows", "strike-decisively"],
+			trait: "know"
+		});
+	});
+});
+
 describe("findPlaybookMove", () => {
 	it("finds a move by key across every pool", () => {
 		expect(findPlaybookMove(BULLHEADED).name).toBe("Bullheaded");

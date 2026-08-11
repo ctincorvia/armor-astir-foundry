@@ -939,3 +939,25 @@ export async function postMoveDescription(actor, move) {
 		content
 	});
 }
+
+// The "?" button's private counterpart to postMoveDescription above — same rules text, shown only
+// to the clicking player via a Dialog rather than posted to chat. Matches this codebase's other
+// Promise-wrapped Dialog helpers (e.g. chooseWeapon/chooseEquipmentCatalogItem in equipment.js).
+export function showMoveDescription(move) {
+	return new Promise((resolve) => {
+		new Dialog({
+			title: move.name,
+			content: `<div class="move-description">${move.description}</div>`,
+			buttons: {
+				close: {
+					label: "Close",
+					callback: () => resolve()
+				}
+			},
+			default: "close",
+			close: () => resolve()
+		}, {
+			classes: ["armor-astir", "move-description-dialog"]
+		}).render(true);
+	});
+}

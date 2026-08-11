@@ -217,6 +217,25 @@ describe("PLAYBOOK_FLAVOR", () => {
 			expect(question).toBeTruthy();
 		}
 	});
+
+	it("gives The Artificer three LOOK prompts, each with a label and text", () => {
+		for (const entry of PLAYBOOK_FLAVOR["the-artificer"].look) {
+			expect(entry.label).toBeTruthy();
+			expect(entry.text).toBeTruthy();
+		}
+		expect(PLAYBOOK_FLAVOR["the-artificer"].look).toHaveLength(3);
+	});
+
+	it("gives The Artificer its two intro paragraphs", () => {
+		expect(PLAYBOOK_FLAVOR["the-artificer"].intro).toHaveLength(2);
+	});
+
+	it("gives The Artificer six Consider questions", () => {
+		expect(PLAYBOOK_FLAVOR["the-artificer"].consider).toHaveLength(6);
+		for (const question of PLAYBOOK_FLAVOR["the-artificer"].consider) {
+			expect(question).toBeTruthy();
+		}
+	});
 });
 
 describe("defaultLookText", () => {

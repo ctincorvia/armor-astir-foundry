@@ -22,7 +22,11 @@
 			<select name="system.attributes.approach">
 				{{selectOptions approachOptions selected=approach.base valueAttr="key" labelAttr="label" blank="— Choose —"}}
 			</select>
-			{{#if approach.fromFrame}}<span class="approach-frame-note">(from {{approach.frameName}}: {{approach.effectiveLabel}})</span>{{/if}}
+			{{#if approach.effectiveLabel}}
+			<span class="approach-effective-note">
+				Current: {{approach.effectiveLabel}}{{#if approach.fromFrame}} (from {{approach.frameName}}){{/if}}{{#if approach.fromMove}} (from {{approach.moveName}}){{/if}}
+			</span>
+			{{/if}}
 		</div>
 		<div class="tier-readout">
 			<label>Tier</label>
@@ -187,7 +191,8 @@
 										{{else if summonable}}
 										<button type="button" class="move-summon{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Summon</button>
 										{{/if}}
-										<button type="button" class="move-description{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}}>Description</button>
+										<button type="button" class="move-description{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}}>Chat</button>
+										<button type="button" class="move-info{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}} aria-label="{{name}} rules text">?</button>
 										{{#if ../removable}}
 										<button type="button" class="playbook-move-remove" data-move="{{key}}" aria-label="Remove playbook move">✕</button>
 										{{/if}}

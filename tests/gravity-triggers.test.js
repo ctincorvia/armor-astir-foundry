@@ -57,6 +57,11 @@ describe("gravityTriggerForPlaybook", () => {
 		expect(GRAVITY_TRIGGERS["the-captain"]).toContain("+CREW");
 	});
 
+	it("gives The Artificer its trigger", () => {
+		expect(gravityTriggerForPlaybook("the-artificer")).toBe(GRAVITY_TRIGGERS["the-artificer"]);
+		expect(GRAVITY_TRIGGERS["the-artificer"]).toContain("Astir");
+	});
+
 	it("returns null for a playbook with no known trigger", () => {
 		expect(GRAVITY_TRIGGERS["some-future-playbook"]).toBeUndefined();
 		expect(gravityTriggerForPlaybook("some-future-playbook")).toBeNull();

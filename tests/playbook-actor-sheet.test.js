@@ -246,7 +246,7 @@ describe("PlaybookActorSheet#getData", () => {
 
 		const data = sheet.getData();
 
-		expect(data.approach).toEqual({ base: "", effective: "", fromFrame: false });
+		expect(data.approach).toEqual({ base: "", effective: "", effectiveLabel: "", fromFrame: false });
 	});
 
 	it("reports the actor's own persisted Approach when no frame is mounted", () => {
@@ -255,7 +255,7 @@ describe("PlaybookActorSheet#getData", () => {
 
 		const data = sheet.getData();
 
-		expect(data.approach).toEqual({ base: "mundane", effective: "mundane", fromFrame: false });
+		expect(data.approach).toEqual({ base: "mundane", effective: "mundane", effectiveLabel: "Mundane", fromFrame: false });
 	});
 
 	it("reads Approach off the Astir instead of the actor's own while piloted", () => {
@@ -318,7 +318,7 @@ describe("PlaybookActorSheet#getData", () => {
 
 		const data = sheet.getData();
 
-		expect(data.approach).toEqual({ base: "mundane", effective: "mundane", fromFrame: false });
+		expect(data.approach).toEqual({ base: "mundane", effective: "mundane", effectiveLabel: "Mundane", fromFrame: false });
 	});
 
 	it("reports the mounted frame's Approach even when the actor's own persisted Approach is unset", () => {
@@ -356,7 +356,7 @@ describe("PlaybookActorSheet#getData", () => {
 
 		const data = sheet.getData();
 
-		expect(data.approach).toEqual({ base: "mundane", effective: "mundane", fromFrame: false });
+		expect(data.approach).toEqual({ base: "mundane", effective: "mundane", effectiveLabel: "Mundane", fromFrame: false });
 	});
 
 	// Defensive fallback: every real Approach key on a frame resolves to a real APPROACHES label,

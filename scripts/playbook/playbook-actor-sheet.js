@@ -277,6 +277,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
 		html.find(".move-activate").on("click", this._onMoveActivate.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
+		html.find(".move-info").on("click", this._onMoveInfo.bind(this));
 		html.find(".equipment-add").on("click", this._onEquipmentAdd.bind(this));
 		html.find(".equipment-catalog-add").on("click", this._onEquipmentCatalogAdd.bind(this));
 		html.find(".starting-gear-add").on("click", this._onStartingGearAdd.bind(this));

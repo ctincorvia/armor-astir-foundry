@@ -14,7 +14,7 @@ vi.mock("../scripts/moves/playbook-moves.js", async (importOriginal) => {
 		...original,
 		resolvePlaybookMoves: (keys) => (
 			keys.includes("test:unknown-approach-override")
-				? [{ key: "test:unknown-approach-override", grantsApproachOverride: "unknown" }]
+				? [{ key: "test:unknown-approach-override", name: "Test Move", grantsApproachOverride: "unknown" }]
 				: original.resolvePlaybookMoves(keys)
 		)
 	};
@@ -47,7 +47,8 @@ describe("PlaybookActorSheet#_effectiveApproach - Signed & Sealed", () => {
 			effective: "profane",
 			effectiveLabel: "Profane",
 			fromFrame: false,
-			fromMove: true
+			fromMove: true,
+			moveName: SIGNED_SEALED.name
 		});
 	});
 
@@ -73,7 +74,12 @@ describe("PlaybookActorSheet#_effectiveApproach - Signed & Sealed", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { approach: "mundane" } } };
 
-		expect(sheet._effectiveApproach()).toEqual({ base: "mundane", effective: "mundane", fromFrame: false });
+		expect(sheet._effectiveApproach()).toEqual({
+			base: "mundane",
+			effective: "mundane",
+			effectiveLabel: "Mundane",
+			fromFrame: false
+		});
 	});
 
 	it("falls back to the raw key as effectiveLabel when a granted override isn't a recognized Approach", () => {
@@ -87,7 +93,8 @@ describe("PlaybookActorSheet#_effectiveApproach - Signed & Sealed", () => {
 			effective: "unknown",
 			effectiveLabel: "unknown",
 			fromFrame: false,
-			fromMove: true
+			fromMove: true,
+			moveName: "Test Move"
 		});
 	});
 });

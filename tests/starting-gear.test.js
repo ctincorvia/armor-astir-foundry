@@ -436,6 +436,41 @@ describe("STARTING_GEAR_POOLS", () => {
 			tags: ["ranged", "defensive", "arcane"]
 		});
 	});
+
+	it("gives The Artificer one granted item and one 4-item Artificer Tools group choosing 2", () => {
+		const artificer = findStartingGearPool("The Artificer");
+
+		expect(artificer.grantedItems).toHaveLength(1);
+		expect(artificer.grantedItems[0]).toMatchObject({ key: "the-artificer:construct-manuals" });
+		expect(artificer.groups).toHaveLength(1);
+		expect(artificer.groups[0].chooseCount).toBe(2);
+		expect(artificer.groups[0].items).toHaveLength(4);
+	});
+
+	it("puts The Artificer's Ardent and clothing note in freeformNotes, not modeled items", () => {
+		const artificer = findStartingGearPool("The Artificer");
+
+		expect(artificer.freeformNotes.some((note) => note.includes("Transport or Service Ardent II"))).toBe(true);
+		expect(artificer.freeformNotes).toContain("Clothing that matches your look.");
+	});
+
+	it("gives Steelfuser I a ranged/restraining/elemental weapon shape", () => {
+		const artificer = findStartingGearPool("The Artificer");
+		const steelfuser = artificer.groups[0].items.find((item) => item.key === "the-artificer:steelfuser-i");
+
+		expect(steelfuser).toMatchObject({
+			kind: "weapon",
+			tags: ["ranged", "restraining", "elemental"]
+		});
+	});
+
+	it("gives Alchemical Gel I a gear shape with no tags", () => {
+		const artificer = findStartingGearPool("The Artificer");
+		const gel = artificer.groups[0].items.find((item) => item.key === "the-artificer:alchemical-gel-i");
+
+		expect(gel.kind).toBe("gear");
+		expect(gel.tags).toBeUndefined();
+	});
 });
 
 describe("findStartingGearPool", () => {

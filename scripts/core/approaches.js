@@ -27,7 +27,8 @@ export const PLAYBOOK_APPROACHES = {
 	"the-summoner": ["elemental", "profane"],
 	"the-icon": ["mundane"],
 	"the-attendant": ["mundane"],
-	"the-captain": ["mundane"]
+	"the-captain": ["mundane"],
+	"the-artificer": ["mundane"]
 };
 
 export function availableApproaches(playbookSlug) {

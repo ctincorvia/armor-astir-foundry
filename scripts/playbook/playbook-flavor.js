@@ -403,6 +403,34 @@ export const PLAYBOOK_FLAVOR = {
 			"Have you served with a military before? Are you a commissioned officer?",
 			"What exactly is your place on the Carrier's bridge?"
 		]
+	},
+	"the-artificer": {
+		look: [
+			{ label: "You look:", text: "tough, filthy, punky, weary or wise" },
+			{ label: "You wear:", text: "pristine overalls, casual clothes, patched jumpsuits, homemade armour" },
+			{ label: "Your handiwork looks:", text: "clean and utilitarian, fancy and artistic, like it barely holds together, unremarkable" }
+		],
+		intro: [
+			"Artificers ensure that the Carrier and the Constructs it carries are in top condition, " +
+				"repairing and tinkering with them whenever the chance arises. While talented at putting " +
+				"new things together, an Artificer's expertise is just as easily applied to taking " +
+				"something apart. Artificers might be professionals, trained in the construction and " +
+				"repair of Astirs, or natural tinkerers who grew up making jury-rigged improvements to " +
+				"their town.",
+			"While playing an Artificer, expertise lets you give everyone else room to breathe during " +
+				"Downtime, and experimenter lets you occasionally give others the chance to tweak their " +
+				"Traits. Aside from that, you have some very versatile options: arcane generator and " +
+				"jury-rigger let you control Astirs and quick construct things, and combat engineer even " +
+				"lets you branch out into the Scout playbook easily."
+		],
+		consider: [
+			"Where and how did you learn your craft?",
+			"Are there others as skilled at working with Astirs as you in the Cause? What about the Authority?",
+			"How did you get involved with the Cause?",
+			"What was your life like before the Cause?",
+			"Have you always worked on Astirs, or did you hone your craft making something else?",
+			"Do you have a certain material or style that is considered tell-tale of your work?"
+		]
 	}
 };
 

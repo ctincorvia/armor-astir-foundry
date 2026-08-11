@@ -15,7 +15,8 @@ import {
 	moveResultTier,
 	postGuidedResult,
 	postMoveDescription,
-	rollMove
+	rollMove,
+	showMoveDescription
 } from "../scripts/moves/moves.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 
@@ -1991,6 +1992,32 @@ describe("postMoveDescription", () => {
 			name: SUBSYSTEMS.name,
 			description: SUBSYSTEMS.description
 		});
+	});
+});
+
+describe("showMoveDescription", () => {
+	it("opens a Dialog with the move's name and description, without posting to chat or rendering a template", async () => {
+		const promise = showMoveDescription(EXCHANGE_BLOWS);
+
+		const dialogData = Dialog.mock.calls.at(-1)[0];
+		expect(dialogData.title).toBe(EXCHANGE_BLOWS.name);
+		expect(dialogData.content).toContain(EXCHANGE_BLOWS.description);
+		expect(Dialog.mock.calls.at(-1)[1]).toEqual({ classes: ["armor-astir", "move-description-dialog"] });
+		expect(renderTemplate).not.toHaveBeenCalled();
+		expect(ChatMessage.create).not.toHaveBeenCalled();
+
+		dialogData.close();
+
+		await expect(promise).resolves.toBeUndefined();
+	});
+
+	it("resolves when the Close button's callback is invoked, same as closing the dialog", async () => {
+		const promise = showMoveDescription(SUBSYSTEMS);
+
+		const dialogData = Dialog.mock.calls.at(-1)[0];
+		dialogData.buttons.close.callback();
+
+		await expect(promise).resolves.toBeUndefined();
 	});
 });
 

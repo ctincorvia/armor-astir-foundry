@@ -17,7 +17,8 @@ import {
 	configureMoveRoll,
 	postGuidedResult,
 	postMoveDescription,
-	rollMove
+	rollMove,
+	showMoveDescription
 } from "../../moves/moves.js";
 import { resolveAstirParts } from "../../frames/astir.js";
 import { ARDENT_DEFAULT_NAME, ARDENT_PART_CATALOG } from "../../frames/ardent.js";
@@ -363,9 +364,15 @@ export const MovesSheetMixin = {
 		// Input Channel (see astir.js) offers +CHANNEL on any move, bypassing both that move's own
 		// traits list and Channel's disabled gate — only while installed on the currently mounted
 		// frame (Astir or Ardent alike — see _mountedParts), and only added once (a move that
-		// already rolls +CHANNEL, e.g. Weave Magic, isn't given a second entry).
+		// already rolls +CHANNEL, e.g. Weave Magic, isn't given a second entry). Arcane Generator
+		// (see playbook-moves.js) grants the same push from a picked playbook move rather than
+		// installed hardware, but its own rules text is Astir-specific ("you may power and control
+		// an Astir ... you effectively have a CHANNEL of +1") — unlike Input Channel, which works
+		// from any mounted frame, Arcane Generator only applies while the Astir itself is mounted.
 		if (!actorTraits.some((trait) => trait.key === "channel")
-			&& this._mountedParts().some((part) => part.grantsChannelOnAnyMove)) {
+			&& (this._mountedParts().some((part) => part.grantsChannelOnAnyMove)
+				|| (this._mountedFrame()?.kind === "astir"
+					&& resolvePlaybookMoves(this._playbookMoves()).some((m) => m.grantsChannelOnAnyMove)))) {
 			// TRAITS is a fixed, six-entry constant (see traits.js) that always includes channel —
 			// no fallback needed for a lookup that can't fail.
 			const channel = TRAITS.find((trait) => trait.key === "channel");
@@ -1042,5 +1049,11 @@ export const MovesSheetMixin = {
 		if (!move) return;
 
 		await postMoveDescription(this.actor, move);
+	},
+	async _onMoveInfo(event) {
+		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
+		if (!move) return;
+
+		await showMoveDescription(move);
 	}
 };

@@ -175,6 +175,22 @@ export const STARTING_MOVE_POOLS = [
 			"the-captain:coordinator"
 		],
 		chooseCount: 2
+	},
+	{
+		playbookName: "The Artificer",
+		poolKey: "the-artificer",
+		grantedKeys: ["the-artificer:expertise"],
+		pickOneKeys: [
+			"the-artificer:field-testing",
+			"the-artificer:experimenter",
+			"the-artificer:combat-engineer",
+			"the-artificer:jury-rigger",
+			"the-artificer:refined-rituals",
+			"the-artificer:arcane-generator",
+			"the-artificer:its-a-prototype",
+			"the-artificer:counterspell"
+		],
+		chooseCount: 2
 	}
 ];
 

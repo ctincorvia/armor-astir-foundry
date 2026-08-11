@@ -853,6 +853,62 @@ export const STARTING_GEAR_POOLS = [
 				]
 			}
 		]
+	},
+	{
+		playbookName: "The Artificer",
+		// "1 Transport or Service Ardent II" mirrors the "1 Astir III, built on the Astir & Ardents
+		// tab." phrasing convention used throughout this file — narrative-only, built via the
+		// existing Astir & Ardents tab rather than a modeled equipment item. "Clothing that matches
+		// your look" mirrors The Captain's own trailing freeform note above.
+		freeformNotes: [
+			"1 Transport or Service Ardent II, built on the Astir & Ardents tab.",
+			"Clothing that matches your look."
+		],
+		grantedItems: [
+			{
+				key: "the-artificer:construct-manuals",
+				name: "Construct Manuals",
+				description: "Dispels uncertainties regarding construct & Astir design with advantage."
+			}
+		],
+		groups: [
+			{
+				key: "the-artificer:artificer-tools",
+				label: "Choose 2 Artificer Tools.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-artificer:heavy-wrench-i",
+						name: "Heavy Wrench I",
+						description: "A hefty wrench, as useful for repairs as it is for a fight.",
+						kind: "weapon",
+						tags: ["melee", "bane", "impact"]
+					},
+					{
+						key: "the-artificer:beam-cutter-i",
+						name: "Beam Cutter I",
+						description: "A focused cutting beam, meant for slicing through plating and armour.",
+						kind: "weapon",
+						tags: ["melee", "reload", "ruin", "decisive"]
+					},
+					{
+						key: "the-artificer:steelfuser-i",
+						name: "Steelfuser I",
+						description: "A device that fires a bolt of restraining, fused metal.",
+						kind: "weapon",
+						// "elemental" is a real EQUIPMENT_TAGS entry (one of the APPROACHES-derived
+						// tags — see equipment.js's APPROACHES.map spread), not a new catalog entry.
+						tags: ["ranged", "restraining", "elemental"]
+					},
+					{
+						key: "the-artificer:alchemical-gel-i",
+						name: "Alchemical Gel I",
+						description: "Advantage when cooling off to repair something.",
+						kind: "gear"
+					}
+				]
+			}
+		]
 	}
 ];
 

@@ -60,6 +60,10 @@ describe("availableApproaches", () => {
 		expect(availableApproaches("the-captain").map((a) => a.key)).toEqual(["mundane"]);
 	});
 
+	it("restricts The Artificer to Mundane", () => {
+		expect(availableApproaches("the-artificer").map((a) => a.key)).toEqual(["mundane"]);
+	});
+
 	it("falls back to every approach for a playbook with no restriction entry", () => {
 		expect(PLAYBOOK_APPROACHES["some-future-playbook"]).toBeUndefined();
 		expect(availableApproaches("some-future-playbook")).toEqual(APPROACHES);
