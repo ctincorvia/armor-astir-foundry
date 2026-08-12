@@ -1195,6 +1195,23 @@
 	border-color: var(--aa-primary-dark);
 }
 
+/* Click ("pressed") feedback, distinct from hover — a slight shrink plus the same max-contrast
+   dark step hover already uses, so a click reads as "hover, but more so" rather than a new color. */
+.armor-astir.sheet .move-roll:not(.disabled):active,
+.armor-astir.sheet .move-activate:not(.disabled):active,
+.armor-astir.sheet .move-summon:not(.disabled):active,
+.armor-astir.sheet .icon-add-button:not(.disabled):active,
+.armor-astir.sheet .danger-add:active,
+.armor-astir.sheet .astir-create:active,
+.armor-astir.sheet .controls-mount-up:not(.disabled):active,
+.armor-astir.sheet .controls-dismount:not(.disabled):active,
+.armor-astir.sheet .controls-refresh-scene:active,
+.armor-astir.sheet .controls-refresh-sortie:active {
+	background: var(--aa-primary-dark);
+	border-color: var(--aa-primary-dark);
+	transform: scale(0.96);
+}
+
 .armor-astir.sheet .move-description,
 .armor-astir.sheet .equipment-edit {
 	border: 1px solid var(--aa-primary);
@@ -1204,25 +1221,46 @@
 	cursor: pointer;
 }
 
+.armor-astir.sheet .move-description {
+	font-weight: 700;
+}
+
 .armor-astir.sheet .move-description:not(.disabled):hover,
 .armor-astir.sheet .equipment-edit:hover {
 	background: var(--aa-primary-tint);
 }
 
-/* The "?" rules-text popup button — same small-square icon-button treatment as the remove-entry
-   icons above, but bordered/hover-tint like move-description/equipment-edit rather than the plain
+.armor-astir.sheet .move-description:not(.disabled):active,
+.armor-astir.sheet .equipment-edit:active {
+	background: var(--aa-primary-tint);
+	transform: scale(0.96);
+}
+
+/* The "?" rules-text popup button — square, and sized to match Roll/Chat's own rendered height
+   (28px line-height + 1px padding top/bottom + 1px border top/bottom = 32px, border-box — measured
+   off .move-roll directly) rather than the remove-entry icons' unrelated fixed 20px. Deliberately a
+   fixed 32x32 rather than aspect-ratio-off-stretch: pairing aspect-ratio with two auto dimensions
+   on a stretched flex child is a real browser landmine — it can resolve the "auto" axis against the
+   flex container's own box instead of the sibling buttons' content height, ballooning every
+   auto-height sibling in the row along with it. A definite height/width sidesteps that class of bug
+   entirely. Bordered/hover-tint like move-description/equipment-edit rather than the plain
    transparent-border remove icons, since this is a read action, not a destructive one. */
 .armor-astir.sheet .move-info {
 	flex: 0 0 auto;
-	width: 20px;
-	height: 20px;
+	width: 32px;
+	height: 32px;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
 	padding: 0;
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
 	background: transparent;
 	color: var(--aa-primary-dark);
 	line-height: 1;
-	font-size: 11px;
+	font-size: 14px;
+	font-weight: 700;
 	cursor: pointer;
 }
 
@@ -1230,11 +1268,16 @@
 	background: var(--aa-primary-tint);
 }
 
+.armor-astir.sheet .move-info:not(.disabled):active {
+	background: var(--aa-primary-tint);
+	transform: scale(0.96);
+}
+
 /* The move-info dialog's own content padding — content is otherwise unstyled rich text, same
    .move-description class postMoveDescription's chat card also uses (see move-chat.hbs), scoped
    here to the dialog root so it never leaks into the chat card's own layout. */
 .armor-astir.move-description-dialog .move-description {
-	padding: var(--aa-space-2);
+	padding: 0 var(--aa-space-2) var(--aa-space-2);
 }
 
 .armor-astir.sheet .advancement-list {
@@ -1476,6 +1519,13 @@
 	margin-bottom: var(--aa-space-2);
 }
 
+/* Applied when a reroll (Decisive/Defensive/Versatile) or Heat Up supersedes this card's result —
+   see move-chat-listeners.js#handleReroll/handleHeatUp, which edit the original message's flavor
+   in place to add this flag before posting the new roll as a fresh message. */
+.armor-astir-move-chat.superseded {
+	text-decoration: line-through;
+}
+
 .armor-astir-move-chat .move-name {
 	margin: 0 0 var(--aa-space-1);
 }
@@ -1689,6 +1739,10 @@
 }
 
 .armor-astir-move-chat .move-die-changed {
+	border-color: var(--aa-secondary-dark);
+}
+
+.armor-astir-move-chat .move-die-success {
 	border-color: var(--aa-secondary-dark);
 }
 

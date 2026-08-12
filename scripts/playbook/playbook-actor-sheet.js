@@ -120,7 +120,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		const frames = this._frames();
 		const mountedFrame = frames.find((frame) => frame.piloted) ?? null;
 		const ardents = this._ardents();
-		data.moveGroups = this._movesData(astirParts, astirMove, mountedFrame, ardents, startingMovePool);
+		data.moveGroups = this._movesData(astir, astirParts, astirMove, mountedFrame, ardents, startingMovePool);
 		// Custom-made equipment (see claude.md, "Domain conventions") — never picked from a list,
 		// so unlike moves there's no shared catalog of equipment itself, only of the Tags that can
 		// be attached to it (see equipment.js). One array partitioned by `kind` (and, for weapons,
@@ -269,6 +269,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".downtime-ally-name-input").on("change", this._onDowntimeAllyNameChange.bind(this));
 		html.find(".downtime-ally-invest").on("click", this._onDowntimeAllyInvestPower.bind(this));
 		html.find(".move-summon").on("click", this._onEidolonDriveSummon.bind(this));
+		html.find(".move-variable-dice-roll").on("click", this._onVariableDiceRoll.bind(this));
 		html.find(".starting-moves-add").on("click", this._onStartingMovesAdd.bind(this));
 		html.find(".playbook-move-add").on("click", this._onPlaybookMoveAdd.bind(this));
 		html.find(".playbook-move-remove").on("click", this._onPlaybookMoveRemove.bind(this));

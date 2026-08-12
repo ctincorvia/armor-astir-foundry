@@ -164,32 +164,14 @@ export const STARTING_MOVE_POOLS = [
 		playbookName: "The Captain",
 		poolKey: "the-captain",
 		grantedKeys: ["the-captain:in-command"],
-		pickOneKeys: [
-			"the-captain:tactical-genius",
-			"the-captain:force-multiplier",
-			"the-captain:surprise-requisition",
-			"the-captain:fire-support",
-			"the-captain:information-network",
-			"the-captain:born-leader",
-			"the-captain:human-resources",
-			"the-captain:coordinator"
-		],
+		pickOneKeys: [],
 		chooseCount: 2
 	},
 	{
 		playbookName: "The Artificer",
 		poolKey: "the-artificer",
 		grantedKeys: ["the-artificer:expertise"],
-		pickOneKeys: [
-			"the-artificer:field-testing",
-			"the-artificer:experimenter",
-			"the-artificer:combat-engineer",
-			"the-artificer:jury-rigger",
-			"the-artificer:refined-rituals",
-			"the-artificer:arcane-generator",
-			"the-artificer:its-a-prototype",
-			"the-artificer:counterspell"
-		],
+		pickOneKeys: [],
 		chooseCount: 2
 	}
 ];

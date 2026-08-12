@@ -448,18 +448,14 @@ describe("PlaybookActorSheet#getData - astir moves group", () => {
 		expect(group.moves.map((m) => m.key)).toEqual(["heat-up", "subsystems"]);
 	});
 
-	it("still includes the Astir Moves group, with Heat Up and Subsystems, when there is no Astir at all", () => {
+	it("omits the Astir Moves group entirely when there is no Astir at all", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: {} } };
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups).toHaveLength(4);
-		const group = data.moveGroups.find((g) => g.label === "Astir Moves");
-		expect(group.moves.map((m) => m.key)).toEqual(["heat-up", "subsystems"]);
-		// No Astir at all means the mount-based gating below forces both gated, same as every other
-		// entry in this group without a mounted Astir.
-		expect(group.moves.every((m) => m.gated)).toBe(true);
+		expect(data.moveGroups).toHaveLength(3);
+		expect(data.moveGroups.find((g) => g.label === "Astir Moves")).toBeUndefined();
 	});
 
 	it("lists Heat Up and Subsystems first, then parts, then the unique move, read-only (no addable/removable)", () => {

@@ -190,6 +190,8 @@
 										<button type="button" class="move-activate{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Activate</button>
 										{{else if summonable}}
 										<button type="button" class="move-summon{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Summon</button>
+										{{else if variableDiceRoll}}
+										<button type="button" class="move-variable-dice-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Roll</button>
 										{{/if}}
 										<button type="button" class="move-description{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}}>Chat</button>
 										<button type="button" class="move-info{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}} aria-label="{{name}} rules text">?</button>

@@ -17,6 +17,9 @@ const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:al
 const DIVINATION_CODEX = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:divination-codex");
 const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
 const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
+const TACTICAL_GENIUS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:tactical-genius");
+const FORCE_MULTIPLIER = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:force-multiplier");
+const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loose");
 
 beforeEach(() => {
 	chooseFrame.mockClear();
@@ -433,6 +436,31 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false }
 		});
 	});
+
+	it("does not touch a Sortie-scoped numericTracker (Tactical Genius) or an unscoped one (Force Multiplier)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					moveTrackers: {
+						[TACTICAL_GENIUS.key]: { hold: 4 },
+						[FORCE_MULTIPLIER.key]: { confidence: 2 }
+					}
+				},
+				resources: { hold: { value: 0 } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshScene();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
+			"system.attributes.moveHold.the-scout:mobility.value": 0,
+			"system.resources.hold.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false }
+		});
+	});
 });
 
 describe("PlaybookActorSheet#_onRefreshSortie", () => {
@@ -459,7 +487,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
-			"system.attributes.downtimeTokens.value": 3
+			"system.attributes.downtimeTokens.value": 3,
+			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
 
@@ -486,7 +515,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
-			"system.attributes.downtimeTokens.value": 3
+			"system.attributes.downtimeTokens.value": 3,
+			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
 
@@ -506,7 +536,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
-			"system.attributes.downtimeTokens.value": 3
+			"system.attributes.downtimeTokens.value": 3,
+			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
 
@@ -530,7 +561,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
-			"system.attributes.downtimeTokens.value": 3
+			"system.attributes.downtimeTokens.value": 3,
+			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
 
@@ -557,7 +589,109 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
+			"system.attributes.downtimeTokens.value": 3,
+			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
+		});
+	});
+
+	it("sets Tactical Genius's Sortie-scoped hold numericTracker to 1+KNOW (with no stats/bonuses, floors at 1) but leaves Force Multiplier's unscoped one", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					moveTrackers: {
+						[TACTICAL_GENIUS.key]: { hold: 4 },
+						[FORCE_MULTIPLIER.key]: { confidence: 2 }
+					}
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
+			"system.attributes.moveHold.b-plot.value": 0,
+			"system.attributes.moveHold.the-scout:improvisation.value": 0,
+			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
+			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.downtimeTokens.value": 3
 		});
+	});
+
+	it("sets Tactical Genius's tracker to 1+KNOW for a mid-range KNOW value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { moveTrackers: { [TACTICAL_GENIUS.key]: { hold: 0 } } },
+				stats: { know: { value: 2 } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ [`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 3 })
+		);
+	});
+
+	it("clamps Tactical Genius's tracker to its max even with a very high KNOW", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { moveTrackers: { [TACTICAL_GENIUS.key]: { hold: 0 } } },
+				stats: { know: { value: 10 } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ [`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 6 })
+		);
+	});
+
+	it("floors Tactical Genius's tracker at its min with a very negative KNOW", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { moveTrackers: { [TACTICAL_GENIUS.key]: { hold: 0 } } },
+				stats: { know: { value: -5 } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ [`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 0 })
+		);
+	});
+
+	it("folds a Let Loose KNOW trait bonus into Tactical Genius's computed hold value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					moveTrackers: { [TACTICAL_GENIUS.key]: { hold: 0 } },
+					playbookMoves: [TACTICAL_GENIUS.key, LET_LOOSE.key],
+					burdens: [{ id: "b1", label: "A burden" }],
+					traitBonusChoices: { [LET_LOOSE.key]: "know" }
+				},
+				stats: { know: { value: 1 } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		// 1 (base KNOW) + 1 (Let Loose's +1-per-burden, 1 burden) = 2, so 1+KNOW = 3.
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ [`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 3 })
+		);
 	});
 });

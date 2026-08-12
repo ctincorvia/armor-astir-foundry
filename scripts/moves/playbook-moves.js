@@ -2357,10 +2357,17 @@ export const MOVE_POOLS = [
 				// Every spend option below is a cross-actor effect (removing another character's own
 				// risk, giving them advantage, moving them into the scene) — the same "nothing in this
 				// module can reach across actors that way" stance every other cross-actor grant here
-				// takes (see e.g. Hope So Bad That You'll Bathe And Hunt below). Tracking just the
-				// hold pool's size would buy nothing without also being able to mechanically apply any
-				// of the three effects it pays for, so this is deliberately prose-only rather than a
-				// flatHold pool with nothing real to spend it on.
+				// takes (see e.g. Hope So Bad That You'll Bathe And Hunt below). Applying any of the
+				// three effects it pays for still stays prose-only for that reason — but the hold
+				// pool's own size is worth tracking regardless, via the same generic numericTrackers
+				// mechanic Transmute Self/Smiling Politely use (see playbook-sheet/moves-mixin.js).
+				// max: 6 is deliberately generous headroom for "1+KNOW", since Traits in this module
+				// are hand-entered and uncapped (mirrors Smiling Politely's own max: 10). period:
+				// "Sortie" matches the move's own "at the start of a Sortie" text, so Refresh Sortie
+				// resets it back to 0 (see frames-mixin.js's _refreshPeriod).
+				numericTrackers: [
+					{ key: "hold", label: "Hold", min: 0, max: 6, period: "Sortie" }
+				],
 				description:
 					"<p>When you're supervising allies from afar during a Sortie, you can lever your " +
 					"tactical know-how into better positioning. Take 1+KNOW hold at the start of a " +
@@ -2376,6 +2383,16 @@ export const MOVE_POOLS = [
 				key: "the-captain:force-multiplier",
 				name: "Force Multiplier",
 				traits: [],
+				// A manual counter, same generic numericTrackers mechanic as Tactical Genius above —
+				// but deliberately with no `period`, since "once per Sortie you may act with
+				// confidence" per drawback taken isn't a pool that refills at the start of each
+				// Sortie the way Tactical Genius's hold does; it's capped by how many drawbacks were
+				// taken (up to 3) and the player manages when a use is spent themselves. Refresh
+				// Sortie/Scene only ever touch trackers that declare a period (see
+				// frames-mixin.js's _refreshPeriod), so this one is untouched by both.
+				numericTrackers: [
+					{ key: "confidence", label: "Confidence rolls available", min: 0, max: 3 }
+				],
 				description:
 					"<p>You acquire something—a tool, ship upgrade, a caged malevolent sentience, " +
 					"etc—that allows the Carrier and it's staff to operate far better than usual, but it " +
@@ -2520,7 +2537,19 @@ export const MOVE_POOLS = [
 				// in this module can reach (every grantsEffectOnMove/grantsTraitOnMove/
 				// grantsAdvantageOnMove/addsTraitToMove flag above only ever locks the *acting*
 				// actor's own next roll — see e.g. Hope So Bad That You'll Bathe And Hunt/Team Player).
-				// Prose only, per claude.md's "systems that do not exist yet".
+				// Still can't actually apply the Confidence itself, per claude.md's "systems that do
+				// not exist yet" — but the reminder to do so can at least surface on Help or Hinder's
+				// own chat card, the success-tier mirror of Walk-on Part In The War's
+				// addsFailureReminderToMove (see moves-mixin.js's _grantedSuccessReminderForMove).
+				// intents (help vs. hinder) are flavor-only with no mechanical branch anywhere in this
+				// module (see help-or-hinder's own comment in moves.js), so the reminder text states
+				// the "if you chose to help" condition in prose rather than being conditionally gated
+				// on which intent was picked.
+				addsSuccessReminderToMove: {
+					moveKeys: ["help-or-hinder"],
+					reminder: "If you chose to help, your ally may act with confidence in addition to " +
+						"advantage."
+				},
 				traits: [],
 				description:
 					"<p>When you roll a 10+ to help or hinder and choose to help, your ally may act " +

@@ -15,9 +15,11 @@ import {
 	SPECIAL_MOVES,
 	availableMoveTraits,
 	configureMoveRoll,
+	configureVariableDiceRoll,
 	postGuidedResult,
 	postMoveDescription,
 	rollMove,
+	rollVariableDicePool,
 	showMoveDescription
 } from "../../moves/moves.js";
 import { resolveAstirParts } from "../../frames/astir.js";
@@ -92,7 +94,7 @@ export const MovesSheetMixin = {
 	// Impostor stay hidden until their pools are filled in (see starting-moves.js). This is a live
 	// emptiness check, not a one-time flag: cancelling the picker leaves the button available to
 	// retry, and removing every playbook move via "-" brings it back.
-	_movesData(astirParts, astirMove, mountedFrame, ardents, startingMovePool) {
+	_movesData(astir, astirParts, astirMove, mountedFrame, ardents, startingMovePool) {
 		// Heat Up and Subsystems (see moves.js) are basic/special moves by definition — every
 		// playbook gets them, with no per-actor picking — but both only ever matter to an Astir
 		// pilot, so they render in the Astir Moves group instead of Basic/Special Moves. Still
@@ -119,26 +121,29 @@ export const MovesSheetMixin = {
 		// group renders no add/remove controls of its own. Each Ardent's own installed parts get
 		// the same read-only treatment in their own "<name> Moves" group, right after the Astir's —
 		// Ardents grant no unique Move (see claude.md's Ardents section), so an Ardent's group is
-		// parts-only. Unlike before Heat Up/Subsystems joined it, this group is no longer
-		// conditional on astirParts/astirMove existing — heatUp/subsystems mean it's never empty,
-		// and a character with no Astir yet should still be able to read what they do (gated, like
-		// everything else here, rather than hidden — see claude.md's "no precedent for hiding a
-		// control based on state" stance).
-		const astirMoves = [heatUp, subsystems, ...astirParts, ...(astirMove ? [astirMove] : [])];
-		// Every entry in this group — Heat Up, Subsystems, parts, and the Astir's own unique move
-		// alike — only does anything while the Astir specifically is the mounted frame (see
-		// claude.md's Piloted note), so `gated` is forced on top of whatever gating an entry already
-		// has, the same disabled-Roll/Activate treatment channelGated already gives b-plot. Living
-		// Drive (Summoner — see _grantsUnpilotedAstirMove) is the one exception: it ungates Eidolon
-		// Drive specifically from the mounted-frame half of this check, so a picked move's own
-		// gating (summonGated, e.g.) still applies even then.
-		moveGroups.push({
-			label: "Astir Moves",
-			moves: this._moveGroupMoves(astirMoves).map((move) => ({
-				...move,
-				gated: move.gated || (mountedFrame?.id !== "astir" && !this._grantsUnpilotedAstirMove(move))
-			}))
-		});
+		// parts-only. This whole group is conditional on `astir` existing at all, not on
+		// astirParts/astirMove specifically — a character who's never taken an Astir has no use for
+		// Heat Up, Subsystems, any part, or a unique move, so the entire section is omitted from
+		// moveGroups rather than shown permanently disabled. Once an Astir exists, the group always
+		// renders (heatUp/subsystems mean it's never empty), even before that Astir is ever mounted —
+		// see the mount-based gating below, which is unaffected by this check.
+		if (astir) {
+			const astirMoves = [heatUp, subsystems, ...astirParts, ...(astirMove ? [astirMove] : [])];
+			// Every entry in this group — Heat Up, Subsystems, parts, and the Astir's own unique move
+			// alike — only does anything while the Astir specifically is the mounted frame (see
+			// claude.md's Piloted note), so `gated` is forced on top of whatever gating an entry already
+			// has, the same disabled-Roll/Activate treatment channelGated already gives b-plot. Living
+			// Drive (Summoner — see _grantsUnpilotedAstirMove) is the one exception: it ungates Eidolon
+			// Drive specifically from the mounted-frame half of this check, so a picked move's own
+			// gating (summonGated, e.g.) still applies even then.
+			moveGroups.push({
+				label: "Astir Moves",
+				moves: this._moveGroupMoves(astirMoves).map((move) => ({
+					...move,
+					gated: move.gated || (mountedFrame?.id !== "astir" && !this._grantsUnpilotedAstirMove(move))
+				}))
+			});
+		}
 		for (const ardent of ardents) {
 			const parts = resolveAstirParts(ardent.parts ?? [], ARDENT_PART_CATALOG);
 			if (!parts.length) continue;
@@ -321,7 +326,12 @@ export const MovesSheetMixin = {
 					min: tracker.min,
 					max: tracker.max,
 					value: this.actor.system.attributes?.moveTrackers?.[move.key]?.[tracker.key] ?? 0
-				}))
+				})),
+				// Plan & Prepare's own roll button (see SPECIAL_MOVES' variableDicePool) — omitted (not
+				// `false`) for every other move, same reasoning as summonedAllyInfo/gatedTooltip above:
+				// avoids touching every other move's entry in the moveGroups toEqual test for a flag
+				// that, structurally, only one move in the game's content will ever set.
+				...(move.variableDicePool && { variableDiceRoll: true })
 			};
 		});
 	},
@@ -567,6 +577,19 @@ export const MovesSheetMixin = {
 				return !grant.requiresAstirMounted || this._mountedFrame()?.kind === "astir";
 			});
 		return granting?.addsFailureReminderToMove.reminder ?? null;
+	},
+	// Coordinator's "your ally may act with confidence in addition to advantage" (see
+	// playbook-moves.js's addsSuccessReminderToMove) — the success-tier mirror of
+	// _grantedFailureReminderForMove above, minus its requiresAstirMounted gate: no
+	// addsSuccessReminderToMove grant needs one today, and carrying an always-true branch just to
+	// mirror the failure version's shape would leave a branch this module's 100%-coverage gate can
+	// never legitimately exercise. Add the gate back (matching _grantedFailureReminderForMove's own
+	// `!grant.requiresAstirMounted || this._mountedFrame()?.kind === "astir"` line) the day a grant
+	// actually needs it — same shape _grantedQuestionsForMove already uses for the same reason.
+	_grantedSuccessReminderForMove(move) {
+		const granting = resolvePlaybookMoves(this._playbookMoves())
+			.find((m) => m.addsSuccessReminderToMove?.moveKeys?.includes(move.key));
+		return granting?.addsSuccessReminderToMove.reminder ?? null;
 	},
 	// Every move flagged grantsAutomaticSuccess (Hot-blooded, Once the War's Over, The Arity
 	// Method, Dark Rebirth, Ancient Recall, Ain't No Grave — see playbook-moves.js) can spend its
@@ -911,6 +934,9 @@ export const MovesSheetMixin = {
 		// Walk-on Part In The War's overheating reminder (see _grantedFailureReminderForMove) — only
 		// ever shown by moves.js#rollMove on an actual 6-, so it's harmless to always pass through.
 		const extraFailureReminder = this._grantedFailureReminderForMove(move);
+		// Coordinator's own reminder (see _grantedSuccessReminderForMove) — same pass-through shape
+		// as extraFailureReminder immediately above, just surfaced on a 10+ instead of a 6-.
+		const extraSuccessReminder = this._grantedSuccessReminderForMove(move);
 		// Human Resources' extra Read the Room questions (see _grantedQuestionsForMove) — arrives
 		// pre-resolved via options, exactly like spentPartLabels/weaponLabel already do, so moves.js
 		// never needs to import playbook-moves.js (see claude.md's import-direction note).
@@ -921,6 +947,7 @@ export const MovesSheetMixin = {
 			...(spentPartLabels.length && { spentPartLabels }),
 			...(automaticSuccess.length && { automaticSuccess }),
 			...(extraFailureReminder && { extraFailureReminder }),
+			...(extraSuccessReminder && { extraSuccessReminder }),
 			...(extraQuestions && { extraQuestions }),
 			// Number Of The Beast (see playbook-moves.js) — applies to every roll this actor makes,
 			// not just one move key, so this is folded in unconditionally rather than gated on `move`.
@@ -1043,6 +1070,18 @@ export const MovesSheetMixin = {
 			});
 			await postMoveDescription(this.actor, move);
 		}
+	},
+	// Plan & Prepare's own roll button (see SPECIAL_MOVES' variableDicePool / moves.js's
+	// configureVariableDiceRoll/rollVariableDicePool) — a wholly separate pipeline from
+	// _onMoveRoll/_rollMove: no trait, no dialog-driven Effect/Advantage, no chooseWeapon.
+	async _onVariableDiceRoll(event) {
+		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
+		if (!move) return;
+
+		const config = await configureVariableDiceRoll(move);
+		if (!config) return;
+
+		await rollVariableDicePool(this.actor, move, config);
 	},
 	async _onMoveDescription(event) {
 		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);

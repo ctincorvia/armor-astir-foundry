@@ -1,6 +1,24 @@
-<div class="armor-astir-move-chat">
+<div class="armor-astir-move-chat{{#if superseded}} superseded{{/if}}">
 	<h3 class="move-name">{{name}}</h3>
-	{{#if tierLabel}}
+	{{#if variableDiceResult}}
+	<div class="move-roll-result">
+		<span class="move-variable-dice-target">Target: {{target}}</span>
+		<span class="move-variable-dice-successes">Successes: {{successCount}}</span>
+	</div>
+	<ol class="move-dice">
+		{{#each dice}}
+		<li class="move-die{{#if success}} move-die-success{{/if}}">
+			<span class="move-die-face">{{result}}</span>
+		</li>
+		{{/each}}
+	</ol>
+	{{#if successPrompt}}
+	<div class="move-hold">
+		<p class="move-hold-prompt">{{successPrompt}}</p>
+		{{{successOptions}}}
+	</div>
+	{{/if}}
+	{{else if tierLabel}}
 	<div class="move-roll-result">
 		{{#if traitLabel}}<span class="move-trait">+{{traitLabel}}</span>{{/if}}
 		{{#if intentLabel}}<span class="move-intent">{{intentLabel}}</span>{{/if}}

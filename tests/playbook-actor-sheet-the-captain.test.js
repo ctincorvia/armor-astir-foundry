@@ -34,6 +34,8 @@ const READ_THE_ROOM = BASIC_MOVES.find((m) => m.key === "read-the-room");
 const BITE_THE_DUST = BASIC_MOVES.find((m) => m.key === "bite-the-dust");
 const FIRE_SUPPORT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:fire-support");
 const HUMAN_RESOURCES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:human-resources");
+const COORDINATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:coordinator");
+const HELP_OR_HINDER = BASIC_MOVES.find((m) => m.key === "help-or-hinder");
 const DARK_REBIRTH = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-wither:dark-rebirth");
 const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:artifact");
 
@@ -556,5 +558,73 @@ describe("PlaybookActorSheet#_rollMove - Human Resources' extraQuestions", () =>
 
 		const [, , , options] = rollMove.mock.calls.at(-1);
 		expect(options).not.toHaveProperty("extraQuestions");
+	});
+});
+
+describe("PlaybookActorSheet#_grantedSuccessReminderForMove", () => {
+	it("returns null without Coordinator picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
+
+		expect(sheet._grantedSuccessReminderForMove(HELP_OR_HINDER)).toBeNull();
+	});
+
+	it("returns Coordinator's reminder for Help or Hinder once picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [COORDINATOR.key] } } };
+
+		expect(sheet._grantedSuccessReminderForMove(HELP_OR_HINDER)).toBe(
+			"If you chose to help, your ally may act with confidence in addition to advantage."
+		);
+	});
+
+	it("returns null for a move Coordinator doesn't target", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [COORDINATOR.key] } } };
+
+		expect(sheet._grantedSuccessReminderForMove(BITE_THE_DUST)).toBeNull();
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - Coordinator's extraSuccessReminder", () => {
+	it("passes Coordinator's reminder through to rollMove's options when rolling Help or Hinder", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: { playbookMoves: [COORDINATOR.key] }
+			},
+			update: vi.fn()
+		};
+		// Help or Hinder has no stat traits at all (see move-rolls' own "no-trait move" test), so
+		// configureMoveRoll's real resolved config carries no `trait` key at all here.
+		const config = { conditions: ["hook"], advantage: "none", effect: "none" };
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._rollMove(HELP_OR_HINDER, undefined);
+
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor,
+			HELP_OR_HINDER,
+			undefined,
+			expect.objectContaining({
+				extraSuccessReminder: "If you chose to help, your ally may act with confidence in addition to advantage."
+			})
+		);
+	});
+
+	it("omits extraSuccessReminder entirely without Coordinator picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: {}, attributes: { playbookMoves: [] } },
+			update: vi.fn()
+		};
+		const config = { conditions: ["hook"], advantage: "none", effect: "none" };
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._rollMove(HELP_OR_HINDER, undefined);
+
+		const [, , , options] = rollMove.mock.calls.at(-1);
+		expect(options).not.toHaveProperty("extraSuccessReminder");
 	});
 });

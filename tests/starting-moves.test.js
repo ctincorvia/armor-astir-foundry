@@ -186,16 +186,7 @@ describe("STARTING_MOVE_POOLS", () => {
 		const captain = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Captain");
 
 		expect(captain.grantedKeys).toEqual(["the-captain:in-command"]);
-		expect(captain.pickOneKeys).toEqual([
-			"the-captain:tactical-genius",
-			"the-captain:force-multiplier",
-			"the-captain:surprise-requisition",
-			"the-captain:fire-support",
-			"the-captain:information-network",
-			"the-captain:born-leader",
-			"the-captain:human-resources",
-			"the-captain:coordinator"
-		]);
+		expect(captain.pickOneKeys).toEqual([]);
 		expect(captain.chooseCount).toBe(2);
 	});
 
@@ -203,16 +194,7 @@ describe("STARTING_MOVE_POOLS", () => {
 		const artificer = STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Artificer");
 
 		expect(artificer.grantedKeys).toEqual(["the-artificer:expertise"]);
-		expect(artificer.pickOneKeys).toEqual([
-			"the-artificer:field-testing",
-			"the-artificer:experimenter",
-			"the-artificer:combat-engineer",
-			"the-artificer:jury-rigger",
-			"the-artificer:refined-rituals",
-			"the-artificer:arcane-generator",
-			"the-artificer:its-a-prototype",
-			"the-artificer:counterspell"
-		]);
+		expect(artificer.pickOneKeys).toEqual([]);
 		expect(artificer.chooseCount).toBe(2);
 	});
 });

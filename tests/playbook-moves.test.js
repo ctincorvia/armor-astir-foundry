@@ -607,6 +607,23 @@ describe("MOVE_POOLS - the-captain", () => {
 		}
 	});
 
+	it("gives Tactical Genius a Sortie-scoped 0-6 hold numericTracker", () => {
+		const tacticalGenius = findPlaybookMove("the-captain:tactical-genius");
+
+		expect(tacticalGenius.numericTrackers).toEqual([
+			{ key: "hold", label: "Hold", min: 0, max: 6, period: "Sortie" }
+		]);
+	});
+
+	it("gives Force Multiplier a manual 0-3 confidence numericTracker with no period", () => {
+		const forceMultiplier = findPlaybookMove("the-captain:force-multiplier");
+
+		expect(forceMultiplier.numericTrackers).toEqual([
+			{ key: "confidence", label: "Confidence rolls available", min: 0, max: 3 }
+		]);
+		expect(forceMultiplier.numericTrackers[0].period).toBeUndefined();
+	});
+
 	it("gives Surprise Requisition a CREW fixedTraits entry and a full 3-tier results object", () => {
 		const surpriseRequisition = findPlaybookMove("the-captain:surprise-requisition");
 
@@ -663,6 +680,15 @@ describe("MOVE_POOLS - the-captain", () => {
 
 		expect(coordinator.traits).toEqual([]);
 		expect(coordinator.results).toBeUndefined();
+	});
+
+	it("gives Coordinator an addsSuccessReminderToMove grant on Help or Hinder", () => {
+		const coordinator = findPlaybookMove("the-captain:coordinator");
+
+		expect(coordinator.addsSuccessReminderToMove).toEqual({
+			moveKeys: ["help-or-hinder"],
+			reminder: "If you chose to help, your ally may act with confidence in addition to advantage."
+		});
 	});
 });
 

@@ -3,7 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	...(await importOriginal()),
 	postMoveDescription: vi.fn(),
-	showMoveDescription: vi.fn()
+	showMoveDescription: vi.fn(),
+	configureVariableDiceRoll: vi.fn(),
+	rollVariableDicePool: vi.fn()
 }));
 
 // Only the picker dialog is mocked — the pool definitions and resolvePlaybookMoves stay real, so
@@ -21,7 +23,14 @@ vi.mock("../scripts/moves/starting-moves.js", async (importOriginal) => ({
 }));
 
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
-import { BASIC_MOVES, SPECIAL_MOVES, postMoveDescription, showMoveDescription } from "../scripts/moves/moves.js";
+import {
+	BASIC_MOVES,
+	SPECIAL_MOVES,
+	configureVariableDiceRoll,
+	postMoveDescription,
+	rollVariableDicePool,
+	showMoveDescription
+} from "../scripts/moves/moves.js";
 import { ALL_PLAYBOOK_MOVES, choosePlaybookMove } from "../scripts/moves/playbook-moves.js";
 import { chooseStartingMoves } from "../scripts/moves/starting-moves.js";
 import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
@@ -48,12 +57,15 @@ const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know
 const NEVER_QUITE_FREE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:never-quite-free");
 const ARCANE_GENERATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-artificer:arcane-generator");
 const COUNTERSPELL = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-artificer:counterspell");
+const PLAN_AND_PREPARE = SPECIAL_MOVES.find((m) => m.key === "plan-and-prepare");
 
 beforeEach(() => {
 	postMoveDescription.mockClear();
 	showMoveDescription.mockClear();
 	choosePlaybookMove.mockClear();
 	chooseStartingMoves.mockClear();
+	configureVariableDiceRoll.mockClear();
+	rollVariableDicePool.mockClear();
 });
 
 describe("PlaybookActorSheet#_onStartingMovesAdd", () => {
@@ -379,47 +391,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 				startingMovesAvailable: false
 			},
 			{
-				label: "Astir Moves",
-				moves: [
-					{
-						key: "heat-up",
-						name: "Heat Up",
-						traits: [],
-						// No Astir at all for this actor, so the Astir Moves group's mount-based gating
-						// (see _movesData) forces every entry gated regardless of its own logic.
-						gated: true,
-						rollable: false,
-						activatable: false,
-						summonable: false,
-						descriptionGated: false,
-						trackHold: false,
-						separateHoldPool: false,
-						hold: 0,
-						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
-						trackers: []
-					},
-					{
-						key: "subsystems",
-						name: "Subsystems",
-						traits: [],
-						gated: true,
-						rollable: false,
-						activatable: false,
-						summonable: false,
-						descriptionGated: false,
-						trackHold: false,
-						separateHoldPool: false,
-						hold: 0,
-						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
-						trackers: []
-					}
-				]
-			},
-			{
 				label: "Special Moves",
 				moves: [
 					{
@@ -461,6 +432,24 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						traitBonusChoosable: false,
 						traitBonusChoice: "",
 						trackers: []
+					},
+					{
+						key: "plan-and-prepare",
+						name: "Plan & Prepare",
+						traits: [],
+						gated: false,
+						rollable: false,
+						activatable: false,
+						summonable: false,
+						descriptionGated: false,
+						trackHold: false,
+						separateHoldPool: false,
+						hold: 0,
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: "",
+						trackers: [],
+						variableDiceRoll: true
 					}
 				]
 			}
@@ -1761,6 +1750,48 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 		});
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, BUREAUCRAT);
+	});
+});
+
+describe("PlaybookActorSheet#_onVariableDiceRoll", () => {
+	it("does nothing for an unrecognized move key", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		await sheet._onVariableDiceRoll({ currentTarget: { dataset: { move: "not-a-real-move" } } });
+
+		expect(configureVariableDiceRoll).not.toHaveBeenCalled();
+	});
+
+	it("looks up the move in ALL_MOVES by its data-move key", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+		configureVariableDiceRoll.mockResolvedValue(null);
+
+		await sheet._onVariableDiceRoll({ currentTarget: { dataset: { move: "plan-and-prepare" } } });
+
+		expect(configureVariableDiceRoll).toHaveBeenCalledWith(PLAN_AND_PREPARE);
+	});
+
+	it("never calls rollVariableDicePool when the dialog resolves null (Cancel/close)", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+		configureVariableDiceRoll.mockResolvedValue(null);
+
+		await sheet._onVariableDiceRoll({ currentTarget: { dataset: { move: "plan-and-prepare" } } });
+
+		expect(rollVariableDicePool).not.toHaveBeenCalled();
+	});
+
+	it("rolls the dice pool with the actor, the move, and the dialog's resolved config", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+		const config = { target: 3, extraDice: 1 };
+		configureVariableDiceRoll.mockResolvedValue(config);
+
+		await sheet._onVariableDiceRoll({ currentTarget: { dataset: { move: "plan-and-prepare" } } });
+
+		expect(rollVariableDicePool).toHaveBeenCalledWith(sheet.actor, PLAN_AND_PREPARE, config);
 	});
 });
 

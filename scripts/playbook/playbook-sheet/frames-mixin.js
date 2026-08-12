@@ -155,6 +155,22 @@ export const FramesSheetMixin = {
 					updates[`system.attributes.moveUses.${move.key}.${use.key}`] = false;
 				}
 			}
+			// Sortie/Scene-scoped numericTrackers (e.g. Tactical Genius's own "start of a Sortie"
+			// hold pool — see playbook-moves.js) reset to their own min the same way a `uses`
+			// checkbox above resets to false. Most numericTrackers (Transmute Self, Smiling
+			// Politely, Force Multiplier) declare no period at all and are untouched by either
+			// Refresh button — this only ever fires for one that opts in.
+			for (const tracker of move.numericTrackers ?? []) {
+				if (tracker.period !== period) continue;
+				// tracker.min is always present (every numericTrackers entry declares one — see
+				// playbook-moves.js's own generic invariant test), unlike the actor's stored value
+				// below, which is genuinely absent until the player first steps the counter.
+				const resetTo = tracker.min;
+				const current = this.actor.system.attributes?.moveTrackers?.[move.key]?.[tracker.key] ?? 0;
+				if (current !== resetTo) {
+					updates[`system.attributes.moveTrackers.${move.key}.${tracker.key}`] = resetTo;
+				}
+			}
 		}
 		const equipment = this._equipment();
 		const nextEquipment = equipment.map((item) => {
@@ -195,14 +211,29 @@ export const FramesSheetMixin = {
 	},
 	// Clears every Sortie-scoped spend/uses checkbox, plus the flat hold pools (B-Plot, Get Out of
 	// My Way!, Once the War's Over — all scoped to "the Sortie" by their own text, see moves.js/
-	// playbook-moves.js) and Alchemical Suite's Potions when installed (mirrors getData's own
+	// playbook-moves.js), Alchemical Suite's Potions when installed (mirrors getData's own
 	// grantsPotionsOnLeadASortie gating so an Astir without the part never gains a stray potions
-	// field).
+	// field), and Tactical Genius's hold tracker, which resets to its computed 1+KNOW value rather
+	// than a flat min (see the in-loop comment below).
 	_onRefreshSortie() {
 		const updates = this._refreshPeriod("Sortie");
 		for (const move of ALL_MOVES) {
 			if (move.flatHold && move.period === "Sortie") {
 				updates[`system.attributes.moveHold.${move.key}.value`] = HOLD_MIN;
+			}
+			// Tactical Genius's own text isn't a flat reset-to-min like every other Sortie-period
+			// numericTracker _refreshPeriod already handled above — it's "take 1+KNOW hold at the
+			// start of a Sortie" (see playbook-moves.js), so this overwrites _refreshPeriod's own
+			// reset-to-0 for this one key with the computed value instead, the same "computed, not
+			// just cleared" treatment this method already gives Alchemical Suite's Potions and
+			// Downtime Tokens below. Folds in _traitBonuses() the same way _moveTraits does, so a
+			// Let Loose KNOW pick is reflected here too. Clamped against the tracker's own min/max
+			// (currently 0/6) rather than hardcoding those numbers again.
+			if (move.key === "the-captain:tactical-genius") {
+				const tracker = move.numericTrackers[0];
+				const know = (this.actor.system.stats?.know?.value ?? 0) + (this._traitBonuses()?.know ?? 0);
+				updates[`system.attributes.moveTrackers.${move.key}.${tracker.key}`] =
+					Math.min(tracker.max, Math.max(tracker.min, 1 + know));
 			}
 		}
 		if (this._astirParts().some((part) => part.grantsPotionsOnLeadASortie)) {

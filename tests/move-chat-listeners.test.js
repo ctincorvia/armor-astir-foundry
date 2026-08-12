@@ -59,6 +59,11 @@ describe("registerMoveChatListeners", () => {
 });
 
 describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
+	beforeEach(() => {
+		renderTemplate.mockClear();
+		renderTemplate.mockResolvedValue("<div>updated</div>");
+	});
+
 	it("does nothing for a message with no reroll offer", () => {
 		const fake = fakeChatHtml();
 
@@ -74,7 +79,7 @@ describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
 		expect(fake.handler).toBeNull();
 	});
 
-	it("wires the Reroll button, disabling it on click and rerunning the move", async () => {
+	it("wires the Reroll button, disabling it on click, striking through the original card, and rerunning the move", async () => {
 		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", tags: ["defensive"], spent: [] };
 		const actor = { id: "actor1", system: { attributes: { equipment: [rifle] } }, update: vi.fn() };
 		game.actors.get.mockReturnValue(actor);
@@ -84,13 +89,16 @@ describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
 			trait: { key: "clash", label: "CLASH", value: 0 },
 			equipmentId: "eq1",
 			tagKey: "defensive",
-			options: { advantage: "none", effect: "none", weaponLabel: "Rifle" }
+			options: { advantage: "none", effect: "none", weaponLabel: "Rifle" },
+			flavorArgs: { tier: "failure", conditions: [] }
 		};
+		const message = { flags: { "armor-astir": { reroll } }, update: vi.fn() };
 		const fake = fakeChatHtml();
 
-		onRenderMoveChat({ flags: { "armor-astir": { reroll } } }, fake.html);
+		onRenderMoveChat(message, fake.html);
 		const button = { disabled: false };
 		fake.handler({ currentTarget: button });
+		await Promise.resolve();
 		await Promise.resolve();
 		await Promise.resolve();
 
@@ -98,6 +106,8 @@ describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
 		expect(actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [{ ...rifle, spent: ["defensive"] }]
 		});
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ reroll: false, superseded: true }));
+		expect(message.update).toHaveBeenCalledWith({ flavor: "<div>updated</div>" });
 		expect(rollMove).toHaveBeenCalledWith(actor, EXCHANGE_BLOWS, reroll.trait, reroll.options);
 	});
 
@@ -106,13 +116,16 @@ describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
 		const reroll = {
 			actorId: "gone", moveKey: "exchange-blows", trait: {}, equipmentId: "eq1", tagKey: "defensive", options: {}
 		};
+		const message = { flags: { "armor-astir": { reroll } }, update: vi.fn() };
 		const fake = fakeChatHtml();
 
-		onRenderMoveChat({ flags: { "armor-astir": { reroll } } }, fake.html);
+		onRenderMoveChat(message, fake.html);
 		fake.handler({ currentTarget: { disabled: false } });
 		await Promise.resolve();
 		await Promise.resolve();
 
+		expect(renderTemplate).not.toHaveBeenCalled();
+		expect(message.update).not.toHaveBeenCalled();
 		expect(rollMove).not.toHaveBeenCalled();
 	});
 
@@ -122,14 +135,17 @@ describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
 		const reroll = {
 			actorId: "actor1", moveKey: "not-a-real-move", trait: {}, equipmentId: "eq1", tagKey: "defensive", options: {}
 		};
+		const message = { flags: { "armor-astir": { reroll } }, update: vi.fn() };
 		const fake = fakeChatHtml();
 
-		onRenderMoveChat({ flags: { "armor-astir": { reroll } } }, fake.html);
+		onRenderMoveChat(message, fake.html);
 		fake.handler({ currentTarget: { disabled: false } });
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(actor.update).not.toHaveBeenCalled();
+		expect(renderTemplate).not.toHaveBeenCalled();
+		expect(message.update).not.toHaveBeenCalled();
 		expect(rollMove).not.toHaveBeenCalled();
 	});
 
@@ -137,12 +153,20 @@ describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
 		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
 		game.actors.get.mockReturnValue(actor);
 		const reroll = {
-			actorId: "actor1", moveKey: "exchange-blows", trait: {}, equipmentId: "eq1", tagKey: "defensive", options: {}
+			actorId: "actor1",
+			moveKey: "exchange-blows",
+			trait: {},
+			equipmentId: "eq1",
+			tagKey: "defensive",
+			options: {},
+			flavorArgs: { tier: "failure", conditions: [] }
 		};
+		const message = { flags: { "armor-astir": { reroll } }, update: vi.fn() };
 		const fake = fakeChatHtml();
 
-		onRenderMoveChat({ flags: { "armor-astir": { reroll } } }, fake.html);
+		onRenderMoveChat(message, fake.html);
 		fake.handler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
 		await Promise.resolve();
 		await Promise.resolve();
 
@@ -151,6 +175,11 @@ describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
 });
 
 describe("onRenderMoveChat (Heat Up)", () => {
+	beforeEach(() => {
+		renderTemplate.mockClear();
+		renderTemplate.mockResolvedValue("<div>updated</div>");
+	});
+
 	it("does nothing for a message with no heat up offer", () => {
 		const fake = fakeChatHtml();
 
@@ -166,38 +195,46 @@ describe("onRenderMoveChat (Heat Up)", () => {
 		expect(fake.heatUpHandler).toBeNull();
 	});
 
-	it("wires the Heat Up button, disabling it on click, ticking Overheating, and rerunning the move", async () => {
+	it("wires the Heat Up button, disabling it on click, ticking Overheating, striking through the original card, and rerunning the move", async () => {
 		const actor = { id: "actor1", system: { attributes: { astir: { id: "a1", piloted: true } } }, update: vi.fn() };
 		game.actors.get.mockReturnValue(actor);
 		const heatUp = {
 			actorId: "actor1",
 			moveKey: "exchange-blows",
 			trait: { key: "clash", label: "CLASH", value: 0 },
-			options: { advantage: "none", effect: "none", weaponLabel: "Rifle", weaponTags: null }
+			options: { advantage: "none", effect: "none", weaponLabel: "Rifle", weaponTags: null },
+			flavorArgs: { tier: "mixed", conditions: [] }
 		};
+		const message = { flags: { "armor-astir": { heatUp } }, update: vi.fn() };
 		const fake = fakeChatHtml();
 
-		onRenderMoveChat({ flags: { "armor-astir": { heatUp } } }, fake.html);
+		onRenderMoveChat(message, fake.html);
 		const button = { disabled: false };
 		fake.heatUpHandler({ currentTarget: button });
+		await Promise.resolve();
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(button.disabled).toBe(true);
 		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.astir.overheating": true });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ heatUp: false, superseded: true }));
+		expect(message.update).toHaveBeenCalledWith({ flavor: "<div>updated</div>" });
 		expect(rollMove).toHaveBeenCalledWith(actor, EXCHANGE_BLOWS, heatUp.trait, heatUp.options);
 	});
 
 	it("does nothing when the actor no longer exists", async () => {
 		game.actors.get.mockReturnValue(undefined);
 		const heatUp = { actorId: "gone", moveKey: "exchange-blows", trait: {}, options: {} };
+		const message = { flags: { "armor-astir": { heatUp } }, update: vi.fn() };
 		const fake = fakeChatHtml();
 
-		onRenderMoveChat({ flags: { "armor-astir": { heatUp } } }, fake.html);
+		onRenderMoveChat(message, fake.html);
 		fake.heatUpHandler({ currentTarget: { disabled: false } });
 		await Promise.resolve();
 		await Promise.resolve();
 
+		expect(renderTemplate).not.toHaveBeenCalled();
+		expect(message.update).not.toHaveBeenCalled();
 		expect(rollMove).not.toHaveBeenCalled();
 	});
 
@@ -205,14 +242,17 @@ describe("onRenderMoveChat (Heat Up)", () => {
 		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
 		game.actors.get.mockReturnValue(actor);
 		const heatUp = { actorId: "actor1", moveKey: "not-a-real-move", trait: {}, options: {} };
+		const message = { flags: { "armor-astir": { heatUp } }, update: vi.fn() };
 		const fake = fakeChatHtml();
 
-		onRenderMoveChat({ flags: { "armor-astir": { heatUp } } }, fake.html);
+		onRenderMoveChat(message, fake.html);
 		fake.heatUpHandler({ currentTarget: { disabled: false } });
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(actor.update).not.toHaveBeenCalled();
+		expect(renderTemplate).not.toHaveBeenCalled();
+		expect(message.update).not.toHaveBeenCalled();
 		expect(rollMove).not.toHaveBeenCalled();
 	});
 });
@@ -597,6 +637,29 @@ describe("onRenderMoveChat/handleAdvantage (Add Advantage/Add Disadvantage)", ()
 				}
 			}
 		});
+	});
+
+	it("rebuilds a stored extraSuccessReminder (e.g. Captain's Coordinator) once the flipped tier lands on a 10+", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const reminder = "If you chose to help, your ally may act with confidence in addition to advantage.";
+		const offer = baseOffer({ value: 3, extraSuccessReminder: reminder });
+		const message = { flags: { "armor-astir": { advantageOffer: offer } }, author: "author1", update: vi.fn() };
+		const fake = fakeChatHtml();
+		mockDieRoll(6);
+
+		onRenderMoveChat(message, fake.html);
+		fake.addAdvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// [2, 2] kept-highest-2 with a freshly rolled 6 added -> keeps 2 and 6 -> 8, +3 value -> 11 (success).
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			tierLabel: MOVE_RESULT_LABELS.success,
+			resultText: EXCHANGE_BLOWS.results.success,
+			reminders: [reminder]
+		}));
 	});
 
 	it("steps advantage back down to none when disadvantage is clicked, without rolling a new die", async () => {

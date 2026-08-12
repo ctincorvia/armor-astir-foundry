@@ -11,11 +11,13 @@ import {
 	availableMoveTraits,
 	buildReminders,
 	configureMoveRoll,
+	configureVariableDiceRoll,
 	explodeSixes,
 	moveResultTier,
 	postGuidedResult,
 	postMoveDescription,
 	rollMove,
+	rollVariableDicePool,
 	showMoveDescription
 } from "../scripts/moves/moves.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
@@ -36,6 +38,7 @@ const BITE_THE_DUST = BASIC_MOVES.find((m) => m.key === "bite-the-dust");
 const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
+const PLAN_AND_PREPARE = SPECIAL_MOVES.find((m) => m.key === "plan-and-prepare");
 
 // checkedConditions/checkedEquipmentTags/checkedAstirPartSpends fake the jQuery
 // `.find("[name='...']:checked").map(...).get()` chains configureMoveRoll uses to collect Help or
@@ -100,6 +103,7 @@ beforeEach(() => {
 	Dialog.mockImplementation(function (data) {
 		this.data = data;
 		this.render = vi.fn();
+		this.close = vi.fn(() => this.data.close?.());
 	});
 	mockRoll();
 	renderTemplate.mockResolvedValue("");
@@ -171,6 +175,17 @@ describe("availableMoveTraits", () => {
 describe("SPECIAL_MOVES - b-plot", () => {
 	it("scopes its flat hold pool to the Sortie, for PlaybookActorSheet#_onRefreshSortie", () => {
 		expect(B_PLOT.period).toBe("Sortie");
+	});
+});
+
+describe("SPECIAL_MOVES - plan-and-prepare", () => {
+	it("declares variableDicePool, so PlaybookActorSheet renders its own dice-pool Roll button", () => {
+		expect(PLAN_AND_PREPARE.variableDicePool).toBe(true);
+	});
+
+	it("is the only special move that declares a variable dice pool", () => {
+		const pooled = SPECIAL_MOVES.filter((move) => move.variableDicePool);
+		expect(pooled).toEqual([PLAN_AND_PREPARE]);
 	});
 });
 
@@ -1268,6 +1283,27 @@ describe("rollMove", () => {
 		}));
 	});
 
+	it("adds an extraSuccessReminder (e.g. Captain's Coordinator) only on an actual 10+", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		const reminder = "If you chose to help, your ally may act with confidence in addition to advantage.";
+
+		mockRoll({ dice: [5, 5] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { extraSuccessReminder: reminder });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			reminders: [reminder]
+		}));
+
+		mockRoll({ dice: [4, 3] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { extraSuccessReminder: reminder });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "mixed",
+			reminders: null
+		}));
+	});
+
 	it("includes the active conditions in the chat template data", async () => {
 		const actor = { system: { stats: { clash: { value: 0 } } } };
 		const clash = TRAITS.find((t) => t.key === "clash");
@@ -1357,6 +1393,7 @@ describe("rollMove", () => {
 			dice: expect.any(Array),
 			extraConditions: [],
 			extraFailureReminder: null,
+			extraSuccessReminder: null,
 			flavorArgs: expect.any(Object)
 		});
 	});
@@ -1389,7 +1426,8 @@ describe("rollMove - reroll (Decisive/Defensive/Versatile)", () => {
 						trait: clash,
 						equipmentId: "eq1",
 						tagKey: "defensive",
-						options: { advantage: "none", effect: "none", weaponLabel: "Halberd" }
+						options: { advantage: "none", effect: "none", weaponLabel: "Halberd" },
+						flavorArgs: expect.any(Object)
 					},
 					advantageOffer: expect.any(Object)
 				}
@@ -1526,6 +1564,7 @@ describe("rollMove - automatic success offer (Hot-blooded/Once the War's Over/Th
 		const rollInstance = Roll.mock.results.at(-1).value;
 		const flags = rollInstance.toMessage.mock.calls.at(-1)[0].flags["armor-astir"];
 		expect(flags.reroll).toBeDefined();
+		expect(flags.reroll.flavorArgs).toEqual(expect.any(Object));
 		expect(flags.automaticSuccess.sources).toEqual([HOT_BLOODED_SOURCE]);
 	});
 });
@@ -1560,7 +1599,8 @@ describe("rollMove - heat up (Astir Overheating reroll)", () => {
 			actorId: "actor1",
 			moveKey: "exchange-blows",
 			trait: clash,
-			options: { advantage: "none", effect: "confidence", weaponLabel: "Halberd", weaponTags: "Blitz" }
+			options: { advantage: "none", effect: "confidence", weaponLabel: "Halberd", weaponTags: "Blitz" },
+			flavorArgs: expect.any(Object)
 		});
 	});
 
@@ -1962,6 +2002,162 @@ describe("rollMove - separateHold (Mobility)", () => {
 	});
 });
 
+describe("configureVariableDiceRoll", () => {
+	function fakeVariableDiceHtml(values) {
+		return { find: (selector) => ({ val: () => values[selector] }) };
+	}
+
+	it("renders the variable dice roll dialog template", async () => {
+		const promise = configureVariableDiceRoll(PLAN_AND_PREPARE);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("variable-dice-roll-dialog"), {});
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves target and extraDice as numbers when Roll is clicked", async () => {
+		const promise = configureVariableDiceRoll(PLAN_AND_PREPARE);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeVariableDiceHtml({
+			"[name='target']": "3",
+			"[name='extra-dice']": "2"
+		}));
+
+		expect(await promise).toEqual({ target: 3, extraDice: 2 });
+	});
+
+	it("resolves null when Cancel is clicked", async () => {
+		const promise = configureVariableDiceRoll(PLAN_AND_PREPARE);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.cancel.callback();
+
+		expect(await promise).toBeNull();
+	});
+
+	it("resolves null when the dialog is closed without a selection", async () => {
+		const promise = configureVariableDiceRoll(PLAN_AND_PREPARE);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.close();
+
+		expect(await promise).toBeNull();
+	});
+});
+
+describe("rollVariableDicePool", () => {
+	it("rolls 1d6 with no extra dice", async () => {
+		const actor = { id: "actor1" };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [4] });
+
+		await rollVariableDicePool(actor, PLAN_AND_PREPARE, { target: 3, extraDice: 0 });
+
+		expect(Roll).toHaveBeenCalledWith(`1d${DIE_FACES}`);
+	});
+
+	it("rolls 1 + extraDice d6 when extraDice is given", async () => {
+		const actor = { id: "actor1" };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [4, 2, 6] });
+
+		await rollVariableDicePool(actor, PLAN_AND_PREPARE, { target: 3, extraDice: 2 });
+
+		expect(Roll).toHaveBeenCalledWith(`3d${DIE_FACES}`);
+	});
+
+	it("scores each die independently against the target, regardless of the others", async () => {
+		const actor = { id: "actor1" };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [2, 5, 6] });
+
+		const result = await rollVariableDicePool(actor, PLAN_AND_PREPARE, { target: 5, extraDice: 2 });
+
+		expect(result.dice).toEqual([
+			{ result: 2, success: false },
+			{ result: 5, success: true },
+			{ result: 6, success: true }
+		]);
+		expect(result.successCount).toBe(2);
+	});
+
+	it("passes a dynamic success prompt and the move's successOptions to the chat template when there's at least one success", async () => {
+		const actor = { id: "actor1" };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [2, 5, 6] });
+
+		await rollVariableDicePool(actor, PLAN_AND_PREPARE, { target: 5, extraDice: 2 });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			name: PLAN_AND_PREPARE.name,
+			variableDiceResult: true,
+			target: 5,
+			successCount: 2,
+			successPrompt: "Choose 2, once per success:",
+			successOptions: PLAN_AND_PREPARE.successOptions
+		}));
+	});
+
+	it("passes null successPrompt and successOptions when there are no successes", async () => {
+		const actor = { id: "actor1" };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 2] });
+
+		await rollVariableDicePool(actor, PLAN_AND_PREPARE, { target: 5, extraDice: 1 });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			successCount: 0,
+			successPrompt: null,
+			successOptions: null
+		}));
+	});
+
+	it("posts via roll.toMessage with the actor's speaker and the rendered flavor, and no flags key", async () => {
+		const actor = { id: "actor1" };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [4] });
+		renderTemplate.mockResolvedValue("<div>flavor</div>");
+
+		await rollVariableDicePool(actor, PLAN_AND_PREPARE, { target: 3, extraDice: 0 });
+
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor });
+		expect(rollInstance.toMessage).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			flavor: "<div>flavor</div>"
+		});
+	});
+
+	it("returns the chat message, the scored dice, and the success count", async () => {
+		const actor = { id: "actor1" };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [2, 6] });
+
+		const result = await rollVariableDicePool(actor, PLAN_AND_PREPARE, { target: 5, extraDice: 1 });
+
+		// mockRoll's shared toMessage stub resolves to undefined (see its own definition above) — the
+		// same value every other rollMove/rollVariableDicePool test implicitly relies on for `message`.
+		expect(result).toEqual({
+			message: undefined,
+			dice: [
+				{ result: 2, success: false },
+				{ result: 6, success: true }
+			],
+			successCount: 1
+		});
+	});
+});
+
 describe("postMoveDescription", () => {
 	it("renders the move's description and posts it to chat", async () => {
 		const actor = { system: { stats: {} } };
@@ -2019,6 +2215,40 @@ describe("showMoveDescription", () => {
 
 		await expect(promise).resolves.toBeUndefined();
 	});
+
+	it("closes the first dialog and resolves its promise when a second call supersedes it", async () => {
+		const firstPromise = showMoveDescription(EXCHANGE_BLOWS);
+		const firstDialog = Dialog.mock.instances.at(-1);
+
+		const secondPromise = showMoveDescription(SUBSYSTEMS);
+
+		expect(firstDialog.close).toHaveBeenCalled();
+		await expect(firstPromise).resolves.toBeUndefined();
+
+		expect(Dialog.mock.calls.length).toBe(2);
+		const secondDialogData = Dialog.mock.calls.at(-1)[0];
+		expect(secondDialogData.title).toBe(SUBSYSTEMS.name);
+		expect(secondDialogData.content).toContain(SUBSYSTEMS.description);
+
+		secondDialogData.close();
+		await expect(secondPromise).resolves.toBeUndefined();
+	});
+
+	it("does not re-close the first dialog once it has already closed itself", async () => {
+		const firstPromise = showMoveDescription(EXCHANGE_BLOWS);
+		const firstDialog = Dialog.mock.instances.at(-1);
+		Dialog.mock.calls.at(-1)[0].close();
+		await firstPromise;
+
+		const secondPromise = showMoveDescription(SUBSYSTEMS);
+		const secondDialog = Dialog.mock.instances.at(-1);
+
+		expect(firstDialog.close).not.toHaveBeenCalled();
+		expect(secondDialog.close).not.toHaveBeenCalled();
+
+		secondDialog.close();
+		await expect(secondPromise).resolves.toBeUndefined();
+	});
 });
 
 describe("buildReminders", () => {
@@ -2035,5 +2265,28 @@ describe("buildReminders", () => {
 
 	it("omits the extraFailureReminder slot entirely when none is passed", () => {
 		expect(buildReminders("failure", effectState("none"))).toEqual(FAILURE_REMINDERS);
+	});
+
+	it("includes the extraSuccessReminder only on an actual 10+", () => {
+		const none = effectState("none");
+		const reminder = "If you chose to help, your ally may act with confidence in addition to advantage.";
+
+		expect(buildReminders("success", none, null, reminder)).toEqual([reminder]);
+		expect(buildReminders("mixed", none, null, reminder)).toEqual([]);
+		expect(buildReminders("failure", none, null, reminder)).toEqual(FAILURE_REMINDERS);
+	});
+
+	it("omits the extraSuccessReminder slot entirely when none is passed", () => {
+		expect(buildReminders("success", effectState("none"))).toEqual([]);
+	});
+
+	it("keeps extraFailureReminder and extraSuccessReminder independent when both are passed", () => {
+		const none = effectState("none");
+
+		expect(buildReminders("failure", none, "fail reminder", "success reminder")).toEqual([
+			...FAILURE_REMINDERS,
+			"fail reminder"
+		]);
+		expect(buildReminders("success", none, "fail reminder", "success reminder")).toEqual(["success reminder"]);
 	});
 });

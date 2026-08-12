@@ -15,6 +15,7 @@ import { findEquipmentTag } from "../equipment/equipment.js";
 
 export const MOVE_CHAT_TEMPLATE = "modules/armor-astir/templates/move-chat.hbs";
 export const MOVE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates/move-roll-dialog.hbs";
+export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates/variable-dice-roll-dialog.hbs";
 
 export const MOVE_RESULT_LABELS = {
 	success: "Success (10+)",
@@ -55,13 +56,16 @@ const CONFIDENCE_FAILURE_REMINDER = "You may loosen a Hook";
 // PlaybookActorSheet#_grantedFailureReminderForMove/moves-mixin.js) is a move-specific reminder a
 // picked playbook move adds to a *different* move's failure result, for a consequence this module
 // has no automatic tracker for (see claude.md's "Manual trackers, not enforcement"). Only ever
-// surfaced on an actual 6-, same as the universal FAILURE_REMINDERS above.
-export function buildReminders(tier, effect, extraFailureReminder = null) {
+// surfaced on an actual 6-, same as the universal FAILURE_REMINDERS above. extraSuccessReminder
+// (e.g. Captain's Coordinator — see PlaybookActorSheet#_grantedSuccessReminderForMove) is the same
+// idea mirrored onto the 10+ tier.
+export function buildReminders(tier, effect, extraFailureReminder = null, extraSuccessReminder = null) {
 	return [
 		...(tier === "failure" ? FAILURE_REMINDERS : []),
 		...(effect.key === "desperation" && tier === "success" ? [DESPERATION_SUCCESS_REMINDER] : []),
 		...(effect.key === "confidence" && tier === "failure" ? [CONFIDENCE_FAILURE_REMINDER] : []),
-		...(tier === "failure" && extraFailureReminder ? [extraFailureReminder] : [])
+		...(tier === "failure" && extraFailureReminder ? [extraFailureReminder] : []),
+		...(tier === "success" && extraSuccessReminder ? [extraSuccessReminder] : [])
 	];
 }
 
@@ -435,6 +439,56 @@ export const SPECIAL_MOVES = [
 			"<li>Cut away from the Sortie during a moment when time is precious, giving everyone room to " +
 			"think.</li>" +
 			"</ul>"
+	},
+	{
+		key: "plan-and-prepare",
+		name: "Plan & Prepare",
+		traits: [],
+		// Declarative flag read by _moveGroupMoves/the template's fourth dispatch branch — this move's
+		// roll pipeline is structurally incompatible with rollMove (no trait, no Confidence/Desperation,
+		// no Advantage/Disadvantage, no tiers; a player-chosen variable dice pool, each die scored
+		// independently against a manually-entered target). See configureVariableDiceRoll/
+		// rollVariableDicePool below.
+		variableDicePool: true,
+		description:
+			"<p>When you review orders for the next Sortie, go over scouting reports and maps, or otherwise " +
+			"attempt to prepare the crew for what comes next, you're trying to plan & prepare.</p>" +
+			"<p>Roll a d6, plus any extra dice earned during Downtime Scenes, and compare the results to " +
+			"the Strength of the Division that your next Sortie will target. For every result that is " +
+			"equal to or above the Division's Strength, choose one:</p>" +
+			"<ul>" +
+			"<li>During the Sortie, you will have an opportunity to: Untap a Faction of the Cause—" +
+			"securing supplies, freeing captives, etc; Reduce a Division's Strength by 1 during the next " +
+			"Conflict Turn—interfering with supply routes, undermining their operations, etc; Reduce the " +
+			"GRIP on a Faction or Pillar by 1—rooting out agents, destroying fortifications, etc; Expose " +
+			"or make vulnerable an asset or actor</li>" +
+			"<li>During the Sortie, you will have a risky opportunity to: Fell a Pillar with 0 GRIP—" +
+			"winning a decisive battle, capturing a position, etc; Destroy or capture an exposed asset or " +
+			"actor; Reduce a Division's Strength by 2 during the next Conflict Turn—disrupting a key " +
+			"shipment, assassinating important staff, etc</li>" +
+			"<li>The next lead a Sortie roll is made with advantage.</li>" +
+			"<li>All players hold 1. You may spend your hold during the next Sortie as if it were hold " +
+			"gained through one of your basic or playbook moves.</li>" +
+			"</ul>",
+		// The four-option choice menu, offered once per success (not once per roll) — rendered under a
+		// dynamically-built "Choose N..." prompt in rollVariableDicePool rather than baked into static
+		// text, so the count isn't duplicated. Mirrors the dynamic questionPrompt / static questions
+		// split BASIC_MOVES' read-the-room already uses.
+		successOptions:
+		"<ul>" +
+		"<li>During the Sortie, you will have an opportunity to: Untap a Faction of the Cause—" +
+		"securing supplies, freeing captives, etc; Reduce a Division's Strength by 1 during the " +
+		"next Conflict Turn—interfering with supply routes, undermining their operations, etc; " +
+		"Reduce the GRIP on a Faction or Pillar by 1—rooting out agents, destroying fortifications, " +
+		"etc; Expose or make vulnerable an asset or actor</li>" +
+		"<li>During the Sortie, you will have a risky opportunity to: Fell a Pillar with 0 GRIP—" +
+		"winning a decisive battle, capturing a position, etc; Destroy or capture an exposed asset " +
+		"or actor; Reduce a Division's Strength by 2 during the next Conflict Turn—disrupting a key " +
+		"shipment, assassinating important staff, etc</li>" +
+		"<li>The next lead a Sortie roll is made with advantage.</li>" +
+		"<li>All players hold 1. You may spend your hold during the next Sortie as if it were hold " +
+		"gained through one of your basic or playbook moves.</li>" +
+		"</ul>"
 	}
 ];
 
@@ -602,6 +656,71 @@ export async function configureMoveRoll(
 	});
 }
 
+// Plan & Prepare's own dialog — a wholly separate pipeline from configureMoveRoll/rollMove (see
+// SPECIAL_MOVES' variableDicePool comment): no trait, no Confidence/Desperation, no
+// Advantage/Disadvantage, so nothing in configureMoveRoll's form applies. Target is bounded 0-5 to
+// match Division Strength's own documented range (see claude.md/authority-actor-sheet.js) — this
+// module deliberately does not look the value up from an Authority actor automatically (no
+// findAuthorityActors/chooseAuthority cross-actor plumbing exists, unlike Lead a Sortie's CREW/
+// Carrier precedent), so the player types it in for now. Extra Dice (Downtime Scene rewards) has no
+// upper bound: nothing in this module tracks a Downtime-earned-dice pool to cap it against.
+export async function configureVariableDiceRoll(move) {
+	const content = await renderTemplate(VARIABLE_DICE_ROLL_DIALOG_TEMPLATE, {});
+
+	return new Promise((resolve) => {
+		new Dialog({
+			title: `Roll ${move.name}`,
+			content,
+			buttons: {
+				roll: {
+					label: "Roll",
+					callback: (html) => resolve({
+						target: Number(html.find("[name='target']").val()),
+						extraDice: Number(html.find("[name='extra-dice']").val())
+					})
+				},
+				cancel: {
+					label: "Cancel",
+					callback: () => resolve(null)
+				}
+			},
+			default: "roll",
+			close: () => resolve(null)
+		}, {
+			classes: ["armor-astir", "variable-dice-roll-dialog"]
+		}).render(true);
+	});
+}
+
+// Rolls 1 + extraDice d6 and scores each die independently against `target` — no keep-highest/
+// lowest (every die counts, unlike rollMove's KEPT_DICE=2) and no Confidence/Desperation
+// substitution, so roll.total is already correct with no recompute needed (contrast rollMove's own
+// comment on why it can't trust Roll.fromTerms). successCount drives how many of successOptions'
+// four choices the player gets — "for every result equal to or above [target], choose one," not a
+// single pass/fail tier the way every other move resolves.
+export async function rollVariableDicePool(actor, move, { target, extraDice }) {
+	const roll = new Roll(`${1 + extraDice}d${DIE_FACES}`);
+	await roll.evaluate();
+
+	const dice = roll.dice[0].results.map((die) => ({ result: die.result, success: die.result >= target }));
+	const successCount = dice.filter((die) => die.success).length;
+
+	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
+		name: move.name,
+		variableDiceResult: true,
+		target,
+		dice,
+		successCount,
+		// A prompt only makes sense once there's at least one success to spend — a 0-success roll
+		// shows the dice and count with nothing further to choose.
+		successPrompt: successCount ? `Choose ${successCount}, once per success:` : null,
+		successOptions: successCount ? move.successOptions : null
+	});
+
+	const message = await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor });
+	return { message, dice, successCount };
+}
+
 // Number Of The Beast's exploding-6 mechanic (see playbook-moves.js's the-wither:number-of-the-beast
 // / grantsExplodingSixes). Rolls one additional d6 for every die in `dice` (the full pool — see
 // applyRollEffects — not just the two kept for the total; see the design-risk note in the plan)
@@ -742,7 +861,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 	const showAddAdvantage = nextAdvantageState(advantage.key, "advantage") !== null;
 	const showAddDisadvantage = nextAdvantageState(advantage.key, "disadvantage") !== null;
 
-	const reminders = buildReminders(tier, effect, options.extraFailureReminder);
+	const reminders = buildReminders(tier, effect, options.extraFailureReminder, options.extraSuccessReminder);
 
 	// Human Resources' extra questions (see PlaybookActorSheet#_grantedQuestionsForMove) merge onto
 	// the move's own question list, if any — this module never imports playbook-moves.js (see
@@ -853,11 +972,11 @@ export async function rollMove(actor, move, trait, options = {}) {
 	// currently-maxed one, where showAddAdvantage/showAddDisadvantage above are already both false
 	// so the card simply renders no buttons for it.
 	const cardFlags = {
-		...(rerollOffer && { reroll: rerollOffer }),
+		...(rerollOffer && { reroll: { ...rerollOffer, flavorArgs } }),
 		...(automaticSuccessOffer.length && {
 			automaticSuccess: { actorId: actor.id, moveKey: move.key, flavorArgs, sources: automaticSuccessOffer }
 		}),
-		...(heatUpOffer && { heatUp: heatUpOffer }),
+		...(heatUpOffer && { heatUp: { ...heatUpOffer, flavorArgs } }),
 		advantageOffer: {
 			actorId: actor.id,
 			moveKey: move.key,
@@ -870,6 +989,8 @@ export async function rollMove(actor, move, trait, options = {}) {
 			// this reminder too if a retroactive Advantage/Disadvantage add flips the tier into or out
 			// of failure (see buildReminders' own extraFailureReminder param).
 			extraFailureReminder: options.extraFailureReminder ?? null,
+			// Same idea, mirrored onto a tier flip into or out of success (Captain's Coordinator).
+			extraSuccessReminder: options.extraSuccessReminder ?? null,
 			flavorArgs
 		}
 	};
@@ -943,9 +1064,15 @@ export async function postMoveDescription(actor, move) {
 // The "?" button's private counterpart to postMoveDescription above — same rules text, shown only
 // to the clicking player via a Dialog rather than posted to chat. Matches this codebase's other
 // Promise-wrapped Dialog helpers (e.g. chooseWeapon/chooseEquipmentCatalogItem in equipment.js).
+// Tracks the currently-open instance so a second call (clicking another move's "?" before closing
+// the first) closes the first dialog and resolves its promise, rather than leaving it open forever.
+let openMoveDescriptionDialog = null;
+
 export function showMoveDescription(move) {
+	openMoveDescriptionDialog?.close();
+
 	return new Promise((resolve) => {
-		new Dialog({
+		const dialog = new Dialog({
 			title: move.name,
 			content: `<div class="move-description">${move.description}</div>`,
 			buttons: {
@@ -955,9 +1082,16 @@ export function showMoveDescription(move) {
 				}
 			},
 			default: "close",
-			close: () => resolve()
+			close: () => {
+				if (openMoveDescriptionDialog === dialog) {
+					openMoveDescriptionDialog = null;
+				}
+				resolve();
+			}
 		}, {
 			classes: ["armor-astir", "move-description-dialog"]
-		}).render(true);
+		});
+		openMoveDescriptionDialog = dialog;
+		dialog.render(true);
 	});
 }

@@ -4,11 +4,14 @@ import { mergeSpentTags } from "../equipment/equipment.js";
 import { ALL_MOVES } from "./all-moves.js";
 
 // Marks the reroll's tag spent (the same array/checkbox PlaybookActorSheet#_onEquipmentTagSpentToggle
-// drives) and reruns rollMove with the original attempt's trait/options — posts a fresh chat message
-// rather than editing the failed one, avoiding the Roll re-serialization hazard rollMove's own comment
-// already flags for an already-evaluated roll. Not exported: only reachable through the click
+// drives), strikes through the original card's flavor in place to mark it superseded (see
+// templates/move-chat.hbs/styles/playbook-actor-sheet.css's `.superseded` rule), then reruns rollMove
+// with the original attempt's trait/options. The reroll itself is still a genuine second Roll posted
+// as its own fresh chat message, not a re-serialization of the original — see rollMove's own comment
+// on the Roll re-serialization hazard, which is why the original message's `content` (its dice) is
+// left untouched even though its `flavor` is edited. Not exported: only reachable through the click
 // handler onRenderMoveChat wires up below.
-async function handleReroll(reroll) {
+async function handleReroll(message, reroll) {
 	const actor = game.actors.get(reroll.actorId);
 	const move = ALL_MOVES.find((m) => m.key === reroll.moveKey);
 	if (!actor || !move) return;
@@ -17,20 +20,37 @@ async function handleReroll(reroll) {
 	await actor.update({
 		"system.attributes.equipment": mergeSpentTags(equipment, [{ equipmentId: reroll.equipmentId, tagKey: reroll.tagKey }])
 	});
+
+	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
+		...reroll.flavorArgs,
+		reroll: false,
+		superseded: true
+	});
+	await message.update({ flavor });
+
 	await rollMove(actor, move, reroll.trait, reroll.options);
 }
 
 // Spends Heat Up's cost — ticking the Astir's own Overheating checkbox (see
 // PlaybookActorSheet#_availableHeatUp/_onAstirOverheatingToggle) rather than an equipment tag —
-// then re-rolls exactly like handleReroll: a genuine second Roll, posted as its own fresh chat
-// message rather than editing the original, since the rules text says results are "discarded," not
-// revised.
-async function handleHeatUp(offer) {
+// strikes through the original card's flavor in place to mark it superseded (same mechanism as
+// handleReroll above), then re-rolls: a genuine second Roll, posted as its own fresh chat message
+// rather than editing the original's `content`, since the rules text says results are "discarded,"
+// not revised.
+async function handleHeatUp(message, offer) {
 	const actor = game.actors.get(offer.actorId);
 	const move = ALL_MOVES.find((m) => m.key === offer.moveKey);
 	if (!actor || !move) return;
 
 	await actor.update({ "system.attributes.astir.overheating": true });
+
+	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
+		...offer.flavorArgs,
+		heatUp: false,
+		superseded: true
+	});
+	await message.update({ flavor });
+
 	await rollMove(actor, move, offer.trait, offer.options);
 }
 
@@ -117,7 +137,7 @@ async function handleAdvantage(message, offer, direction) {
 	const tier = moveResultTier(total);
 	const effect = effectState(offer.effectKey);
 	const conditions = [...rollConditions(nextState, effect), ...offer.extraConditions];
-	const reminders = buildReminders(tier, effect, offer.extraFailureReminder);
+	const reminders = buildReminders(tier, effect, offer.extraFailureReminder, offer.extraSuccessReminder);
 
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
 		...offer.flavorArgs,
@@ -153,7 +173,7 @@ export function onRenderMoveChat(message, html) {
 			// the tag itself is also marked spent in handleReroll, but that only shows up on the
 			// Equipment tab, not on this already-rendered card.
 			event.currentTarget.disabled = true;
-			handleReroll(reroll);
+			handleReroll(message, reroll);
 		});
 	}
 
@@ -172,7 +192,7 @@ export function onRenderMoveChat(message, html) {
 	if (heatUp) {
 		html.find(".move-heatup").on("click", (event) => {
 			event.currentTarget.disabled = true;
-			handleHeatUp(heatUp);
+			handleHeatUp(message, heatUp);
 		});
 	}
 
