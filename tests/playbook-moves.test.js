@@ -247,6 +247,13 @@ describe("MOVE_POOLS", () => {
 		}
 	});
 
+	it("gives every bonusDowntimeTokens flag a numeric max and a description", () => {
+		for (const move of ALL_PLAYBOOK_MOVES.filter((m) => m.bonusDowntimeTokens)) {
+			expect(typeof move.bonusDowntimeTokens.max).toBe("number");
+			expect(move.bonusDowntimeTokens.description).toBeTruthy();
+		}
+	});
+
 	it("gives Dark Rebirth a costsPeril automatic-success grant scoped to bite-the-dust", () => {
 		const darkRebirth = findPlaybookMove("the-wither:dark-rebirth");
 
@@ -538,11 +545,15 @@ describe("MOVE_POOLS - the-attendant", () => {
 		expect(attendant.moves).toHaveLength(9);
 	});
 
-	it("gives Master & Servant a +1 downtimeTokensMax and empty traits", () => {
+	it("gives Master & Servant a restricted +1 bonusDowntimeTokens pool and empty traits", () => {
 		const masterServant = findPlaybookMove("the-attendant:master-servant");
 
 		expect(masterServant.traits).toEqual([]);
-		expect(masterServant.downtimeTokensMax).toBe(1);
+		expect(masterServant.bonusDowntimeTokens).toEqual({
+			max: 1,
+			description: "Must be spent on your Employer's needs and whims."
+		});
+		expect(masterServant.downtimeTokensMax).toBeUndefined();
 	});
 
 	it("flags Signed & Sealed with grantsApproachOverride and grantsWeaponTags", () => {
@@ -652,6 +663,10 @@ describe("MOVE_POOLS - the-captain", () => {
 
 		expect(informationNetwork.traits).toEqual([]);
 		expect(informationNetwork.addsTraitToMove).toEqual({ moveKey: "dispel-uncertainties", trait: "talk" });
+		expect(informationNetwork.bonusDowntimeTokens).toEqual({
+			max: 1,
+			description: "Any info-gathering efforts or projects."
+		});
 	});
 
 	it("gives Born Leader a standing advantage grant on Lead a Sortie", () => {

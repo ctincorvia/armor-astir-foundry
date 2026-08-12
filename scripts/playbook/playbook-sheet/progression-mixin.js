@@ -170,6 +170,22 @@ export const ProgressionSheetMixin = {
 			max: downtimeTokensMax
 		};
 	},
+	// Bonus Downtime Tokens: purpose-restricted pools a picked move can grant on top of the main
+	// Downtime Tokens counter above (Master & Servant, Information Network), each with its own
+	// value/max and its own restriction text. Stored per move key (system.attributes.
+	// bonusDowntimeTokens.<moveKey>.value), the same keyed-pool shape flatHold's own moveHold uses,
+	// so multiple granting moves on one actor stay independently valued. No period of its own —
+	// see _onRefreshSortie, which resets every one of these alongside the main counter.
+	_bonusDowntimeTokensData() {
+		const picked = resolvePlaybookMoves(this._playbookMoves());
+		return picked
+			.filter((move) => move.bonusDowntimeTokens)
+			.map((move) => {
+				const { max, description } = move.bonusDowntimeTokens;
+				const value = this.actor.system.attributes?.bonusDowntimeTokens?.[move.key]?.value ?? max;
+				return { key: move.key, name: move.name, description, value, max };
+			});
+	},
 	// The bottom four Advancement options unlock once at least ADVANCEMENT_UNLOCK_THRESHOLD of the
 	// top six are checked. `checked` for bottom items is always read from stored data regardless of
 	// `locked` — locking only blocks new checkbox interaction in the template, it never clears data,
@@ -219,6 +235,20 @@ export const ProgressionSheetMixin = {
 		const next = Math.min(max, Math.max(DOWNTIME_TOKENS_MIN, current + Number(delta)));
 		if (next === current) return;
 		this.actor.update({ "system.attributes.downtimeTokens.value": next });
+	},
+	// Bounded by the granting move's own bonusDowntimeTokens.max — re-derived from the picked move
+	// itself rather than trusted off the DOM, so a stale button (a move that's since been swapped
+	// out) can't write a stray value. No-ops entirely (no actor.update) when moveKey doesn't
+	// resolve to a currently-picked move carrying the flag.
+	_onBonusDowntimeTokenStep(event) {
+		const { moveKey, delta } = event.currentTarget.dataset;
+		const move = resolvePlaybookMoves(this._playbookMoves()).find((m) => m.key === moveKey);
+		if (!move?.bonusDowntimeTokens) return;
+		const { max } = move.bonusDowntimeTokens;
+		const current = this.actor.system.attributes?.bonusDowntimeTokens?.[moveKey]?.value ?? max;
+		const next = Math.min(max, Math.max(DOWNTIME_TOKENS_MIN, current + Number(delta)));
+		if (next === current) return;
+		this.actor.update({ [`system.attributes.bonusDowntimeTokens.${moveKey}.value`]: next });
 	},
 	// Serves both the top and bottom Advancement groups — the key comes from the checkbox's own
 	// dataset, not a hardcoded group. Bottom checkboxes render `disabled` in the template while

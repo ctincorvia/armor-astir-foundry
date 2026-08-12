@@ -2215,7 +2215,7 @@ export const MOVE_POOLS = [
 				key: "the-attendant:master-servant",
 				name: "Master & Servant",
 				traits: [],
-				downtimeTokensMax: 1,
+				bonusDowntimeTokens: { max: 1, description: "Must be spent on your Employer's needs and whims." },
 				description:
 					"<p>You are the head butler and servant to someone of prestige, possibly another member of " +
 					"the party: you are responsible for attending to their every need, from their dress to " +
@@ -2475,13 +2475,9 @@ export const MOVE_POOLS = [
 				name: "Information Network",
 				traits: [],
 				// "you may dispel uncertainties with +TALK" — the single-target-moveKey form of
-				// addsTraitToMove, same shape Facilitator/Ascension use. The "+1 token during
-				// Downtime" sentence stays prose below — no category-restricted ("any info-gathering
-				// efforts or projects") downtime-token tracking exists anywhere in this module, and
-				// downtimeTokensMax (see progression-mixin.js) is a flat actor-wide ceiling, not a
-				// per-purpose grant, so it isn't the right tool here either (see claude.md's "systems
-				// that do not exist yet").
+				// addsTraitToMove, same shape Facilitator/Ascension use.
 				addsTraitToMove: { moveKey: "dispel-uncertainties", trait: "talk" },
+				bonusDowntimeTokens: { max: 1, description: "Any info-gathering efforts or projects." },
 				description:
 					"<p>When you contact your superiors or an appropriate source for relevant intel, " +
 					"you may dispel uncertainties with +TALK.</p>" +

@@ -333,6 +333,40 @@
 	width: 4em;
 }
 
+/* Bonus Downtime Tokens (Master & Servant, Information Network — see progression-mixin.js's
+   _bonusDowntimeTokensData) — one .power-control row per granting move, so the shared
+   .power-control/.power-label/.power-step/.power-value rules above already cover the counter
+   itself; only the two-line label column (name + restriction text) below is genuinely new. */
+.armor-astir.sheet .bonus-downtime-tokens-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-2);
+	margin: var(--aa-space-2) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Unlike the single-line main counter, this row's label column wraps a name and a description
+   onto two lines, so it can't center against the steppers the way .power-control normally does. */
+.armor-astir.sheet .bonus-downtime-tokens-control {
+	align-items: flex-start;
+}
+
+.armor-astir.sheet .bonus-downtime-tokens-label-column {
+	display: flex;
+	flex-direction: column;
+}
+
+/* Same muted-secondary-text treatment as .equipment-tag-description (reduced opacity), plus a
+   normal font-weight to override .power-label's bold, which this element would otherwise inherit
+   from .power-control. */
+.armor-astir.sheet .bonus-downtime-tokens-description {
+	margin: 0;
+	font-size: 12px;
+	font-weight: normal;
+	opacity: 0.8;
+}
+
 /* Potions (Alchemical Suite — see astir.js) — a compact row per color rather than the full
    .move-list treatment, since there's nothing to add/remove/roll, just a count and a Use button. */
 .armor-astir.sheet .potion-list {

@@ -11,6 +11,8 @@ const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loo
 const PATRON = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:patron");
 const HELPING_HANDS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:helping-hands");
 const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
+const MASTER_SERVANT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-attendant:master-servant");
+const INFORMATION_NETWORK = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:information-network");
 
 describe("PlaybookActorSheet#getData - traits", () => {
 	it("defaults every trait to value 0, no bonus, and enabled when system.stats is empty", () => {
@@ -639,6 +641,171 @@ describe("PlaybookActorSheet#_onDowntimeTokensStep", () => {
 		sheet._onDowntimeTokensStep({ currentTarget: { dataset: { delta: "-1" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.downtimeTokens.value": 2 });
+	});
+});
+
+describe("PlaybookActorSheet#_bonusDowntimeTokensData", () => {
+	it("returns an empty array when no picked move carries bonusDowntimeTokens", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
+
+		expect(sheet._bonusDowntimeTokensData()).toEqual([]);
+	});
+
+	it("returns one entry, defaulted to its own max, for a picked granting move", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [MASTER_SERVANT.key] } } };
+
+		expect(sheet._bonusDowntimeTokensData()).toEqual([
+			{
+				key: MASTER_SERVANT.key,
+				name: MASTER_SERVANT.name,
+				description: MASTER_SERVANT.bonusDowntimeTokens.description,
+				value: MASTER_SERVANT.bonusDowntimeTokens.max,
+				max: MASTER_SERVANT.bonusDowntimeTokens.max
+			}
+		]);
+	});
+
+	it("reflects a stored value over the default-to-max value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [MASTER_SERVANT.key],
+					bonusDowntimeTokens: { [MASTER_SERVANT.key]: { value: 0 } }
+				}
+			}
+		};
+
+		expect(sheet._bonusDowntimeTokensData()[0]).toEqual(
+			expect.objectContaining({ key: MASTER_SERVANT.key, value: 0, max: MASTER_SERVANT.bonusDowntimeTokens.max })
+		);
+	});
+
+	it("keeps two granting moves' pools independently valued, in picked order", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [MASTER_SERVANT.key, INFORMATION_NETWORK.key],
+					bonusDowntimeTokens: { [INFORMATION_NETWORK.key]: { value: 0 } }
+				}
+			}
+		};
+
+		const data = sheet._bonusDowntimeTokensData();
+
+		expect(data.map((entry) => entry.key)).toEqual([MASTER_SERVANT.key, INFORMATION_NETWORK.key]);
+		expect(data[0].value).toBe(MASTER_SERVANT.bonusDowntimeTokens.max);
+		expect(data[1].value).toBe(0);
+	});
+});
+
+describe("PlaybookActorSheet#_onBonusDowntimeTokenStep", () => {
+	it("increments the value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [MASTER_SERVANT.key],
+					bonusDowntimeTokens: { [MASTER_SERVANT.key]: { value: 0 } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { moveKey: MASTER_SERVANT.key, delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.bonusDowntimeTokens.${MASTER_SERVANT.key}.value`]: 1
+		});
+	});
+
+	it("decrements the value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [MASTER_SERVANT.key],
+					bonusDowntimeTokens: { [MASTER_SERVANT.key]: { value: 1 } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { moveKey: MASTER_SERVANT.key, delta: "-1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.bonusDowntimeTokens.${MASTER_SERVANT.key}.value`]: 0
+		});
+	});
+
+	it("clamps at the granting move's own max", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [MASTER_SERVANT.key],
+					bonusDowntimeTokens: { [MASTER_SERVANT.key]: { value: MASTER_SERVANT.bonusDowntimeTokens.max } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { moveKey: MASTER_SERVANT.key, delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at DOWNTIME_TOKENS_MIN", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [MASTER_SERVANT.key],
+					bonusDowntimeTokens: { [MASTER_SERVANT.key]: { value: 0 } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { moveKey: MASTER_SERVANT.key, delta: "-1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing stored value as starting at the max", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [MASTER_SERVANT.key] } },
+			update: vi.fn()
+		};
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { moveKey: MASTER_SERVANT.key, delta: "-1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.bonusDowntimeTokens.${MASTER_SERVANT.key}.value`]:
+				MASTER_SERVANT.bonusDowntimeTokens.max - 1
+		});
+	});
+
+	it("no-ops when moveKey doesn't resolve to a currently-picked move", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } }, update: vi.fn() };
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { moveKey: MASTER_SERVANT.key, delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("no-ops when moveKey resolves to a picked move without the flag", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [HELPING_HANDS.key] } }, update: vi.fn() };
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { moveKey: HELPING_HANDS.key, delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 });
 

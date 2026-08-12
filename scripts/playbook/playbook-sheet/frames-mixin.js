@@ -221,6 +221,14 @@ export const FramesSheetMixin = {
 			if (move.flatHold && move.period === "Sortie") {
 				updates[`system.attributes.moveHold.${move.key}.value`] = HOLD_MIN;
 			}
+			// Bonus Downtime Tokens (Master & Servant, Information Network — see progression-mixin.js's
+			// _bonusDowntimeTokensData) are the same per-Sortie resource as the main Downtime Tokens
+			// counter below, so they reset alongside it here rather than gating on period like the
+			// flatHold branch above — walks all of ALL_MOVES, not just picked moves, matching that
+			// branch's own unconditional-reset behavior.
+			if (move.bonusDowntimeTokens) {
+				updates[`system.attributes.bonusDowntimeTokens.${move.key}.value`] = move.bonusDowntimeTokens.max;
+			}
 			// Tactical Genius's own text isn't a flat reset-to-min like every other Sortie-period
 			// numericTracker _refreshPeriod already handled above — it's "take 1+KNOW hold at the
 			// start of a Sortie" (see playbook-moves.js), so this overwrites _refreshPeriod's own

@@ -486,6 +486,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
+			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.downtimeTokens.value": 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
@@ -514,6 +516,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
+			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.downtimeTokens.value": 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
@@ -535,6 +539,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
+			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.downtimeTokens.value": 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
@@ -560,6 +566,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
+			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.downtimeTokens.value": 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
@@ -588,6 +596,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
+			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.downtimeTokens.value": 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
@@ -616,6 +626,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
+			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.downtimeTokens.value": 3
 		});
@@ -692,6 +704,20 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 		// 1 (base KNOW) + 1 (Let Loose's +1-per-burden, 1 burden) = 2, so 1+KNOW = 3.
 		expect(sheet.actor.update).toHaveBeenCalledWith(
 			expect.objectContaining({ [`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 3 })
+		);
+	});
+
+	it("resets a below-max Bonus Downtime Tokens pool (Master & Servant) back to its own max", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { bonusDowntimeTokens: { "the-attendant:master-servant": { value: 0 } } } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1 })
 		);
 	});
 });

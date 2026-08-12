@@ -98,6 +98,7 @@ Adding rules text is a pure data change; adding a *mechanic* is not. Classify wh
 | "once per Sortie"/"once per Downtime" | `uses: [{key,label}]` — one checkbox per entry, `checked` read from `system.attributes.moveUses.<moveKey>.<useKey>`. A manual tracker (see Recurring conventions); works identically for any move source, not just playbook moves. |
 | "your tier... counts as one higher than whatever it would normally be" | `tierBonus: N` → summed across picked moves, added on top of both on-foot base Tier and a mounted frame's own (`_conflictTier`) — contrast `conflictTier` itself, which is *maxed* across picks, not summed |
 | "you have a total of N tokens instead of M" | `downtimeTokensMax: N` → `_downtimeTokensMax()` takes the max across picked moves' own flags, same reduce shape as `conflictTier`'s own base |
+| "take +1 token during Downtime to spend on [restriction]" | `bonusDowntimeTokens: { max: N, description }` → its own pool at `system.attributes.bonusDowntimeTokens.<moveKey>`, keyed like `moveHold`/`uses` so multiple granting moves on one actor don't collide; independent of the main `downtimeTokensMax` ceiling above, reset to its own `max` on Refresh Sortie the same as the main counter |
 
 Anything that varies per character is a flag evaluated in the sheet, not a field on the move — see Recurring conventions.
 
