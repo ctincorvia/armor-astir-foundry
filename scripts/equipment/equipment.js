@@ -568,47 +568,6 @@ export const EQUIPMENT_CATALOG = [
 		scale: "foot"
 	},
 	{
-		key: "baneblade-ii",
-		name: "Baneblade II",
-		kind: "weapon",
-		description: "Most Astir pilots do not concern themselves with the scrambling of foot-soldiers. Some of " +
-			"these pilots meet very unexpected ends. Also seen as a Blowtorch, Enchanted Broadsword, or Bolt " +
-			"Gauntlets.",
-		tags: ["melee", "bane", "two-handed"],
-		scale: "foot"
-	},
-	{
-		key: "warp-slinger-ii",
-		name: "Warp-Slinger II",
-		kind: "weapon",
-		description: "An emplaced device incorporating multiple wands linked to a simple firing ritual that can " +
-			"be triggered by even those not gifted with magic. Also seen as an MG Turret, Point Laser, or " +
-			"Multi-Crossbow.",
-		tags: ["ranged", "blitz", "infinite", "huge"],
-		scale: "foot"
-	},
-	{
-		key: "ardent-rifle-ii",
-		name: "Ardent Rifle II",
-		kind: "weapon",
-		description: "A large two-handed tool that fires searing bolts of light, capable of burning through " +
-			"even an Astir's defences. Typically used by ardents, due to its weight. Also seen as an " +
-			"Arbalest, Flame Staff, or Greatbow.",
-		tags: ["ranged", "bane", "two-handed"],
-		scale: "foot"
-	},
-	{
-		key: "seeker-cluster-ii",
-		name: "Seeker Cluster II",
-		kind: "weapon",
-		description: "Guided by a faint magical intelligence, this device lets loose a swarm of small magical " +
-			"crystals to hound a particular target. Though they struggle to pierce armour, these crystals " +
-			"shatter on impact, resulting in sharp shrapnel. Also seen as Orbiting Motes, a Shock Rod, or " +
-			"Command Bracelets & Drone.",
-		tags: ["ranged", "guided", "defensive", "reload", "messy"],
-		scale: "foot"
-	},
-	{
 		key: "luxury-gift-i",
 		name: "Luxury Gift I",
 		kind: "gear",

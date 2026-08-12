@@ -421,8 +421,8 @@ export function findAstirMove(key, catalog = ASTIR_MOVE_CATALOG) {
 // Astir weapons are ordinary equipment entries (system.attributes.equipment) flagged astir: true —
 // see PlaybookActorSheet — so this catalog matches EQUIPMENT_CATALOG's weapon shape minus
 // scale/tier, both of which an Astir weapon always inherits from its Astir rather than storing.
-// "Also seen as ..." lines transcribe the rulebook's own re-skin flavor for each entry, matching
-// EQUIPMENT_CATALOG's own baneblade-ii precedent. Every entry is Tier III fiction (an Astir's own
+// "Also seen as ..." lines transcribe the rulebook's own re-skin flavor for each entry. Every
+// entry is Tier III fiction (an Astir's own
 // Tier — see ASTIR_TIER_MIN/MAX — always governs the actual roll, since tier isn't stored here).
 //
 // `familiar: true` (the last four entries) marks the four Familiar weapons: small constructs
@@ -506,6 +506,39 @@ export const ASTIR_WEAPON_CATALOG = [
 			"through Carrier hulls as a valuable upside. Also seen as a Single-Cast Rifle, Beam Sniper, or " +
 			"Abyss Gun.",
 		tags: ["sniper", "ruin", "reload", "two-handed"]
+	},
+	{
+		key: "baneblade",
+		name: "Baneblade III",
+		description: "Most Astir pilots do not concern themselves with the scrambling of foot-soldiers. Some of " +
+			"these pilots meet very unexpected ends. Also seen as a Blowtorch, Enchanted Broadsword, or Bolt " +
+			"Gauntlets.",
+		tags: ["melee", "bane", "two-handed"]
+	},
+	{
+		key: "warp-slinger",
+		name: "Warp-Slinger III",
+		description: "An emplaced device incorporating multiple wands linked to a simple firing ritual that can " +
+			"be triggered by even those not gifted with magic. Also seen as an MG Turret, Point Laser, or " +
+			"Multi-Crossbow.",
+		tags: ["ranged", "blitz", "infinite", "huge"]
+	},
+	{
+		key: "ardent-rifle",
+		name: "Ardent Rifle III",
+		description: "A large two-handed tool that fires searing bolts of light, capable of burning through " +
+			"even an Astir's defences. Typically used by ardents, due to its weight. Also seen as an " +
+			"Arbalest, Flame Staff, or Greatbow.",
+		tags: ["ranged", "bane", "two-handed"]
+	},
+	{
+		key: "seeker-cluster",
+		name: "Seeker Cluster III",
+		description: "Guided by a faint magical intelligence, this device lets loose a swarm of small magical " +
+			"crystals to hound a particular target. Though they struggle to pierce armour, these crystals " +
+			"shatter on impact, resulting in sharp shrapnel. Also seen as Orbiting Motes, a Shock Rod, or " +
+			"Command Bracelets & Drone.",
+		tags: ["ranged", "guided", "defensive", "reload", "messy"]
 	},
 	{
 		key: "ardentpiercer",
