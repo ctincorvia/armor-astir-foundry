@@ -1205,9 +1205,9 @@ describe("PlaybookActorSheet#_onAstirWeaponAdd", () => {
 	it("carries familiar: true onto the saved entry when the picked template is a Familiar weapon", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { astir: { id: "a1" }, equipment: [] } }, update: vi.fn() };
-		const template = { key: "wisp-familiar", name: "Wisp Familiar III", description: "", tags: ["ranged"], familiar: true };
+		const template = { key: "wisp-familiar", name: "Wisp Familiar", description: "", tags: ["ranged"], familiar: true };
 		chooseAstirWeapon.mockResolvedValue(template);
-		configureEquipment.mockResolvedValue({ name: "Wisp Familiar III", description: "", kind: "weapon", tags: ["ranged"] });
+		configureEquipment.mockResolvedValue({ name: "Wisp Familiar", description: "", kind: "weapon", tags: ["ranged"] });
 
 		await sheet._onAstirWeaponAdd();
 
@@ -1218,7 +1218,7 @@ describe("PlaybookActorSheet#_onAstirWeaponAdd", () => {
 					spent: [],
 					astir: true,
 					familiar: true,
-					name: "Wisp Familiar III",
+					name: "Wisp Familiar",
 					description: "",
 					kind: "weapon",
 					tags: ["ranged"]
@@ -1232,15 +1232,15 @@ describe("PlaybookActorSheet#_onAstirWeaponAdd", () => {
 	it("does not set familiar on the saved entry when the picked template isn't a Familiar", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { astir: { id: "a1" }, equipment: [] } }, update: vi.fn() };
-		const template = { key: "astir-fists", name: "Astir Fists III", description: "", tags: ["melee"] };
+		const template = { key: "astir-fists", name: "Astir Fists", description: "", tags: ["melee"] };
 		chooseAstirWeapon.mockResolvedValue(template);
-		configureEquipment.mockResolvedValue({ name: "Astir Fists III", description: "", kind: "weapon", tags: ["melee"] });
+		configureEquipment.mockResolvedValue({ name: "Astir Fists", description: "", kind: "weapon", tags: ["melee"] });
 
 		await sheet._onAstirWeaponAdd();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
-				{ id: "test-id", spent: [], astir: true, name: "Astir Fists III", description: "", kind: "weapon", tags: ["melee"] }
+				{ id: "test-id", spent: [], astir: true, name: "Astir Fists", description: "", kind: "weapon", tags: ["melee"] }
 			],
 			"system.attributes.astir.power": 0,
 			"system.attributes.astir.weaponPower": 0

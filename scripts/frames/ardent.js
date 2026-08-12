@@ -49,7 +49,7 @@ export function ardentWeapons(catalog = ASTIR_WEAPON_CATALOG) {
 export const ARDENT_FEATURE_PARTS = [
 	{
 		key: "ardent-feature:armour-plating",
-		name: "Armour Plating II",
+		name: "Armour Plating",
 		partType: "Active",
 		traits: [],
 		uses: EXPENDED_USE,
@@ -61,7 +61,7 @@ export const ARDENT_FEATURE_PARTS = [
 	},
 	{
 		key: "ardent-feature:internal-seals",
-		name: "Internal Seals II",
+		name: "Internal Seals",
 		partType: "Passive",
 		traits: [],
 		description:
@@ -71,7 +71,7 @@ export const ARDENT_FEATURE_PARTS = [
 	},
 	{
 		key: "ardent-feature:chromatic-reserves",
-		name: "Chromatic Reserves II",
+		name: "Chromatic Reserves",
 		partType: "Active",
 		traits: [],
 		// Three checkboxes rather than Chromatic Focus's single EXPENDED_USE — "3x per Sortie" reuses
@@ -89,7 +89,7 @@ export const ARDENT_FEATURE_PARTS = [
 	},
 	{
 		key: "ardent-feature:bane-reserves",
-		name: "Bane Reserves II",
+		name: "Bane Reserves",
 		partType: "Active",
 		traits: [],
 		// "Upgrade to ruin" has no existing tag-upgrade mechanism to hook into (see claude.md's
@@ -109,21 +109,21 @@ export const ARDENT_FEATURE_PARTS = [
 export const ARDENT_FEATURE_WEAPONS = [
 	{
 		key: "ardent-feature:antipersonnel-turret",
-		name: "Antipersonnel Turret II",
+		name: "Antipersonnel Turret",
 		description: "A mounted turret meant for thinning out infantry rather than trading blows with " +
 			"another frame.",
 		tags: ["ranged", "defensive"]
 	},
 	{
 		key: "ardent-feature:bolt-sigils",
-		name: "Bolt Sigils II",
+		name: "Bolt Sigils",
 		description: "Etched sigils along a melee weapon's edge, primed to discharge a hostile-to-magic " +
 			"jolt on impact.",
 		tags: ["melee", "bane"]
 	},
 	{
 		key: "ardent-feature:blasting-stave",
-		name: "Blasting Stave II",
+		name: "Blasting Stave",
 		description: "A shoulder-braced stave charged for a single devastating, indiscriminate blast.",
 		tags: ["sniper", "messy", "limited", "area", "impact"]
 	},
@@ -136,7 +136,7 @@ export const ARDENT_FEATURE_WEAPONS = [
 	},
 	{
 		key: "ardent-feature:lancing-stave",
-		name: "Lancing Stave II",
+		name: "Lancing Stave",
 		description: "A precise, reload-heavy stave built to punch clean through a single target from range.",
 		tags: ["sniper", "reload", "decisive"]
 	}

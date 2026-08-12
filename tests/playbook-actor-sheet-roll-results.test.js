@@ -347,7 +347,7 @@ describe("PlaybookActorSheet#_rollMove - derived Trait bonuses (Arcane Augments,
 });
 
 describe("PlaybookActorSheet#_rollMove - Familiar weapons (+CHANNEL override)", () => {
-	const wisp = { id: "eq1", kind: "weapon", astir: true, familiar: true, name: "Wisp Familiar III", description: "", tags: ["ranged"], spent: [] };
+	const wisp = { id: "eq1", kind: "weapon", astir: true, familiar: true, name: "Wisp Familiar", description: "", tags: ["ranged"], spent: [] };
 
 	it("rolls Exchange Blows with a Familiar weapon as +CHANNEL instead of CLASH/TALK", async () => {
 		const sheet = new PlaybookActorSheet();

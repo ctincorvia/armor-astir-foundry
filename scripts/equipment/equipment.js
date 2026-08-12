@@ -463,7 +463,7 @@ export const EQUIPMENT_TAGS = [
 export const EQUIPMENT_CATALOG = [
 	{
 		key: "infantry-weapon-i",
-		name: "Infantry Weapon I",
+		name: "Infantry Weapon",
 		kind: "weapon",
 		description: "Simple, sturdy weapons like blades and clubs.",
 		tags: ["melee"],
@@ -471,7 +471,7 @@ export const EQUIPMENT_CATALOG = [
 	},
 	{
 		key: "dagger-i",
-		name: "Dagger I",
+		name: "Dagger",
 		kind: "weapon",
 		description: "A concealable dagger, easily worn beneath clothing and thrown if needed.",
 		tags: ["melee", "intimate", "concealable"],
@@ -479,7 +479,7 @@ export const EQUIPMENT_CATALOG = [
 	},
 	{
 		key: "greatsword-i",
-		name: "Greatsword I",
+		name: "Greatsword",
 		kind: "weapon",
 		description: "A large weapon, with good reach and weight, perfect for taking heads. Praxis.",
 		tags: ["melee", "area", "two-handed"],
@@ -487,7 +487,7 @@ export const EQUIPMENT_CATALOG = [
 	},
 	{
 		key: "armourbane-i",
-		name: "Armourbane I",
+		name: "Armourbane",
 		kind: "weapon",
 		description: "A thin, pretty blade, good for slipping between armour plates.",
 		tags: ["melee", "fragile", "decisive"],
@@ -495,7 +495,7 @@ export const EQUIPMENT_CATALOG = [
 	},
 	{
 		key: "enchanted-blade-i",
-		name: "Enchanted Blade I",
+		name: "Enchanted Blade",
 		kind: "weapon",
 		description: "What was once simple steel now carries the unmistakable sheen of ritual.",
 		tags: ["melee", "distinct", "bane"],
@@ -503,7 +503,7 @@ export const EQUIPMENT_CATALOG = [
 	},
 	{
 		key: "partisan-i",
-		name: "Partisan I",
+		name: "Partisan",
 		kind: "weapon",
 		description: "A long spear, perfect for keeping your friends safe and your enemies at a very specific " +
 			"distance, as the saying goes.",
@@ -512,7 +512,7 @@ export const EQUIPMENT_CATALOG = [
 	},
 	{
 		key: "bow-i",
-		name: "Bow I",
+		name: "Bow",
 		kind: "weapon",
 		description: "For when you don't need anything fancy, a bow is perfectly capable of doing the job for " +
 			"as long as you have arrows.",
@@ -521,7 +521,7 @@ export const EQUIPMENT_CATALOG = [
 	},
 	{
 		key: "sidearm-i",
-		name: "Sidearm I",
+		name: "Sidearm",
 		kind: "weapon",
 		description: "The typical protections afforded to Astir pilots: a reliable tool capable of firing " +
 			"bursts of light arcane energy.",
@@ -530,7 +530,7 @@ export const EQUIPMENT_CATALOG = [
 	},
 	{
 		key: "raypistol-i",
-		name: "Raypistol I",
+		name: "Raypistol",
 		kind: "weapon",
 		description: "A powerful but short-lived firebolt wand, fitted with a comfortable grip.",
 		tags: ["ranged", "limited", "bane"],
@@ -538,7 +538,7 @@ export const EQUIPMENT_CATALOG = [
 	},
 	{
 		key: "boltrifle-i",
-		name: "Boltrifle I",
+		name: "Boltrifle",
 		kind: "weapon",
 		description: "Effectively repeating crossbows fed by lightweight 'barrels' of ammunition, bolt rifles " +
 			"are a common sight among troops of any real armed force.",
@@ -547,7 +547,7 @@ export const EQUIPMENT_CATALOG = [
 	},
 	{
 		key: "rayrifle-i",
-		name: "Rayrifle I",
+		name: "Rayrifle",
 		kind: "weapon",
 		description: "A heavy rifle, often using magical crystals or wands as charge for a single shot. Their " +
 			"bulk, heavy recoil and cost makes them highly uncommon, but not overly so: after all, little " +
@@ -557,7 +557,7 @@ export const EQUIPMENT_CATALOG = [
 	},
 	{
 		key: "ashstaff-i",
-		name: "Ashstaff I",
+		name: "Ashstaff",
 		kind: "weapon",
 		description: "A large, shoulder-carried staff charged with incendiary magic. A little lighter and " +
 			"easier to use than a rayrifle, but still fairly bulky and lacking in the ability to pierce the " +
@@ -631,7 +631,7 @@ export const EQUIPMENT_CATALOG = [
 	},
 	{
 		key: "saber-sidearm-i",
-		name: "Saber & Sidearm I",
+		name: "Saber & Sidearm",
 		kind: "weapon",
 		description: "The standard-issue pairing carried by Ardent crews: a reliable sidearm backed up by a " +
 			"blade for when the fight closes in.",

@@ -596,7 +596,7 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 			await sheet._onStartingGearAdd();
 
 			expect(sheet.actor.update).toHaveBeenCalledWith({
-				"system.attributes.equipment": [expect.objectContaining({ name: "Augments I" })]
+				"system.attributes.equipment": [expect.objectContaining({ name: "Augments" })]
 			});
 		});
 
@@ -608,7 +608,7 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 			await sheet._onStartingGearAdd();
 
 			const equipment = sheet.actor.update.mock.calls[0][0]["system.attributes.equipment"];
-			expect(equipment.find((e) => e.name === "Power Focus I")).toEqual({
+			expect(equipment.find((e) => e.name === "Power Focus")).toEqual({
 				id: "test-id",
 				spent: [],
 				kind: "weapon",
@@ -697,9 +697,9 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 
 	it("carries the familiar flag forward on a Familiar weapon", async () => {
 		const sheet = new PlaybookActorSheet();
-		const entry = { id: "1", kind: "weapon", astir: true, familiar: true, name: "Wisp Familiar III", description: "", tags: ["ranged"], spent: [] };
+		const entry = { id: "1", kind: "weapon", astir: true, familiar: true, name: "Wisp Familiar", description: "", tags: ["ranged"], spent: [] };
 		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
-		configureEquipment.mockResolvedValue({ name: "Wisp Familiar III", description: "", kind: "weapon", tags: ["ranged"] });
+		configureEquipment.mockResolvedValue({ name: "Wisp Familiar", description: "", kind: "weapon", tags: ["ranged"] });
 
 		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
 
@@ -708,7 +708,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 				{
 					id: "1",
 					spent: [],
-					name: "Wisp Familiar III",
+					name: "Wisp Familiar",
 					description: "",
 					kind: "weapon",
 					tags: ["ranged"],

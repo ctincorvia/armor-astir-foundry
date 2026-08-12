@@ -101,7 +101,7 @@ export const STARTING_GEAR_POOLS = [
 		grantedItems: [
 			{
 				key: "the-commander:saber-sidearm-i",
-				name: "Saber & Sidearm I",
+				name: "Saber & Sidearm",
 				description: "The standard-issue pairing carried by Ardent crews: a reliable sidearm backed " +
 					"up by a blade for when the fight closes in.",
 				kind: "weapon",
@@ -124,7 +124,7 @@ export const STARTING_GEAR_POOLS = [
 		grantedItems: [
 			{
 				key: "the-impostor:augments-i",
-				name: "Augments I",
+				name: "Augments",
 				description: "The arcane augmentations that let you control an Astir.",
 				kind: "weapon",
 				tags: ["melee", "bane"]
@@ -138,14 +138,14 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-impostor:power-focus-i",
-						name: "Power Focus I",
+						name: "Power Focus",
 						description: "A focus that channels and directs magical energy into a ranged blast.",
 						kind: "weapon",
 						tags: ["ranged", "blitz"]
 					},
 					{
 						key: "the-impostor:nullblade-i",
-						name: "Nullblade I",
+						name: "Nullblade",
 						description: "A plain, unenchanted blade — no different from one anybody else might " +
 							"carry.",
 						kind: "weapon",
@@ -153,7 +153,7 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-impostor:sidearm-i",
-						name: "Sidearm I",
+						name: "Sidearm",
 						description: "The typical protections afforded to Astir pilots: a reliable tool " +
 							"capable of firing bursts of light arcane energy.",
 						kind: "weapon",
@@ -183,21 +183,21 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-diplomat:spyglass-ray-i",
-						name: "Spyglass Ray I",
+						name: "Spyglass Ray",
 						description: "A precision weapon disguised as an optic instrument.",
 						kind: "weapon",
 						tags: ["sniper", "bane", "elemental"]
 					},
 					{
 						key: "the-diplomat:fencing-blade-i",
-						name: "Fencing Blade I",
+						name: "Fencing Blade",
 						description: "A light, quick blade suited to formal duels as much as self-defence.",
 						kind: "weapon",
 						tags: ["melee", "defensive", "blitz"]
 					},
 					{
 						key: "the-diplomat:arcane-dagger-i",
-						name: "Arcane Dagger I",
+						name: "Arcane Dagger",
 						description: "A small, concealable blade humming with destructive magic.",
 						kind: "weapon",
 						tags: ["melee", "ruin", "intimate", "arcane"]
@@ -263,7 +263,7 @@ export const STARTING_GEAR_POOLS = [
 		grantedItems: [
 			{
 				key: "the-arcanist:touch-spells-i",
-				name: "Touch Spells I",
+				name: "Touch Spells",
 				description: "A focusing gesture and a whispered word, channeled straight through the caster's " +
 					"own hands into whatever — or whoever — they touch.",
 				kind: "weapon",
@@ -278,7 +278,7 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-arcanist:telescoping-staff-i",
-						name: "Telescoping Staff I",
+						name: "Telescoping Staff",
 						description: "A collapsible metal staff that extends in an instant, delivering a " +
 							"solid, weighty blow.",
 						kind: "weapon",
@@ -286,7 +286,7 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-arcanist:reagent-knife-i",
-						name: "Reagent Knife I",
+						name: "Reagent Knife",
 						description: "A plain, unenchanted blade used to prepare reagents as readily as it " +
 							"draws blood.",
 						kind: "weapon",
@@ -294,7 +294,7 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-arcanist:sidearm-i",
-						name: "Sidearm I",
+						name: "Sidearm",
 						description: "The typical protections afforded to Astir pilots: a reliable tool " +
 							"capable of firing bursts of light arcane energy.",
 						kind: "weapon",
@@ -319,7 +319,7 @@ export const STARTING_GEAR_POOLS = [
 		grantedItems: [
 			{
 				key: "the-paradigm:divine-touch-i",
-				name: "Divine Touch I",
+				name: "Divine Touch",
 				description: "A blow delivered through a hand wreathed in divine light — the caster's own " +
 					"conduit for their god's power.",
 				kind: "weapon",
@@ -334,7 +334,7 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-paradigm:holy-symbol-i",
-						name: "Holy Symbol I",
+						name: "Holy Symbol",
 						description: "A sacred icon raised high, calling down divine judgement on all who " +
 							"stand against the faith.",
 						kind: "weapon",
@@ -342,7 +342,7 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-paradigm:sacred-weapon-i",
-						name: "Sacred Weapon I",
+						name: "Sacred Weapon",
 						description: "A blade or bludgeon consecrated in solemn ritual — ordinary steel made " +
 							"holy by purpose and blessing.",
 						kind: "weapon",
@@ -350,7 +350,7 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-paradigm:sidearm-i",
-						name: "Sidearm I",
+						name: "Sidearm",
 						description: "The typical protections afforded to Astir pilots: a reliable tool " +
 							"capable of firing bursts of light arcane energy.",
 						kind: "weapon",
@@ -375,7 +375,7 @@ export const STARTING_GEAR_POOLS = [
 		grantedItems: [
 			{
 				key: "the-witch:pact-weapon-i",
-				name: "Pact Weapon I",
+				name: "Pact Weapon",
 				description: "A weapon shaped — or granted outright — by the Witch's patron, its edge (or " +
 					"its aim) always finding whatever the patron would have it strike down.",
 				kind: "weapon",
@@ -390,7 +390,7 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-witch:patrons-icon-i",
-						name: "Patron's Icon I",
+						name: "Patron's Icon",
 						description: "A small, easily hidden token of the Witch's patron, channeling their " +
 							"power into a discreet ranged strike.",
 						kind: "weapon",
@@ -398,14 +398,14 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-witch:ritual-dagger-i",
-						name: "Ritual Dagger I",
+						name: "Ritual Dagger",
 						description: "A plain, unenchanted blade used in ritual as readily as it draws blood.",
 						kind: "weapon",
 						tags: ["melee", "mundane"]
 					},
 					{
 						key: "the-witch:sidearm-i",
-						name: "Sidearm I",
+						name: "Sidearm",
 						description: "The typical protections afforded to Astir pilots: a reliable tool " +
 							"capable of firing bursts of light arcane energy.",
 						kind: "weapon",
@@ -430,7 +430,7 @@ export const STARTING_GEAR_POOLS = [
 		grantedItems: [
 			{
 				key: "the-wither:withering-grip-i",
-				name: "Withering Grip I",
+				name: "Withering Grip",
 				description: "A touch that leeches vitality and warmth from whatever — or whoever — it closes " +
 					"around.",
 				kind: "weapon",
@@ -445,7 +445,7 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-wither:carved-wand-i",
-						name: "Carved Wand I",
+						name: "Carved Wand",
 						description: "A wand carved from grave-wood, channeling a thin sliver of death magic " +
 							"outward at range.",
 						kind: "weapon",
@@ -453,7 +453,7 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-wither:wicked-blade-i",
-						name: "Wicked Blade I",
+						name: "Wicked Blade",
 						description: "A plain, unenchanted blade, no different from one anybody else might " +
 							"carry.",
 						kind: "weapon",
@@ -461,7 +461,7 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-wither:sidearm-i",
-						name: "Sidearm I",
+						name: "Sidearm",
 						description: "The typical protections afforded to Astir pilots: a reliable tool " +
 							"capable of firing bursts of light arcane energy.",
 						kind: "weapon",
@@ -486,7 +486,7 @@ export const STARTING_GEAR_POOLS = [
 		grantedItems: [
 			{
 				key: "the-adrift:strange-touch-i",
-				name: "Strange Touch I",
+				name: "Strange Touch",
 				description: "A blow delivered through hands touched by power that was never meant to be theirs.",
 				kind: "weapon",
 				tags: ["melee", "bane"]
@@ -500,14 +500,14 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-adrift:it-like-shoots-you-know-i",
-						name: "It Like, Shoots? You Know? I",
+						name: "It Like, Shoots? You Know?",
 						description: "You're not entirely sure how it works. It shoots things, though.",
 						kind: "weapon",
 						tags: ["ranged"]
 					},
 					{
 						key: "the-adrift:for-hitting-people-with-i",
-						name: "For Hitting People With I",
+						name: "For Hitting People With",
 						// The rulebook parenthetical for this item also lists "arcane", which is not a real
 						// EQUIPMENT_TAGS key anywhere in this module (grep equipment.js's EQUIPMENT_TAGS —
 						// only melee/ranged/sniper/bane/defensive/ward/etc. exist, no "arcane"). Per
@@ -518,7 +518,7 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-adrift:hard-to-explain-i",
-						name: "Hard To Explain I",
+						name: "Hard To Explain",
 						description: "You genuinely cannot explain how or why this works.",
 						kind: "weapon",
 						tags: ["ranged", "defensive"]
@@ -542,7 +542,7 @@ export const STARTING_GEAR_POOLS = [
 		grantedItems: [
 			{
 				key: "the-advocate:withertouch-i",
-				name: "Withertouch I",
+				name: "Withertouch",
 				description: "A touch that draws on the slow, patient hunger of rot and reclamation.",
 				kind: "weapon",
 				tags: ["melee", "bane"]
@@ -556,14 +556,14 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-advocate:oaken-staff-i",
-						name: "Oaken Staff I",
+						name: "Oaken Staff",
 						description: "A staff of living wood that channels natural force outward at range.",
 						kind: "weapon",
 						tags: ["ranged"]
 					},
 					{
 						key: "the-advocate:sharp-sickle-i",
-						name: "Sharp Sickle I",
+						name: "Sharp Sickle",
 						// The "mundane" tag key is not a real EQUIPMENT_TAGS entry (see equipment.js) —
 						// resolveEquipmentTags silently drops it. Mirrors the-wither's Wicked Blade I
 						// precedent, which already ships this exact same inert tag.
@@ -573,7 +573,7 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-advocate:sidearm-i",
-						name: "Sidearm I",
+						name: "Sidearm",
 						description: "The typical protections afforded to Astir pilots: a reliable tool " +
 							"capable of firing bursts of concentrated natural energy.",
 						kind: "weapon",
@@ -599,7 +599,7 @@ export const STARTING_GEAR_POOLS = [
 		grantedItems: [
 			{
 				key: "the-revenant:deathly-grip-i",
-				name: "Deathly Grip I",
+				name: "Deathly Grip",
 				description: "A touch that closes around the living with the cold, patient grip of the " +
 					"grave.",
 				kind: "weapon",
@@ -640,7 +640,7 @@ export const STARTING_GEAR_POOLS = [
 		grantedItems: [
 			{
 				key: "the-summoner:conjured-blade-i",
-				name: "Conjured Blade I",
+				name: "Conjured Blade",
 				description: "A blade of pure magical force, given shape and edge for exactly as long as " +
 					"it's needed.",
 				kind: "weapon",
@@ -655,14 +655,14 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-summoner:ribboned-staff-i",
-						name: "Ribboned Staff I",
+						name: "Ribboned Staff",
 						description: "A staff trailing enchanted ribbons that lash out to strike at range.",
 						kind: "weapon",
 						tags: ["ranged"]
 					},
 					{
 						key: "the-summoner:gifted-dagger-i",
-						name: "Gifted Dagger I",
+						name: "Gifted Dagger",
 						// The "mundane" tag key is not a real EQUIPMENT_TAGS entry (see equipment.js) -
 						// resolveEquipmentTags silently drops it. Mirrors the-wither's Wicked Blade I/
 						// the-advocate's Sharp Sickle I precedent, which already ship this exact same
@@ -673,7 +673,7 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-summoner:sidearm-i",
-						name: "Sidearm I",
+						name: "Sidearm",
 						description: "The typical protections afforded to Astir pilots: a reliable tool " +
 							"capable of firing bursts of light arcane energy.",
 						kind: "weapon",
@@ -704,7 +704,7 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-icon:bodyguards-i",
-						name: "Bodyguards I",
+						name: "Bodyguards",
 						description: "Conjured protectors that flare into being around you, striking at " +
 							"anyone who threatens you.",
 						kind: "weapon",
@@ -727,7 +727,7 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-icon:personalised-sidearm-i",
-						name: "Personalised Sidearm I",
+						name: "Personalised Sidearm",
 						description: "A sidearm made to match your look, as recognisable as it is functional.",
 						kind: "weapon",
 						tags: ["ranged", "defensive"]
@@ -748,7 +748,7 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-attendant:sword-cane-i",
-						name: "Sword Cane I",
+						name: "Sword Cane",
 						description: "A cane that conceals a slender blade, drawn in an instant.",
 						kind: "weapon",
 						tags: ["melee", "defensive", "concealable"]
@@ -762,7 +762,7 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-attendant:wand-rifle-i",
-						name: "Wand-rifle I",
+						name: "Wand-rifle",
 						description: "A slender rifle disguised as a walking cane's counterpart, firing with precise, forceful impact.",
 						kind: "weapon",
 						tags: ["sniper", "defensive", "impact"]
@@ -816,14 +816,14 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-captain:gilded-sidearm-i",
-						name: "Gilded Sidearm I",
+						name: "Gilded Sidearm",
 						description: "An ornately engraved sidearm, built as much for ceremony as for combat.",
 						kind: "weapon",
 						tags: ["ranged", "versatile"]
 					},
 					{
 						key: "the-captain:ruinlock-i",
-						name: "Ruinlock I",
+						name: "Ruinlock",
 						description: "A ritually-fouled firearm that spits caustic, corroding shot.",
 						kind: "weapon",
 						// "reload, ruin, profane" — profane is a real EQUIPMENT_TAGS entry (see
@@ -832,14 +832,14 @@ export const STARTING_GEAR_POOLS = [
 					},
 					{
 						key: "the-captain:duelists-blade-i",
-						name: "Duelist's Blade I",
+						name: "Duelist's Blade",
 						description: "A slender, well-balanced blade built for a fast, decisive duel.",
 						kind: "weapon",
 						tags: ["melee", "bane", "decisive"]
 					},
 					{
 						key: "the-captain:arcane-mantle-i",
-						name: "Arcane Mantle I",
+						name: "Arcane Mantle",
 						description: "A woven mantle humming with faint wardings, deflecting harm.",
 						kind: "weapon",
 						// "defensive, arcane" — arcane is a real EQUIPMENT_TAGS entry, same as profane
@@ -902,21 +902,21 @@ export const STARTING_GEAR_POOLS = [
 				items: [
 					{
 						key: "the-artificer:heavy-wrench-i",
-						name: "Heavy Wrench I",
+						name: "Heavy Wrench",
 						description: "A hefty wrench, as useful for repairs as it is for a fight.",
 						kind: "weapon",
 						tags: ["melee", "bane", "impact"]
 					},
 					{
 						key: "the-artificer:beam-cutter-i",
-						name: "Beam Cutter I",
+						name: "Beam Cutter",
 						description: "A focused cutting beam, meant for slicing through plating and armour.",
 						kind: "weapon",
 						tags: ["melee", "reload", "ruin", "decisive"]
 					},
 					{
 						key: "the-artificer:steelfuser-i",
-						name: "Steelfuser I",
+						name: "Steelfuser",
 						description: "A device that fires a bolt of restraining, fused metal.",
 						kind: "weapon",
 						// "elemental" is a real EQUIPMENT_TAGS entry (one of the APPROACHES-derived
