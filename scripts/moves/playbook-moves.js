@@ -1634,11 +1634,13 @@ export const MOVE_POOLS = [
 				key: "the-advocate:built-different",
 				name: "Built Different",
 				traits: [],
-				// The "Requires: Titanic" prerequisite is unenforced, consistent with every other
-				// move-level prerequisite in this module. "You become tier IV" needs no mechanic either —
-				// Tier is already a freely player-editable field within the Astir's existing 3-4 range
-				// (ASTIR_TIER_MIN/ASTIR_TIER_MAX in astir.js already allow 4) — this move just narrates
-				// picking the top of that existing range.
+				// "Requires: Titanic" is enforced via requiresMoves (see claude.md's "Adding move
+				// content") — unmetMoveRequirements/moveRequirementTooltip disable this move in the
+				// picker (and re-gate it on the sheet) until Titanic is picked. "You become tier IV"
+				// still needs no mechanic — Tier is already a freely player-editable field within the
+				// Astir's existing 3-4 range (ASTIR_TIER_MIN/ASTIR_TIER_MAX in astir.js already allow
+				// 4), so this move just narrates picking the top of that existing range.
+				requiresMoves: ["the-advocate:titanic"],
 				description:
 					"<p>Your Astir-sized form is your only one: you have no other shape you can take. This is " +
 					"inconvenient in many situations, on account of you being very very large. As a " +
@@ -1697,8 +1699,9 @@ export const MOVE_POOLS = [
 				// No death/incapacitation system exists anywhere in this module — "when you die" is
 				// narrative flavor text describing what happens, the same treatment the-wither:
 				// number-of-the-beast's own "killed in a spectacular fashion" text gets above (see
-				// claude.md's "systems that do not exist yet"). The "Requires: Nature's Bounty"
-				// prerequisite is unenforced, like every other move-level prerequisite in this module.
+				// claude.md's "systems that do not exist yet"). "Requires: Nature's Bounty" is
+				// enforced via requiresMoves, same treatment the other module prerequisites get.
+				requiresMoves: ["the-advocate:natures-bounty"],
 				description:
 					"<p>When you die, you become one with the earth. Life springs forth in the brightest of " +
 					"hues, flourishing in your wake: nature's bounty applies permanently here, and can never " +
