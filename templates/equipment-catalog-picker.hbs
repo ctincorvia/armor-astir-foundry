@@ -9,9 +9,9 @@
 		{{#if items.length}}
 		<ol class="equipment-catalog-picker-list">
 			{{#each items}}
-			<li class="equipment-catalog-picker-item">
+			<li class="equipment-catalog-picker-item{{#if disabled}} equipment-catalog-picker-item-disabled{{/if}}" {{#if tooltip}}data-gate-tooltip="{{tooltip}}"{{/if}}>
 				<label class="equipment-catalog-picker-option">
-					<input type="radio" name="catalog-item" value="{{key}}"/>
+					<input type="radio" name="catalog-item" value="{{key}}" {{#if disabled}}disabled{{/if}}/>
 					<span class="equipment-catalog-picker-name">{{name}}</span>
 				</label>
 				<div class="equipment-catalog-picker-description">{{{description}}}</div>

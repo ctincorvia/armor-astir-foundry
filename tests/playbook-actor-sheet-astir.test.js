@@ -1081,7 +1081,7 @@ describe("PlaybookActorSheet#_onAstirMoveAdd", () => {
 		// Both the actor's regular playbookMoves and the Astir's own current move end up in the
 		// combined already-selected array — this is what closes the exclusiveGroup bypass (Field
 		// Scout/Giant Slayer, Earthly Ally/Titanic) since both pickers draw from the same pool.
-		expect(chooseAstirMove).toHaveBeenCalledWith("The Scout", ["the-scout:field-scout", "cantrips:deny"]);
+		expect(chooseAstirMove).toHaveBeenCalledWith("The Scout", ["the-scout:field-scout", "cantrips:deny"], undefined, undefined, []);
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.move": "astir:placeholder-move" });
 	});
 
@@ -1098,7 +1098,7 @@ describe("PlaybookActorSheet#_onAstirMoveAdd", () => {
 
 		await sheet._onAstirMoveAdd();
 
-		expect(chooseAstirMove).toHaveBeenCalledWith("The Scout", ["the-scout:field-scout"]);
+		expect(chooseAstirMove).toHaveBeenCalledWith("The Scout", ["the-scout:field-scout"], undefined, undefined, []);
 	});
 
 	it("passes an empty already-selected array when the actor has no playbookMoves and no Astir move", async () => {
@@ -1111,7 +1111,7 @@ describe("PlaybookActorSheet#_onAstirMoveAdd", () => {
 
 		await sheet._onAstirMoveAdd();
 
-		expect(chooseAstirMove).toHaveBeenCalledWith("The Scout", []);
+		expect(chooseAstirMove).toHaveBeenCalledWith("The Scout", [], undefined, undefined, []);
 	});
 
 	it("does nothing when the dialog is cancelled", async () => {

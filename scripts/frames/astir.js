@@ -349,6 +349,25 @@ export function findAstirPart(key, catalog = ASTIR_PART_CATALOG) {
 	return catalog.find((part) => part.key === key) ?? null;
 }
 
+// An Astir Move or Astir Weapon catalog entry's own requiresParts (e.g. the Familiar weapons'
+// "requires a Familiar Matrix Astir Part" — see ASTIR_WEAPON_CATALOG below) resolved against a
+// list of currently-installed part keys. Mirrors playbook-moves.js's unmetMoveRequirements/
+// moveRequirementTooltip exactly, but for Astir Parts rather than moves — kept in this file (not
+// playbook-moves.js) since only this module's catalogs know what an Astir Part is; playbook-
+// moves.js must not import from astir.js (see claude.md's note on dependency direction).
+export function unmetPartRequirements(entry, installedPartKeys = []) {
+	return (entry.requiresParts ?? []).filter((key) => !installedPartKeys.includes(key));
+}
+
+// Turns a list of missing part keys (from unmetPartRequirements) into the hover-tooltip text, or
+// null when nothing's missing — same null-not-empty-string convention as moveRequirementTooltip,
+// so callers can Boolean() it directly for `disabled`/`gated`.
+export function partRequirementTooltip(missingPartKeys) {
+	if (!missingPartKeys.length) return null;
+	const names = missingPartKeys.map((key) => findAstirPart(key)?.name ?? key);
+	return `Requires ${names.join(", ")} Astir Part${names.length > 1 ? "s" : ""}`;
+}
+
 // Drops a part key that no longer resolves — mirrors resolvePlaybookMoves/resolveEquipmentTags.
 export function resolveAstirParts(keys = [], catalog = ASTIR_PART_CATALOG) {
 	return keys.map((key) => findAstirPart(key, catalog)).filter(Boolean);
@@ -426,14 +445,17 @@ export function findAstirMove(key, catalog = ASTIR_MOVE_CATALOG) {
 // Tier — see ASTIR_TIER_MIN/MAX — always governs the actual roll, since tier isn't stored here).
 //
 // `familiar: true` (the last four entries) marks the four Familiar weapons: small constructs
-// launched from an Astir, always ranged or sniper per their own rules text. Two of their rules
+// launched from an Astir, always ranged or sniper per their own rules text. Three of their rules
 // are real code, not prose: PlaybookActorSheet#_rollMove rolls Exchange Blows/Strike Decisively
 // with a Familiar weapon as +CHANNEL instead of the usual CLASH/TALK choice (see the `familiar`
-// check there), and every Familiar weapon is an Astir weapon, so it's already subject to the same
-// Piloted mutual-exclusivity as any other Astir weapon. The rest — perils from a lost Familiar
-// clearing automatically during Downtime, and needing a Familiar Matrix Astir Part (see
-// ASTIR_PART_CATALOG above) — stays descriptive, same "systems that don't exist yet" treatment as
-// everywhere else in this module (no Downtime phase is tracked anywhere).
+// check there); every Familiar weapon is an Astir weapon, so it's already subject to the same
+// Piloted mutual-exclusivity as any other Astir weapon; and "requires a Familiar Matrix Astir
+// Part" is enforced via each entry's own requiresParts — see unmetPartRequirements/
+// partRequirementTooltip above and chooseAstirWeapon below, which disable a Familiar weapon in the
+// Astir weapon picker (with a tooltip) until Familiar Matrix is installed. The rest — perils from
+// a lost Familiar clearing automatically during Downtime — stays descriptive, same "systems that
+// don't exist yet" treatment as everywhere else in this module (no Downtime phase is tracked
+// anywhere).
 export const ASTIR_WEAPON_CATALOG = [
 	{
 		key: "astir-fists",
@@ -639,7 +661,8 @@ export const ASTIR_WEAPON_CATALOG = [
 			"Strike Decisively; perils from its loss clear automatically during Downtime (untracked by this " +
 			"module — clear them yourself).",
 		tags: ["ranged", "area", "limited"],
-		familiar: true
+		familiar: true,
+		requiresParts: ["astir-part:familiar-matrix"]
 	},
 	{
 		key: "mote-familiar",
@@ -651,7 +674,8 @@ export const ASTIR_WEAPON_CATALOG = [
 			"Blows and Strike Decisively; perils from its loss clear automatically during Downtime " +
 			"(untracked by this module — clear them yourself).",
 		tags: ["sniper", "impact", "bane", "dangerous"],
-		familiar: true
+		familiar: true,
+		requiresParts: ["astir-part:familiar-matrix"]
 	},
 	{
 		key: "needle-familiar",
@@ -662,7 +686,8 @@ export const ASTIR_WEAPON_CATALOG = [
 			"+CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear automatically " +
 			"during Downtime (untracked by this module — clear them yourself).",
 		tags: ["ranged", "restraining", "weak"],
-		familiar: true
+		familiar: true,
+		requiresParts: ["astir-part:familiar-matrix"]
 	},
 	{
 		key: "claw-familiar",
@@ -672,7 +697,8 @@ export const ASTIR_WEAPON_CATALOG = [
 			"Part; rolls +CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear " +
 			"automatically during Downtime (untracked by this module — clear them yourself).",
 		tags: ["ranged", "defensive", "distinct"],
-		familiar: true
+		familiar: true,
+		requiresParts: ["astir-part:familiar-matrix"]
 	},
 	{
 		key: "touch-spells",
@@ -733,11 +759,19 @@ export async function chooseAstirPart(selectedKeys = [], catalog = ASTIR_PART_CA
 // into configureEquipment, same as chooseEquipmentCatalogItem's own callers), or null. Unlike
 // chooseAstirPart, nothing is excluded — an Astir can carry more than one of the same weapon
 // template, same as regular equipment. `title` is overridable for the same reason chooseAstirPart's
-// is — see ardent.js's ardentWeapons.
-export async function chooseAstirWeapon(catalog = ASTIR_WEAPON_CATALOG, { title = "Pick an Astir Weapon" } = {}) {
+// is — see ardent.js's ardentWeapons. `installedPartKeys` gates any entry whose own requiresParts
+// isn't fully met (the four Familiar weapons today) — visible but disabled, with a tooltip, rather
+// than excluded outright (see unmetPartRequirements/partRequirementTooltip above); a caller with no
+// concept of installed parts (ardent.js's own weapon flows) just passes [], which gates nothing
+// since no Ardent-eligible catalog entry carries requiresParts.
+export async function chooseAstirWeapon(catalog = ASTIR_WEAPON_CATALOG, installedPartKeys = [], { title = "Pick an Astir Weapon" } = {}) {
 	const { tagGroups, hasTags } = buildTagReference(catalog);
+	const items = catalog.map((item) => {
+		const tooltip = partRequirementTooltip(unmetPartRequirements(item, installedPartKeys));
+		return { ...withTagLabels(item), disabled: Boolean(tooltip), tooltip };
+	});
 	const content = await renderTemplate(EQUIPMENT_CATALOG_PICKER_TEMPLATE, {
-		items: catalog.map((item) => withTagLabels(item)),
+		items,
 		itemsTabLabel: "Weapons",
 		tagGroups,
 		hasTags
@@ -774,22 +808,37 @@ export async function chooseAstirWeapon(catalog = ASTIR_WEAPON_CATALOG, { title 
 // pickerSection/pickerMove from playbook-moves.js so a section's shape (and its "drop when empty"
 // treatment) can't drift from the playbook-move picker's. `pools`/`astirCatalog` stay injectable
 // for the same fixture-testing reason MOVE_POOLS/EQUIPMENT_CATALOG's own consumers do.
-export function astirMoveSections(playbookName, selectedKeys = [], pools = MOVE_POOLS, astirCatalog = ASTIR_MOVE_CATALOG) {
+// `installedPartKeys` gates any move whose own requiresParts isn't fully met (mechanism only today
+// — ASTIR_MOVE_CATALOG's placeholder entry carries none — but every section built here, including
+// the actor's own playbook/Cantrips pools, gets the same Astir-Part gating via pickerSection's
+// extraTooltip hook, for whenever real content adds one).
+export function astirMoveSections(
+	playbookName,
+	selectedKeys = [],
+	pools = MOVE_POOLS,
+	astirCatalog = ASTIR_MOVE_CATALOG,
+	installedPartKeys = []
+) {
 	const sections = [];
+	const extraTooltip = (move) => partRequirementTooltip(unmetPartRequirements(move, installedPartKeys));
 
 	const ownPool = pools.find((pool) => pool.playbookName && pool.playbookName === playbookName);
 	if (ownPool) {
-		const section = pickerSection(ownPool, selectedKeys, { note: "Your playbook.", open: true });
+		const section = pickerSection(ownPool, selectedKeys, { note: "Your playbook.", open: true, extraTooltip });
 		if (section) sections.push(section);
 	}
 
 	const cantrips = pools.find((pool) => pool.key === "cantrips");
 	if (cantrips) {
-		const section = pickerSection(cantrips, selectedKeys);
+		const section = pickerSection(cantrips, selectedKeys, { extraTooltip });
 		if (section) sections.push(section);
 	}
 
-	const astirSection = pickerSection({ key: "astir-moves", label: "Astir Moves", moves: astirCatalog }, selectedKeys);
+	const astirSection = pickerSection(
+		{ key: "astir-moves", label: "Astir Moves", moves: astirCatalog },
+		selectedKeys,
+		{ extraTooltip }
+	);
 	if (astirSection) sections.push(astirSection);
 
 	return sections;
@@ -798,8 +847,14 @@ export function astirMoveSections(playbookName, selectedKeys = [], pools = MOVE_
 // Opens the "+" picker for the Astir's unique move and resolves the chosen key, or null. Mirrors
 // choosePlaybookMove's Dialog options (including its resizable/numeric-height note) since it
 // reuses the exact same template.
-export async function chooseAstirMove(playbookName, selectedKeys = [], pools = MOVE_POOLS, astirCatalog = ASTIR_MOVE_CATALOG) {
-	const sections = astirMoveSections(playbookName, selectedKeys, pools, astirCatalog);
+export async function chooseAstirMove(
+	playbookName,
+	selectedKeys = [],
+	pools = MOVE_POOLS,
+	astirCatalog = ASTIR_MOVE_CATALOG,
+	installedPartKeys = []
+) {
+	const sections = astirMoveSections(playbookName, selectedKeys, pools, astirCatalog, installedPartKeys);
 	const content = await renderTemplate(PLAYBOOK_MOVE_PICKER_TEMPLATE, { sections });
 
 	return new Promise((resolve) => {

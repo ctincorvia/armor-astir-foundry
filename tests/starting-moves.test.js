@@ -250,7 +250,9 @@ describe("startingMovePickerData", () => {
 			key: "fixture-playbook:alpha",
 			name: "Alpha",
 			traitLabels: ["CLASH"],
-			description: "<p>a</p>"
+			description: "<p>a</p>",
+			disabled: false,
+			tooltip: null
 		});
 	});
 

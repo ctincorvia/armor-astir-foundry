@@ -205,18 +205,23 @@ export function playbookGrantsHomeInsteadOfChannel(playbookName, pools = STARTIN
 // quietly-drop-stale-keys treatment resolvePlaybookMoves already gives an actor's own picks.
 export function startingMovePickerData(pool, movePools = MOVE_POOLS) {
 	const sourceMoves = movePools.find((p) => p.key === pool.poolKey)?.moves ?? [];
+	// Starting moves are granted/pick-one at character creation, not gated by requiresMoves — but
+	// pickerMove now takes optional pickedMoveKeys/options params (see playbook-moves.js), so this
+	// must call it as (move) => pickerMove(move), never bare .map(pickerMove): Array#map also passes
+	// the index and the whole array as extra arguments, which would otherwise land in pickerMove's
+	// own pickedMoveKeys/options parameters.
 	return {
 		grantedMoves: pool.grantedKeys
 			.map((key) => sourceMoves.find((move) => move.key === key))
 			.filter(Boolean)
-			.map(pickerMove),
+			.map((move) => pickerMove(move)),
 		pickOneMoves: pool.pickOneKeys
 			.map((key) => sourceMoves.find((move) => move.key === key))
 			.filter(Boolean)
-			.map(pickerMove),
+			.map((move) => pickerMove(move)),
 		additionalMoves: sourceMoves
 			.filter((move) => !pool.pickOneKeys.includes(move.key) && !pool.grantedKeys.includes(move.key))
-			.map(pickerMove),
+			.map((move) => pickerMove(move)),
 		chooseCount: pool.chooseCount
 	};
 }

@@ -320,7 +320,10 @@ export const AstirSheetMixin = {
 		if (!astir) return;
 		const key = await chooseAstirMove(
 			this.actor.system.playbook?.name,
-			[...this._playbookMoves(), ...(astir.move ? [astir.move] : [])]
+			[...this._playbookMoves(), ...(astir.move ? [astir.move] : [])],
+			undefined,
+			undefined,
+			this._astirParts().map((part) => part.key)
 		);
 		if (!key) return;
 		this.actor.update({ "system.attributes.astir.move": key });
@@ -335,7 +338,7 @@ export const AstirSheetMixin = {
 	async _onAstirWeaponAdd() {
 		const astir = this._astir();
 		if (!astir) return;
-		const template = await chooseAstirWeapon();
+		const template = await chooseAstirWeapon(undefined, this._astirParts().map((part) => part.key));
 		if (!template) return;
 
 		const result = await configureEquipment(template, undefined, { astirWeapon: true });

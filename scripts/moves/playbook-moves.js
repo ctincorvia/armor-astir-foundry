@@ -2154,9 +2154,11 @@ export const MOVE_POOLS = [
 			{
 				key: "the-icon:you-should-see-me-in-a-crown",
 				name: "You Should See Me In A Crown",
-				// "Requires: Touchstone" is descriptive only — consistent with pool membership not being
-				// enforced, move prerequisites stay prose (see claude.md's "Adding move content"); the
-				// picker never checks whether Touchstone is also picked.
+				// "Requires: Touchstone" is enforced via requiresMoves (see claude.md's "Adding move
+				// content") — unmetMoveRequirements/moveRequirementTooltip disable this move in the
+				// picker (with a tooltip) until Touchstone is picked, and re-gate its Roll button live
+				// on the sheet if Touchstone is ever removed afterward.
+				requiresMoves: ["the-icon:touchstone"],
 				traits: [],
 				description:
 					"<p>Requires: Touchstone</p>" +
@@ -2189,11 +2191,13 @@ export const MOVE_POOLS = [
 			{
 				key: "the-icon:showstopper",
 				name: "Showstopper",
-				// "Requires: Bardic Inspiration" is descriptive only, same treatment You Should See Me In
-				// A Crown's own Touchstone requirement gets above. Both upgrades reference mechanics
-				// Bardic Inspiration itself never coded (the d4 application) or that don't exist anywhere
-				// in this module (advancing a GRAVITY clock as a move side-effect), so this stays prose
-				// too, per claude.md's "systems that do not exist yet".
+				// "Requires: Bardic Inspiration" is enforced via requiresMoves, same treatment You Should
+				// See Me In A Crown's own Touchstone requirement gets above. The upgrades themselves still
+				// reference mechanics Bardic Inspiration never coded (the d4 application) or that don't
+				// exist anywhere in this module (advancing a GRAVITY clock as a move side-effect), so
+				// *those* stay prose, per claude.md's "systems that do not exist yet" — only the
+				// prerequisite itself is now enforced.
+				requiresMoves: ["the-icon:bardic-inspiration"],
 				traits: [],
 				description:
 					"<p>Requires: Bardic Inspiration</p>" +
@@ -2259,6 +2263,10 @@ export const MOVE_POOLS = [
 			{
 				key: "the-attendant:in-blood-terror",
 				name: "In Blood & Terror",
+				// "Requires: Signed & Sealed" is enforced via requiresMoves (see claude.md's "Adding move
+				// content") — disables this move in the picker until Signed & Sealed is picked, and
+				// re-gates it live on the sheet if Signed & Sealed is ever removed afterward.
+				requiresMoves: ["the-attendant:signed-sealed"],
 				traits: [],
 				description:
 					"<p><em>Requires: Signed &amp; Sealed.</em></p>" +
@@ -2585,11 +2593,12 @@ export const MOVE_POOLS = [
 			{
 				key: "cantrips:advanced-evocation",
 				name: "Advanced Evocation",
-				// Requires Classical Spellcasting in the fiction, but — same as every other pool
-				// restriction in this picker (see MOVE_POOLS' top comment) — that's not enforced
-				// here; it stays selectable regardless of what else the actor has picked. The tag
-				// choice itself is blocked on the same not-yet-built weapon profiles/tags system
-				// as Classical Spellcasting's profile.
+				// "Requires: Classical Spellcasting" is enforced via requiresMoves (see claude.md's
+				// "Adding move content") — disabled in the picker until Classical Spellcasting is
+				// picked, and re-gated live on the sheet if it's ever removed afterward. The tag choice
+				// itself is still blocked on the same not-yet-built weapon profiles/tags system as
+				// Classical Spellcasting's own profile.
+				requiresMoves: ["cantrips:classical-spellcasting"],
 				traits: [],
 				description:
 					"<p><em>Requires: Classical Spellcasting.</em></p>" +
@@ -3110,18 +3119,51 @@ export function resolvePlaybookMoves(keys = []) {
 	return keys.map(findPlaybookMove).filter(Boolean);
 }
 
+// A move's own requiresMoves (e.g. You Should See Me In A Crown requiring Touchstone — see
+// claude.md's "Adding move content" table) resolved against a list of currently-picked move keys.
+// Returns the keys still missing, empty when every requirement is met (or the move has none) —
+// mirrors resolvePlaybookMoves/resolveEquipmentTags's own "resolve keys against catalog data"
+// shape. Used both by pickerMove below (gating the "+" picker) and _moveGroupMoves
+// (moves-mixin.js, gating an already-picked move's Roll button live if the prerequisite is later
+// removed).
+export function unmetMoveRequirements(move, pickedMoveKeys = []) {
+	return (move.requiresMoves ?? []).filter((key) => !pickedMoveKeys.includes(key));
+}
+
+// Turns a list of missing move keys (from unmetMoveRequirements) into the hover-tooltip text, or
+// null when nothing's missing — null (not "") so callers can Boolean() it directly for `disabled`/
+// `gated`. Resolves each key to its move's display name, falling back to the raw key for a stale
+// reference rather than throwing.
+export function moveRequirementTooltip(missingMoveKeys) {
+	if (!missingMoveKeys.length) return null;
+	const names = missingMoveKeys.map((key) => findPlaybookMove(key)?.name ?? key);
+	return `Requires ${names.join(", ")}`;
+}
+
 // The picker's display shape for one move. Trait labels come straight from the move's definition
 // rather than being filtered against the actor (unlike _moveTraits on the sheet): the picker shows
 // what a move rolls, not whether this particular character can currently roll it.
 //
+// A move whose requiresMoves isn't fully satisfied stays in the list (unlike the already-
+// selected/exclusiveGroup filtering pickerSection does below, which drops a move entirely) but is
+// marked disabled with an explanatory tooltip, so a player can see what they're missing rather than
+// the option silently never appearing. `extraTooltip` is an injectable callback so astir.js's
+// astirMoveSections can layer Astir-Part gating on top without this module importing anything from
+// astir.js (this module must not depend upward on astir.js/ardent.js — see claude.md).
+//
 // Exported so astir.js's astirMoveSections can build its own (differently-shaped) picker tree
 // from the same pool/catalog data without duplicating this or pickerSection below.
-export function pickerMove(move) {
+export function pickerMove(move, pickedMoveKeys = [], { extraTooltip } = {}) {
+	let tooltip = moveRequirementTooltip(unmetMoveRequirements(move, pickedMoveKeys));
+	const extra = extraTooltip?.(move);
+	if (extra) tooltip = tooltip ? `${tooltip}; ${extra}` : extra;
 	return {
 		key: move.key,
 		name: move.name,
 		traitLabels: move.traits.map((key) => TRAITS.find((trait) => trait.key === key)?.label).filter(Boolean),
-		description: move.description
+		description: move.description,
+		disabled: Boolean(tooltip),
+		tooltip
 	};
 }
 
@@ -3138,14 +3180,22 @@ function selectedExclusiveGroups(selectedKeys) {
 
 // Filters a pool down to the picker's offered moves: already-selected moves are dropped (so
 // nothing can be taken twice) and, on top of that, any move whose exclusiveGroup is already
-// covered by a selected move is dropped too (see selectedExclusiveGroups above).
-export function pickerSection(pool, selectedKeys, { note = pool.note, open = false } = {}) {
+// covered by a selected move is dropped too (see selectedExclusiveGroups above). A move whose
+// requiresMoves isn't met is a different kind of "can't have" — see pickerMove above — so it stays
+// in the list, just disabled. `extraTooltip` is threaded straight through to pickerMove.
+export function pickerSection(pool, selectedKeys, { note = pool.note, open = false, extraTooltip } = {}) {
 	const excludedGroups = selectedExclusiveGroups(selectedKeys);
 	const moves = pool.moves.filter((move) =>
 		!selectedKeys.includes(move.key) && !(move.exclusiveGroup && excludedGroups.has(move.exclusiveGroup))
 	);
 	if (!moves.length) return null;
-	return { key: pool.key, label: pool.label, note, open, moves: moves.map(pickerMove) };
+	return {
+		key: pool.key,
+		label: pool.label,
+		note,
+		open,
+		moves: moves.map((move) => pickerMove(move, selectedKeys, { extraTooltip }))
+	};
 }
 
 // Builds the picker's accordion tree, ordered by how likely a player is to want each pool: their

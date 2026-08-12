@@ -22,7 +22,9 @@ import {
 	findAstirMove,
 	findAstirPart,
 	findCatalogAstirWeapon,
-	resolveAstirParts
+	partRequirementTooltip,
+	resolveAstirParts,
+	unmetPartRequirements
 } from "../scripts/frames/astir.js";
 
 // Fakes the jQuery `.find("[name='catalog-item']:checked").val()` / `.find("[name='playbook-move']:checked").val()`
@@ -164,6 +166,42 @@ describe("findAstirPart/resolveAstirParts", () => {
 
 	it("defaults to an empty list when the Astir has no parts", () => {
 		expect(resolveAstirParts()).toEqual([]);
+	});
+});
+
+describe("unmetPartRequirements", () => {
+	it("returns every requiresParts key not present among the installed parts", () => {
+		const entry = { requiresParts: ["astir-part:familiar-matrix"] };
+		expect(unmetPartRequirements(entry, [])).toEqual(["astir-part:familiar-matrix"]);
+	});
+
+	it("returns an empty list once every required key is installed", () => {
+		const entry = { requiresParts: ["astir-part:familiar-matrix"] };
+		expect(unmetPartRequirements(entry, ["astir-part:familiar-matrix"])).toEqual([]);
+	});
+
+	it("returns an empty list for an entry with no requiresParts at all", () => {
+		expect(unmetPartRequirements({})).toEqual([]);
+	});
+
+	it("only reports the keys that are actually missing, not every required key", () => {
+		const entry = { requiresParts: ["astir-part:a", "astir-part:b"] };
+		expect(unmetPartRequirements(entry, ["astir-part:a"])).toEqual(["astir-part:b"]);
+	});
+});
+
+describe("partRequirementTooltip", () => {
+	it("returns null when nothing is missing", () => {
+		expect(partRequirementTooltip([])).toBeNull();
+	});
+
+	it("names a single missing part, singular", () => {
+		expect(partRequirementTooltip(["astir-part:familiar-matrix"])).toBe("Requires Familiar Matrix Astir Part");
+	});
+
+	it("names every missing part, pluralized, falling back to the raw key for a stale reference", () => {
+		expect(partRequirementTooltip(["astir-part:familiar-matrix", "astir-part:not-a-real-key"]))
+			.toBe("Requires Familiar Matrix, astir-part:not-a-real-key Astir Parts");
 	});
 });
 
@@ -479,6 +517,17 @@ describe("chooseAstirWeapon", () => {
 	const FIXTURE_TAGGED_CATALOG = [
 		{ key: "fixture-tagged-astir-weapon", name: "Fixture Tagged Astir Weapon", description: "d", tags: ["blitz"] }
 	];
+	// Mirrors a real Familiar weapon's requiresParts shape, so the gating branch can be exercised
+	// without depending on the real ASTIR_WEAPON_CATALOG/ASTIR_PART_CATALOG content.
+	const FIXTURE_GATED_CATALOG = [
+		{
+			key: "fixture-familiar",
+			name: "Fixture Familiar",
+			description: "d",
+			tags: [],
+			requiresParts: ["astir-part:familiar-matrix"]
+		}
+	];
 
 	it("renders the equipment catalog picker template with the whole catalog", async () => {
 		chooseAstirWeapon(FIXTURE_CATALOG);
@@ -486,7 +535,7 @@ describe("chooseAstirWeapon", () => {
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.any(String), {
-			items: [{ ...FIXTURE_CATALOG[0], tagLabels: [] }],
+			items: [{ ...FIXTURE_CATALOG[0], tagLabels: [], disabled: false, tooltip: null }],
 			itemsTabLabel: "Weapons",
 			tagGroups: [],
 			hasTags: false
@@ -499,8 +548,35 @@ describe("chooseAstirWeapon", () => {
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
-			items: [{ ...FIXTURE_TAGGED_CATALOG[0], tagLabels: ["Blitz"] }],
+			items: [{ ...FIXTURE_TAGGED_CATALOG[0], tagLabels: ["Blitz"], disabled: false, tooltip: null }],
 			hasTags: true
+		}));
+	});
+
+	it("disables an item whose requiresParts isn't met, with an explanatory tooltip", async () => {
+		chooseAstirWeapon(FIXTURE_GATED_CATALOG, []);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+			items: [expect.objectContaining({
+				key: "fixture-familiar",
+				disabled: true,
+				// findAstirPart's default catalog is the real ASTIR_PART_CATALOG, which really does
+				// define astir-part:familiar-matrix — so this resolves to its real display name
+				// rather than falling back to the raw key.
+				tooltip: "Requires Familiar Matrix Astir Part"
+			})]
+		}));
+	});
+
+	it("leaves an item enabled once its requiresParts is met by the installed parts", async () => {
+		chooseAstirWeapon(FIXTURE_GATED_CATALOG, ["astir-part:familiar-matrix"]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+			items: [expect.objectContaining({ key: "fixture-familiar", disabled: false, tooltip: null })]
 		}));
 	});
 
@@ -578,7 +654,7 @@ describe("chooseAstirWeapon", () => {
 	});
 
 	it("takes an overridable title, so ardent.js can reuse this same picker", async () => {
-		chooseAstirWeapon(FIXTURE_CATALOG, { title: "Pick an Ardent Weapon" });
+		chooseAstirWeapon(FIXTURE_CATALOG, [], { title: "Pick an Ardent Weapon" });
 		await Promise.resolve();
 		await Promise.resolve();
 
@@ -668,6 +744,44 @@ describe("astirMoveSections", () => {
 
 		expect(scout.moves.map((m) => m.key)).not.toContain("the-scout:giant-slayer");
 	});
+
+	// The mechanism-only case claude.md describes: no real Astir Move carries requiresParts yet, but
+	// astirMoveSections' own extraTooltip wiring has to work generically for when one does.
+	const FIXTURE_GATED_ASTIR_CATALOG = [
+		{ key: "astir:gated", name: "Gated Astir Move", traits: [], description: "<p>g</p>", requiresParts: ["fixture-part:matrix"] }
+	];
+
+	it("disables an Astir catalog move whose requiresParts isn't met, via the installedPartKeys param", () => {
+		const [, , astirSection] = astirMoveSections("The Alpha", [], FIXTURE_POOLS, FIXTURE_GATED_ASTIR_CATALOG, []);
+
+		expect(astirSection.moves[0]).toEqual(expect.objectContaining({
+			key: "astir:gated",
+			disabled: true,
+			tooltip: "Requires fixture-part:matrix Astir Part"
+		}));
+	});
+
+	it("leaves the move enabled once installedPartKeys satisfies its requiresParts", () => {
+		const [, , astirSection] = astirMoveSections(
+			"The Alpha", [], FIXTURE_POOLS, FIXTURE_GATED_ASTIR_CATALOG, ["fixture-part:matrix"]
+		);
+
+		expect(astirSection.moves[0]).toEqual(expect.objectContaining({ key: "astir:gated", disabled: false, tooltip: null }));
+	});
+
+	it("also gates a move from the actor's own playbook/Cantrips pools, via the same extraTooltip wiring", () => {
+		const gatedPools = [
+			{
+				key: "alpha",
+				label: "The Alpha",
+				playbookName: "The Alpha",
+				moves: [{ key: "alpha:gated", name: "Gated", traits: [], description: "<p>a</p>", requiresParts: ["fixture-part:matrix"] }]
+			}
+		];
+		const [first] = astirMoveSections("The Alpha", [], gatedPools, FIXTURE_ASTIR_CATALOG, []);
+
+		expect(first.moves[0]).toEqual(expect.objectContaining({ disabled: true, tooltip: "Requires fixture-part:matrix Astir Part" }));
+	});
 });
 
 describe("chooseAstirMove", () => {
@@ -733,5 +847,19 @@ describe("chooseAstirMove", () => {
 		Dialog.mock.calls.at(-1)[0].close();
 
 		expect(await promise).toBeNull();
+	});
+
+	it("forwards installedPartKeys through to astirMoveSections' requiresParts gating", async () => {
+		const gatedCatalog = [
+			{ key: "astir:gated", name: "Gated", traits: [], description: "<p>g</p>", requiresParts: ["fixture-part:matrix"] }
+		];
+		chooseAstirMove("The Alpha", [], FIXTURE_POOLS, gatedCatalog, ["fixture-part:matrix"]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { sections } = renderTemplate.mock.calls.at(-1)[1];
+		const astirSection = sections.find((section) => section.key === "astir-moves");
+
+		expect(astirSection.moves[0]).toEqual(expect.objectContaining({ key: "astir:gated", disabled: false, tooltip: null }));
 	});
 });

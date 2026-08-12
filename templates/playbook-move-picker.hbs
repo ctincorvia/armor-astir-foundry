@@ -12,9 +12,9 @@
 			<summary class="move-picker-section-label">{{label}}</summary>
 			<ol class="move-picker-list">
 				{{#each moves}}
-				<li class="move-picker-item">
+				<li class="move-picker-item{{#if disabled}} move-picker-item-disabled{{/if}}" {{#if tooltip}}data-gate-tooltip="{{tooltip}}"{{/if}}>
 					<label class="move-picker-option">
-						<input type="radio" name="playbook-move" value="{{key}}"/>
+						<input type="radio" name="playbook-move" value="{{key}}" {{#if disabled}}disabled{{/if}}/>
 						<span class="move-picker-name">{{name}}</span>
 						{{#each traitLabels}}
 						<span class="move-picker-trait">+{{this}}</span>
@@ -29,9 +29,9 @@
 		{{else}}
 		<ol class="move-picker-list">
 			{{#each moves}}
-			<li class="move-picker-item">
+			<li class="move-picker-item{{#if disabled}} move-picker-item-disabled{{/if}}" {{#if tooltip}}data-gate-tooltip="{{tooltip}}"{{/if}}>
 				<label class="move-picker-option">
-					<input type="radio" name="playbook-move" value="{{key}}"/>
+					<input type="radio" name="playbook-move" value="{{key}}" {{#if disabled}}disabled{{/if}}/>
 					<span class="move-picker-name">{{name}}</span>
 					{{#each traitLabels}}
 					<span class="move-picker-trait">+{{this}}</span>

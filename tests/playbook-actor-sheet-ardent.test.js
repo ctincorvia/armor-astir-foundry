@@ -515,7 +515,7 @@ describe("PlaybookActorSheet#_onArdentWeaponAdd", () => {
 
 		await sheet._onArdentWeaponAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
 
-		expect(chooseAstirWeapon).toHaveBeenCalledWith(ardentWeapons(), { title: "Pick an Ardent Weapon" });
+		expect(chooseAstirWeapon).toHaveBeenCalledWith(ardentWeapons(), [], { title: "Pick an Ardent Weapon" });
 		expect(configureEquipment).toHaveBeenCalledWith(template, undefined, { ardentWeapon: true });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [

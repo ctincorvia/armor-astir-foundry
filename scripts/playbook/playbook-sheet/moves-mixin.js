@@ -1,11 +1,16 @@
-import { choosePlaybookMove, resolvePlaybookMoves } from "../../moves/playbook-moves.js";
+import {
+	choosePlaybookMove,
+	moveRequirementTooltip,
+	resolvePlaybookMoves,
+	unmetMoveRequirements
+} from "../../moves/playbook-moves.js";
 import { patronChannelBonus, traitBonusesFor } from "../../moves/trait-bonuses.js";
 import { TRAITS } from "../../core/traits.js";
 import { chooseCarrier, findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
 import { TIER_MIN, UNARMED, chooseWeapon } from "../../equipment/equipment.js";
 import { getTargetedNpc } from "../../moves/target-tier.js";
 import { approachMatchupStack } from "../../moves/approach-matchup.js";
-import { findAstirPart } from "../../frames/astir.js";
+import { findAstirPart, partRequirementTooltip, unmetPartRequirements } from "../../frames/astir.js";
 import { rolledDoubles } from "../../moves/roll-effects.js";
 import { chooseStartingMoves, findStartingMovePool, playbookGrantsHomeInsteadOfChannel } from "../../moves/starting-moves.js";
 import {
@@ -188,6 +193,13 @@ export const MovesSheetMixin = {
 		// than ungate one. Resolved once here, same shape channelDisabled already establishes,
 		// then matched per-move below.
 		const disablingMoves = resolvePlaybookMoves(this._playbookMoves()).filter((m) => m.disablesMove);
+		// requiresMoves/requiresParts (see playbook-moves.js/astir.js's "Adding move content"/Astir
+		// notes) re-gate an already-picked move live if its prerequisite is later removed — not just
+		// at picker time. playbookMoveKeys stays raw (unmetMoveRequirements just needs keys to compare
+		// against); installedPartKeys resolves _astirParts() the same way chooseAstirWeapon's own
+		// caller does, down to just the keys.
+		const playbookMoveKeys = this._playbookMoves();
+		const installedPartKeys = this._astirParts().map((part) => part.key);
 		return moves.map((move) => {
 			const traits = this._moveTraits(move);
 			// Read-the-room's roll-tiered hold lives in pbta's shared system.resources.hold
@@ -217,6 +229,14 @@ export const MovesSheetMixin = {
 			// Bite the Dust, disabled by Never Quite Free (see disablingMoves above) — finds the
 			// picked move, if any, whose disablesMove.moveKey targets this move.
 			const disabledBy = disablingMoves.find((m) => m.disablesMove.moveKey === move.key);
+			// requiresMoves/requiresParts gating, live — see unmetMoveRequirements/unmetPartRequirements'
+			// own comments. Empty for a move that declares neither, which is every move but the four
+			// real requiresMoves cases and the (currently placeholder-only) requiresParts mechanism.
+			const missingMoveKeys = unmetMoveRequirements(move, playbookMoveKeys);
+			const missingPartKeys = unmetPartRequirements(move, installedPartKeys);
+			const requirementTooltip = [moveRequirementTooltip(missingMoveKeys), partRequirementTooltip(missingPartKeys)]
+				.filter(Boolean)
+				.join("; ") || null;
 			// The move-card "who's summoned" info line (Summoner) — only for the move that actually
 			// grants the summon, and only once something real is summoned; every other move (and
 			// Eidolon Drive itself with nothing summoned) omits the key entirely below rather than
@@ -241,8 +261,11 @@ export const MovesSheetMixin = {
 				// when the move is explicitly gated the opposite way, off Channel being enabled
 				// (b-plot, via channelGated above), OR (Eidolon Drive) there's no bound ally to
 				// summon at all (summonGated above), OR a different picked move explicitly disables
-				// this one (Never Quite Free disabling Bite the Dust, via disabledBy above).
-				gated: (move.traits.length > 0 && traits.length === 0) || channelGated || summonGated || Boolean(disabledBy),
+				// this one (Never Quite Free disabling Bite the Dust, via disabledBy above), OR this
+				// move's own requiresMoves/requiresParts isn't (or is no longer) satisfied
+				// (requirementTooltip above).
+				gated: (move.traits.length > 0 && traits.length === 0) || channelGated || summonGated || Boolean(disabledBy)
+					|| Boolean(requirementTooltip),
 				// Whether this move rolls anything at all, based on its static definition rather
 				// than the actor-filtered trait list above — a gated move (e.g. Weave Magic with
 				// Channel disabled) still shows a disabled Roll button, but a move with no traits or
@@ -278,12 +301,17 @@ export const MovesSheetMixin = {
 				// move but Eidolon Drive with a real summon active, so no other move's object
 				// literal in the moveGroups toEqual snapshot needs to change.
 				...(summonedAllyInfo && { summonedAllyInfo }),
-				// Bite the Dust's hover explanation for why its Roll button is disabled (Never Quite
-				// Free) — drives the template's data-gate-tooltip attribute, the same CSS-only
-				// tooltip mechanism weapon quick-roll buttons and the Witch's "Choose 2 Boons" button
-				// already use. Omitted entirely (not `null`/`undefined`) for every other move, same
-				// conditional-spread reasoning summonedAllyInfo above already follows.
-				...(disabledBy && { gatedTooltip: `Replaced by ${disabledBy.name}` }),
+				// Hover explanation for why this move's Roll button is disabled — Bite the Dust's
+				// "Replaced by Never Quite Free" (disabledBy above) and/or an unmet requiresMoves/
+				// requiresParts (requirementTooltip above); a move could in principle hit both at
+				// once, so both fragments are joined rather than one silently winning. Drives the
+				// template's data-gate-tooltip attribute, the same CSS-only tooltip mechanism weapon
+				// quick-roll buttons and the Witch's "Choose 2 Boons" button already use. Omitted
+				// entirely (not `null`/`undefined`) for every other move, same conditional-spread
+				// reasoning summonedAllyInfo above already follows.
+				...((disabledBy || requirementTooltip) && {
+					gatedTooltip: [disabledBy && `Replaced by ${disabledBy.name}`, requirementTooltip].filter(Boolean).join("; ")
+				}),
 				// Weave Magic's description stays readable even while its Roll button is gated —
 				// you can still learn what the move does. B-Plot is different: being "in the
 				// b-plot" isn't something a Channel-enabled character can do at all, so its

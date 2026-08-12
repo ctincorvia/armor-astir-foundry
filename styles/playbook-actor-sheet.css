@@ -1501,22 +1501,30 @@
 }
 
 /* CSS-only tooltip explaining why a gated button is disabled (e.g. weapon mount/dismount state,
-   or the Witch's Choose 2 Boons requiring Whims) — this module's only tooltip beyond native title
-   attributes, so it gets its own styled look rather than the plain unstyled convention used
-   elsewhere. Primary-dark since this is UI chrome, not player-tracked state, and -dark because it
-   carries white text (see the role-token note above). Deliberately named data-gate-tooltip rather
-   than data-tooltip: core Foundry's own TooltipManager (client/core/tooltip.js) activates its own
-   native tooltip on *any* element with a data-tooltip attribute, so reusing that name doubled up
-   with Foundry's own black tooltip. */
+   or the Witch's Choose 2 Boons requiring Whims), or why a picker option is unpickable (an unmet
+   requiresMoves/requiresParts — see playbook-moves.js/astir.js) — this module's only tooltip
+   beyond native title attributes, so it gets its own styled look rather than the plain unstyled
+   convention used elsewhere. Primary-dark since this is UI chrome, not player-tracked state, and
+   -dark because it carries white text (see the role-token note above). Deliberately named
+   data-gate-tooltip rather than data-tooltip: core Foundry's own TooltipManager
+   (client/core/tooltip.js) activates its own native tooltip on *any* element with a data-tooltip
+   attribute, so reusing that name doubled up with Foundry's own black tooltip. The sheet's own
+   gated buttons are scoped under .armor-astir.sheet, but the two "+" picker Dialogs
+   (playbook-move-picker, equipment-catalog-picker) use their own root class instead — Foundry's
+   Dialog application class never carries .sheet. */
 .armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip],
 .armor-astir.sheet .witch-boons-choose.disabled[data-gate-tooltip],
-.armor-astir.sheet .move-roll.disabled[data-gate-tooltip] {
+.armor-astir.sheet .move-roll.disabled[data-gate-tooltip],
+.armor-astir.playbook-move-picker .move-picker-item-disabled[data-gate-tooltip],
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-item-disabled[data-gate-tooltip] {
 	position: relative;
 }
 
 .armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip]:hover::after,
 .armor-astir.sheet .witch-boons-choose.disabled[data-gate-tooltip]:hover::after,
-.armor-astir.sheet .move-roll.disabled[data-gate-tooltip]:hover::after {
+.armor-astir.sheet .move-roll.disabled[data-gate-tooltip]:hover::after,
+.armor-astir.playbook-move-picker .move-picker-item-disabled[data-gate-tooltip]:hover::after,
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-item-disabled[data-gate-tooltip]:hover::after {
 	content: attr(data-gate-tooltip);
 	position: absolute;
 	bottom: 100%;

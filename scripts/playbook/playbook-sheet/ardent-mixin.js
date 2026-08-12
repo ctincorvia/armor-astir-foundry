@@ -186,7 +186,11 @@ export const ArdentSheetMixin = {
 			ui.notifications.warn(`An Ardent can carry at most ${ARDENT_MAX_LOADOUT} parts and weapons combined.`);
 			return;
 		}
-		const template = await chooseAstirWeapon(ardentWeapons(), { title: "Pick an Ardent Weapon" });
+		// No Ardent-eligible catalog entry carries requiresParts (see ardentWeapons' own
+		// powerCost/DRAIN_GROUP exclusion), and an Ardent has no installed-parts concept requiresParts
+		// could check against anyway — [] gates nothing here, same no-op default chooseAstirWeapon
+		// documents for a caller like this one.
+		const template = await chooseAstirWeapon(ardentWeapons(), [], { title: "Pick an Ardent Weapon" });
 		if (!template) return;
 
 		const result = await configureEquipment(template, undefined, { ardentWeapon: true });
@@ -241,7 +245,9 @@ export const ArdentSheetMixin = {
 			ui.notifications.warn(`This Ardent can carry at most ${max} Ardent Features.`);
 			return;
 		}
-		const template = await chooseAstirWeapon(ARDENT_FEATURE_WEAPONS, { title: "Pick an Ardent Feature Weapon" });
+		// See _onArdentWeaponAdd's own comment — [] gates nothing, since ARDENT_FEATURE_WEAPONS
+		// carries no requiresParts entries either.
+		const template = await chooseAstirWeapon(ARDENT_FEATURE_WEAPONS, [], { title: "Pick an Ardent Feature Weapon" });
 		if (!template) return;
 
 		const result = await configureEquipment(template, undefined, { ardentWeapon: true });

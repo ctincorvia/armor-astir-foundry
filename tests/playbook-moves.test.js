@@ -7,8 +7,12 @@ import {
 	MOVE_POOLS,
 	choosePlaybookMove,
 	findPlaybookMove,
+	moveRequirementTooltip,
+	pickerMove,
+	pickerSection,
 	playbookMoveSections,
-	resolvePlaybookMoves
+	resolvePlaybookMoves,
+	unmetMoveRequirements
 } from "../scripts/moves/playbook-moves.js";
 
 const BULLHEADED = "the-impostor:bullheaded";
@@ -815,6 +819,121 @@ describe("resolvePlaybookMoves", () => {
 	});
 });
 
+describe("unmetMoveRequirements", () => {
+	it("returns every requiresMoves key not among the picked keys", () => {
+		const move = { key: "a", requiresMoves: ["b"] };
+		expect(unmetMoveRequirements(move, [])).toEqual(["b"]);
+	});
+
+	it("returns an empty list once every required key is picked", () => {
+		const move = { key: "a", requiresMoves: ["b"] };
+		expect(unmetMoveRequirements(move, ["b"])).toEqual([]);
+	});
+
+	it("returns an empty list for a move with no requiresMoves at all", () => {
+		expect(unmetMoveRequirements({ key: "a" })).toEqual([]);
+	});
+
+	it("only reports the keys that are actually missing", () => {
+		const move = { key: "a", requiresMoves: ["b", "c"] };
+		expect(unmetMoveRequirements(move, ["b"])).toEqual(["c"]);
+	});
+
+	it("resolves against the real content: You Should See Me In A Crown requires Touchstone", () => {
+		const move = findPlaybookMove("the-icon:you-should-see-me-in-a-crown");
+		expect(unmetMoveRequirements(move, [])).toEqual(["the-icon:touchstone"]);
+		expect(unmetMoveRequirements(move, ["the-icon:touchstone"])).toEqual([]);
+	});
+});
+
+describe("moveRequirementTooltip", () => {
+	it("returns null when nothing is missing", () => {
+		expect(moveRequirementTooltip([])).toBeNull();
+	});
+
+	it("names a single missing move by its real display name", () => {
+		expect(moveRequirementTooltip(["the-icon:touchstone"])).toBe("Requires Touchstone");
+	});
+
+	it("joins multiple missing moves, falling back to the raw key for a stale reference", () => {
+		expect(moveRequirementTooltip(["the-icon:touchstone", "not-a-real-key"]))
+			.toBe("Requires Touchstone, not-a-real-key");
+	});
+});
+
+describe("pickerMove", () => {
+	const REQUIRES = { key: "needs-b", name: "Needs B", traits: [], description: "<p>d</p>", requiresMoves: ["b"] };
+	const FREE = { key: "free", name: "Free", traits: [], description: "<p>d</p>" };
+
+	it("stays visible but disabled, with a tooltip, when its requiresMoves isn't met", () => {
+		const result = pickerMove(REQUIRES, []);
+
+		expect(result.key).toBe("needs-b");
+		expect(result.disabled).toBe(true);
+		expect(result.tooltip).toBe("Requires b");
+	});
+
+	it("is enabled with a null tooltip once requiresMoves is satisfied", () => {
+		const result = pickerMove(REQUIRES, ["b"]);
+
+		expect(result.disabled).toBe(false);
+		expect(result.tooltip).toBeNull();
+	});
+
+	it("is enabled by default for a move with no requiresMoves and no extraTooltip", () => {
+		const result = pickerMove(FREE, []);
+
+		expect(result.disabled).toBe(false);
+		expect(result.tooltip).toBeNull();
+	});
+
+	it("folds an extraTooltip callback's result in even when requiresMoves is already met", () => {
+		const result = pickerMove(FREE, [], { extraTooltip: () => "Requires Foo Astir Part" });
+
+		expect(result.disabled).toBe(true);
+		expect(result.tooltip).toBe("Requires Foo Astir Part");
+	});
+
+	it("combines a requiresMoves tooltip with an extraTooltip result", () => {
+		const result = pickerMove(REQUIRES, [], { extraTooltip: () => "Requires Foo Astir Part" });
+
+		expect(result.tooltip).toBe("Requires b; Requires Foo Astir Part");
+	});
+
+	it("ignores an extraTooltip callback that returns nothing", () => {
+		const result = pickerMove(FREE, [], { extraTooltip: () => null });
+
+		expect(result.disabled).toBe(false);
+		expect(result.tooltip).toBeNull();
+	});
+});
+
+describe("pickerSection", () => {
+	const POOL = {
+		key: "pool",
+		label: "Pool",
+		moves: [
+			{ key: "needs-b", name: "Needs B", traits: [], description: "<p>d</p>", requiresMoves: ["b"] },
+			{ key: "free", name: "Free", traits: [], description: "<p>d</p>" }
+		]
+	};
+
+	it("keeps a move with unmet requiresMoves in the list, disabled, rather than filtering it out", () => {
+		const section = pickerSection(POOL, []);
+
+		expect(section.moves.map((m) => m.key)).toEqual(["needs-b", "free"]);
+		expect(section.moves.find((m) => m.key === "needs-b").disabled).toBe(true);
+		expect(section.moves.find((m) => m.key === "free").disabled).toBe(false);
+	});
+
+	it("threads extraTooltip through to every move in the section", () => {
+		const section = pickerSection(POOL, [], { extraTooltip: () => "Gated" });
+
+		expect(section.moves.find((m) => m.key === "free").tooltip).toBe("Gated");
+		expect(section.moves.find((m) => m.key === "needs-b").tooltip).toBe("Requires b; Gated");
+	});
+});
+
 // The ordering/nesting/emptiness rules are asserted against fixtures rather than the live pools,
 // so they keep testing the same thing as real move content fills MOVE_POOLS in — an assertion
 // like "Other Playbooks is dropped when every other pool is empty" would silently stop covering
@@ -982,6 +1101,24 @@ describe("playbookMoveSections", () => {
 
 		expect(keys).toContain("the-advocate:earthly-ally");
 		expect(keys).toContain("the-advocate:titanic");
+	});
+
+	// You Should See Me In A Crown's real requiresMoves: ["the-icon:touchstone"] — stays offered
+	// (visible but disabled) rather than filtered, until Touchstone is also picked.
+	it("disables (but still offers) a move whose real requiresMoves isn't met", () => {
+		const [icon] = playbookMoveSections("The Icon");
+		const crown = icon.moves.find((move) => move.key === "the-icon:you-should-see-me-in-a-crown");
+
+		expect(crown.disabled).toBe(true);
+		expect(crown.tooltip).toBe("Requires Touchstone");
+	});
+
+	it("enables that same move once its prerequisite is among the picked keys", () => {
+		const [icon] = playbookMoveSections("The Icon", ["the-icon:touchstone"]);
+		const crown = icon.moves.find((move) => move.key === "the-icon:you-should-see-me-in-a-crown");
+
+		expect(crown.disabled).toBe(false);
+		expect(crown.tooltip).toBeNull();
 	});
 });
 

@@ -1028,6 +1028,99 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 		expect(biteTheDust.gated).toBe(true);
 		expect(biteTheDust.gatedTooltip).toBe("Replaced by Never Quite Free");
 	});
+
+	// You Should See Me In A Crown's real requiresMoves: ["the-icon:touchstone"] — the picker-time
+	// gating is covered in tests/playbook-moves.test.js; this covers the live re-gating on an
+	// already-picked move's own Roll button (see moves-mixin.js's _moveGroupMoves).
+	const CROWN_KEY = "the-icon:you-should-see-me-in-a-crown";
+	const TOUCHSTONE_KEY = "the-icon:touchstone";
+
+	it("gates an already-picked move's Roll button when its requiresMoves prerequisite is missing", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { playbookMoves: [CROWN_KEY] } } };
+
+		const data = sheet.getData();
+
+		const crown = data.moveGroups[1].moves.find((m) => m.key === CROWN_KEY);
+		expect(crown.gated).toBe(true);
+		expect(crown.gatedTooltip).toBe("Requires Touchstone");
+	});
+
+	it("un-gates that move once its prerequisite is picked too", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { playbookMoves: [CROWN_KEY, TOUCHSTONE_KEY] } } };
+
+		const data = sheet.getData();
+
+		const crown = data.moveGroups[1].moves.find((m) => m.key === CROWN_KEY);
+		expect(crown.gated).toBe(false);
+		expect(crown.gatedTooltip).toBeUndefined();
+	});
+
+	it("re-gates the move live if its prerequisite is removed after having been picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { playbookMoves: [CROWN_KEY, TOUCHSTONE_KEY] } } };
+		expect(sheet.getData().moveGroups[1].moves.find((m) => m.key === CROWN_KEY).gated).toBe(false);
+
+		// Touchstone removed from the actor's playbookMoves — same actor object, no other state change.
+		sheet.actor.system.attributes.playbookMoves = [CROWN_KEY];
+
+		const crown = sheet.getData().moveGroups[1].moves.find((m) => m.key === CROWN_KEY);
+		expect(crown.gated).toBe(true);
+		expect(crown.gatedTooltip).toBe("Requires Touchstone");
+	});
+
+	// No real move carries requiresParts yet (mechanism-only, per claude.md's Astir section), so the
+	// requiresParts half of this gating is exercised directly against _moveGroupMoves, the same
+	// pattern tests/playbook-actor-sheet-summoner.test.js already uses for Eidolon Drive.
+	it("gates a move whose requiresParts isn't met by the actor's installed Astir Parts", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { astir: { parts: [] } } } };
+		const fixture = {
+			key: "fixture:gated-by-part",
+			name: "Fixture",
+			traits: [],
+			requiresParts: ["astir-part:familiar-matrix"]
+		};
+
+		const [entry] = sheet._moveGroupMoves([fixture]);
+
+		expect(entry.gated).toBe(true);
+		expect(entry.gatedTooltip).toBe("Requires Familiar Matrix Astir Part");
+	});
+
+	it("un-gates that move once the required Astir Part is installed", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { astir: { parts: ["astir-part:familiar-matrix"] } } } };
+		const fixture = {
+			key: "fixture:gated-by-part",
+			name: "Fixture",
+			traits: [],
+			requiresParts: ["astir-part:familiar-matrix"]
+		};
+
+		const [entry] = sheet._moveGroupMoves([fixture]);
+
+		expect(entry.gated).toBe(false);
+		expect(entry.gatedTooltip).toBeUndefined();
+	});
+
+	it("combines a requiresMoves and requiresParts tooltip when both are unmet on the same move", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { playbookMoves: [], astir: { parts: [] } } } };
+		const fixture = {
+			key: "fixture:gated-by-both",
+			name: "Fixture",
+			traits: [],
+			requiresMoves: [TOUCHSTONE_KEY],
+			requiresParts: ["astir-part:familiar-matrix"]
+		};
+
+		const [entry] = sheet._moveGroupMoves([fixture]);
+
+		expect(entry.gated).toBe(true);
+		expect(entry.gatedTooltip).toBe("Requires Touchstone; Requires Familiar Matrix Astir Part");
+	});
 });
 
 describe("PlaybookActorSheet#getData - hold", () => {
