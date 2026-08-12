@@ -125,17 +125,18 @@ async function handleAdvantage(message, offer, direction) {
 	const nextState = nextAdvantageState(offer.advantageKey, direction);
 	if (!nextState) return;
 
+	const effect = effectState(offer.effectKey);
+
 	let dice;
 	if (nextState.dice > offer.dice.length) {
 		const dieRoll = new Roll("1d6");
 		await dieRoll.evaluate();
-		dice = addDie(offer.dice, nextState.keepLowest, dieRoll.total);
+		dice = addDie(offer.dice, nextState.keepLowest, dieRoll.total, effect);
 	} else {
 		dice = removeDie(offer.dice, nextState.keepLowest);
 	}
 	const total = dice.filter((d) => d.kept).reduce((sum, d) => sum + d.result, 0) + offer.value;
 	const tier = moveResultTier(total);
-	const effect = effectState(offer.effectKey);
 	const conditions = [...rollConditions(nextState, effect), ...offer.extraConditions];
 	const reminders = buildReminders(tier, effect, offer.extraFailureReminder, offer.extraSuccessReminder);
 

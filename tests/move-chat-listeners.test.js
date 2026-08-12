@@ -639,6 +639,58 @@ describe("onRenderMoveChat/handleAdvantage (Add Advantage/Add Disadvantage)", ()
 		});
 	});
 
+	it("substitutes the added die's face under Confidence, mirroring the original roll's own effect", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const offer = baseOffer({ value: 0, effectKey: "confidence" });
+		const message = { flags: { "armor-astir": { advantageOffer: offer } }, author: "author1", update: vi.fn() };
+		const fake = fakeChatHtml();
+		mockDieRoll(1);
+
+		onRenderMoveChat(message, fake.html);
+		fake.addAdvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// [2, 2] kept-highest-2 with a rolled 1 that Confidence substitutes to 6 -> keeps 2 and 6 -> 8 (mixed).
+		expect(message.update).toHaveBeenCalledWith(expect.objectContaining({
+			content: "8",
+			flags: {
+				"armor-astir": {
+					advantageOffer: expect.objectContaining({
+						dice: expect.arrayContaining([expect.objectContaining({ original: 1, result: 6, changed: true, kept: true })])
+					})
+				}
+			}
+		}));
+	});
+
+	it("substitutes the added die's face under Desperation, mirroring the original roll's own effect", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const offer = baseOffer({ value: 0, effectKey: "desperation" });
+		const message = { flags: { "armor-astir": { advantageOffer: offer } }, author: "author1", update: vi.fn() };
+		const fake = fakeChatHtml();
+		mockDieRoll(6);
+
+		onRenderMoveChat(message, fake.html);
+		fake.addAdvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// [2, 2] kept-highest-2 with a rolled 6 that Desperation substitutes to 1 -> keeps 2 and 2 -> 4 (failure).
+		expect(message.update).toHaveBeenCalledWith(expect.objectContaining({
+			content: "4",
+			flags: {
+				"armor-astir": {
+					advantageOffer: expect.objectContaining({
+						dice: expect.arrayContaining([expect.objectContaining({ original: 6, result: 1, changed: true, kept: false })])
+					})
+				}
+			}
+		}));
+	});
+
 	it("rebuilds a stored extraSuccessReminder (e.g. Captain's Coordinator) once the flipped tier lands on a 10+", async () => {
 		game.actors.get.mockReturnValue({ id: "actor1" });
 		const reminder = "If you chose to help, your ally may act with confidence in addition to advantage.";

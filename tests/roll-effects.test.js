@@ -327,6 +327,42 @@ describe("addDie", () => {
 
 		expect(result.at(-1)).toEqual({ original: 1, result: 1, changed: false, kept: false });
 	});
+
+	it("substitutes the new die's face under Confidence, letting it win the keep-highest slot", () => {
+		const dice = [
+			{ original: 2, result: 2, changed: false, kept: true },
+			{ original: 3, result: 3, changed: false, kept: true }
+		];
+
+		const result = addDie(dice, false, 1, effectState("confidence"));
+
+		expect(result.at(-1)).toEqual({ original: 1, result: 6, changed: true, kept: true });
+		expect(result[0]).toEqual({ original: 2, result: 2, changed: false, kept: false });
+		expect(result[1]).toEqual({ original: 3, result: 3, changed: false, kept: true });
+	});
+
+	it("substitutes the new die's face under Desperation, letting it win the keep-lowest slot", () => {
+		const dice = [
+			{ original: 4, result: 4, changed: false, kept: true },
+			{ original: 3, result: 3, changed: false, kept: true }
+		];
+
+		const result = addDie(dice, true, 6, effectState("desperation"));
+
+		expect(result.at(-1)).toEqual({ original: 6, result: 1, changed: true, kept: true });
+		expect(result[0]).toEqual({ original: 4, result: 4, changed: false, kept: false });
+	});
+
+	it("leaves the new die's face untouched when the effect doesn't match its face", () => {
+		const dice = [
+			{ original: 2, result: 2, changed: false, kept: true },
+			{ original: 3, result: 3, changed: false, kept: true }
+		];
+
+		const result = addDie(dice, false, 4, effectState("confidence"));
+
+		expect(result.at(-1)).toEqual({ original: 4, result: 4, changed: false, kept: true });
+	});
 });
 
 describe("removeDie", () => {

@@ -106,17 +106,20 @@ export function nextAdvantageState(key, direction) {
 // Adds one freshly-rolled die to an existing dice breakdown (see applyRollEffects' own return
 // shape above) and recomputes which KEPT_DICE dice are kept under the new, one-larger pool —
 // mirrors applyRollEffects' own sort/keep logic, but works from the breakdown's already-resolved
-// `.result` faces rather than raw DiceTerm results, and never re-runs Confidence/Desperation
-// substitution on any of them: the existing dice were already substituted when the roll first
-// happened, and a die added after the fact was never subject to that roll's own effect.
-export function addDie(dice, keepLowest, newFace) {
-	const pool = [...dice.map(({ result }) => ({ result })), { result: newFace }];
+// `.result` faces rather than raw DiceTerm results. The existing dice were already substituted
+// when the roll first happened and are left untouched; the new die goes through the same
+// `effect.from -> effect.to` substitution applyRollEffects applies, before sort/keep-selection, so
+// a roll's active Confidence/Desperation still applies to a die added later via Advantage/
+// Disadvantage. `effect` defaults to a no-op shape so callers with no active effect can omit it.
+export function addDie(dice, keepLowest, newFace, effect = { from: null, to: null }) {
+	const substituted = newFace === effect.from ? effect.to : newFace;
+	const pool = [...dice.map(({ result }) => ({ result })), { result: substituted }];
 	const sorted = [...pool].sort((a, b) => (keepLowest ? a.result - b.result : b.result - a.result));
 	const kept = new Set(sorted.slice(0, KEPT_DICE));
 
 	return [
 		...dice.map((die, index) => ({ ...die, kept: kept.has(pool[index]) })),
-		{ original: newFace, result: newFace, changed: false, kept: kept.has(pool[dice.length]) }
+		{ original: newFace, result: substituted, changed: substituted !== newFace, kept: kept.has(pool[dice.length]) }
 	];
 }
 
