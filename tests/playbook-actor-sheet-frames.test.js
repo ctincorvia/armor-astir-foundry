@@ -331,6 +331,7 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [{ ...entry, spent: ["cursed", "dangerous"] }],
+			"system.attributes.moveHold.astir:lev-spells.value": 0,
 			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
 			"system.resources.hold.value": 0,
@@ -356,6 +357,7 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		sheet._onRefreshScene();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.astir:lev-spells.value": 0,
 			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
 			"system.resources.hold.value": 0,
@@ -376,6 +378,7 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		sheet._onRefreshScene();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.astir:lev-spells.value": 0,
 			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
 			"system.resources.hold.value": 0,
@@ -390,6 +393,7 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		sheet._onRefreshScene();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.astir:lev-spells.value": 0,
 			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
 			"system.resources.hold.value": 0,
@@ -410,6 +414,7 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		sheet._onRefreshScene();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.astir:lev-spells.value": 0,
 			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
 			"system.resources.hold.value": 0,
@@ -430,6 +435,7 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		sheet._onRefreshScene();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.astir:lev-spells.value": 0,
 			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
 			"system.resources.hold.value": 0,
@@ -455,6 +461,7 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		sheet._onRefreshScene();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveHold.astir:lev-spells.value": 0,
 			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
 			"system.attributes.moveHold.the-scout:mobility.value": 0,
 			"system.resources.hold.value": 0,

@@ -10,7 +10,7 @@ import { chooseCarrier, findCarrierActors } from "../../world-actors/carrier-act
 import { TIER_MIN, UNARMED, chooseWeapon } from "../../equipment/equipment.js";
 import { getTargetedNpc } from "../../moves/target-tier.js";
 import { approachMatchupStack } from "../../moves/approach-matchup.js";
-import { findAstirPart, partRequirementTooltip, unmetPartRequirements } from "../../frames/astir.js";
+import { findAstirMove, findAstirPart, partRequirementTooltip, unmetPartRequirements } from "../../frames/astir.js";
 import { rolledDoubles } from "../../moves/roll-effects.js";
 import { chooseStartingMoves, findStartingMovePool, playbookGrantsHomeInsteadOfChannel } from "../../moves/starting-moves.js";
 import {
@@ -518,12 +518,32 @@ export const MovesSheetMixin = {
 			.find((m) => m.grantsTraitOnMove?.moveKey === move.key);
 		return granting?.grantsTraitOnMove.trait ?? null;
 	},
+	// Every move source that can carry the grantsAdvantageOnMove/addsSuccessReminderToMove/
+	// addsCriticalReminderToMove/addsFailureReminderToMove/addsQuestionsToMove family of flags — the
+	// actor's picked playbook moves, plus (Legacy, Mana Devourer, etc. — see astir.js's
+	// ASTIR_MOVE_CATALOG) the Astir's own unique move, but only while the Astir specifically is the
+	// mounted frame. Mirrors the mounted-vs-installed distinction every other Astir Part effect
+	// already draws (see claude.md's Piloted note/_mountedParts) — an Astir Move picked but not
+	// currently mounted grants nothing, the same as an installed-but-unmounted Part. Shared by every
+	// _granted*ForMove resolver below that can be sourced from an Astir Move; the ones that can't
+	// (_grantedEffectForMove, _grantedTraitForMove, _grantsUnpilotedAstirMove,
+	// _grantsCarrierWeaponAccess) keep reading resolvePlaybookMoves directly, since none of the 20
+	// catalog Astir Moves use those flags.
+	_grantingMoves() {
+		const astir = this._astir();
+		const astirMove = astir?.move ? findAstirMove(astir.move) : null;
+		const mounted = this._mountedFrame()?.kind === "astir";
+		return [
+			...resolvePlaybookMoves(this._playbookMoves()),
+			...(astirMove && mounted ? [astirMove] : [])
+		];
+	},
 	// The Advantage-axis counterpart to _grantedEffectForMove — Don't Follow Me additionally locks
 	// the roll dialog's Dice select the same way a lockedEffect locks Effect (see
 	// PlaybookActorSheet#_rollMove/moves.js#configureMoveRoll), though an Astir Part's own reactive
 	// spend.advantage (Artifact) still wins over it.
 	_grantedAdvantageForMove(move) {
-		const granting = resolvePlaybookMoves(this._playbookMoves())
+		const granting = this._grantingMoves()
 			.find((m) => m.grantsAdvantageOnMove?.moveKey === move.key);
 		return granting?.grantsAdvantageOnMove.advantage ?? null;
 	},
@@ -585,7 +605,7 @@ export const MovesSheetMixin = {
 	// resolve against (contrast addsTraitToMove, which locks/offers one of the target move's own
 	// real trait options).
 	_grantedQuestionsForMove(move) {
-		const granting = resolvePlaybookMoves(this._playbookMoves())
+		const granting = this._grantingMoves()
 			.find((m) => m.addsQuestionsToMove?.moveKey === move.key);
 		return granting?.addsQuestionsToMove.questions ?? null;
 	},
@@ -598,7 +618,7 @@ export const MovesSheetMixin = {
 	// flag on this move's own addsTraitToMove grant above — no reminder to tick a box that was
 	// never offered as a roll option in the first place while unmounted or in an Ardent.
 	_grantedFailureReminderForMove(move) {
-		const granting = resolvePlaybookMoves(this._playbookMoves())
+		const granting = this._grantingMoves()
 			.find((m) => {
 				const grant = m.addsFailureReminderToMove;
 				if (!grant?.moveKeys?.includes(move.key)) return false;
@@ -615,7 +635,7 @@ export const MovesSheetMixin = {
 	// `!grant.requiresAstirMounted || this._mountedFrame()?.kind === "astir"` line) the day a grant
 	// actually needs it — same shape _grantedQuestionsForMove already uses for the same reason.
 	_grantedSuccessReminderForMove(move) {
-		const granting = resolvePlaybookMoves(this._playbookMoves())
+		const granting = this._grantingMoves()
 			.find((m) => m.addsSuccessReminderToMove?.moveKeys?.includes(move.key));
 		return granting?.addsSuccessReminderToMove.reminder ?? null;
 	},
@@ -631,7 +651,7 @@ export const MovesSheetMixin = {
 	// whichever trait was actually rolled, since Exchange Blows itself offers a choice of CLASH or
 	// TALK and the move's own text cares which one was used.
 	_grantedCriticalReminderForMove(move, traitKey) {
-		const granting = resolvePlaybookMoves(this._playbookMoves())
+		const granting = this._grantingMoves()
 			.find((m) => {
 				const grant = m.addsCriticalReminderToMove;
 				if (!grant) return false;

@@ -33,12 +33,23 @@ import {
 	chooseAstirPart,
 	chooseAstirWeapon
 } from "../scripts/frames/astir.js";
+import { BASIC_MOVES, SPECIAL_MOVES } from "../scripts/moves/moves.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 
 const WEAPON_CONDUIT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:weapon-conduit");
 const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:alchemical-suite");
 const WARDING = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:warding");
 const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:artifact");
+const LEGACY = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:legacy");
+const MANA_DEVOURER = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:mana-devourer");
+const PETRIFIER_CORE = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:petrifier-core");
+const INERTIA_DRIVE = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:inertia-drive");
+const FUTURE_SIGHT = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:future-sight");
+const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
+const STRIKE_DECISIVELY = BASIC_MOVES.find((m) => m.key === "strike-decisively");
+const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
+const WEATHER_THE_STORM = BASIC_MOVES.find((m) => m.key === "weather-the-storm");
+const READ_THE_ROOM = BASIC_MOVES.find((m) => m.key === "read-the-room");
 
 beforeEach(() => {
 	chooseAstirPart.mockClear();
@@ -1377,5 +1388,104 @@ describe("PlaybookActorSheet#_spendAstirParts", () => {
 		await sheet._spendAstirParts([]);
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({});
+	});
+});
+
+// _grantingMoves (moves-mixin.js) is what lets an Astir Move (Legacy, Mana Devourer, Petrifier
+// Core, Inertia Drive, Future Sight — see astir.js's ASTIR_MOVE_CATALOG) source the same
+// grantsAdvantageOnMove/addsSuccessReminderToMove/addsFailureReminderToMove/
+// addsCriticalReminderToMove/addsQuestionsToMove flags a picked playbook move already can, but only
+// while the Astir specifically is the mounted frame — the same mounted-vs-installed distinction
+// every other Astir Part effect already draws. Legacy's own pair of tests below exercises both
+// branches of _grantingMoves itself; the rest just need one passing case each so their own call
+// site isn't dead code.
+describe("PlaybookActorSheet#_grantedAdvantageForMove - Legacy (Astir Move)", () => {
+	it("grants advantage on Lead a Sortie when Legacy is picked and the Astir is mounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", move: LEGACY.key, piloted: true, parts: [] } } }
+		};
+
+		expect(sheet._grantedAdvantageForMove(LEAD_A_SORTIE)).toBe("advantage");
+	});
+
+	it("grants nothing when the Astir is not the mounted frame", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", move: LEGACY.key, piloted: false, parts: [] } } }
+		};
+
+		expect(sheet._grantedAdvantageForMove(LEAD_A_SORTIE)).toBeNull();
+	});
+
+	it("grants nothing when an Ardent is mounted instead of the Astir", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", move: LEGACY.key, piloted: false, parts: [] },
+					ardents: [{ id: "ard1", name: "Ardent", piloted: true, parts: [] }]
+				}
+			}
+		};
+
+		expect(sheet._grantedAdvantageForMove(LEAD_A_SORTIE)).toBeNull();
+	});
+
+	it("grants nothing without Legacy picked, even while the Astir is mounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", move: null, piloted: true, parts: [] } } }
+		};
+
+		expect(sheet._grantedAdvantageForMove(LEAD_A_SORTIE)).toBeNull();
+	});
+});
+
+describe("PlaybookActorSheet#_grantedSuccessReminderForMove - Mana Devourer (Astir Move)", () => {
+	it("returns Mana Devourer's reminder for Strike Decisively once picked and mounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", move: MANA_DEVOURER.key, piloted: true, parts: [] } } }
+		};
+
+		expect(sheet._grantedSuccessReminderForMove(STRIKE_DECISIVELY)).toBe(
+			"+1 Power (against another Astir, with physical harm)"
+		);
+	});
+});
+
+describe("PlaybookActorSheet#_grantedFailureReminderForMove - Petrifier Core (Astir Move)", () => {
+	it("returns Petrifier Core's reminder for Exchange Blows once picked and mounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", move: PETRIFIER_CORE.key, piloted: true, parts: [] } } }
+		};
+
+		expect(sheet._grantedFailureReminderForMove(EXCHANGE_BLOWS)).toBe(
+			"If you took disadvantage, your opponent takes the risk (restrained)"
+		);
+	});
+});
+
+describe("PlaybookActorSheet#_grantedCriticalReminderForMove - Inertia Drive (Astir Move)", () => {
+	it("returns Inertia Drive's reminder for Weather the Storm once picked and mounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", move: INERTIA_DRIVE.key, piloted: true, parts: [] } } }
+		};
+
+		expect(sheet._grantedCriticalReminderForMove(WEATHER_THE_STORM)).toBe("Regain 1 Power");
+	});
+});
+
+describe("PlaybookActorSheet#_grantedQuestionsForMove - Future Sight (Astir Move)", () => {
+	it("returns Future Sight's questions for Read the Room once picked and mounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", move: FUTURE_SIGHT.key, piloted: true, parts: [] } } }
+		};
+
+		expect(sheet._grantedQuestionsForMove(READ_THE_ROOM)).toEqual(FUTURE_SIGHT.addsQuestionsToMove.questions);
 	});
 });
