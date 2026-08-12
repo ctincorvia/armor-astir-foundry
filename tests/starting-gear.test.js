@@ -401,20 +401,37 @@ describe("STARTING_GEAR_POOLS", () => {
 		expect(watchdogs).toMatchObject({ tags: ["ward"] });
 	});
 
-	it("gives The Captain no granted items and one 4-item Ornate Gear group", () => {
+	it("gives The Captain no granted items, a 4-item Ornate Gear group and a 4-item Carrier Bonuses group", () => {
 		const captain = findStartingGearPool("The Captain");
 
 		expect(captain.grantedItems).toHaveLength(0);
-		expect(captain.groups).toHaveLength(1);
+		expect(captain.groups).toHaveLength(2);
+		expect(captain.groups[0].key).toBe("the-captain:ornate-gear");
 		expect(captain.groups[0].chooseCount).toBe(1);
 		expect(captain.groups[0].items).toHaveLength(4);
+		expect(captain.groups[1].key).toBe("the-captain:carrier-bonuses");
+		expect(captain.groups[1].chooseCount).toBe(2);
+		expect(captain.groups[1].items).toHaveLength(4);
 	});
 
-	it("puts The Captain's Crew/Carrier Bonuses and clothes note in freeformNotes, not modeled items", () => {
+	it("puts only The Captain's clothes note in freeformNotes, with Crew/Carrier Bonuses modeled as items", () => {
 		const captain = findStartingGearPool("The Captain");
 
-		expect(captain.freeformNotes.some((note) => note.includes("Crew/Carrier Bonuses"))).toBe(true);
 		expect(captain.freeformNotes).toContain("Clothes that match your look.");
+		expect(captain.freeformNotes.some((note) => note.includes("Crew/Carrier Bonuses"))).toBe(false);
+
+		const bonuses = captain.groups[1].items;
+
+		expect(bonuses.find((item) => item.key === "the-captain:marine-infantry")).toEqual({
+			key: "the-captain:marine-infantry",
+			name: "Marine Infantry",
+			description: "They'll fight tooth and nail to defend the Carrier."
+		});
+		expect(bonuses.find((item) => item.key === "the-captain:cloaking-rituals")).toEqual({
+			key: "the-captain:cloaking-rituals",
+			name: "Cloaking Rituals",
+			description: "Can hide the Carrier from sight."
+		});
 	});
 
 	it("gives Ruinlock I a ranged/reload/ruin/profane weapon shape", () => {

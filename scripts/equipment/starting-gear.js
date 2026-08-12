@@ -802,16 +802,11 @@ export const STARTING_GEAR_POOLS = [
 	},
 	{
 		playbookName: "The Captain",
-		// "2 Crew/Carrier Bonuses" and "Clothes that match your look" are both narrative-only (see
-		// this file's own freeformNotes doc comment) — no Crew/Carrier "bonus" system exists
-		// anywhere in this module to model the four listed options against (mirrors The Scout's own
-		// "Any tier I weapons that feel appropriate" treatment above).
-		freeformNotes: [
-			"2 Crew/Carrier Bonuses — Marine Infantry (they'll fight tooth and nail to defend the " +
-				"Carrier), Civilian Quarters (can safely accommodate refugees), Construct Bay (Steed " +
-				"Ardents for everyone) or Cloaking Rituals (can hide the Carrier from sight).",
-			"Clothes that match your look."
-		],
+		// "Clothes that match your look" is narrative-only (see this file's own freeformNotes doc
+		// comment) — mirrors The Scout's own "Any tier I weapons that feel appropriate" treatment
+		// above. The Crew/Carrier Bonuses are modeled as their own choose-2 group below instead,
+		// since they're a fixed catalog of four named options rather than freeform flavor text.
+		freeformNotes: ["Clothes that match your look."],
 		grantedItems: [],
 		groups: [
 			{
@@ -850,6 +845,33 @@ export const STARTING_GEAR_POOLS = [
 						// "defensive, arcane" — arcane is a real EQUIPMENT_TAGS entry, same as profane
 						// above.
 						tags: ["ranged", "defensive", "arcane"]
+					}
+				]
+			},
+			{
+				key: "the-captain:carrier-bonuses",
+				label: "Choose 2 Crew/Carrier Bonuses.",
+				chooseCount: 2,
+				items: [
+					{
+						key: "the-captain:marine-infantry",
+						name: "Marine Infantry",
+						description: "They'll fight tooth and nail to defend the Carrier."
+					},
+					{
+						key: "the-captain:civilian-quarters",
+						name: "Civilian Quarters",
+						description: "Can safely accommodate refugees."
+					},
+					{
+						key: "the-captain:construct-bay",
+						name: "Construct Bay",
+						description: "Steed Ardents for everyone."
+					},
+					{
+						key: "the-captain:cloaking-rituals",
+						name: "Cloaking Rituals",
+						description: "Can hide the Carrier from sight."
 					}
 				]
 			}
