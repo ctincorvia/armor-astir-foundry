@@ -928,7 +928,11 @@ export async function rollMove(actor, move, trait, options = {}) {
 				effect: options.effect,
 				weaponLabel: options.weaponLabel,
 				weaponTags: options.weaponTags
-			}
+			},
+			// The exact key this reroll's spend should be recorded under (see
+			// equipment.js#rerollSpendKey) — compound for a multi-move tag like Versatile so its two
+			// moves' rerolls track independently, plain for a single-move tag like Decisive/Defensive.
+			spendKey: options.reroll.spendKey
 		}
 		: null;
 
@@ -956,6 +960,18 @@ export async function rollMove(actor, move, trait, options = {}) {
 				weaponTags: options.weaponTags
 			}
 		}
+		: null;
+
+	// The reroll button's label — pulled into its own variable (matching automaticSuccessOffer/
+	// heatUpOffer's own consts above) rather than left inline in flavorArgs, since it now needs a
+	// multi-move branch: a multi-move reroll tag (Versatile) names which move it's for, since the
+	// tag alone ("Versatile") no longer identifies a single spend the way it does for a single-move
+	// tag (Decisive, Defensive) — see equipment.js#rerollSpendKey.
+	const rerollLabel = rerollOffer
+		? (() => {
+			const tag = findEquipmentTag(rerollOffer.tagKey);
+			return tag.reroll.moves.length > 1 ? `${tag.label} — ${move.name}` : tag.label;
+		})()
 		: null;
 
 	// Pulled into its own variable (rather than inlined into the renderTemplate call, as before)
@@ -997,7 +1013,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 		reroll: Boolean(rerollOffer),
 		// The specific tag (Decisive/Defensive/Versatile) this reroll offer is coming from, so the
 		// chat card's button can name just that one tag rather than listing all three.
-		rerollLabel: rerollOffer ? findEquipmentTag(rerollOffer.tagKey).label : null,
+		rerollLabel,
 		automaticSuccess: automaticSuccessOffer,
 		heatUp: Boolean(heatUpOffer),
 		showAddAdvantage,

@@ -23,6 +23,7 @@ import {
 	findAstirPart,
 	findCatalogAstirWeapon,
 	partRequirementTooltip,
+	requiredAstirMoveKey,
 	resolveAstirParts,
 	unmetPartRequirements
 } from "../scripts/frames/astir.js";
@@ -364,6 +365,20 @@ describe("findAstirMove", () => {
 
 	it("returns null when the key resolves nowhere", () => {
 		expect(findAstirMove("nope:not-a-move", FIXTURE_CATALOG)).toBeNull();
+	});
+});
+
+describe("requiredAstirMoveKey", () => {
+	it("returns the Summoner's fixed Astir Move key", () => {
+		expect(requiredAstirMoveKey("The Summoner")).toBe("the-summoner:eidolon-drive");
+	});
+
+	it("returns null for a playbook with no fixed Astir Move", () => {
+		expect(requiredAstirMoveKey("The Scout")).toBeNull();
+	});
+
+	it("returns null when no playbook name is given", () => {
+		expect(requiredAstirMoveKey(undefined)).toBeNull();
 	});
 });
 

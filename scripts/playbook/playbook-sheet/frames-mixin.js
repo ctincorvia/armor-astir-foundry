@@ -1,6 +1,6 @@
 import { ASTIR_TIER_MIN, resolveAstirParts } from "../../frames/astir.js";
 import { ARDENT_DEFAULT_NAME, ARDENT_PART_CATALOG, ARDENT_TIER_DEFAULT, chooseFrame } from "../../frames/ardent.js";
-import { findEquipmentTag } from "../../equipment/equipment.js";
+import { baseEquipmentTagKey, findEquipmentTag } from "../../equipment/equipment.js";
 import { HOLD_MIN } from "../../moves/moves.js";
 import { ALL_MOVES } from "../../moves/all-moves.js";
 
@@ -177,7 +177,12 @@ export const FramesSheetMixin = {
 			const spent = item.spent ?? [];
 			if (!spent.length) return item;
 			const kept = spent.filter((tagKey) => {
-				const tag = findEquipmentTag(tagKey);
+				// A multi-move reroll tag's spent entries are compound keys (e.g.
+				// "versatile:exchange-blows" — see equipment.js#rerollSpendKey); baseEquipmentTagKey
+				// strips that back to the plain catalog key so the tag definition (and its period)
+				// still resolves. A no-op for a plain key, so a single-move reroll tag (Decisive,
+				// Defensive) and every spend/forcesEffect tag are unaffected.
+				const tag = findEquipmentTag(baseEquipmentTagKey(tagKey));
 				const tagPeriod = tag?.spend?.period ?? tag?.forcesEffect?.period ?? tag?.reroll?.period;
 				return tagPeriod !== period;
 			});

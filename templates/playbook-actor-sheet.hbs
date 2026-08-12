@@ -239,7 +239,7 @@
 								<ul class="equipment-tag-list">
 									{{#each tags}}
 									<li class="equipment-tag">
-										<span class="equipment-tag-label">{{label}} ({{value}})</span>
+										<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
 										{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
 										{{#if spendable}}
 										<label class="equipment-tag-spent">
@@ -281,7 +281,7 @@
 								<ul class="equipment-tag-list">
 									{{#each tags}}
 									<li class="equipment-tag">
-										<span class="equipment-tag-label">{{label}} ({{value}})</span>
+										<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
 										{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
 										{{#if spendable}}
 										<label class="equipment-tag-spent">
@@ -324,7 +324,7 @@
 								<ul class="equipment-tag-list">
 									{{#each tags}}
 									<li class="equipment-tag">
-										<span class="equipment-tag-label">{{label}} ({{value}})</span>
+										<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
 										{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
 										{{#if spendable}}
 										<label class="equipment-tag-spent">
@@ -374,7 +374,7 @@
 								<ul class="equipment-tag-list">
 									{{#each tags}}
 									<li class="equipment-tag">
-										<span class="equipment-tag-label">{{label}} ({{value}})</span>
+										<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
 										{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
 										{{#if spendable}}
 										<label class="equipment-tag-spent">
@@ -533,7 +533,7 @@
 								<ul class="equipment-tag-list">
 									{{#each tags}}
 									<li class="equipment-tag">
-										<span class="equipment-tag-label">{{label}} ({{value}})</span>
+										<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
 										{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
 										{{#if spendable}}
 										<label class="equipment-tag-spent">
@@ -648,7 +648,7 @@
 									<ul class="equipment-tag-list">
 										{{#each tags}}
 										<li class="equipment-tag">
-											<span class="equipment-tag-label">{{label}} ({{value}})</span>
+											<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
 											{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
 											{{#if spendable}}
 											<label class="equipment-tag-spent">
@@ -712,7 +712,7 @@
 									<ul class="equipment-tag-list">
 										{{#each tags}}
 										<li class="equipment-tag">
-											<span class="equipment-tag-label">{{label}} ({{value}})</span>
+											<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
 											{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
 											{{#if spendable}}
 											<label class="equipment-tag-spent">

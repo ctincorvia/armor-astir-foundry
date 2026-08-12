@@ -1414,7 +1414,7 @@ describe("rollMove - reroll (Decisive/Defensive/Versatile)", () => {
 			advantage: "none",
 			effect: "none",
 			weaponLabel: "Halberd",
-			reroll: { equipmentId: "eq1", tagKey: "defensive" }
+			reroll: { equipmentId: "eq1", tagKey: "defensive", spendKey: "defensive" }
 		});
 
 		expect(renderTemplate).toHaveBeenCalledWith(
@@ -1433,6 +1433,10 @@ describe("rollMove - reroll (Decisive/Defensive/Versatile)", () => {
 						trait: clash,
 						equipmentId: "eq1",
 						tagKey: "defensive",
+						// A single-move reroll tag (Defensive) keeps a plain spendKey, matching tagKey —
+						// see equipment.js#rerollSpendKey. Only a multi-move tag (Versatile) produces a
+						// compound one (see the dedicated Versatile tests below).
+						spendKey: "defensive",
 						options: { advantage: "none", effect: "none", weaponLabel: "Halberd" },
 						flavorArgs: expect.any(Object)
 					},
@@ -1455,6 +1459,61 @@ describe("rollMove - reroll (Decisive/Defensive/Versatile)", () => {
 		expect(renderTemplate).toHaveBeenCalledWith(
 			MOVE_CHAT_TEMPLATE,
 			expect.objectContaining({ reroll: true, rerollLabel: "Decisive" })
+		);
+	});
+
+	it("names the specific move (Versatile — Exchange Blows), not just the tag, for a multi-move reroll tag", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, {
+			advantage: "none",
+			effect: "none",
+			weaponLabel: "Rifle",
+			reroll: { equipmentId: "eq1", tagKey: "versatile", spendKey: "versatile:exchange-blows" }
+		});
+
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ reroll: true, rerollLabel: "Versatile — Exchange Blows" })
+		);
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(rollInstance.toMessage).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			flavor: "",
+			flags: {
+				"armor-astir": {
+					reroll: {
+						actorId: "actor1",
+						moveKey: "exchange-blows",
+						trait: clash,
+						equipmentId: "eq1",
+						tagKey: "versatile",
+						spendKey: "versatile:exchange-blows",
+						options: { advantage: "none", effect: "none", weaponLabel: "Rifle" },
+						flavorArgs: expect.any(Object)
+					},
+					advantageOffer: expect.any(Object)
+				}
+			}
+		});
+	});
+
+	it("names the other move (Versatile — Strike Decisively) when that move is the one being rerolled", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, STRIKE_DECISIVELY, clash, {
+			reroll: { equipmentId: "eq1", tagKey: "versatile", spendKey: "versatile:strike-decisively" }
+		});
+
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ reroll: true, rerollLabel: "Versatile — Strike Decisively" })
 		);
 	});
 

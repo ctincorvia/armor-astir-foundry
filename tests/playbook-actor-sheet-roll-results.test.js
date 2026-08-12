@@ -450,7 +450,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 			...config,
 			weaponLabel: "Rifle",
 			weaponTags: "Defensive",
-			reroll: { equipmentId: "eq1", tagKey: "defensive" },
+			reroll: { equipmentId: "eq1", tagKey: "defensive", spendKey: "defensive" },
 			heatUp: NO_HEAT_UP
 		});
 	});
@@ -503,9 +503,55 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 			...config,
 			weaponLabel: "Rifle",
 			weaponTags: "Versatile",
-			reroll: { equipmentId: "eq1", tagKey: "versatile" },
+			reroll: { equipmentId: "eq1", tagKey: "versatile", spendKey: "versatile:strike-decisively" },
 			heatUp: NO_HEAT_UP
 		});
+	});
+
+	it("tracks Versatile's two moves' rerolls independently — spending one leaves the other available", async () => {
+		const sheet = new PlaybookActorSheet();
+		// Already spent Versatile's exchange-blows reroll this Scene (the compound key — see
+		// equipment.js#rerollSpendKey) — Strike Decisively's reroll must still be offered, which is
+		// exactly the bug this generalization fixes (a single bare "versatile" spend used to block
+		// both moves at once).
+		const rifle = {
+			id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["versatile"],
+			spent: ["versatile:exchange-blows"], scale: "foot", tier: 1
+		};
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "strike-decisively", equipmentId: "eq1" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, STRIKE_DECISIVELY, config.trait, {
+			...config,
+			weaponLabel: "Rifle",
+			weaponTags: "Versatile",
+			reroll: { equipmentId: "eq1", tagKey: "versatile", spendKey: "versatile:strike-decisively" },
+			heatUp: NO_HEAT_UP
+		});
+	});
+
+	it("does not offer Versatile's strike-decisively reroll once that move's own compound key is spent", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = {
+			id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["versatile"],
+			spent: ["versatile:strike-decisively"], scale: "foot", tier: 1
+		};
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "strike-decisively", equipmentId: "eq1" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor, STRIKE_DECISIVELY, config.trait, { ...config, weaponLabel: "Rifle", weaponTags: "Versatile", heatUp: NO_HEAT_UP }
+		);
 	});
 
 	it("treats a missing spent array as nothing spent yet, for a reroll tag", async () => {
@@ -523,7 +569,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 			...config,
 			weaponLabel: "Rifle",
 			weaponTags: "Defensive",
-			reroll: { equipmentId: "eq1", tagKey: "defensive" },
+			reroll: { equipmentId: "eq1", tagKey: "defensive", spendKey: "defensive" },
 			heatUp: NO_HEAT_UP
 		});
 	});

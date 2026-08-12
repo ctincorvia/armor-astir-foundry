@@ -339,6 +339,62 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 		});
 	});
 
+	it("clears both of Versatile's independent compound-key spends on Refresh Scene", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = {
+			id: "1",
+			kind: "weapon",
+			name: "Rifle",
+			description: "",
+			tags: ["versatile"],
+			// Compound spend keys (see equipment.js#rerollSpendKey) — Refresh Scene has to strip each
+			// back to the plain "versatile" catalog key (baseEquipmentTagKey) to resolve its period.
+			spent: ["versatile:exchange-blows", "versatile:strike-decisively"],
+			scale: "foot",
+			tier: 1
+		};
+		sheet.actor = {
+			system: { attributes: { equipment: [entry] }, resources: { hold: { value: 0 } } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshScene();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, spent: [] }],
+			"system.attributes.moveHold.astir:lev-spells.value": 0,
+			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
+			"system.attributes.moveHold.the-scout:mobility.value": 0,
+			"system.resources.hold.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false }
+		});
+	});
+
+	it("clears Versatile's spend even when only one of its two compound keys is present", () => {
+		const sheet = new PlaybookActorSheet();
+		// Only one of Versatile's two moves has been rerolled — confirms baseEquipmentTagKey resolves
+		// a lone compound key back to the "versatile" tag just as well as when both are present.
+		const entry = {
+			id: "1", kind: "weapon", name: "Rifle", description: "", tags: ["versatile"],
+			spent: ["versatile:exchange-blows"], scale: "foot", tier: 1
+		};
+		sheet.actor = {
+			system: { attributes: { equipment: [entry] }, resources: { hold: { value: 0 } } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshScene();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, spent: [] }],
+			"system.attributes.moveHold.astir:lev-spells.value": 0,
+			"system.attributes.moveHold.the-arcanist:reshape.value": 0,
+			"system.attributes.moveHold.the-scout:mobility.value": 0,
+			"system.resources.hold.value": 0,
+			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false }
+		});
+	});
+
 	it("leaves the equipment array untouched when nothing matches the Scene period", () => {
 		const sheet = new PlaybookActorSheet();
 		const untouched = {

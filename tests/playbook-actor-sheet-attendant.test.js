@@ -154,7 +154,7 @@ describe("PlaybookActorSheet#_availableReroll - Signed & Sealed's granted Decisi
 			system: { attributes: { playbookMoves: [SIGNED_SEALED.key], equipment: [weapon] } }
 		};
 
-		expect(sheet._availableReroll(STRIKE_DECISIVELY, weapon)).toEqual({ equipmentId: "w1", tagKey: "decisive" });
+		expect(sheet._availableReroll(STRIKE_DECISIVELY, weapon)).toEqual({ equipmentId: "w1", tagKey: "decisive", spendKey: "decisive" });
 	});
 
 	it("offers no reroll from the same weapon without Signed & Sealed picked", () => {

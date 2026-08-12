@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { EFFECT_STATES } from "../scripts/moves/roll-effects.js";
+import { ALL_MOVES } from "../scripts/moves/all-moves.js";
 import {
 	DRAIN_GROUP,
 	EQUIPMENT_CATALOG,
@@ -13,6 +14,7 @@ import {
 	UNARMED,
 	WEAPON_RANGE_GROUP,
 	WEAPON_SCALES,
+	baseEquipmentTagKey,
 	buildTagReference,
 	chooseEquipmentCatalogItem,
 	chooseWeapon,
@@ -21,6 +23,8 @@ import {
 	findCatalogEquipment,
 	findEquipmentTag,
 	groupEquipmentTags,
+	rerollSpendKey,
+	rerollSpendKeys,
 	resolveEquipmentTags,
 	wirePickerTabs,
 	withTagLabels
@@ -154,10 +158,16 @@ describe("EQUIPMENT_TAGS", () => {
 		}
 	});
 
-	it("only ever rerolls a non-empty list of move keys", () => {
+	it("only ever rerolls a non-empty list of move keys that each resolve to a real move", () => {
+		// PlaybookActorSheet#_equipmentEntry (equipment-mixin.js) trusts every reroll.moves key to
+		// resolve via ALL_MOVES with no stale-key fallback, when building a multi-move reroll tag's
+		// (Versatile) per-move row label — this is what guarantees that.
 		for (const tag of EQUIPMENT_TAGS.filter((t) => t.reroll)) {
 			expect(tag.reroll.moves.length).toBeGreaterThan(0);
 			expect(["Scene", "Sortie"]).toContain(tag.reroll.period);
+			for (const moveKey of tag.reroll.moves) {
+				expect(ALL_MOVES.some((move) => move.key === moveKey)).toBe(true);
+			}
 		}
 	});
 
@@ -240,6 +250,37 @@ describe("equipmentValue", () => {
 
 	it("ignores stale keys that no longer resolve", () => {
 		expect(equipmentValue(["fixture-positive", "stale-key"], FIXTURE_TAGS)).toBe(2);
+	});
+});
+
+describe("rerollSpendKey / rerollSpendKeys / baseEquipmentTagKey", () => {
+	const SINGLE_MOVE_TAG = { key: "defensive", reroll: { moves: ["exchange-blows"], period: "Scene" } };
+	const MULTI_MOVE_TAG = { key: "versatile", reroll: { moves: ["exchange-blows", "strike-decisively"], period: "Scene" } };
+
+	it("rerollSpendKey returns the bare tag key for a single-move reroll tag", () => {
+		expect(rerollSpendKey(SINGLE_MOVE_TAG, "exchange-blows")).toBe("defensive");
+	});
+
+	it("rerollSpendKey returns a compound key for a multi-move reroll tag", () => {
+		expect(rerollSpendKey(MULTI_MOVE_TAG, "exchange-blows")).toBe("versatile:exchange-blows");
+		expect(rerollSpendKey(MULTI_MOVE_TAG, "strike-decisively")).toBe("versatile:strike-decisively");
+	});
+
+	it("rerollSpendKeys returns just the bare key, in a single-entry array, for a single-move reroll tag", () => {
+		expect(rerollSpendKeys(SINGLE_MOVE_TAG)).toEqual(["defensive"]);
+	});
+
+	it("rerollSpendKeys returns one compound key per move for a multi-move reroll tag", () => {
+		expect(rerollSpendKeys(MULTI_MOVE_TAG)).toEqual(["versatile:exchange-blows", "versatile:strike-decisively"]);
+	});
+
+	it("baseEquipmentTagKey is a no-op for a plain, non-compound key", () => {
+		expect(baseEquipmentTagKey("defensive")).toBe("defensive");
+	});
+
+	it("baseEquipmentTagKey strips a compound key back to its catalog tag key", () => {
+		expect(baseEquipmentTagKey("versatile:exchange-blows")).toBe("versatile");
+		expect(baseEquipmentTagKey("versatile:strike-decisively")).toBe("versatile");
 	});
 });
 

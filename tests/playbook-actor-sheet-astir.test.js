@@ -558,6 +558,28 @@ describe("PlaybookActorSheet#_onAstirCreate", () => {
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
+
+	it("pre-sets the Summoner's fixed Astir Move (eidolon drive), not null", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Summoner" }, attributes: {} }, update: vi.fn() };
+
+		sheet._onAstirCreate();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.astir": {
+				id: "test-id",
+				img: ASTIR_DEFAULT_IMG,
+				core: "",
+				approach: "",
+				tier: ASTIR_TIER_MIN,
+				power: ASTIR_POWER_BASE,
+				overheating: false,
+				piloted: false,
+				parts: [],
+				move: "the-summoner:eidolon-drive"
+			}
+		});
+	});
 });
 
 describe("PlaybookActorSheet#_onAstirDelete", () => {
@@ -1143,6 +1165,19 @@ describe("PlaybookActorSheet#_onAstirMoveAdd", () => {
 
 		expect(chooseAstirMove).not.toHaveBeenCalled();
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("skips the picker and forces eidolon drive for the Summoner, whose Astir Move isn't a free pick", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { playbook: { name: "The Summoner" }, attributes: { astir: { id: "a1", move: null } } },
+			update: vi.fn()
+		};
+
+		await sheet._onAstirMoveAdd();
+
+		expect(chooseAstirMove).not.toHaveBeenCalled();
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.move": "the-summoner:eidolon-drive" });
 	});
 });
 

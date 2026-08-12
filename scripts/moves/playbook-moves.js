@@ -1925,10 +1925,9 @@ export const MOVE_POOLS = [
 			{
 				key: "the-summoner:eidolon-drive",
 				name: "Eidolon Drive",
-				// This is the Summoner's Astir Move, picked like any other via the Astir tab's own "+
-				// Astir Move" picker (chooseAstirMove/_onAstirMoveAdd — see astir-mixin.js), not a
-				// forced grant — no playbook has ever needed a bespoke mechanism to pre-grant an Astir
-				// Move, and Eidolon Drive is Summoner's only Astir-move-shaped pick anyway.
+				// This is the Summoner's Astir Move — forced, not a free pick (see astir.js's
+				// requiredAstirMoveKey, wired into astir-mixin.js's _onAstirCreate/_onAstirMoveAdd). A
+				// fresh Astir starts with this already set; the picker skips straight to it too.
 				traits: [],
 				// Renders a Summon button in place of Roll/Activate (see moves-mixin.js's
 				// _moveGroupMoves) — its own roll options come from whatever move the player rolls

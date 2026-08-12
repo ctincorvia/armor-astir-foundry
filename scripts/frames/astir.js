@@ -694,6 +694,18 @@ export function findAstirMove(key, catalog = ASTIR_MOVE_CATALOG) {
 	return catalog.find((move) => move.key === key) ?? findPlaybookMove(key) ?? null;
 }
 
+// Some playbooks' Astir Move isn't a free pick — the Summoner's own rules text says "you start
+// with eidolon drive as your Astir Move." Keyed by playbook name like
+// playbookGrantsHomeInsteadOfChannel (starting-moves.js), so a future playbook needing the same
+// treatment just adds an entry here.
+const REQUIRED_ASTIR_MOVE_BY_PLAYBOOK = {
+	"The Summoner": "the-summoner:eidolon-drive"
+};
+
+export function requiredAstirMoveKey(playbookName) {
+	return REQUIRED_ASTIR_MOVE_BY_PLAYBOOK[playbookName] ?? null;
+}
+
 // Astir weapons are ordinary equipment entries (system.attributes.equipment) flagged astir: true —
 // see PlaybookActorSheet — so this catalog matches EQUIPMENT_CATALOG's weapon shape minus
 // scale/tier, both of which an Astir weapon always inherits from its Astir rather than storing.

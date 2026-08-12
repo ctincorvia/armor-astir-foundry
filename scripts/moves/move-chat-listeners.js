@@ -27,7 +27,7 @@ async function handleReroll(message, reroll) {
 
 	const equipment = actor.system.attributes?.equipment ?? [];
 	await actor.update({
-		"system.attributes.equipment": mergeSpentTags(equipment, [{ equipmentId: reroll.equipmentId, tagKey: reroll.tagKey }])
+		"system.attributes.equipment": mergeSpentTags(equipment, [{ equipmentId: reroll.equipmentId, tagKey: reroll.spendKey }])
 	});
 
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {

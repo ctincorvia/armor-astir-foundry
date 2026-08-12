@@ -5,6 +5,7 @@ import {
 	equipmentValue,
 	findEquipmentTag,
 	mergeSpentTags,
+	rerollSpendKey,
 	resolveEquipmentTags
 } from "../../equipment/equipment.js";
 import {
@@ -14,6 +15,7 @@ import {
 	findStartingGearPool
 } from "../../equipment/starting-gear.js";
 import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
+import { ALL_MOVES } from "../../moves/all-moves.js";
 
 // Custom-made equipment (see claude.md's Domain conventions) — weapons and gear share one array,
 // distinguished by `kind`, with tags as the separate catalog (see equipment.js). Owns every
@@ -86,21 +88,46 @@ export const EquipmentSheetMixin = {
 	// would read as whichever frame is currently mounted, which is meaningless here: a mundane
 	// weapon is already gated off entirely while mounted — see _weaponGateTooltip).
 	_equipmentEntry(entry, weaponMoves = [], frame = null) {
-		const tags = resolveEquipmentTags(this._weaponTagKeys(entry)).map((tag) => ({
-			key: tag.key,
-			label: tag.label,
-			value: tag.value,
-			description: tag.description,
-			// A forcesEffect tag (Unreliable) shows the same "used this period" checkbox as a
-			// player-opted spend, even though checking it happens automatically after a roll rather
-			// than by the player's own choice — see _forcedWeaponEffect/_rollMove. A reroll tag
-			// (Decisive/Defensive/Versatile) gets marked spent the same way, by handleReroll — without
-			// this, its checkbox would never render at all, leaving a spent reroll tag with no way to
-			// clear it back for a new Scene (the same manual-reset gap _onEquipmentTagSpentToggle's
-			// comment already covers for the other two).
-			spendable: Boolean(tag.spend || tag.forcesEffect || tag.reroll),
-			spent: Boolean(entry.spent?.includes(tag.key))
-		}));
+		// A forcesEffect tag (Unreliable) shows the same "used this period" checkbox as a
+		// player-opted spend, even though checking it happens automatically after a roll rather
+		// than by the player's own choice — see _forcedWeaponEffect/_rollMove. A reroll tag
+		// (Decisive/Defensive/Versatile) gets marked spent the same way, by handleReroll — without
+		// this, its checkbox would never render at all, leaving a spent reroll tag with no way to
+		// clear it back for a new Scene (the same manual-reset gap _onEquipmentTagSpentToggle's
+		// comment already covers for the other two). A multi-move reroll tag (Versatile) renders one
+		// row per move it can reroll instead of one combined row, each independently spendable/spent
+		// via its own compound spendKey (see equipment.js#rerollSpendKey) — showValue suppresses the
+		// value badge on every row after the first, so a split tag's Value only prints once.
+		const tags = resolveEquipmentTags(this._weaponTagKeys(entry)).flatMap((tag) => {
+			const spendable = Boolean(tag.spend || tag.forcesEffect || tag.reroll);
+			if (tag.reroll && tag.reroll.moves.length > 1) {
+				return tag.reroll.moves.map((moveKey, index) => {
+					const spendKey = rerollSpendKey(tag, moveKey);
+					return {
+						key: spendKey,
+						// Every reroll.moves entry is real catalog data authored alongside the move it
+						// names (see the EQUIPMENT_TAGS invariant test in tests/equipment.test.js) — no
+						// stale-key fallback here, the same trust findEquipmentTag(rerollOffer.tagKey)
+						// already places in a reroll offer's own tagKey (moves.js's rerollLabel).
+						label: `${tag.label} — ${ALL_MOVES.find((m) => m.key === moveKey).name}`,
+						value: tag.value,
+						showValue: index === 0,
+						description: tag.description,
+						spendable,
+						spent: Boolean(entry.spent?.includes(spendKey))
+					};
+				});
+			}
+			return [{
+				key: tag.key,
+				label: tag.label,
+				value: tag.value,
+				showValue: true,
+				description: tag.description,
+				spendable,
+				spent: Boolean(entry.spent?.includes(tag.key))
+			}];
+		});
 		return {
 			id: entry.id,
 			kind: entry.kind,
@@ -219,14 +246,18 @@ export const EquipmentSheetMixin = {
 	// Defensive, Versatile — see equipment.js's EQUIPMENT_TAGS comment). Same shape/short-circuit
 	// as _forcedWeaponEffect, but keyed off the move rather than always-applicable: Decisive only
 	// lists strike-decisively, Defensive only exchange-blows, so a weapon's Decisive tag offers
-	// nothing when rolling Exchange Blows.
+	// nothing when rolling Exchange Blows. A multi-move tag (Versatile) tracks each move's spend
+	// independently via a compound spendKey (see equipment.js#rerollSpendKey) — the tag lookup
+	// has to happen first so that key can be computed before checking whether it's already spent.
 	_availableReroll(move, weapon) {
 		if (!weapon) return null;
 		const spent = weapon.spent ?? [];
 		for (const tagKey of this._weaponTagKeys(weapon)) {
-			if (spent.includes(tagKey)) continue;
 			const tag = findEquipmentTag(tagKey);
-			if (tag?.reroll?.moves.includes(move.key)) return { equipmentId: weapon.id, tagKey };
+			if (!tag?.reroll?.moves.includes(move.key)) continue;
+			const spendKey = rerollSpendKey(tag, move.key);
+			if (spent.includes(spendKey)) continue;
+			return { equipmentId: weapon.id, tagKey, spendKey };
 		}
 		return null;
 	},

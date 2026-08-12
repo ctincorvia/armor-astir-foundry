@@ -11,6 +11,7 @@ import {
 	chooseAstirMove,
 	chooseAstirPart,
 	chooseAstirWeapon,
+	requiredAstirMoveKey,
 	resolveAstirParts
 } from "../../frames/astir.js";
 import { configureEquipment } from "../../equipment/equipment.js";
@@ -206,7 +207,7 @@ export const AstirSheetMixin = {
 				// weapon benefit is inert until this is checked (see claude.md's Piloted note).
 				piloted: false,
 				parts: [],
-				move: null
+				move: requiredAstirMoveKey(this.actor.system.playbook?.name) ?? null
 			}
 		});
 	},
@@ -318,6 +319,12 @@ export const AstirSheetMixin = {
 	async _onAstirMoveAdd() {
 		const astir = this._astir();
 		if (!astir) return;
+		// Some playbooks' Astir Move is fixed, not a free pick — see astir.js#requiredAstirMoveKey.
+		const requiredKey = requiredAstirMoveKey(this.actor.system.playbook?.name);
+		if (requiredKey) {
+			this.actor.update({ "system.attributes.astir.move": requiredKey });
+			return;
+		}
 		const key = await chooseAstirMove(
 			this.actor.system.playbook?.name,
 			[...this._playbookMoves(), ...(astir.move ? [astir.move] : [])],

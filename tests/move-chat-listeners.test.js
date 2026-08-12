@@ -89,6 +89,7 @@ describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
 			trait: { key: "clash", label: "CLASH", value: 0 },
 			equipmentId: "eq1",
 			tagKey: "defensive",
+			spendKey: "defensive",
 			options: { advantage: "none", effect: "none", weaponLabel: "Rifle" },
 			flavorArgs: { tier: "failure", conditions: [] }
 		};
@@ -109,6 +110,34 @@ describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ reroll: false, superseded: true }));
 		expect(message.update).toHaveBeenCalledWith({ flavor: "<div>updated</div>" });
 		expect(rollMove).toHaveBeenCalledWith(actor, EXCHANGE_BLOWS, reroll.trait, reroll.options);
+	});
+
+	it("records the compound spendKey (not the plain tagKey) for a Versatile reroll, tracking each move independently", async () => {
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", tags: ["versatile"], spent: [] };
+		const actor = { id: "actor1", system: { attributes: { equipment: [rifle] } }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const reroll = {
+			actorId: "actor1",
+			moveKey: "strike-decisively",
+			trait: { key: "clash", label: "CLASH", value: 0 },
+			equipmentId: "eq1",
+			tagKey: "versatile",
+			spendKey: "versatile:strike-decisively",
+			options: { advantage: "none", effect: "none", weaponLabel: "Rifle" },
+			flavorArgs: { tier: "failure", conditions: [] }
+		};
+		const message = { flags: { "armor-astir": { reroll } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.handler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...rifle, spent: ["versatile:strike-decisively"] }]
+		});
 	});
 
 	it("does nothing when the actor no longer exists", async () => {

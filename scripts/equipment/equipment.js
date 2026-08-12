@@ -79,8 +79,12 @@ export const WEAPON_SCALES = [
 // PlaybookActorSheet#_rollMove, mirroring bite-the-dust's forcesDesperationAtMaxPerils).
 //
 // `reroll` (Decisive, Defensive, Versatile) lists which move key(s) it can reroll a failure on,
-// once per period (see PlaybookActorSheet's reroll chat-button handling). `guided` (Guided) is
-// the "skip rolling, take a 7-9" option, offered for any usesWeapon move.
+// once per period (see PlaybookActorSheet's reroll chat-button handling). A reroll tag naming
+// more than one move (Versatile) tracks each move's use independently — see rerollSpendKey below
+// — rather than one shared spend that exhausts on first use regardless of which move triggered
+// it, which would make a two-move tag strictly worse than picking the two single-move tags it's
+// meant to combine. `guided` (Guided) is the "skip rolling, take a 7-9" option, offered for any
+// usesWeapon move.
 //
 // `exclusiveGroup` marks a tag as belonging to a mutually-exclusive set. DRAIN_GROUP renders as
 // checkboxes with JS-enforced radio-button behavior — configureEquipment's render wiring unchecks
@@ -726,6 +730,31 @@ export function mergeSpentTags(equipment, spentTags) {
 		if (!additions.length) return item;
 		return { ...item, spent: [...new Set([...(item.spent ?? []), ...additions])] };
 	});
+}
+
+// A reroll tag naming more than one move (Versatile) tracks each move's use independently,
+// rather than one shared spend that exhausts on first use regardless of which move triggered
+// it — see PlaybookActorSheet#_availableReroll/_equipmentEntry and move-chat-listeners.js's
+// handleReroll. A single-move reroll tag (Decisive, Defensive) keeps storing its bare key
+// exactly as before — this only ever produces a compound key when there's more than one move
+// to distinguish between.
+export function rerollSpendKey(tag, moveKey) {
+	return tag.reroll.moves.length > 1 ? `${tag.key}:${moveKey}` : tag.key;
+}
+
+// Every possible spend key for a reroll tag — one per move it can reroll when multi-move,
+// else just its own bare key. Used to build/clear all of a multi-move tag's independent flags
+// together (see _equipmentEntry's per-move row rendering).
+export function rerollSpendKeys(tag) {
+	return tag.reroll.moves.length > 1 ? tag.reroll.moves.map((moveKey) => rerollSpendKey(tag, moveKey)) : [tag.key];
+}
+
+// Strips a compound reroll spend key back to its catalog tag key (e.g. "versatile:exchange-blows"
+// -> "versatile") so a spent-key string can still be resolved via findEquipmentTag — see
+// PlaybookActorSheet#_refreshPeriod, which needs a tag's period regardless of which move's use
+// a spent entry represents. A no-op (returns the input unchanged) for a plain, non-compound key.
+export function baseEquipmentTagKey(spentKey) {
+	return spentKey.split(":")[0];
 }
 
 const TAG_VALUE_GROUPS = [

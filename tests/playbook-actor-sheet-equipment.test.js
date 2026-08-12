@@ -143,6 +143,7 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 						key: "blitz",
 						label: "Blitz",
 						value: 1,
+						showValue: true,
 						description: "You may spend this tag once per Scene to make a move with confidence.",
 						spendable: true,
 						spent: false
@@ -259,6 +260,85 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 
 		expect(data.equipment.gear[0].tags).toEqual([]);
 		expect(data.equipment.gear[0].value).toBe(0);
+	});
+
+	it("renders Versatile as two independent reroll rows, one per move it covers", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					equipment: [
+						{ id: "1", kind: "weapon", name: "Rifle", description: "", tags: ["versatile"], spent: [], scale: "foot", tier: 1 }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.equipment.weapons[0].tags).toEqual([
+			{
+				key: "versatile:exchange-blows",
+				label: "Versatile — Exchange Blows",
+				value: 2,
+				showValue: true,
+				description: "This tag combines the effects of decisive and defensive.",
+				spendable: true,
+				spent: false
+			},
+			{
+				key: "versatile:strike-decisively",
+				label: "Versatile — Strike Decisively",
+				value: 2,
+				showValue: false,
+				description: "This tag combines the effects of decisive and defensive.",
+				spendable: true,
+				spent: false
+			}
+		]);
+	});
+
+	it("marks only the spent Versatile move's own row as spent, leaving the other row available", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					equipment: [
+						{
+							id: "1", kind: "weapon", name: "Rifle", description: "", tags: ["versatile"],
+							spent: ["versatile:exchange-blows"], scale: "foot", tier: 1
+						}
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.equipment.weapons[0].tags.map((t) => ({ key: t.key, spent: t.spent }))).toEqual([
+			{ key: "versatile:exchange-blows", spent: true },
+			{ key: "versatile:strike-decisively", spent: false }
+		]);
+	});
+
+	it("still renders exactly one row each for single-move reroll tags (Decisive, Defensive)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					equipment: [
+						{ id: "1", kind: "weapon", name: "Rifle", description: "", tags: ["decisive", "defensive"], spent: [], scale: "foot", tier: 1 }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.equipment.weapons[0].tags.map((t) => ({ key: t.key, label: t.label, showValue: t.showValue }))).toEqual([
+			{ key: "decisive", label: "Decisive", showValue: true },
+			{ key: "defensive", label: "Defensive", showValue: true }
+		]);
 	});
 
 	it("drops a tag key that no longer resolves in the catalog", () => {
@@ -967,6 +1047,23 @@ describe("PlaybookActorSheet#_onEquipmentTagSpentToggle", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [{ ...entry, spent: ["blitz"] }, other]
+		});
+	});
+
+	it("toggling one of Versatile's two compound-key rows leaves the other untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = {
+			id: "1", kind: "weapon", name: "Rifle", description: "", tags: ["versatile"],
+			spent: ["versatile:strike-decisively"], scale: "foot", tier: 1
+		};
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+
+		sheet._onEquipmentTagSpentToggle({
+			currentTarget: { dataset: { equipmentId: "1", tag: "versatile:exchange-blows" }, checked: true }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, spent: ["versatile:strike-decisively", "versatile:exchange-blows"] }]
 		});
 	});
 });
