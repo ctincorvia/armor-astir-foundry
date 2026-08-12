@@ -37,7 +37,6 @@ import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js"
 
 const WEAPON_CONDUIT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:weapon-conduit");
 const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:alchemical-suite");
-const STANDARDISED_PARTS = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:standardised-parts");
 const WARDING = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:warding");
 const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:artifact");
 
@@ -314,43 +313,6 @@ describe("PlaybookActorSheet#getData - astir", () => {
 		expect(sheet.getData().astir.potions).toEqual({ red: 0, blue: 0, yellow: 0 });
 	});
 
-	it("reports Repair Tokens once Standardised Parts is installed", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: {},
-				attributes: {
-					astir: {
-						id: "a1",
-						core: "",
-						approach: "",
-						tier: 3,
-						power: 4,
-						parts: [STANDARDISED_PARTS.key],
-						move: null,
-						repairTokens: 3
-					}
-				}
-			}
-		};
-
-		expect(sheet.getData().astir.repairTokens).toEqual({ value: 3 });
-	});
-
-	it("defaults Repair Tokens to 0 when Standardised Parts is installed but none is stored yet", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: {},
-				attributes: {
-					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, parts: [STANDARDISED_PARTS.key], move: null }
-				}
-			}
-		};
-
-		expect(sheet.getData().astir.repairTokens).toEqual({ value: 0 });
-	});
-
 	it("resolves the unique move to its key and name", () => {
 		const sheet = new PlaybookActorSheet();
 		const move = ASTIR_MOVE_CATALOG[0];
@@ -425,7 +387,6 @@ describe("PlaybookActorSheet#getData - astir", () => {
 			power: { value: 0, max: ASTIR_POWER_BASE, negative: false },
 			weaponPower: { value: 0, max: 0 },
 			potions: null,
-			repairTokens: null,
 			parts: [],
 			move: null,
 			weapons: []

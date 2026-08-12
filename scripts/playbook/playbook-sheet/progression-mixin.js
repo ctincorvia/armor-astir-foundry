@@ -2,6 +2,8 @@ import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { TRAITS } from "../../core/traits.js";
 import { APPROACHES } from "../../core/approaches.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../advancements.js";
+import { resolveAstirParts } from "../../frames/astir.js";
+import { ARDENT_PART_CATALOG } from "../../frames/ardent.js";
 
 const TRAIT_MIN = -3;
 const TRAIT_MAX = 3;
@@ -10,12 +12,12 @@ export const SPOTLIGHT_MIN = 0;
 export const SPOTLIGHT_MAX = 6;
 
 // Downtime Tokens (Downtime tab): a per-Sortie resource refreshed to _downtimeTokensMax() by the
-// Refresh Sortie control (see _onRefreshSortie). DOWNTIME_TOKENS_MAX_BASE (3) is the floor every
+// Refresh Sortie control (see _onRefreshSortie). DOWNTIME_TOKENS_MAX_BASE (2) is the floor every
 // character starts with; a picked move can raise it via its own declarative downtimeTokensMax flag
 // (Commander's Debrief: 4 total) — see _downtimeTokensMax, which takes the max across picked moves
 // the same way _conflictTier takes the max across conflictTier flags.
 const DOWNTIME_TOKENS_MIN = 0;
-const DOWNTIME_TOKENS_MAX_BASE = 3;
+const DOWNTIME_TOKENS_MAX_BASE = 2;
 
 // A character's Tier for all physical-conflict purposes is 1 by default unless a picked playbook
 // move raises it (Field Scout, Giant Slayer — see playbook-moves.js's conflictTier). Deliberately
@@ -98,14 +100,7 @@ export const ProgressionSheetMixin = {
 	// picked moves the same way _conflictTier's own base does for conflictTier.
 	_downtimeTokensMax() {
 		const picked = resolvePlaybookMoves(this._playbookMoves());
-		const base = picked.reduce((max, move) => Math.max(max, move.downtimeTokensMax ?? 0), DOWNTIME_TOKENS_MAX_BASE);
-		// Helping Hands (Summoner — see playbook-moves.js's grantsDowntimeAllySlot): "take +1 token
-		// during Downtime" while a Downtime Ally is bound. An additive, conditionally-active bonus
-		// rather than a per-move ceiling like downtimeTokensMax above, so it's summed on top of the
-		// existing reduce rather than folded into it — see summoner-mixin.js's _downtimeAllyData.
-		const helpingHandsBonus = picked.some((move) => move.grantsDowntimeAllySlot)
-			&& this.actor.system.attributes?.downtimeAlly ? 1 : 0;
-		return base + helpingHandsBonus;
+		return picked.reduce((max, move) => Math.max(max, move.downtimeTokensMax ?? 0), DOWNTIME_TOKENS_MAX_BASE);
 	},
 	_advancements() {
 		return this.actor.system.attributes?.advancements ?? {};
@@ -170,21 +165,46 @@ export const ProgressionSheetMixin = {
 			max: downtimeTokensMax
 		};
 	},
-	// Bonus Downtime Tokens: purpose-restricted pools a picked move can grant on top of the main
-	// Downtime Tokens counter above (Master & Servant, Information Network), each with its own
-	// value/max and its own restriction text. Stored per move key (system.attributes.
-	// bonusDowntimeTokens.<moveKey>.value), the same keyed-pool shape flatHold's own moveHold uses,
-	// so multiple granting moves on one actor stay independently valued. No period of its own —
-	// see _onRefreshSortie, which resets every one of these alongside the main counter.
+	// Every catalog entry that can grant a Bonus Downtime Tokens pool via a stable key reference —
+	// picked playbook moves and every installed Astir/Ardent part (parts "read as moves" for lookup
+	// purposes throughout this codebase — see claude.md). Deduped by key so a part installed on both
+	// the Astir and an Ardent shares one entry, the same sharing its Expended checkbox already gets.
+	_bonusDowntimeTokenKeyedSources() {
+		const all = [
+			...resolvePlaybookMoves(this._playbookMoves()),
+			...this._astirParts(),
+			...this._ardents().flatMap((ardent) => resolveAstirParts(ardent.parts ?? [], ARDENT_PART_CATALOG))
+		];
+		return [...new Map(all.map((entry) => [entry.key, entry])).values()];
+	},
+	// Bonus Downtime Tokens: purpose-restricted pools a move, an Astir/Ardent Part, or an equipment
+	// entry can grant on top of the main Downtime Tokens counter above (Master & Servant,
+	// Information Network, Standardised Parts, Artificers), each with its own value/max and its own
+	// restriction text. Two independent sources, unioned: keyed ones (moves/parts, see
+	// _bonusDowntimeTokenKeyedSources) store their value at system.attributes.
+	// bonusDowntimeTokens.<key>.value, the same keyed-pool shape flatHold's own moveHold uses, so
+	// multiple granting entries on one actor stay independently valued; equipment can't share that
+	// map (equipment ids are per-actor and disposable — see claude.md's Equipment), so it stores its
+	// value right on the entry itself as bonusDowntimeTokensValue instead. `moveKey` is kept as the
+	// field name for the keyed rows even though it now also covers part keys, matching what the
+	// template already expects. No period of its own — see _onRefreshSortie, which resets every one
+	// of these alongside the main counter.
 	_bonusDowntimeTokensData() {
-		const picked = resolvePlaybookMoves(this._playbookMoves());
-		return picked
-			.filter((move) => move.bonusDowntimeTokens)
-			.map((move) => {
-				const { max, description } = move.bonusDowntimeTokens;
-				const value = this.actor.system.attributes?.bonusDowntimeTokens?.[move.key]?.value ?? max;
-				return { key: move.key, name: move.name, description, value, max };
+		const fromKeyed = this._bonusDowntimeTokenKeyedSources()
+			.filter((entry) => entry.bonusDowntimeTokens)
+			.map((entry) => {
+				const { max, description } = entry.bonusDowntimeTokens;
+				const value = this.actor.system.attributes?.bonusDowntimeTokens?.[entry.key]?.value ?? max;
+				return { moveKey: entry.key, name: entry.name, description, value, max };
 			});
+		const fromEquipment = this._equipment()
+			.filter((entry) => entry.bonusDowntimeTokens)
+			.map((entry) => {
+				const { max, description } = entry.bonusDowntimeTokens;
+				const value = entry.bonusDowntimeTokensValue ?? max;
+				return { equipmentId: entry.id, name: entry.name, description, value, max };
+			});
+		return [...fromKeyed, ...fromEquipment];
 	},
 	// The bottom four Advancement options unlock once at least ADVANCEMENT_UNLOCK_THRESHOLD of the
 	// top six are checked. `checked` for bottom items is always read from stored data regardless of
@@ -236,19 +256,37 @@ export const ProgressionSheetMixin = {
 		if (next === current) return;
 		this.actor.update({ "system.attributes.downtimeTokens.value": next });
 	},
-	// Bounded by the granting move's own bonusDowntimeTokens.max — re-derived from the picked move
-	// itself rather than trusted off the DOM, so a stale button (a move that's since been swapped
-	// out) can't write a stray value. No-ops entirely (no actor.update) when moveKey doesn't
-	// resolve to a currently-picked move carrying the flag.
+	// Bounded by the granting source's own bonusDowntimeTokens.max — re-derived from the actor's
+	// current picked moves/installed parts/equipment rather than trusted off the DOM, so a stale
+	// button (a source that's since been dropped) can't write a stray value. Branches on which of
+	// the two dataset attributes the clicked button carries (see _bonusDowntimeTokensData's own
+	// moveKey/equipmentId split) — exactly one is ever non-empty per row. No-ops entirely (no
+	// actor.update) when neither resolves to a currently-flagged source.
 	_onBonusDowntimeTokenStep(event) {
-		const { moveKey, delta } = event.currentTarget.dataset;
-		const move = resolvePlaybookMoves(this._playbookMoves()).find((m) => m.key === moveKey);
-		if (!move?.bonusDowntimeTokens) return;
-		const { max } = move.bonusDowntimeTokens;
-		const current = this.actor.system.attributes?.bonusDowntimeTokens?.[moveKey]?.value ?? max;
-		const next = Math.min(max, Math.max(DOWNTIME_TOKENS_MIN, current + Number(delta)));
-		if (next === current) return;
-		this.actor.update({ [`system.attributes.bonusDowntimeTokens.${moveKey}.value`]: next });
+		const { moveKey, equipmentId, delta } = event.currentTarget.dataset;
+		if (moveKey) {
+			const source = this._bonusDowntimeTokenKeyedSources().find((entry) => entry.key === moveKey);
+			if (!source?.bonusDowntimeTokens) return;
+			const { max } = source.bonusDowntimeTokens;
+			const current = this.actor.system.attributes?.bonusDowntimeTokens?.[moveKey]?.value ?? max;
+			const next = Math.min(max, Math.max(DOWNTIME_TOKENS_MIN, current + Number(delta)));
+			if (next === current) return;
+			this.actor.update({ [`system.attributes.bonusDowntimeTokens.${moveKey}.value`]: next });
+			return;
+		}
+		if (equipmentId) {
+			const entry = this._equipment().find((item) => item.id === equipmentId);
+			if (!entry?.bonusDowntimeTokens) return;
+			const { max } = entry.bonusDowntimeTokens;
+			const current = entry.bonusDowntimeTokensValue ?? max;
+			const next = Math.min(max, Math.max(DOWNTIME_TOKENS_MIN, current + Number(delta)));
+			if (next === current) return;
+			this.actor.update({
+				"system.attributes.equipment": this._equipment().map((item) => (
+					item.id === equipmentId ? { ...item, bonusDowntimeTokensValue: next } : item
+				))
+			});
+		}
 	},
 	// Serves both the top and bottom Advancement groups — the key comes from the checkbox's own
 	// dataset, not a hardcoded group. Bottom checkboxes render `disabled` in the template while

@@ -4,15 +4,16 @@ import { PLAYBOOKS } from "../scripts/actor-creation.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../scripts/playbook/advancements.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { TRAITS } from "../scripts/core/traits.js";
+import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 
 const ARCANE_AUGMENTS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:arcane-augments");
 const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loose");
 const PATRON = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:patron");
-const HELPING_HANDS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:helping-hands");
 const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
 const MASTER_SERVANT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-attendant:master-servant");
 const INFORMATION_NETWORK = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:information-network");
+const STANDARDISED_PARTS = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:standardised-parts");
 
 describe("PlaybookActorSheet#getData - traits", () => {
 	it("defaults every trait to value 0, no bonus, and enabled when system.stats is empty", () => {
@@ -508,13 +509,13 @@ describe("PlaybookActorSheet#_onSpotlightStep", () => {
 });
 
 describe("PlaybookActorSheet#getData - downtimeTokens", () => {
-	it("defaults value to the flat max (3) when attributes is empty", () => {
+	it("defaults value to the flat max (2) when attributes is empty", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: {} } };
 
 		const data = sheet.getData();
 
-		expect(data.downtimeTokens).toEqual({ value: 3, max: 3 });
+		expect(data.downtimeTokens).toEqual({ value: 2, max: 2 });
 	});
 
 	it("reflects the actor's stored value against the flat max", () => {
@@ -523,62 +524,7 @@ describe("PlaybookActorSheet#getData - downtimeTokens", () => {
 
 		const data = sheet.getData();
 
-		expect(data.downtimeTokens).toEqual({ value: 1, max: 3 });
-	});
-});
-
-describe("PlaybookActorSheet#_downtimeTokensMax - Helping Hands' Downtime Ally bonus", () => {
-	it("adds no bonus without Helping Hands picked, even with a downtimeAlly somehow present", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { attributes: { playbookMoves: [], downtimeAlly: { name: "Pip", powerInvested: 0 } } }
-		};
-
-		expect(sheet._downtimeTokensMax()).toBe(3);
-	});
-
-	it("adds no bonus with Helping Hands picked but no Downtime Ally bound", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { playbookMoves: [HELPING_HANDS.key] } } };
-
-		expect(sheet._downtimeTokensMax()).toBe(3);
-	});
-
-	it("adds +1 with Helping Hands picked and a Downtime Ally bound", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				attributes: { playbookMoves: [HELPING_HANDS.key], downtimeAlly: { name: "Pip", powerInvested: 0 } }
-			}
-		};
-
-		expect(sheet._downtimeTokensMax()).toBe(4);
-	});
-
-	it("stacks additively on top of a per-move ceiling like Debrief's own downtimeTokensMax", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				attributes: {
-					playbookMoves: [HELPING_HANDS.key, "the-commander:debrief"],
-					downtimeAlly: { name: "Pip", powerInvested: 0 }
-				}
-			}
-		};
-
-		// Debrief's own downtimeTokensMax (4) plus the +1 Downtime Ally bonus.
-		expect(sheet._downtimeTokensMax()).toBe(5);
-	});
-
-	it("is reflected in getData's downtimeTokens.max", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				attributes: { playbookMoves: [HELPING_HANDS.key], downtimeAlly: { name: "Pip", powerInvested: 0 } }
-			}
-		};
-
-		expect(sheet.getData().downtimeTokens.max).toBe(4);
+		expect(data.downtimeTokens).toEqual({ value: 1, max: 2 });
 	});
 });
 
@@ -618,7 +564,7 @@ describe("PlaybookActorSheet#_onDowntimeTokensStep", () => {
 
 	it("clamps at DOWNTIME_TOKENS_MAX", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { downtimeTokens: { value: 3 } } }, update: vi.fn() };
+		sheet.actor = { system: { attributes: { downtimeTokens: { value: 2 } } }, update: vi.fn() };
 
 		sheet._onDowntimeTokensStep({ currentTarget: { dataset: { delta: "1" } } });
 
@@ -640,12 +586,12 @@ describe("PlaybookActorSheet#_onDowntimeTokensStep", () => {
 
 		sheet._onDowntimeTokensStep({ currentTarget: { dataset: { delta: "-1" } } });
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.downtimeTokens.value": 2 });
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.downtimeTokens.value": 1 });
 	});
 });
 
 describe("PlaybookActorSheet#_bonusDowntimeTokensData", () => {
-	it("returns an empty array when no picked move carries bonusDowntimeTokens", () => {
+	it("returns an empty array when no picked move/part/equipment carries bonusDowntimeTokens", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
 
@@ -658,7 +604,7 @@ describe("PlaybookActorSheet#_bonusDowntimeTokensData", () => {
 
 		expect(sheet._bonusDowntimeTokensData()).toEqual([
 			{
-				key: MASTER_SERVANT.key,
+				moveKey: MASTER_SERVANT.key,
 				name: MASTER_SERVANT.name,
 				description: MASTER_SERVANT.bonusDowntimeTokens.description,
 				value: MASTER_SERVANT.bonusDowntimeTokens.max,
@@ -679,7 +625,7 @@ describe("PlaybookActorSheet#_bonusDowntimeTokensData", () => {
 		};
 
 		expect(sheet._bonusDowntimeTokensData()[0]).toEqual(
-			expect.objectContaining({ key: MASTER_SERVANT.key, value: 0, max: MASTER_SERVANT.bonusDowntimeTokens.max })
+			expect.objectContaining({ moveKey: MASTER_SERVANT.key, value: 0, max: MASTER_SERVANT.bonusDowntimeTokens.max })
 		);
 	});
 
@@ -696,13 +642,84 @@ describe("PlaybookActorSheet#_bonusDowntimeTokensData", () => {
 
 		const data = sheet._bonusDowntimeTokensData();
 
-		expect(data.map((entry) => entry.key)).toEqual([MASTER_SERVANT.key, INFORMATION_NETWORK.key]);
+		expect(data.map((entry) => entry.moveKey)).toEqual([MASTER_SERVANT.key, INFORMATION_NETWORK.key]);
 		expect(data[0].value).toBe(MASTER_SERVANT.bonusDowntimeTokens.max);
 		expect(data[1].value).toBe(0);
 	});
+
+	it("returns a part-sourced row for Standardised Parts installed on the Astir only", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", parts: [STANDARDISED_PARTS.key] } } }
+		};
+
+		expect(sheet._bonusDowntimeTokensData()).toEqual([
+			{
+				moveKey: STANDARDISED_PARTS.key,
+				name: STANDARDISED_PARTS.name,
+				description: STANDARDISED_PARTS.bonusDowntimeTokens.description,
+				value: STANDARDISED_PARTS.bonusDowntimeTokens.max,
+				max: STANDARDISED_PARTS.bonusDowntimeTokens.max
+			}
+		]);
+	});
+
+	it("returns a part-sourced row for Standardised Parts installed on an Ardent only", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", parts: [STANDARDISED_PARTS.key] }] } }
+		};
+
+		expect(sheet._bonusDowntimeTokensData()).toEqual([
+			expect.objectContaining({ moveKey: STANDARDISED_PARTS.key })
+		]);
+	});
+
+	it("dedupes to a single row when Standardised Parts is installed on both the Astir and an Ardent", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", parts: [STANDARDISED_PARTS.key] },
+					ardents: [{ id: "ar1", parts: [STANDARDISED_PARTS.key] }]
+				}
+			}
+		};
+
+		expect(sheet._bonusDowntimeTokensData()).toHaveLength(1);
+	});
+
+	it("returns an equipment-sourced row, defaulted to its own max", () => {
+		const sheet = new PlaybookActorSheet();
+		const item = {
+			id: "eq1",
+			kind: "gear",
+			name: "Artificers",
+			bonusDowntimeTokens: { max: 1, description: "Repairs, or magic or mechanical long-term projects." }
+		};
+		sheet.actor = { system: { attributes: { equipment: [item] } } };
+
+		expect(sheet._bonusDowntimeTokensData()).toEqual([
+			{ equipmentId: "eq1", name: "Artificers", description: item.bonusDowntimeTokens.description, value: 1, max: 1 }
+		]);
+	});
+
+	it("reflects an equipment entry's own stored bonusDowntimeTokensValue over its max", () => {
+		const sheet = new PlaybookActorSheet();
+		const item = {
+			id: "eq1",
+			kind: "gear",
+			name: "Artificers",
+			bonusDowntimeTokens: { max: 1, description: "Repairs only." },
+			bonusDowntimeTokensValue: 0
+		};
+		sheet.actor = { system: { attributes: { equipment: [item] } } };
+
+		expect(sheet._bonusDowntimeTokensData()[0]).toEqual(expect.objectContaining({ equipmentId: "eq1", value: 0 }));
+	});
 });
 
-describe("PlaybookActorSheet#_onBonusDowntimeTokenStep", () => {
+describe("PlaybookActorSheet#_onBonusDowntimeTokenStep - moveKey (moves and parts)", () => {
 	it("increments the value", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
@@ -741,7 +758,7 @@ describe("PlaybookActorSheet#_onBonusDowntimeTokenStep", () => {
 		});
 	});
 
-	it("clamps at the granting move's own max", () => {
+	it("clamps at the granting source's own max", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -790,7 +807,7 @@ describe("PlaybookActorSheet#_onBonusDowntimeTokenStep", () => {
 		});
 	});
 
-	it("no-ops when moveKey doesn't resolve to a currently-picked move", () => {
+	it("no-ops when moveKey doesn't resolve to a currently-picked move or installed part", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { playbookMoves: [] } }, update: vi.fn() };
 
@@ -801,9 +818,106 @@ describe("PlaybookActorSheet#_onBonusDowntimeTokenStep", () => {
 
 	it("no-ops when moveKey resolves to a picked move without the flag", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { playbookMoves: [HELPING_HANDS.key] } }, update: vi.fn() };
+		sheet.actor = { system: { attributes: { playbookMoves: [PATRON.key] } }, update: vi.fn() };
 
-		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { moveKey: HELPING_HANDS.key, delta: "1" } } });
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { moveKey: PATRON.key, delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("increments a part-sourced pool (Standardised Parts installed on the Astir)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", parts: [STANDARDISED_PARTS.key] },
+					bonusDowntimeTokens: { [STANDARDISED_PARTS.key]: { value: 0 } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { moveKey: STANDARDISED_PARTS.key, delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.bonusDowntimeTokens.${STANDARDISED_PARTS.key}.value`]: 1
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onBonusDowntimeTokenStep - equipmentId", () => {
+	it("increments the value, leaving a different equipment entry untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const item = { id: "eq1", kind: "gear", name: "Artificers", bonusDowntimeTokens: { max: 1, description: "" }, bonusDowntimeTokensValue: 0 };
+		const other = { id: "eq2", kind: "gear", name: "Rope" };
+		sheet.actor = { system: { attributes: { equipment: [item, other] } }, update: vi.fn() };
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { equipmentId: "eq1", delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...item, bonusDowntimeTokensValue: 1 }, other]
+		});
+	});
+
+	it("decrements the value", () => {
+		const sheet = new PlaybookActorSheet();
+		const item = { id: "eq1", kind: "gear", name: "Artificers", bonusDowntimeTokens: { max: 1, description: "" }, bonusDowntimeTokensValue: 1 };
+		sheet.actor = { system: { attributes: { equipment: [item] } }, update: vi.fn() };
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { equipmentId: "eq1", delta: "-1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...item, bonusDowntimeTokensValue: 0 }]
+		});
+	});
+
+	it("clamps at the entry's own max", () => {
+		const sheet = new PlaybookActorSheet();
+		const item = { id: "eq1", kind: "gear", name: "Artificers", bonusDowntimeTokens: { max: 1, description: "" }, bonusDowntimeTokensValue: 1 };
+		sheet.actor = { system: { attributes: { equipment: [item] } }, update: vi.fn() };
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { equipmentId: "eq1", delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at DOWNTIME_TOKENS_MIN", () => {
+		const sheet = new PlaybookActorSheet();
+		const item = { id: "eq1", kind: "gear", name: "Artificers", bonusDowntimeTokens: { max: 1, description: "" }, bonusDowntimeTokensValue: 0 };
+		sheet.actor = { system: { attributes: { equipment: [item] } }, update: vi.fn() };
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { equipmentId: "eq1", delta: "-1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing stored value as starting at the max", () => {
+		const sheet = new PlaybookActorSheet();
+		const item = { id: "eq1", kind: "gear", name: "Artificers", bonusDowntimeTokens: { max: 1, description: "" } };
+		sheet.actor = { system: { attributes: { equipment: [item] } }, update: vi.fn() };
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { equipmentId: "eq1", delta: "-1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...item, bonusDowntimeTokensValue: 0 }]
+		});
+	});
+
+	it("no-ops when equipmentId doesn't resolve to any entry", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { equipment: [] } }, update: vi.fn() };
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { equipmentId: "nope", delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("no-ops when equipmentId resolves to an entry without the flag", () => {
+		const sheet = new PlaybookActorSheet();
+		const item = { id: "eq1", kind: "gear", name: "Rope" };
+		sheet.actor = { system: { attributes: { equipment: [item] } }, update: vi.fn() };
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { equipmentId: "eq1", delta: "1" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});

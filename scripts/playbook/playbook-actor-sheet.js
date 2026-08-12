@@ -309,7 +309,6 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".ardent-approach-select").on("change", this._onArdentApproachChange.bind(this));
 		html.find(".ardent-tier-step").on("click", this._onArdentTierStep.bind(this));
 		html.find(".ardent-piloted-checkbox").on("change", this._onArdentPilotedToggle.bind(this));
-		html.find(".ardent-repair-tokens-input").on("change", this._onArdentRepairTokensChange.bind(this));
 		html.find(".ardent-part-add").on("click", this._onArdentPartAdd.bind(this));
 		html.find(".ardent-part-remove").on("click", this._onArdentPartRemove.bind(this));
 		html.find(".ardent-weapon-catalog-add").on("click", this._onArdentWeaponAdd.bind(this));

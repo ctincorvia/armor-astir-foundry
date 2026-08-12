@@ -486,10 +486,12 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.bonusDowntimeTokens.astir-part:standardised-parts.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
+			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
-			"system.attributes.downtimeTokens.value": 3,
+			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
@@ -516,10 +518,12 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.bonusDowntimeTokens.astir-part:standardised-parts.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
+			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
-			"system.attributes.downtimeTokens.value": 3,
+			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
@@ -539,10 +543,12 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.bonusDowntimeTokens.astir-part:standardised-parts.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
+			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
-			"system.attributes.downtimeTokens.value": 3,
+			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
@@ -566,10 +572,12 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.bonusDowntimeTokens.astir-part:standardised-parts.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
+			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
-			"system.attributes.downtimeTokens.value": 3,
+			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
@@ -596,10 +604,12 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.bonusDowntimeTokens.astir-part:standardised-parts.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
+			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
-			"system.attributes.downtimeTokens.value": 3,
+			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
@@ -626,10 +636,12 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.bonusDowntimeTokens.astir-part:standardised-parts.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
+			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
-			"system.attributes.downtimeTokens.value": 3
+			"system.attributes.downtimeTokens.value": 2
 		});
 	});
 
@@ -718,6 +730,107 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith(
 			expect.objectContaining({ "system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1 })
+		);
+	});
+
+	it("resets a below-max part-sourced Bonus Downtime Tokens pool (Standardised Parts) back to its own max", () => {
+		const STANDARDISED_PARTS = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:standardised-parts");
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", parts: [STANDARDISED_PARTS.key] },
+					bonusDowntimeTokens: { [STANDARDISED_PARTS.key]: { value: 0 } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ [`system.attributes.bonusDowntimeTokens.${STANDARDISED_PARTS.key}.value`]: 1 })
+		);
+	});
+
+	it("resets a below-max equipment-sourced Bonus Downtime Tokens pool back to its own max", () => {
+		const sheet = new PlaybookActorSheet();
+		const item = {
+			id: "eq1",
+			kind: "gear",
+			name: "Artificers",
+			bonusDowntimeTokens: { max: 1, description: "" },
+			bonusDowntimeTokensValue: 0
+		};
+		sheet.actor = { system: { attributes: { equipment: [item] } }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.equipment": [{ ...item, bonusDowntimeTokensValue: 1 }] })
+		);
+	});
+
+	it("leaves an equipment array untouched when its only Bonus Downtime Tokens entry is already at max", () => {
+		const sheet = new PlaybookActorSheet();
+		const item = {
+			id: "eq1",
+			kind: "gear",
+			name: "Artificers",
+			bonusDowntimeTokens: { max: 1, description: "" },
+			bonusDowntimeTokensValue: 1
+		};
+		sheet.actor = { system: { attributes: { equipment: [item] } }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).not.toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.equipment": expect.anything() })
+		);
+	});
+
+	it("leaves an equipment array untouched when a Bonus Downtime Tokens entry has never had a value stepped (already at its default max)", () => {
+		const sheet = new PlaybookActorSheet();
+		const item = { id: "eq1", kind: "gear", name: "Artificers", bonusDowntimeTokens: { max: 1, description: "" } };
+		sheet.actor = { system: { attributes: { equipment: [item] } }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).not.toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.equipment": expect.anything() })
+		);
+	});
+
+	it("composes the equipment-array rewrite for a Bonus Downtime Tokens reset with the one for clearing an unrelated spent Sortie-scoped tag on a different entry", () => {
+		const sheet = new PlaybookActorSheet();
+		const spentEntry = {
+			id: "1",
+			kind: "weapon",
+			name: "Halberd",
+			description: "",
+			tags: ["dangerous"],
+			spent: ["dangerous"],
+			scale: "foot",
+			tier: 1
+		};
+		const bonusEntry = {
+			id: "2",
+			kind: "gear",
+			name: "Artificers",
+			bonusDowntimeTokens: { max: 1, description: "" },
+			bonusDowntimeTokensValue: 0
+		};
+		sheet.actor = { system: { attributes: { equipment: [spentEntry, bonusEntry] } }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				"system.attributes.equipment": [
+					{ ...spentEntry, spent: [] },
+					{ ...bonusEntry, bonusDowntimeTokensValue: 1 }
+				]
+			})
 		);
 	});
 });

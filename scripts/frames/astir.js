@@ -224,9 +224,9 @@ export const ASTIR_PART_CATALOG = [
 		name: "Standardised Parts",
 		partType: "Passive",
 		traits: [],
-		// See PlaybookActorSheet's getData/repairTokens — Downtime isn't a tracked phase
-		// anywhere in this module, so this is a manually-edited counter, not an auto-granted one.
-		grantsRepairTokens: true,
+		// Grants a restricted Bonus Downtime Tokens pool like any other source (moves/parts/
+		// equipment) — see progression-mixin.js's _bonusDowntimeTokensData.
+		bonusDowntimeTokens: { max: 1, description: "Repairs only." },
 		description:
 			"<p>This Astir uses a large amount of common, easy-to-find parts shared with similar " +
 			"models. This makes it easy to repair, lightening the load on everyone else.</p>" +

@@ -71,11 +71,6 @@ export const ArdentSheetMixin = {
 					tier: ardent.tier ?? ARDENT_TIER_DEFAULT
 				})),
 				weapons,
-				// Only appears once a part actually grants it (Standardised Parts — see astir.js),
-				// same object-not-bare-number treatment the Astir's own repairTokens gets. Checked
-				// against every installed part (baseline + Feature) — Standardised Parts has no
-				// reason to be Feature-exclusive, and isn't.
-				repairTokens: allParts.some((part) => part.grantsRepairTokens) ? { value: ardent.repairTokens ?? 0 } : null,
 				loadoutFull: ardentBaselineLoadoutCount(ardent, equipment) >= ARDENT_MAX_LOADOUT,
 				featureParts: featureParts.map((part) => ({
 					key: part.key,
@@ -138,20 +133,6 @@ export const ArdentSheetMixin = {
 		if (next === tier) return;
 		this.actor.update({
 			"system.attributes.ardents": current.map((a) => (a.id === ardentId ? { ...a, tier: next } : a))
-		});
-	},
-	// Repair Tokens (Standardised Parts — see astir.js) is a plain number input, same treatment the
-	// Astir's own gets — Downtime isn't a tracked phase anywhere in this module, so the player edits
-	// the count themselves. Handled manually, rather than a plain name-bound field, since Ardents
-	// live in an array (see claude.md's Ardents section) the same way Dangers/Gravity Clocks do —
-	// consistent with how every other per-entry field in one of those lists is wired.
-	_onArdentRepairTokensChange(event) {
-		const { ardentId } = event.currentTarget.dataset;
-		const current = this._ardents();
-		if (!current.some((ardent) => ardent.id === ardentId)) return;
-		const value = Math.max(0, Number(event.currentTarget.value) || 0);
-		this.actor.update({
-			"system.attributes.ardents": current.map((a) => (a.id === ardentId ? { ...a, repairTokens: value } : a))
 		});
 	},
 	// The "+" on an Ardent's own Parts section — offers only the Astir catalog's Ardent-eligible

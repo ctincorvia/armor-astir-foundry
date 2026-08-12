@@ -137,15 +137,14 @@ describe("ardentWeapons", () => {
 });
 
 describe("buildArdent", () => {
-	it("defaults to name Ardent, Tier minimum, unpiloted, no parts, and Repair Tokens at 0", () => {
+	it("defaults to name Ardent, Tier minimum, unpiloted, and no parts", () => {
 		expect(buildArdent()).toEqual({
 			id: "test-id",
 			name: ARDENT_DEFAULT_NAME,
 			approach: "",
 			tier: ARDENT_TIER_DEFAULT,
 			piloted: false,
-			parts: [],
-			repairTokens: 0
+			parts: []
 		});
 	});
 

@@ -221,11 +221,14 @@ export const FramesSheetMixin = {
 			if (move.flatHold && move.period === "Sortie") {
 				updates[`system.attributes.moveHold.${move.key}.value`] = HOLD_MIN;
 			}
-			// Bonus Downtime Tokens (Master & Servant, Information Network — see progression-mixin.js's
-			// _bonusDowntimeTokensData) are the same per-Sortie resource as the main Downtime Tokens
-			// counter below, so they reset alongside it here rather than gating on period like the
-			// flatHold branch above — walks all of ALL_MOVES, not just picked moves, matching that
-			// branch's own unconditional-reset behavior.
+			// Bonus Downtime Tokens (Master & Servant, Information Network, and — since ALL_MOVES
+			// already flattens ARDENT_PART_CATALOG (which itself includes ASTIR_PART_CATALOG) in
+			// whole, see all-moves.js's own comment — Astir/Ardent Parts like Standardised Parts too)
+			// are the same per-Sortie resource as the main Downtime Tokens counter below, so they
+			// reset alongside it here rather than gating on period like the flatHold branch above —
+			// walks all of ALL_MOVES, not just picked/installed sources, matching that branch's own
+			// unconditional-reset behavior. Equipment-sourced pools (Artificers) aren't catalog
+			// entries, so they get their own pass below instead.
 			if (move.bonusDowntimeTokens) {
 				updates[`system.attributes.bonusDowntimeTokens.${move.key}.value`] = move.bonusDowntimeTokens.max;
 			}
@@ -246,6 +249,22 @@ export const FramesSheetMixin = {
 		}
 		if (this._astirParts().some((part) => part.grantsPotionsOnLeadASortie)) {
 			updates["system.attributes.astir.potions"] = { red: 0, blue: 0, yellow: 0 };
+		}
+		// Equipment-sourced Bonus Downtime Tokens (Artificers — see equipment-mixin.js/
+		// starting-gear.js) reset the same way, but equipment isn't a catalog to walk like ALL_MOVES
+		// above (see _bonusDowntimeTokensData's own comment on why it can't share the keyed map) —
+		// read off whichever equipment array is already current (_refreshPeriod may have just
+		// rewritten it above to clear a spent tag) so the two rewrites compose rather than one
+		// clobbering the other, same reference-preserving pattern _refreshPeriod's own equipment
+		// rewrite already uses.
+		const equipmentSource = updates["system.attributes.equipment"] ?? this._equipment();
+		const nextEquipment = equipmentSource.map((item) => {
+			if (!item.bonusDowntimeTokens) return item;
+			const { max } = item.bonusDowntimeTokens;
+			return (item.bonusDowntimeTokensValue ?? max) === max ? item : { ...item, bonusDowntimeTokensValue: max };
+		});
+		if (nextEquipment.some((item, i) => item !== equipmentSource[i])) {
+			updates["system.attributes.equipment"] = nextEquipment;
 		}
 		// Eidolon Drive's active summon (see summoner-mixin.js) is primarily cleared by Refresh
 		// Scene above, the actual rules boundary ("for the rest of the Scene"). This is a defensive

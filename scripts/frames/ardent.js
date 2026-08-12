@@ -200,8 +200,7 @@ export function buildArdent(name = ARDENT_DEFAULT_NAME) {
 		approach: "",
 		tier: ARDENT_TIER_DEFAULT,
 		piloted: false,
-		parts: [],
-		repairTokens: 0
+		parts: []
 	};
 }
 

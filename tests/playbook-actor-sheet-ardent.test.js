@@ -30,7 +30,6 @@ import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js"
 
 const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertainties");
 const INPUT_CHANNEL = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:input-channel");
-const STANDARDISED_PARTS = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:standardised-parts");
 const WARDING = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:warding");
 const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:artifact");
 
@@ -92,20 +91,6 @@ describe("PlaybookActorSheet#getData - ardents", () => {
 		expect(sheet.getData().ardents[0].parts).toEqual([
 			{ key: part.key, name: part.name, partType: part.partType, tier: ARDENT_TIER_MIN }
 		]);
-	});
-
-	it("reports Repair Tokens once Standardised Parts is installed, defaulting to 0", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [STANDARDISED_PARTS.key] }] } } };
-
-		expect(sheet.getData().ardents[0].repairTokens).toEqual({ value: 0 });
-	});
-
-	it("reports no Repair Tokens without Standardised Parts installed", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }] } } };
-
-		expect(sheet.getData().ardents[0].repairTokens).toBeNull();
 	});
 
 	it("surfaces only this Ardent's own ardent-flagged weapons, with the Ardent's own tier and Astir scale", () => {
@@ -233,7 +218,6 @@ describe("PlaybookActorSheet#activateListeners - ardent", () => {
 			".ardent-approach-select",
 			".ardent-tier-step",
 			".ardent-piloted-checkbox",
-			".ardent-repair-tokens-input",
 			".ardent-part-add",
 			".ardent-part-remove",
 			".ardent-weapon-catalog-add"
@@ -253,7 +237,7 @@ describe("PlaybookActorSheet#_onArdentCreate", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.ardents": [
-				{ id: "test-id", name: "Ardent", approach: "", tier: ARDENT_TIER_MIN, piloted: false, parts: [], repairTokens: 0 }
+				{ id: "test-id", name: "Ardent", approach: "", tier: ARDENT_TIER_MIN, piloted: false, parts: [] }
 			]
 		});
 	});
@@ -399,51 +383,6 @@ describe("PlaybookActorSheet#_onArdentTierStep", () => {
 		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
 
 		sheet._onArdentTierStep({ currentTarget: { dataset: { ardentId: "nope", delta: "1" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-});
-
-describe("PlaybookActorSheet#_onArdentRepairTokensChange", () => {
-	it("writes the entered value, leaving other Ardents untouched", () => {
-		const sheet = new PlaybookActorSheet();
-		const other = { id: "ar2", repairTokens: 1 };
-		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", repairTokens: 0 }, other] } }, update: vi.fn() };
-
-		sheet._onArdentRepairTokensChange({ currentTarget: { dataset: { ardentId: "ar1" }, value: "3" } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.ardents": [{ id: "ar1", repairTokens: 3 }, other]
-		});
-	});
-
-	it("clamps a negative value to 0", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", repairTokens: 2 }] } }, update: vi.fn() };
-
-		sheet._onArdentRepairTokensChange({ currentTarget: { dataset: { ardentId: "ar1" }, value: "-5" } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.ardents": [{ id: "ar1", repairTokens: 0 }]
-		});
-	});
-
-	it("clamps a non-numeric value to 0", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", repairTokens: 2 }] } }, update: vi.fn() };
-
-		sheet._onArdentRepairTokensChange({ currentTarget: { dataset: { ardentId: "ar1" }, value: "" } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.ardents": [{ id: "ar1", repairTokens: 0 }]
-		});
-	});
-
-	it("does nothing for an unknown Ardent id", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
-
-		sheet._onArdentRepairTokensChange({ currentTarget: { dataset: { ardentId: "nope" }, value: "3" } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});

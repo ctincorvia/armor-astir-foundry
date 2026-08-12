@@ -469,6 +469,7 @@ describe("MOVE_POOLS - the-summoner", () => {
 
 		expect(helpingHands.traits).toEqual([]);
 		expect(helpingHands.grantsDowntimeAllySlot).toBe(true);
+		expect(helpingHands.bonusDowntimeTokens).toEqual({ max: 1, description: "Only while a Downtime Ally is bound." });
 	});
 
 	it("flags Living Drive with grantsUnpilotedAstirMove targeting Eidolon Drive", () => {

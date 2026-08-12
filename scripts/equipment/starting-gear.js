@@ -777,7 +777,8 @@ export const STARTING_GEAR_POOLS = [
 					{
 						key: "the-attendant:artificers",
 						name: "Artificers",
-						description: "+1 token towards repairs & magic or mechanical long-term projects."
+						description: "+1 token towards repairs & magic or mechanical long-term projects.",
+						bonusDowntimeTokens: { max: 1, description: "Repairs, or magic or mechanical long-term projects." }
 					},
 					{
 						key: "the-attendant:maids",

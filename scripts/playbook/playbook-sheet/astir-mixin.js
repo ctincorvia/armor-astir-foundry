@@ -76,18 +76,17 @@ export const AstirSheetMixin = {
 				// A second, Weapon-Conduit-only Power pool — 0/0 (and hidden by the template) for
 				// every Astir that doesn't have it.
 				weaponPower: { value: astir.weaponPower ?? 0, max: astirMaxWeaponPower(astir.parts ?? [], equipment) },
-				// Both only appear once a part actually grants them — an object (even one holding
-				// 0) rather than a bare number, so the template's {{#if}} doesn't mistake a
-				// legitimate 0 count for "not present".
+				// Only appears once a part actually grants it — an object (even one holding 0)
+				// rather than a bare number, so the template's {{#if}} doesn't mistake a legitimate
+				// 0 count for "not present". Standardised Parts' own Repair Tokens grant is now a
+				// generic Bonus Downtime Tokens pool instead (see claude.md's Ardents section) —
+				// this Potions field is the one remaining example of the pattern.
 				potions: astirParts.some((part) => part.grantsPotionsOnLeadASortie)
 					? {
 						red: astir.potions?.red ?? 0,
 						blue: astir.potions?.blue ?? 0,
 						yellow: astir.potions?.yellow ?? 0
 					}
-					: null,
-				repairTokens: astirParts.some((part) => part.grantsRepairTokens)
-					? { value: astir.repairTokens ?? 0 }
 					: null,
 				// tier is derived from the Astir's own Tier, not stored on the part — every part
 				// installed here is installed on this Astir specifically (see claude.md's Astir

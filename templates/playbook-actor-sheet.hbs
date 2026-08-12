@@ -447,12 +447,6 @@
 								<button type="button" class="power-step astir-weapon-power-step astir-weapon-power-increment" data-delta="1">+</button>
 							</div>
 							{{/if}}
-							{{#if astir.repairTokens}}
-							<div class="form-group repair-tokens-control">
-								<label>Repair Tokens</label>
-								<input type="number" min="0" name="system.attributes.astir.repairTokens" value="{{astir.repairTokens.value}}"/>
-							</div>
-							{{/if}}
 						</div>
 						{{#if astir.potions}}
 						<div class="section-header">
@@ -605,12 +599,6 @@
 									<input type="checkbox" class="ardent-piloted-checkbox" data-ardent-id="{{id}}" {{#if piloted}}checked{{/if}}/>
 									Piloted
 								</label>
-								{{#if repairTokens}}
-								<div class="form-group repair-tokens-control">
-									<label>Repair Tokens</label>
-									<input type="number" min="0" class="ardent-repair-tokens-input" data-ardent-id="{{id}}" value="{{repairTokens.value}}"/>
-								</div>
-								{{/if}}
 							</div>
 							<div class="section-header">
 								<h3>Parts</h3>
@@ -1003,9 +991,9 @@
 									<label class="power-label">{{name}}</label>
 									<p class="bonus-downtime-tokens-description">{{description}}</p>
 								</div>
-								<button type="button" class="power-step bonus-downtime-tokens-step bonus-downtime-tokens-decrement" data-move-key="{{key}}" data-delta="-1">-</button>
+								<button type="button" class="power-step bonus-downtime-tokens-step bonus-downtime-tokens-decrement" data-move-key="{{moveKey}}" data-equipment-id="{{equipmentId}}" data-delta="-1">-</button>
 								<span class="power-value">{{value}} / {{max}}</span>
-								<button type="button" class="power-step bonus-downtime-tokens-step bonus-downtime-tokens-increment" data-move-key="{{key}}" data-delta="1">+</button>
+								<button type="button" class="power-step bonus-downtime-tokens-step bonus-downtime-tokens-increment" data-move-key="{{moveKey}}" data-equipment-id="{{equipmentId}}" data-delta="1">+</button>
 							</li>
 							{{/each}}
 						</ol>

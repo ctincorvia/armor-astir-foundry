@@ -1655,6 +1655,9 @@ export const MOVE_POOLS = [
 						"tokens.",
 					failure: null
 				},
+				// The grant is party-wide ("everyone gains a token") and conditional on spending it
+				// "here," neither of which this actor-scoped mechanic can express — prose only, per
+				// claude.md's "systems that do not exist yet".
 				description:
 					"<p>When you imbue a place with life, using your connections to the natural world to " +
 					"support and bolster it, roll +CHANNEL.</p>" +
@@ -2021,11 +2024,15 @@ export const MOVE_POOLS = [
 				name: "Helping Hands",
 				traits: [],
 				// Renders the single-slot Downtime Ally control (Downtime tab — see
-				// summoner-mixin.js's _downtimeAllyData) once picked, and raises the Downtime Tokens
-				// cap by 1 while an ally is bound there (see progression-mixin.js's
-				// _downtimeTokensMax) — both a declarative flag, generically evaluated, the same
-				// pattern grantsBoundAlliesRoster establishes for Binding above.
+				// summoner-mixin.js's _downtimeAllyData) once picked — a declarative flag,
+				// generically evaluated, the same pattern grantsBoundAlliesRoster establishes for
+				// Binding above.
 				grantsDowntimeAllySlot: true,
+				// The "+1 token during Downtime" grant is a restricted Bonus Downtime Tokens pool
+				// like any other source (moves/parts/equipment) — see progression-mixin.js's
+				// _bonusDowntimeTokensData. A separate flag from grantsDowntimeAllySlot above, which
+				// only ever gates the Downtime Ally UI section, not the token grant.
+				bonusDowntimeTokens: { max: 1, description: "Only while a Downtime Ally is bound." },
 				description:
 					"<p>You may also bind an ally to help you in Downtime instead of on Sorties. When " +
 					"you do so, instead of writing a trait and their approach, take +1 token during " +

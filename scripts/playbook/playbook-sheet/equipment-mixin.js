@@ -184,7 +184,11 @@ export const EquipmentSheetMixin = {
 			name: item.name,
 			description: item.description,
 			tags: item.tags ?? [],
-			...(item.kind === "weapon" && { scale: item.scale ?? "foot" })
+			...(item.kind === "weapon" && { scale: item.scale ?? "foot" }),
+			// Artificers (The Attendant) — a Bonus Downtime Tokens grant carried through the
+			// snapshot the same way any other starting-gear-picked field is (see claude.md,
+			// "Equipment").
+			...(item.bonusDowntimeTokens && { bonusDowntimeTokens: item.bonusDowntimeTokens })
 		};
 	},
 	// Shared tail of _onEquipmentAdd and _onEquipmentCatalogAdd: appends a resolved
@@ -342,11 +346,12 @@ export const EquipmentSheetMixin = {
 				: await configureEquipment(entry);
 		if (!result) return;
 
-		// Replaces the entry wholesale (keeping only id/spent/astir/ardent/familiar) rather than
-		// merging onto the old one — editing a weapon down to Gear should drop its stale scale/tier,
-		// not leave them dangling unrendered. astir/ardent/familiar are carried forward explicitly,
-		// last, since result never includes any of them (configureEquipment has no concept of them,
-		// only of hiding fields for astirWeapon/ardentWeapon).
+		// Replaces the entry wholesale (keeping only id/spent/astir/ardent/familiar/
+		// bonusDowntimeTokens) rather than merging onto the old one — editing a weapon down to Gear
+		// should drop its stale scale/tier, not leave them dangling unrendered. astir/ardent/
+		// familiar/bonusDowntimeTokens are carried forward explicitly, last, since result never
+		// includes any of them (configureEquipment has no concept of them, only of hiding fields for
+		// astirWeapon/ardentWeapon).
 		const equipment = current.map((item) => (
 			item.id === equipmentId
 				? {
@@ -355,7 +360,11 @@ export const EquipmentSheetMixin = {
 					...result,
 					...(item.astir && { astir: true }),
 					...(item.ardent && { ardent: item.ardent }),
-					...(item.familiar && { familiar: true })
+					...(item.familiar && { familiar: true }),
+					...(item.bonusDowntimeTokens && {
+						bonusDowntimeTokens: item.bonusDowntimeTokens,
+						...(item.bonusDowntimeTokensValue !== undefined && { bonusDowntimeTokensValue: item.bonusDowntimeTokensValue })
+					})
 				}
 				: item
 		));

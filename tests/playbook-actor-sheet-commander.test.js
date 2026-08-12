@@ -119,11 +119,11 @@ describe("PlaybookActorSheet#getData - tier bonus (Ace Crew)", () => {
 });
 
 describe("PlaybookActorSheet#getData - downtimeTokens max (Debrief)", () => {
-	it("defaults to DOWNTIME_TOKENS_MAX_BASE (3) with no picked moves", () => {
+	it("defaults to DOWNTIME_TOKENS_MAX_BASE (2) with no picked moves", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: {} } };
 
-		expect(sheet.getData().downtimeTokens.max).toBe(3);
+		expect(sheet.getData().downtimeTokens.max).toBe(2);
 	});
 
 	it("raises the max to a picked move's own downtimeTokensMax flag (Debrief: 4)", () => {

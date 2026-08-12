@@ -637,6 +637,27 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 			});
 		});
 	});
+
+	it("carries a picked item's bonusDowntimeTokens flag through the starting-gear snapshot (Artificers)", async () => {
+		const attendantPool = STARTING_GEAR_POOLS.find((pool) => pool.playbookName === "The Attendant");
+		const artificers = attendantPool.groups.flatMap((group) => group.items).find((item) => item.key === "the-attendant:artificers");
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Attendant" }, attributes: { equipment: [] } }, update: vi.fn() };
+		chooseStartingGear.mockResolvedValue([artificers]);
+
+		await sheet._onStartingGearAdd();
+
+		const equipment = sheet.actor.update.mock.calls[0][0]["system.attributes.equipment"];
+		expect(equipment.find((e) => e.name === "Artificers")).toEqual({
+			id: "test-id",
+			spent: [],
+			kind: "gear",
+			name: artificers.name,
+			description: artificers.description,
+			tags: [],
+			bonusDowntimeTokens: artificers.bonusDowntimeTokens
+		});
+	});
 });
 
 describe("PlaybookActorSheet#_onEquipmentEdit", () => {
@@ -693,6 +714,70 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 					tags: ["ranged"],
 					astir: true,
 					familiar: true
+				}
+			]
+		});
+	});
+
+	it("carries a bonusDowntimeTokens flag and its current value forward through an edit", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = {
+			id: "1",
+			kind: "gear",
+			name: "Artificers",
+			description: "",
+			tags: [],
+			spent: [],
+			bonusDowntimeTokens: { max: 1, description: "Repairs, or magic or mechanical long-term projects." },
+			bonusDowntimeTokensValue: 0
+		};
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Artificers", description: "", kind: "gear", tags: [] });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{
+					id: "1",
+					spent: [],
+					name: "Artificers",
+					description: "",
+					kind: "gear",
+					tags: [],
+					bonusDowntimeTokens: entry.bonusDowntimeTokens,
+					bonusDowntimeTokensValue: 0
+				}
+			]
+		});
+	});
+
+	it("carries a bonusDowntimeTokens flag forward without a bonusDowntimeTokensValue when none was ever stepped", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = {
+			id: "1",
+			kind: "gear",
+			name: "Artificers",
+			description: "",
+			tags: [],
+			spent: [],
+			bonusDowntimeTokens: { max: 1, description: "Repairs, or magic or mechanical long-term projects." }
+		};
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Artificers", description: "", kind: "gear", tags: [] });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{
+					id: "1",
+					spent: [],
+					name: "Artificers",
+					description: "",
+					kind: "gear",
+					tags: [],
+					bonusDowntimeTokens: entry.bonusDowntimeTokens
 				}
 			]
 		});
