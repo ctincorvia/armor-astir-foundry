@@ -958,6 +958,9 @@ export async function rollMove(actor, move, trait, options = {}) {
 		// (e.g. Mobility's "You hold nothing.").
 		questions: (tier !== "failure" || move.questionsOnFailure) ? (combinedQuestions.length ? combinedQuestions : null) : null,
 		reroll: Boolean(rerollOffer),
+		// The specific tag (Decisive/Defensive/Versatile) this reroll offer is coming from, so the
+		// chat card's button can name just that one tag rather than listing all three.
+		rerollLabel: rerollOffer ? findEquipmentTag(rerollOffer.tagKey).label : null,
 		automaticSuccess: automaticSuccessOffer,
 		heatUp: Boolean(heatUpOffer),
 		showAddAdvantage,

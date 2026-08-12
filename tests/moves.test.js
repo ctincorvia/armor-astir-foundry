@@ -23,6 +23,7 @@ import {
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
+const STRIKE_DECISIVELY = BASIC_MOVES.find((m) => m.key === "strike-decisively");
 // The one real move carrying separateHold — a roll-tiered hold grant routed into its own
 // per-move pool instead of the shared system.resources.hold field (see playbook-moves.js).
 const MOBILITY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-scout:mobility");
@@ -1413,7 +1414,10 @@ describe("rollMove - reroll (Decisive/Defensive/Versatile)", () => {
 			reroll: { equipmentId: "eq1", tagKey: "defensive" }
 		});
 
-		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ reroll: true }));
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ reroll: true, rerollLabel: "Defensive" })
+		);
 		const rollInstance = Roll.mock.results.at(-1).value;
 		expect(rollInstance.toMessage).toHaveBeenCalledWith({
 			speaker: { actor: "speaker" },
@@ -1435,6 +1439,22 @@ describe("rollMove - reroll (Decisive/Defensive/Versatile)", () => {
 		});
 	});
 
+	it("names the specific tag (Decisive) offering the reroll, not every reroll tag", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, STRIKE_DECISIVELY, clash, {
+			reroll: { equipmentId: "eq1", tagKey: "decisive" }
+		});
+
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ reroll: true, rerollLabel: "Decisive" })
+		);
+	});
+
 	it("does not offer a reroll when the roll doesn't fail", async () => {
 		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
 		const clash = TRAITS.find((t) => t.key === "clash");
@@ -1443,7 +1463,10 @@ describe("rollMove - reroll (Decisive/Defensive/Versatile)", () => {
 
 		await rollMove(actor, EXCHANGE_BLOWS, clash, { reroll: { equipmentId: "eq1", tagKey: "defensive" } });
 
-		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ reroll: false }));
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ reroll: false, rerollLabel: null })
+		);
 		const rollInstance = Roll.mock.results.at(-1).value;
 		expect(rollInstance.toMessage).toHaveBeenCalledWith({
 			speaker: { actor: "speaker" },
@@ -1460,7 +1483,10 @@ describe("rollMove - reroll (Decisive/Defensive/Versatile)", () => {
 
 		await rollMove(actor, EXCHANGE_BLOWS, clash);
 
-		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ reroll: false }));
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ reroll: false, rerollLabel: null })
+		);
 		const rollInstance = Roll.mock.results.at(-1).value;
 		expect(rollInstance.toMessage).toHaveBeenCalledWith({
 			speaker: { actor: "speaker" },
