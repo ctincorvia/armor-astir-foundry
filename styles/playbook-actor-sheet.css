@@ -1595,6 +1595,16 @@
 	color: var(--aa-danger);
 }
 
+/* Layered on top of move-tier-success (a 12+ still resolves tier "success" — see
+   moves.js#isCriticalResult) rather than replacing it, so a gold accent plus a little letter-
+   spacing is enough to read as "upgraded" without a whole second color needing its own contrast
+   check. */
+.armor-astir-move-chat .move-tier-critical {
+	color: #8a6300;
+	letter-spacing: 0.03em;
+	text-shadow: 0 0 6px rgba(255, 191, 0, 0.35);
+}
+
 .armor-astir-move-chat .move-result-text {
 	margin: var(--aa-space-1) 0 0;
 }

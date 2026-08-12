@@ -300,6 +300,7 @@ describe("onRenderMoveChat/handleAutomaticSuccess (Hot-blooded/Once the War's Ov
 		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.the-impostor:hot-blooded.value": 0 });
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, {
 			tier: "success",
+			critical: false,
 			conditions: [
 				{ key: "confidence", label: "Confidence" },
 				{ key: "automatic-success", label: "Automatic Success (Hot-blooded)" }
@@ -457,6 +458,7 @@ describe("onRenderMoveChat/handleAutomaticSuccess (Hot-blooded/Once the War's Ov
 		expect(actor.update).not.toHaveBeenCalled();
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, {
 			tier: "success",
+			critical: false,
 			conditions: [{ key: "automatic-success", label: "Automatic Success (Ain't No Grave)" }],
 			tierLabel: MOVE_RESULT_LABELS.success,
 			resultText: EXCHANGE_BLOWS.results.success,
@@ -709,6 +711,30 @@ describe("onRenderMoveChat/handleAdvantage (Add Advantage/Add Disadvantage)", ()
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
 			tier: "success",
 			tierLabel: MOVE_RESULT_LABELS.success,
+			resultText: EXCHANGE_BLOWS.results.success,
+			reminders: [reminder]
+		}));
+	});
+
+	it("recomputes critical (not just tier) when adding a die pushes the total from 10-11 into 12+", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const reminder = "Your opponent is put in peril";
+		const offer = baseOffer({ value: 4, extraCriticalReminder: reminder });
+		const message = { flags: { "armor-astir": { advantageOffer: offer } }, author: "author1", update: vi.fn() };
+		const fake = fakeChatHtml();
+		mockDieRoll(6);
+
+		onRenderMoveChat(message, fake.html);
+		fake.addAdvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// [2, 2] kept-highest-2 with a freshly rolled 6 added -> keeps 2 and 6 -> 8, +4 value -> 12 (critical).
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			critical: true,
+			tierLabel: MOVE_RESULT_LABELS.critical,
 			resultText: EXCHANGE_BLOWS.results.success,
 			reminders: [reminder]
 		}));

@@ -13,9 +13,11 @@ import {
 	configureMoveRoll,
 	configureVariableDiceRoll,
 	explodeSixes,
+	isCriticalResult,
 	moveResultTier,
 	postGuidedResult,
 	postMoveDescription,
+	resolveTierValue,
 	rollMove,
 	rollVariableDicePool,
 	showMoveDescription
@@ -1395,6 +1397,7 @@ describe("rollMove", () => {
 			extraConditions: [],
 			extraFailureReminder: null,
 			extraSuccessReminder: null,
+			extraCriticalReminder: null,
 			flavorArgs: expect.any(Object)
 		});
 	});
@@ -1983,6 +1986,134 @@ describe("rollMove - hold", () => {
 
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
 			questions: null
+		}));
+	});
+});
+
+describe("rollMove - critical (12+)", () => {
+	// A 12+ total still resolves tier "success" (moveResultTier itself stays three-valued — see
+	// isCriticalResult's own comment); `critical` is the orthogonal signal layered on top. No real
+	// catalog move defines a `critical` override key today, so these two fixtures exist purely to
+	// exercise resolveTierValue's two branches — the default-fallback path (no test move fixture
+	// used above already covers a 12+ roll at all) and the override path.
+	const CRITICAL_FALLBACK_MOVE = {
+		key: "test:critical-fallback",
+		name: "Critical Fallback Test Move",
+		traits: ["clash"],
+		hold: { success: 3, mixed: 1, failure: 0 },
+		results: { success: "Success text.", mixed: "Mixed text.", failure: null }
+	};
+	const CRITICAL_OVERRIDE_MOVE = {
+		key: "test:critical-override",
+		name: "Critical Override Test Move",
+		traits: ["clash"],
+		hold: { success: 3, mixed: 1, failure: 0, critical: 3 },
+		results: { success: "Success text.", mixed: "Mixed text.", failure: null, critical: "Critical text." }
+	};
+
+	it("reports tier success (not a fourth tier) with critical true on a 12+", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } }, update: vi.fn() };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [6, 6] });
+
+		await rollMove(actor, CRITICAL_FALLBACK_MOVE, clash);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			critical: true,
+			tierLabel: MOVE_RESULT_LABELS.critical
+		}));
+	});
+
+	it("reports critical false on a plain 10-11 success", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } }, update: vi.fn() };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [5, 5] });
+
+		await rollMove(actor, CRITICAL_FALLBACK_MOVE, clash);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			critical: false,
+			tierLabel: MOVE_RESULT_LABELS.success
+		}));
+	});
+
+	it("falls back to the move's own success hold/results when no critical key is defined", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } }, update: vi.fn() };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [6, 6] });
+
+		await rollMove(actor, CRITICAL_FALLBACK_MOVE, clash);
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.resources.hold.value": CRITICAL_FALLBACK_MOVE.hold.success });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			hold: CRITICAL_FALLBACK_MOVE.hold.success,
+			resultText: CRITICAL_FALLBACK_MOVE.results.success
+		}));
+	});
+
+	it("uses the move's own critical hold/results when one is explicitly defined", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } }, update: vi.fn() };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [6, 6] });
+
+		await rollMove(actor, CRITICAL_OVERRIDE_MOVE, clash);
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.resources.hold.value": CRITICAL_OVERRIDE_MOVE.hold.critical });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			hold: CRITICAL_OVERRIDE_MOVE.hold.critical,
+			resultText: CRITICAL_OVERRIDE_MOVE.results.critical
+		}));
+	});
+
+	it("includes extraCriticalReminder only on a 12+, alongside a plain extraSuccessReminder", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } }, update: vi.fn() };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [6, 6] });
+
+		await rollMove(actor, CRITICAL_FALLBACK_MOVE, clash, {
+			extraSuccessReminder: "success reminder", extraCriticalReminder: "critical reminder"
+		});
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			reminders: ["success reminder", "critical reminder"]
+		}));
+	});
+
+	it("omits extraCriticalReminder on a plain 10-11 success even when one is passed", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } }, update: vi.fn() };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [5, 5] });
+
+		await rollMove(actor, CRITICAL_FALLBACK_MOVE, clash, { extraCriticalReminder: "critical reminder" });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			reminders: null
+		}));
+	});
+
+	it("carries extraCriticalReminder on advantageOffer so a retroactive Advantage add can rebuild it", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } }, update: vi.fn() };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [5, 5] });
+
+		const message = await rollMove(actor, CRITICAL_FALLBACK_MOVE, clash, { extraCriticalReminder: "critical reminder" });
+
+		expect(message).toBeDefined();
+		expect(Roll.mock.results.at(-1).value.toMessage).toHaveBeenCalledWith(expect.objectContaining({
+			flags: {
+				"armor-astir": expect.objectContaining({
+					advantageOffer: expect.objectContaining({ extraCriticalReminder: "critical reminder" })
+				})
+			}
 		}));
 	});
 });

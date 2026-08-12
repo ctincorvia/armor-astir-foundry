@@ -23,7 +23,7 @@
 		{{#if traitLabel}}<span class="move-trait">+{{traitLabel}}</span>{{/if}}
 		{{#if intentLabel}}<span class="move-intent">{{intentLabel}}</span>{{/if}}
 		{{#if weaponLabel}}<span class="move-weapon">{{weaponLabel}}{{#if weaponTags}} ({{weaponTags}}){{/if}}</span>{{/if}}
-		<span class="move-tier move-tier-{{tier}}">{{tierLabel}}</span>
+		<span class="move-tier move-tier-{{tier}}{{#if critical}} move-tier-critical{{/if}}">{{tierLabel}}</span>
 	</div>
 	{{#if conditions}}
 	<div class="move-conditions">

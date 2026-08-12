@@ -1,4 +1,13 @@
-import { MOVE_CHAT_TEMPLATE, MOVE_RESULT_LABELS, HOLD_MIN, buildReminders, moveResultTier, rollMove } from "./moves.js";
+import {
+	MOVE_CHAT_TEMPLATE,
+	MOVE_RESULT_LABELS,
+	HOLD_MIN,
+	buildReminders,
+	isCriticalResult,
+	moveResultTier,
+	resolveTierValue,
+	rollMove
+} from "./moves.js";
 import { addDie, effectState, nextAdvantageState, removeDie, rollConditions } from "./roll-effects.js";
 import { mergeSpentTags } from "../equipment/equipment.js";
 import { ALL_MOVES } from "./all-moves.js";
@@ -93,6 +102,10 @@ async function handleAutomaticSuccess(message, offer, sourceKey) {
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
 		...offer.flavorArgs,
 		tier: "success",
+		// Explicit and defensive, not just inherited from offer.flavorArgs — this path always forces
+		// a flat 10+ ("as if you'd rolled a 10+"), never a 12+, regardless of what the original roll
+		// actually was (see moves.js#isCriticalResult/claude.md's "Adding move content").
+		critical: false,
 		tierLabel: MOVE_RESULT_LABELS.success,
 		resultText: move.results.success,
 		reminders: null,
@@ -137,14 +150,20 @@ async function handleAdvantage(message, offer, direction) {
 	}
 	const total = dice.filter((d) => d.kept).reduce((sum, d) => sum + d.result, 0) + offer.value;
 	const tier = moveResultTier(total);
+	// Same orthogonal signal rollMove itself computes (see moves.js#isCriticalResult) — a
+	// retroactive Advantage/Disadvantage add can push the total across the 12+ line just as easily
+	// as the 10+ one, so this needs recomputing here rather than trusting whatever the original
+	// roll carried in offer.flavorArgs.
+	const critical = isCriticalResult(total);
 	const conditions = [...rollConditions(nextState, effect), ...offer.extraConditions];
-	const reminders = buildReminders(tier, effect, offer.extraFailureReminder, offer.extraSuccessReminder);
+	const reminders = buildReminders(tier, effect, offer.extraFailureReminder, offer.extraSuccessReminder, critical, offer.extraCriticalReminder);
 
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
 		...offer.flavorArgs,
 		tier,
-		tierLabel: MOVE_RESULT_LABELS[tier],
-		resultText: move.results[tier],
+		critical,
+		tierLabel: critical ? MOVE_RESULT_LABELS.critical : MOVE_RESULT_LABELS[tier],
+		resultText: resolveTierValue(move.results, tier, critical),
 		dice,
 		conditions,
 		reminders: reminders.length ? reminders : null,

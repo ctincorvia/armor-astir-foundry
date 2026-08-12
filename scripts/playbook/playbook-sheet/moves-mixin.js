@@ -619,6 +619,28 @@ export const MovesSheetMixin = {
 			.find((m) => m.addsSuccessReminderToMove?.moveKeys?.includes(move.key));
 		return granting?.addsSuccessReminderToMove.reminder ?? null;
 	},
+	// The 12+ mirror of _grantedSuccessReminderForMove above, backing addsCriticalReminderToMove
+	// (Soldier's Indomitable, Cantrips' Truth-making, The Advocate's A Greener World, The
+	// Diplomat's Sharp Tongue — see playbook-moves.js/claude.md's "Adding move content"). Unlike
+	// addsSuccessReminderToMove/addsFailureReminderToMove, `moveKeys` is optional here: omitting it
+	// means "any move qualifies" — the same unrestricted convention grantsAutomaticSuccess.moves
+	// already uses in _availableAutomaticSuccess for its own no-`moves`-set case — which is what
+	// lets Indomitable's universal "whenever you make a move, on a 12+..." grant reuse this
+	// single-target-move-shaped mechanism instead of a second, list-wide one. `requiresTrait`
+	// (Sharp Tongue only, "when you exchange blows with +TALK") further restricts the grant to
+	// whichever trait was actually rolled, since Exchange Blows itself offers a choice of CLASH or
+	// TALK and the move's own text cares which one was used.
+	_grantedCriticalReminderForMove(move, traitKey) {
+		const granting = resolvePlaybookMoves(this._playbookMoves())
+			.find((m) => {
+				const grant = m.addsCriticalReminderToMove;
+				if (!grant) return false;
+				if (grant.moveKeys && !grant.moveKeys.includes(move.key)) return false;
+				if (grant.requiresTrait && grant.requiresTrait !== traitKey) return false;
+				return true;
+			});
+		return granting?.addsCriticalReminderToMove.reminder ?? null;
+	},
 	// Every move flagged grantsAutomaticSuccess (Hot-blooded, Once the War's Over, The Arity
 	// Method, Dark Rebirth, Ancient Recall, Ain't No Grave — see playbook-moves.js) can spend its
 	// own hold pool, `uses` checkbox, (Dark Rebirth) put the actor in peril, or (Ain't No Grave)
@@ -965,6 +987,11 @@ export const MovesSheetMixin = {
 		// Coordinator's own reminder (see _grantedSuccessReminderForMove) — same pass-through shape
 		// as extraFailureReminder immediately above, just surfaced on a 10+ instead of a 6-.
 		const extraSuccessReminder = this._grantedSuccessReminderForMove(move);
+		// Indomitable/Truth-making/A Greener World/Sharp Tongue's own reminder (see
+		// _grantedCriticalReminderForMove) — the 12+ mirror of extraSuccessReminder immediately
+		// above, resolved against whichever trait this roll actually used (Sharp Tongue's own
+		// requiresTrait gate) rather than the move being rolled alone.
+		const extraCriticalReminder = this._grantedCriticalReminderForMove(move, config.trait?.key);
 		// Human Resources' extra Read the Room questions (see _grantedQuestionsForMove) — arrives
 		// pre-resolved via options, exactly like spentPartLabels/weaponLabel already do, so moves.js
 		// never needs to import playbook-moves.js (see claude.md's import-direction note).
@@ -976,6 +1003,7 @@ export const MovesSheetMixin = {
 			...(automaticSuccess.length && { automaticSuccess }),
 			...(extraFailureReminder && { extraFailureReminder }),
 			...(extraSuccessReminder && { extraSuccessReminder }),
+			...(extraCriticalReminder && { extraCriticalReminder }),
 			...(extraQuestions && { extraQuestions }),
 			// Number Of The Beast (see playbook-moves.js) — applies to every roll this actor makes,
 			// not just one move key, so this is folded in unconditionally rather than gated on `move`.

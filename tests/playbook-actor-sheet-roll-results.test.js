@@ -34,6 +34,10 @@ const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:al
 const FLOURISH_COMPONENT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:flourish-component");
 const SPELL_ROUTINES = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:spell-routines");
 const PATRON = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:patron");
+const INDOMITABLE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "soldier:indomitable");
+const TRUTH_MAKING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:truth-making");
+const A_GREENER_WORLD = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-advocate:a-greener-world");
+const SHARP_TONGUE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:sharp-tongue");
 // _availableHeatUp's own return value for an actor with no Astir at all (see moves-mixin.js) —
 // every fixture in this file lacks one unless a test says otherwise, so _rollMove's baseOptions
 // always threads this same false through to rollMove.
@@ -1086,5 +1090,116 @@ describe("PlaybookActorSheet#_onMoveResolved - Patron's random Boon grant", () =
 		expect(sheet.actor.update.mock.calls[1][0]).toMatchObject({
 			"system.attributes.astir.potions": { red: 1, blue: 1, yellow: 1 }
 		});
+	});
+});
+
+describe("PlaybookActorSheet#_grantedCriticalReminderForMove", () => {
+	it("returns null with nothing picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
+
+		expect(sheet._grantedCriticalReminderForMove(BITE_THE_DUST)).toBeNull();
+	});
+
+	it("fires Indomitable's universal grant for any move at all, since it declares no moveKeys", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [INDOMITABLE.key] } } };
+
+		expect(sheet._grantedCriticalReminderForMove(BITE_THE_DUST)).toBe("You may clear a risk");
+		expect(sheet._grantedCriticalReminderForMove(READ_THE_ROOM)).toBe("You may clear a risk");
+	});
+
+	it("fires Truth-making's grant only for Read the Room, not an unrelated move", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [TRUTH_MAKING.key] } } };
+
+		expect(sheet._grantedCriticalReminderForMove(READ_THE_ROOM)).toBe("You may answer one of your questions yourself");
+		expect(sheet._grantedCriticalReminderForMove(BITE_THE_DUST)).toBeNull();
+	});
+
+	it("fires A Greener World's grant only for Weave Magic", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [A_GREENER_WORLD.key] } } };
+
+		expect(sheet._grantedCriticalReminderForMove(WEAVE_MAGIC)).toBe("New flora and fauna spring to life nearby");
+		expect(sheet._grantedCriticalReminderForMove(BITE_THE_DUST)).toBeNull();
+	});
+
+	it("fires Sharp Tongue's grant on Exchange Blows only when rolled with the talk trait, not clash", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [SHARP_TONGUE.key] } } };
+
+		expect(sheet._grantedCriticalReminderForMove(EXCHANGE_BLOWS, "talk")).toBe("Your opponent is put in peril");
+		expect(sheet._grantedCriticalReminderForMove(EXCHANGE_BLOWS, "clash")).toBeNull();
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - addsCriticalReminderToMove wiring (extraCriticalReminder)", () => {
+	it("passes Indomitable's universal reminder through to rollMove's options", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { sense: { value: 0 } }, attributes: { playbookMoves: [INDOMITABLE.key] } },
+			update: vi.fn()
+		};
+		const sense = { key: "sense", label: "SENSE", value: 0 };
+		configureMoveRoll.mockResolvedValue({ trait: sense, advantage: "none", effect: "none" });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor,
+			READ_THE_ROOM,
+			sense,
+			expect.objectContaining({ extraCriticalReminder: "You may clear a risk" })
+		);
+	});
+
+	it("passes Sharp Tongue's reminder only when Exchange Blows is rolled with the talk trait", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { playbookMoves: [SHARP_TONGUE.key] } },
+			update: vi.fn()
+		};
+		const talk = { key: "talk", label: "TALK", value: 0 };
+		configureMoveRoll.mockResolvedValue({ trait: talk, advantage: "none", effect: "none" });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor,
+			EXCHANGE_BLOWS,
+			talk,
+			expect.objectContaining({ extraCriticalReminder: "Your opponent is put in peril" })
+		);
+	});
+
+	it("omits extraCriticalReminder when Exchange Blows is instead rolled with clash", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { playbookMoves: [SHARP_TONGUE.key] } },
+			update: vi.fn()
+		};
+		const clash = { key: "clash", label: "CLASH", value: 0 };
+		configureMoveRoll.mockResolvedValue({ trait: clash, advantage: "none", effect: "none" });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		const [, , , options] = rollMove.mock.calls.at(-1);
+		expect(options).not.toHaveProperty("extraCriticalReminder");
+	});
+
+	it("omits extraCriticalReminder entirely without any granting move picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { sense: { value: 0 } }, attributes: { playbookMoves: [] } },
+			update: vi.fn()
+		};
+		const sense = { key: "sense", label: "SENSE", value: 0 };
+		configureMoveRoll.mockResolvedValue({ trait: sense, advantage: "none", effect: "none" });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
+
+		const [, , , options] = rollMove.mock.calls.at(-1);
+		expect(options).not.toHaveProperty("extraCriticalReminder");
 	});
 });

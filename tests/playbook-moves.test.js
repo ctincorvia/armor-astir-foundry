@@ -790,6 +790,48 @@ describe("MOVE_POOLS - the-artificer", () => {
 	});
 });
 
+describe("addsCriticalReminderToMove (12+ hook)", () => {
+	it("gives Indomitable a universal grant, with no moveKeys restriction", () => {
+		const indomitable = findPlaybookMove("soldier:indomitable");
+
+		expect(indomitable.traits).toEqual([]);
+		expect(indomitable.addsCriticalReminderToMove).toEqual({
+			reminder: "You may clear a risk"
+		});
+	});
+
+	it("gives Truth-making a Read the Room-scoped grant", () => {
+		const truthMaking = findPlaybookMove("cantrips:truth-making");
+
+		expect(truthMaking.traits).toEqual([]);
+		expect(truthMaking.addsCriticalReminderToMove).toEqual({
+			moveKeys: ["read-the-room"],
+			reminder: "You may answer one of your questions yourself"
+		});
+	});
+
+	it("gives A Greener World a Weave Magic-scoped grant", () => {
+		const greenerWorld = findPlaybookMove("the-advocate:a-greener-world");
+
+		expect(greenerWorld.traits).toEqual([]);
+		expect(greenerWorld.addsCriticalReminderToMove).toEqual({
+			moveKeys: ["weave-magic"],
+			reminder: "New flora and fauna spring to life nearby"
+		});
+	});
+
+	it("gives Sharp Tongue an Exchange Blows-scoped grant, gated on the talk trait", () => {
+		const sharpTongue = findPlaybookMove("the-diplomat:sharp-tongue");
+
+		expect(sharpTongue.traits).toEqual([]);
+		expect(sharpTongue.addsCriticalReminderToMove).toEqual({
+			moveKeys: ["exchange-blows"],
+			reminder: "Your opponent is put in peril",
+			requiresTrait: "talk"
+		});
+	});
+});
+
 describe("findPlaybookMove", () => {
 	it("finds a move by key across every pool", () => {
 		expect(findPlaybookMove(BULLHEADED).name).toBe("Bullheaded");

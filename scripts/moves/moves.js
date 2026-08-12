@@ -20,7 +20,8 @@ export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates
 export const MOVE_RESULT_LABELS = {
 	success: "Success (10+)",
 	mixed: "Mixed Success (7-9)",
-	failure: "Failure (6-)"
+	failure: "Failure (6-)",
+	critical: "Critical Success (12+)"
 };
 
 // Matches the highest per-tier hold any basic move currently grants (read-the-room's 3 on a
@@ -58,14 +59,20 @@ const CONFIDENCE_FAILURE_REMINDER = "You may loosen a Hook";
 // has no automatic tracker for (see claude.md's "Manual trackers, not enforcement"). Only ever
 // surfaced on an actual 6-, same as the universal FAILURE_REMINDERS above. extraSuccessReminder
 // (e.g. Captain's Coordinator — see PlaybookActorSheet#_grantedSuccessReminderForMove) is the same
-// idea mirrored onto the 10+ tier.
-export function buildReminders(tier, effect, extraFailureReminder = null, extraSuccessReminder = null) {
+// idea mirrored onto the 10+ tier. extraCriticalReminder (e.g. Soldier's Indomitable, Cantrips'
+// Truth-making, The Advocate's A Greener World, The Diplomat's Sharp Tongue — see
+// PlaybookActorSheet#_grantedCriticalReminderForMove/moves-mixin.js) is the same idea again, but
+// layered on top of a 12+ result (`critical`, see isCriticalResult below) rather than replacing
+// the success tier's own reminder — a 12+ that also happens to carry an extraSuccessReminder shows
+// both, since `critical` is orthogonal to `tier` by design (see claude.md's "Adding move content").
+export function buildReminders(tier, effect, extraFailureReminder = null, extraSuccessReminder = null, critical = false, extraCriticalReminder = null) {
 	return [
 		...(tier === "failure" ? FAILURE_REMINDERS : []),
 		...(effect.key === "desperation" && tier === "success" ? [DESPERATION_SUCCESS_REMINDER] : []),
 		...(effect.key === "confidence" && tier === "failure" ? [CONFIDENCE_FAILURE_REMINDER] : []),
 		...(tier === "failure" && extraFailureReminder ? [extraFailureReminder] : []),
-		...(tier === "success" && extraSuccessReminder ? [extraSuccessReminder] : [])
+		...(tier === "success" && extraSuccessReminder ? [extraSuccessReminder] : []),
+		...(critical && extraCriticalReminder ? [extraCriticalReminder] : [])
 	];
 }
 
@@ -73,6 +80,30 @@ export function moveResultTier(total) {
 	if (total >= 10) return "success";
 	if (total >= 7) return "mixed";
 	return "failure";
+}
+
+// An orthogonal signal on top of moveResultTier, not a fourth tier — a 12+ total still resolves to
+// tier "success" (moveResultTier itself is unchanged), so every existing `tier === "success"` check
+// in this codebase (the desperation/confidence branches above, _availableAutomaticSuccess's own
+// gate, Cold Company's dispel flip) keeps working unmodified. This is what makes a 12+ "identical
+// to 10+ by default": `critical` only ever drives the chat card's badge/label (see rollMove's
+// flavorArgs) and the two extension points below (resolveTierValue, addsCriticalReminderToMove —
+// see claude.md's "Adding move content").
+export function isCriticalResult(total) {
+	return total >= 12;
+}
+
+// The override mechanism for a move's own tier-keyed data (`results`, `hold`, `questionPrompts`):
+// a move may optionally define a `critical` key alongside its usual `success`/`mixed`/`failure`
+// ones, consulted only when the roll actually cleared 12+; every other move (the overwhelming
+// majority, including every catalog move that references "12+" as prose today — see
+// playbook-moves.js) has no `critical` key at all and silently falls back to its own `success`
+// entry, so this is purely additive. Named `source` rather than `move` since it's called against
+// three different sub-objects (move.results, move.hold, move.questionPrompts), not the move itself.
+export function resolveTierValue(source, tier, critical) {
+	if (!source) return undefined;
+	if (critical && source.critical !== undefined) return source.critical;
+	return source[tier];
 }
 
 // Basic moves are available to every playbook actor by default (see claude.md, "Domain
@@ -811,12 +842,15 @@ export async function rollMove(actor, move, trait, options = {}) {
 		+ value;
 
 	const tier = moveResultTier(roll.total);
+	// Orthogonal to tier — see isCriticalResult's own comment. A 12+ still resolves tier ===
+	// "success" above; this only feeds resolveTierValue's override lookups and the chat card badge.
+	const critical = isCriticalResult(roll.total);
 
 	// Hold is a fresh per-situation pool, not a per-roll bonus, so a re-roll overwrites rather
 	// than adds to it (see moves.js BASIC_MOVES comment on read-the-room). A failure's 0 is
 	// never written back — it grants an immediate question, not stored hold, and writing 0 would
 	// wipe hold left over from an earlier successful read.
-	const hold = move.hold ? move.hold[tier] : null;
+	const hold = move.hold ? resolveTierValue(move.hold, tier, critical) : null;
 	if (move.hold && tier !== "failure") {
 		// separateHold (e.g. Mobility — see playbook-moves.js) routes a roll-tiered hold grant
 		// into its own per-move pool, the same field flatHold moves already use, instead of the
@@ -861,7 +895,9 @@ export async function rollMove(actor, move, trait, options = {}) {
 	const showAddAdvantage = nextAdvantageState(advantage.key, "advantage") !== null;
 	const showAddDisadvantage = nextAdvantageState(advantage.key, "disadvantage") !== null;
 
-	const reminders = buildReminders(tier, effect, options.extraFailureReminder, options.extraSuccessReminder);
+	const reminders = buildReminders(
+		tier, effect, options.extraFailureReminder, options.extraSuccessReminder, critical, options.extraCriticalReminder
+	);
 
 	// Human Resources' extra questions (see PlaybookActorSheet#_grantedQuestionsForMove) merge onto
 	// the move's own question list, if any — this module never imports playbook-moves.js (see
@@ -941,8 +977,9 @@ export async function rollMove(actor, move, trait, options = {}) {
 		// and for every non-usesWeapon move, same as weaponLabel.
 		weaponTags: options.weaponTags ?? null,
 		tier,
-		tierLabel: MOVE_RESULT_LABELS[tier],
-		resultText: move.results[tier],
+		critical,
+		tierLabel: critical ? MOVE_RESULT_LABELS.critical : MOVE_RESULT_LABELS[tier],
+		resultText: resolveTierValue(move.results, tier, critical),
 		reminders: reminders.length ? reminders : null,
 		conditions: [...rollConditions(advantage, effect), ...moveConditions, ...equipmentConditions, ...astirPartConditions],
 		dice,
@@ -951,7 +988,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 		explodedDice: explosion?.extraDice.length ? explosion.extraDice : null,
 		beastTriggered: Boolean(explosion?.triggered),
 		hold,
-		questionPrompt: move.questionPrompts?.[tier] ?? null,
+		questionPrompt: resolveTierValue(move.questionPrompts, tier, critical) ?? null,
 		// A choice list only makes sense in chat when this tier actually offers a choice — every
 		// questionPrompts/questions move except Read the Room (questionsOnFailure) has nothing to
 		// choose from on a miss, even when its failure questionPrompt still has explanatory text
@@ -994,6 +1031,10 @@ export async function rollMove(actor, move, trait, options = {}) {
 			extraFailureReminder: options.extraFailureReminder ?? null,
 			// Same idea, mirrored onto a tier flip into or out of success (Captain's Coordinator).
 			extraSuccessReminder: options.extraSuccessReminder ?? null,
+			// Same idea again, mirrored onto a tier flip into or out of a 12+ critical (Soldier's
+			// Indomitable, Cantrips' Truth-making, The Advocate's A Greener World, The Diplomat's
+			// Sharp Tongue — see buildReminders' own comment).
+			extraCriticalReminder: options.extraCriticalReminder ?? null,
 			flavorArgs
 		}
 	};

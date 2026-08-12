@@ -586,11 +586,17 @@ export const MOVE_POOLS = [
 			{
 				key: "the-diplomat:sharp-tongue",
 				name: "Sharp Tongue",
-				// "On a roll of 12+" has no tier to hook into — moveResultTier has exactly three
-				// (success/mixed/failure), the same wall Cantrips' Truth-making and Soldier Moves'
-				// Indomitable already sit on (see claude.md's "systems that do not exist yet"). Prose
-				// only.
+				// "On a roll of 12+ ... put in peril" is a chat-card reminder on Exchange Blows itself
+				// (see moves.js#isCriticalResult/PlaybookActorSheet#_grantedCriticalReminderForMove) —
+				// requiresTrait restricts the grant to a TALK-rolled Exchange Blows specifically, since
+				// this move's own text only ever fires "when you exchange blows with +TALK", not with
+				// +CLASH.
 				traits: [],
+				addsCriticalReminderToMove: {
+					moveKeys: ["exchange-blows"],
+					reminder: "Your opponent is put in peril",
+					requiresTrait: "talk"
+				},
 				description:
 					"<p>When you exchange blows with +TALK, on a roll of 12+ your opponent is put in " +
 					"peril.</p>"
@@ -1622,9 +1628,13 @@ export const MOVE_POOLS = [
 				key: "the-advocate:a-greener-world",
 				name: "A Greener World",
 				traits: [],
-				// "12+" is a result tier above 10+, which doesn't exist in this module — moveResultTier has
-				// exactly three tiers (success/mixed/failure). Per claude.md's "systems that do not exist
-				// yet", this stays descriptive.
+				// "When you roll +CHANNEL and get a result of 12+" targets Weave Magic specifically (the
+				// only +CHANNEL basic move) — see moves.js#isCriticalResult/
+				// PlaybookActorSheet#_grantedCriticalReminderForMove.
+				addsCriticalReminderToMove: {
+					moveKeys: ["weave-magic"],
+					reminder: "New flora and fauna spring to life nearby"
+				},
 				description:
 					"<p>When you roll +CHANNEL and get a result of 12+, new flora and fauna starts to spring " +
 					"to life in the area, even in ruined places. Wildlife that had been forced out begins to " +
@@ -2689,11 +2699,13 @@ export const MOVE_POOLS = [
 			{
 				key: "cantrips:truth-making",
 				name: "Truth-making",
-				// Read the Room's own roll (BASIC_MOVES in moves.js) only distinguishes
-				// success/mixed/failure via moveResultTier — there's no 12+ super-tier to hook a
-				// bonus effect onto, so this stays descriptive; the player self-applies it when
-				// their Read the Room roll comes up 12 or higher.
+				// "When you read the room, on a 12+ ..." targets Read the Room specifically — see
+				// moves.js#isCriticalResult/PlaybookActorSheet#_grantedCriticalReminderForMove.
 				traits: [],
+				addsCriticalReminderToMove: {
+					moveKeys: ["read-the-room"],
+					reminder: "You may answer one of your questions yourself"
+				},
 				description:
 					"<p>When you read the room, on a 12+ you may answer one of your questions yourself—though " +
 					"your answer must be within the relative realm of possibility.</p>"
@@ -2779,10 +2791,15 @@ export const MOVE_POOLS = [
 			{
 				key: "soldier:indomitable",
 				name: "Indomitable",
-				// moveResultTier only has three tiers (success/mixed/failure) — there's no 12+ super-tier
-				// to hook a bonus effect onto (see claude.md's "result tiers above 10+" exception, same
-				// reasoning as Cantrips' Truth-making), so this stays descriptive.
+				// "Whenever you make a move, on a result of 12+ ..." is universal rather than targeting
+				// one move key — see moves.js#isCriticalResult/
+				// PlaybookActorSheet#_grantedCriticalReminderForMove, whose omitted `moveKeys` means "any
+				// move qualifies" (same convention grantsAutomaticSuccess.moves already uses for its own
+				// unrestricted case).
 				traits: [],
+				addsCriticalReminderToMove: {
+					reminder: "You may clear a risk"
+				},
 				description:
 					"<p>Whenever you make a move, on a result of 12+ you may clear a risk.</p>"
 			},
