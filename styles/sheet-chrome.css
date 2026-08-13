@@ -315,6 +315,18 @@
 	opacity: 0.8;
 }
 
+/* Downtime Tokens + its Bonus Downtime Tokens rows stack vertically (unlike .trait-meters'
+   horizontal wrap), so a variable-width label per row left the +/- steppers at a different
+   x-offset on every line. A fixed width (not min-width) on the label column lines them up —
+   min-width alone doesn't work here because .bonus-downtime-tokens-label-column also holds the
+   description line, which is often wider than the label itself and would otherwise stretch the
+   column past the floor to stay unwrapped. A fixed width forces the description to wrap instead. */
+.armor-astir.sheet .downtime .power-label,
+.armor-astir.sheet .bonus-downtime-tokens-label-column {
+	width: 180px;
+	flex-shrink: 0;
+}
+
 /* Potions (Alchemical Suite — see astir.js) — a compact row per color rather than the full
    .move-list treatment, since there's nothing to add/remove/roll, just a count and a Use button. */
 .armor-astir.sheet .potion-list {
