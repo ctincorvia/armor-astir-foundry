@@ -114,8 +114,19 @@ export const ASTIR_PART_CATALOG = [
 		partType: "Active",
 		traits: [],
 		uses: EXPENDED_USE,
-		// Approach is already a plain editable dropdown on the Astir tab — swapping it for a
-		// Scene needs no new code, just the player changing it and changing it back.
+		// Activate -> chooseApproachOverride (core/approaches.js) picker, excluding the actor's
+		// current Approach -> writes system.attributes.approachOverride as { approach, period:
+		// "Scene" } and checks this part's own Expended checkbox (its own `uses` pool, shared with
+		// the generic "spend 1 Power to re-activate an expended Astir part" mechanism every other
+		// Active part already has) in a single actor.update, then posts the description — see
+		// moves-mixin.js's promptsApproachOverride/_nextUnusedMoveUseKey and move-roll-mixin.js's
+		// _onMoveActivate branch. Gated (button disabled) once nothing's left to spend, via the same
+		// shared "any use left?" helper. Resolved into effective Approach by progression-mixin.js's
+		// _effectiveApproach, but only while the Astir specifically is the mounted frame — see
+		// _mountedParts()'s own gating, which _effectiveApproach reads off. Cleared automatically by
+		// Refresh Scene (frames-mixin.js's _onRefreshScene), since it's scoped to a single Scene
+		// rather than Enduring Support's Sortie-scoped override.
+		promptsApproachOverride: true,
 		description:
 			"<p>A device capable of twisting and re-aspecting magic. For Channelers that don't like to " +
 			"ever be at a disadvantage.</p>" +

@@ -27,6 +27,7 @@ import { chooseWeapon, configureEquipment } from "../scripts/equipment/equipment
 import { ASTIR_PART_CATALOG, chooseAstirPart, chooseAstirWeapon } from "../scripts/frames/astir.js";
 import { ARDENT_TIER_MAX, ARDENT_TIER_MIN, ardentParts, ardentWeapons } from "../scripts/frames/ardent.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+import { CHROMATIC_RESERVES } from "./helpers/move-fixtures.js";
 
 const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertainties");
 const INPUT_CHANNEL = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:input-channel");
@@ -648,6 +649,54 @@ describe("PlaybookActorSheet#_moveTraits - Input Channel from a mounted Ardent",
 			{ key: "clash", label: "CLASH", value: 1 },
 			{ key: "channel", label: "CHANNEL", value: 2 }
 		]);
+	});
+});
+
+// Chromatic Reserves (Ardent Feature Part) — the same dynamic per-Scene override mechanism
+// Chromatic Focus offers from the Astir (see tests/playbook-actor-sheet-summoner-edge-cases.test.js),
+// but sourced from an Ardent's own installed parts instead (progression-mixin.js's
+// _effectiveApproach checks this._mountedParts(), which resolves from either frame kind).
+describe("PlaybookActorSheet#_effectiveApproach - Chromatic Reserves from a mounted Ardent", () => {
+	it("overrides to the snapshotted approach when installed on the mounted Ardent", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					approach: "mundane",
+					approachOverride: { approach: "profane", period: "Scene" },
+					ardents: [{ id: "ar1", parts: [CHROMATIC_RESERVES.key], piloted: true }]
+				}
+			}
+		};
+
+		expect(sheet._effectiveApproach()).toEqual({
+			base: "mundane",
+			effective: "profane",
+			effectiveLabel: "Profane",
+			fromFrame: false,
+			fromMove: true,
+			moveName: CHROMATIC_RESERVES.name
+		});
+	});
+
+	it("does not apply when that Ardent is installed but not the mounted frame", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					approach: "mundane",
+					approachOverride: { approach: "profane", period: "Scene" },
+					ardents: [{ id: "ar1", parts: [CHROMATIC_RESERVES.key], piloted: false }]
+				}
+			}
+		};
+
+		expect(sheet._effectiveApproach()).toEqual({
+			base: "mundane",
+			effective: "mundane",
+			effectiveLabel: "Mundane",
+			fromFrame: false
+		});
 	});
 });
 

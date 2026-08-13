@@ -1,6 +1,7 @@
 import { BASIC_MOVES, SPECIAL_MOVES } from "../../scripts/moves/moves.js";
 import { ALL_PLAYBOOK_MOVES } from "../../scripts/moves/playbook-moves.js";
 import { ASTIR_MOVE_CATALOG, ASTIR_PART_CATALOG } from "../../scripts/frames/astir.js";
+import { ARDENT_FEATURE_PARTS } from "../../scripts/frames/ardent.js";
 
 // Shared catalog-lookup constants for the PlaybookActorSheet astir/move-roll/roll-results/summoner
 // test files, which were previously split across those files with duplicate
@@ -34,6 +35,7 @@ export const INDOMITABLE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "soldier:ind
 export const TRUTH_MAKING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:truth-making");
 export const A_GREENER_WORLD = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-advocate:a-greener-world");
 export const SHARP_TONGUE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:sharp-tongue");
+export const BUREAUCRAT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:bureaucrat");
 export const EIDOLON_DRIVE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:eidolon-drive");
 export const BINDING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:binding");
 export const HELPING_HANDS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:helping-hands");
@@ -47,6 +49,10 @@ export const WARDING = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:ward
 export const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:artifact");
 export const FLOURISH_COMPONENT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:flourish-component");
 export const SPELL_ROUTINES = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:spell-routines");
+export const CHROMATIC_FOCUS = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:chromatic-focus");
+
+// ARDENT_FEATURE_PARTS
+export const CHROMATIC_RESERVES = ARDENT_FEATURE_PARTS.find((p) => p.key === "ardent-feature:chromatic-reserves");
 
 // ASTIR_MOVE_CATALOG
 export const LEGACY = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:legacy");

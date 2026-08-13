@@ -544,6 +544,26 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 			expect.objectContaining({ "system.attributes.approachOverride": expect.anything() })
 		);
 	});
+
+	// Chromatic Focus/Chromatic Reserves' own override (astir-parts.js/ardent.js's
+	// promptsApproachOverride) is scoped to a single Scene, unlike Enduring Support's Sortie-scoped
+	// one immediately above — this is its real (and only) clear point.
+	it("clears a Scene-scoped Approach override (Chromatic Focus/Chromatic Reserves)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { approachOverride: { approach: "profane", period: "Scene" } },
+				resources: { hold: { value: 0 } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshScene();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(expect.objectContaining({
+			"system.attributes.approachOverride": null
+		}));
+	});
 });
 
 describe("PlaybookActorSheet#_onRefreshSortie", () => {

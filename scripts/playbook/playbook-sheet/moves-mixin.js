@@ -21,6 +21,14 @@ export const MovesSheetMixin = {
 	_playbookMoves() {
 		return this.actor.system.attributes?.playbookMoves ?? [];
 	},
+	// Chromatic Focus/Chromatic Reserves' own "any use left?" check (astir-parts.js/ardent.js's
+	// promptsApproachOverride) — the first `uses` entry not yet checked in this move/part's own
+	// moveUses pool, or null once every entry is spent. Chromatic Focus has one entry (Expended);
+	// Chromatic Reserves has three (Use 1-3), spent in order. Shared by _moveGroupMoves' gating
+	// below and move-roll-mixin.js's _onMoveActivate, so both always agree on what's spendable.
+	_nextUnusedMoveUseKey(move) {
+		return (move.uses ?? []).find((use) => !this.actor.system.attributes?.moveUses?.[move.key]?.[use.key])?.key ?? null;
+	},
 	// getData's moveGroups — Basic and Special moves are the same fixed list for every actor;
 	// Playbook Moves is the per-actor set picked via the "+" button, so it's the only group that
 	// renders add/remove controls (see the template's addable/removable branches). All three run
@@ -169,6 +177,11 @@ export const MovesSheetMixin = {
 			// a summoned ally whose own Approach was never set — mirrors summonGated's own "nothing
 			// to act on" stance for Eidolon Drive's Summon button.
 			const approachOverrideGated = Boolean(move.activatesApproachOverride) && !this._summonedAlly()?.approach;
+			// Chromatic Focus/Chromatic Reserves' own Activate button (see astir-parts.js/ardent.js's
+			// promptsApproachOverride) has nothing left to spend once every one of its own `uses`
+			// checkboxes is already checked — same "nothing to act on" stance approachOverrideGated
+			// above already takes for Enduring Support, via the shared _nextUnusedMoveUseKey helper.
+			const promptsApproachOverrideGated = Boolean(move.promptsApproachOverride) && !this._nextUnusedMoveUseKey(move);
 			// Bite the Dust, disabled by Never Quite Free (see disablingMoves above) — finds the
 			// picked move, if any, whose disablesMove.moveKey targets this move.
 			const disabledBy = disablingMoves.find((m) => m.disablesMove.moveKey === move.key);
@@ -195,12 +208,23 @@ export const MovesSheetMixin = {
 				}
 				: null;
 			// Enduring Support's own move-card info line — mirrors summonedAllyInfo's own
-			// omit-when-empty treatment: only for the move that grants the override
-			// (activatesApproachOverride), and only once an override is actually active, so no
-			// other move's own object literal in the moveGroups toEqual snapshot needs to change.
+			// omit-when-empty treatment: only for the move that grants the override, and only once
+			// an override is actually active, so no other move's own object literal in the
+			// moveGroups toEqual snapshot needs to change.
+			// Generalized to cover Chromatic Focus/Chromatic Reserves' own promptsApproachOverride
+			// alongside Enduring Support's activatesApproachOverride - both write the same
+			// system.attributes.approachOverride field, just with a different `period` (see
+			// move-roll-mixin.js's _onMoveActivate). periodLabel surfaces which Refresh button
+			// actually clears this override: Enduring Support's carries no `period` at all
+			// (Sortie-scoped, cleared only by Refresh Sortie), Chromatic Focus/Reserves' always
+			// carries "Scene" (cleared by Refresh Scene - see frames-mixin.js's _onRefreshScene).
 			const approachOverride = this.actor.system.attributes?.approachOverride;
-			const approachOverrideInfo = (move.activatesApproachOverride && approachOverride?.approach)
-				? { approachLabel: APPROACHES.find((a) => a.key === approachOverride.approach)?.label ?? approachOverride.approach }
+			const showsApproachOverrideInfo = move.activatesApproachOverride || move.promptsApproachOverride;
+			const approachOverrideInfo = (showsApproachOverrideInfo && approachOverride?.approach)
+				? {
+					approachLabel: APPROACHES.find((a) => a.key === approachOverride.approach)?.label ?? approachOverride.approach,
+					periodLabel: approachOverride.period === "Scene" ? "Refresh Scene" : "Refresh Sortie"
+				}
 				: null;
 			return {
 				key: move.key,
@@ -212,11 +236,12 @@ export const MovesSheetMixin = {
 				// when the move is explicitly gated the opposite way, off Channel being enabled
 				// (b-plot, via channelGated above), OR (Eidolon Drive) there's no bound ally to
 				// summon at all (summonGated above), OR a different picked move explicitly disables
-				// this one (Never Quite Free disabling Bite the Dust, via disabledBy above), OR this
-				// move's own requiresMoves/requiresParts isn't (or is no longer) satisfied
-				// (requirementTooltip above).
+				// this one (Never Quite Free disabling Bite the Dust, via disabledBy above), OR
+				// Chromatic Focus/Chromatic Reserves have nothing left to spend
+				// (promptsApproachOverrideGated above), OR this move's own requiresMoves/requiresParts
+				// isn't (or is no longer) satisfied (requirementTooltip above).
 				gated: (move.traits.length > 0 && traits.length === 0) || channelGated || summonGated || approachOverrideGated
-					|| Boolean(disabledBy) || Boolean(requirementTooltip),
+					|| promptsApproachOverrideGated || Boolean(disabledBy) || Boolean(requirementTooltip),
 				// Whether this move rolls anything at all, based on its static definition rather
 				// than the actor-filtered trait list above — a gated move (e.g. Weave Magic with
 				// Channel disabled) still shows a disabled Roll button, but a move with no traits or
@@ -243,7 +268,8 @@ export const MovesSheetMixin = {
 				activatable: Boolean(move.flatHold)
 					|| Boolean(move.showsReadTheRoomQuestions)
 					|| Boolean(move.activateChoices)
-					|| Boolean(move.activatesApproachOverride),
+					|| Boolean(move.activatesApproachOverride)
+					|| Boolean(move.promptsApproachOverride),
 				// Eidolon Drive's Summon button (Summoner) — replaces Roll/Activate in the template
 				// exactly the way flatHold replaces Roll with Activate above; see summoner-mixin.js's
 				// _onEidolonDriveSummon for the handler, and summonGated above for why it's disabled

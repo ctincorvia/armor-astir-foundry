@@ -156,7 +156,10 @@ async function handleAdvantage(message, offer, direction) {
 	// roll carried in offer.flavorArgs.
 	const critical = isCriticalResult(total);
 	const conditions = [...rollConditions(nextState, effect), ...offer.extraConditions];
-	const reminders = buildReminders(tier, effect, offer.extraFailureReminder, offer.extraSuccessReminder, critical, offer.extraCriticalReminder);
+	const reminders = [
+		...buildReminders(tier, effect, offer.extraFailureReminder, offer.extraSuccessReminder, critical, offer.extraCriticalReminder),
+		...(offer.extraReminders ?? [])
+	];
 
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
 		...offer.flavorArgs,

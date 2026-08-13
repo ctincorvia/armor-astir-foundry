@@ -1,4 +1,5 @@
 import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
+import { chooseApproachOverride } from "../../core/approaches.js";
 import { chooseCarrier, findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
 import { UNARMED, chooseWeapon } from "../../equipment/equipment.js";
 import { findAstirPart } from "../../frames/astir.js";
@@ -22,7 +23,16 @@ import { ALL_MOVES } from "../../moves/all-moves.js";
 // this file relates to its siblings in this directory.
 export const MoveRollSheetMixin = {
 	async _onMoveRoll(event) {
-		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
+		const clicked = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
+		if (!clicked) return;
+
+		// Bureaucrat's own quick-roll button (see the-diplomat.js's quickRollsMove) rolls a
+		// different move (Exchange Blows) with one specific trait forced, rather than this move's
+		// own (nonexistent) roll. Resolved before the weapon-choice flow below so that flow runs
+		// against the real target move — Exchange Blows is usesWeapon, Bureaucrat itself never is.
+		const move = clicked.quickRollsMove
+			? ALL_MOVES.find((m) => m.key === clicked.quickRollsMove.moveKey)
+			: clicked;
 		if (!move) return;
 
 		// usesWeapon (Exchange Blows, Strike Decisively — see moves.js) prompts which weapon (or
@@ -66,7 +76,7 @@ export const MoveRollSheetMixin = {
 			}
 		}
 
-		await this._rollMove(move, weapon);
+		await this._rollMove(move, weapon, clicked.quickRollsMove);
 	},
 	// The weapon's own quick-roll buttons in the Equipment tab (see getData's weaponMoves) — same
 	// roll as _onMoveRoll, but the weapon is already known from which button was clicked, so
@@ -81,7 +91,7 @@ export const MoveRollSheetMixin = {
 	},
 	// Shared by _onMoveRoll (weapon resolved via chooseWeapon, or left undefined for a move that
 	// isn't usesWeapon) and _onWeaponMoveRoll (weapon already known from the clicked button).
-	async _rollMove(move, weapon) {
+	async _rollMove(move, weapon, quickRoll = {}) {
 		let traits = this._moveTraits(move);
 		// _moveTraits already resolved CREW for the single/zero-Carrier case; with more than one
 		// Carrier in the world that's ambiguous, so ask which one before locking in the value this
@@ -140,7 +150,10 @@ export const MoveRollSheetMixin = {
 		// TRAITS directly) so the locked option carries the same live, bonus-inclusive value every
 		// other entry in the dialog does; a key that isn't actually offered here (e.g. the trait is
 		// disabled for this actor) resolves to no lock at all.
-		const grantedTraitKey = this._grantedTraitForMove(move);
+		// An explicit forced trait from a quick-roll button (Bureaucrat — see quickRollsMove) wins
+		// over any standing grantsTraitOnMove lock (Don't Follow Me): it's the more specific,
+		// immediate signal from the actual button clicked, not a passive standing grant.
+		const grantedTraitKey = quickRoll.trait ?? this._grantedTraitForMove(move);
 		const lockedTrait = grantedTraitKey ? traits.find((t) => t.key === grantedTraitKey) ?? null : null;
 		// Don't Follow Me's single-target-move grant wins if it and Cold Company's standing haunted-
 		// state lock somehow both apply — in practice these two moves live on mutually exclusive
@@ -241,6 +254,10 @@ export const MoveRollSheetMixin = {
 			...(extraSuccessReminder && { extraSuccessReminder }),
 			...(extraCriticalReminder && { extraCriticalReminder }),
 			...(extraQuestions && { extraQuestions }),
+			// Bureaucrat's own always-applicable reminders (see quickRollsMove/move-roll.js's
+			// options.extraReminders) — unlike the extra*Reminder trio above, unconditional across
+			// every tier, since the source move's own text says "even on a fail".
+			...(quickRoll.reminders && { extraReminders: quickRoll.reminders }),
 			// Number Of The Beast (see playbook-moves.js) — applies to every roll this actor makes,
 			// not just one move key, so this is folded in unconditionally rather than gated on `move`.
 			...(this._hasExplodingSixes() && { explodeOnSix: true }),
@@ -374,6 +391,25 @@ export const MoveRollSheetMixin = {
 			const summoned = this._summonedAlly();
 			if (!summoned?.approach) return;
 			await this.actor.update({ "system.attributes.approachOverride": { approach: summoned.approach } });
+			await postMoveDescription(this.actor, move);
+			return;
+		}
+
+		// Chromatic Focus/Chromatic Reserves (astir-parts.js/ardent.js's promptsApproachOverride).
+		// No-ops with no `uses` checkbox left to spend, same as move.activatesApproachOverride's own
+		// "nothing to snapshot" guard above, so a fully-Expended/all-three-Uses-checked part never
+		// even opens the dialog. Cancelling the dialog also no-ops entirely — no actor.update call at
+		// all, unlike a real pick, which writes the override and the spend in one update so the two
+		// can never land out of sync.
+		if (move.promptsApproachOverride) {
+			const nextUseKey = this._nextUnusedMoveUseKey(move);
+			if (!nextUseKey) return;
+			const chosen = await chooseApproachOverride(this.actor.system.attributes?.approach ?? "");
+			if (!chosen) return;
+			await this.actor.update({
+				"system.attributes.approachOverride": { approach: chosen, period: "Scene" },
+				[`system.attributes.moveUses.${move.key}.${nextUseKey}`]: true
+			});
 			await postMoveDescription(this.actor, move);
 		}
 	},

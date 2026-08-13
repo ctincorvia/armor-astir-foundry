@@ -35,3 +35,22 @@ export function availableApproaches(playbookSlug) {
 	const keys = PLAYBOOK_APPROACHES[playbookSlug];
 	return keys ? APPROACHES.filter((approach) => keys.includes(approach.key)) : APPROACHES;
 }
+
+// Chromatic Focus (astir-parts.js) / Chromatic Reserves (ardent.js's ARDENT_FEATURE_PARTS) own
+// Activate flow: "swap to any other Approach for a single Scene" — offers every Approach but the
+// one currently in effect. Mirrors carrier-actor-sheet.js's chooseCarrier exactly (promise/Dialog/
+// resolve-null shape, one labelled button per option).
+export function chooseApproachOverride(excludeApproach) {
+	return new Promise((resolve) => {
+		const buttons = {};
+		for (const approach of APPROACHES.filter((a) => a.key !== excludeApproach)) {
+			buttons[approach.key] = { label: approach.label, callback: () => resolve(approach.key) };
+		}
+		new Dialog({
+			title: "Swap Approach",
+			content: "<p>Swap to which Approach for this Scene?</p>",
+			buttons,
+			close: () => resolve(null)
+		}, { classes: ["armor-astir"] }).render(true);
+	});
+}

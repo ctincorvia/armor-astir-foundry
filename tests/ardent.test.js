@@ -258,6 +258,14 @@ describe("ARDENT_FEATURE_PARTS/ARDENT_FEATURE_WEAPONS", () => {
 			expect(astirKeys.includes(key)).toBe(false);
 		}
 	});
+
+	// Chromatic Reserves' "swap to any other Approach for a single Scene, 3x per Sortie" (see
+	// moves-mixin.js's promptsApproachOverride/_nextUnusedMoveUseKey and move-roll-mixin.js's
+	// _onMoveActivate branch) — same mechanism astir-parts.js's Chromatic Focus uses.
+	it("flags Chromatic Reserves with promptsApproachOverride", () => {
+		const chromaticReserves = ARDENT_FEATURE_PARTS.find((p) => p.key === "ardent-feature:chromatic-reserves");
+		expect(chromaticReserves.promptsApproachOverride).toBe(true);
+	});
 });
 
 describe("isAceFeaturePart", () => {

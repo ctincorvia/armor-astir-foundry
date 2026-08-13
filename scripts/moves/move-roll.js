@@ -195,6 +195,12 @@ export async function rollMove(actor, move, trait, options = {}) {
 	const reminders = buildReminders(
 		tier, effect, options.extraFailureReminder, options.extraSuccessReminder, critical, options.extraCriticalReminder
 	);
+	// Bureaucrat's own always-applicable reminders (see the-diplomat.js's quickRollsMove /
+	// PlaybookActorSheet#_rollMove) — unlike buildReminders' own extra*Reminder params, these
+	// aren't tier-gated: the rules text applies "even on a fail," so they're appended to every
+	// tier's reminders unconditionally, the same unconditional-merge treatment combinedQuestions
+	// below gives move.questions/options.extraQuestions.
+	const combinedReminders = [...reminders, ...(options.extraReminders ?? [])];
 
 	// Human Resources' extra questions (see PlaybookActorSheet#_grantedQuestionsForMove) merge onto
 	// the move's own question list, if any — this module never imports playbook-moves.js (see
@@ -293,7 +299,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 		critical,
 		tierLabel: critical ? MOVE_RESULT_LABELS.critical : MOVE_RESULT_LABELS[tier],
 		resultText: resolveTierValue(move.results, tier, critical),
-		reminders: reminders.length ? reminders : null,
+		reminders: combinedReminders.length ? combinedReminders : null,
 		conditions: [...rollConditions(advantage, effect), ...moveConditions, ...equipmentConditions, ...astirPartConditions],
 		dice,
 		// Number Of The Beast (see explodeSixes above) — null/false for every actor who hasn't picked
@@ -348,6 +354,10 @@ export async function rollMove(actor, move, trait, options = {}) {
 			// Indomitable, Cantrips' Truth-making, The Advocate's A Greener World, The Diplomat's
 			// Sharp Tongue — see buildReminders' own comment).
 			extraCriticalReminder: options.extraCriticalReminder ?? null,
+			// Bureaucrat's own unconditional reminders (see combinedReminders above) — carried
+			// through so move-chat-listeners.js#handleAdvantage can still include them after a
+			// retroactive Advantage/Disadvantage add changes the tier.
+			extraReminders: options.extraReminders ?? null,
 			flavorArgs
 		}
 	};

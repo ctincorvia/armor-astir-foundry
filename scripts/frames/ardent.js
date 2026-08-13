@@ -76,8 +76,11 @@ export const ARDENT_FEATURE_PARTS = [
 		traits: [],
 		// Three checkboxes rather than Chromatic Focus's single EXPENDED_USE — "3x per Sortie" reuses
 		// the same generic uses mechanism (_moveGroupMoves/_onMoveUseToggle) at a longer length, no
-		// new rendering code. Approach is already a plain editable dropdown on the Astir & Ardents
-		// tab — swapping it needs no new code, just the player changing it and changing it back.
+		// new rendering code. Approach-swap mechanism (promptsApproachOverride) is the same one
+		// Chromatic Focus uses (see astir-parts.js's own fuller comment) — Activate spends the next
+		// free "Use N" checkbox instead of a single Expended one, via the same shared
+		// _nextUnusedMoveUseKey helper.
+		promptsApproachOverride: true,
 		uses: [
 			{ key: "use-1", label: "Use 1", period: "Sortie" },
 			{ key: "use-2", label: "Use 2", period: "Sortie" },

@@ -8,6 +8,11 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	rollVariableDicePool: vi.fn()
 }));
 
+vi.mock("../scripts/core/approaches.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	chooseApproachOverride: vi.fn()
+}));
+
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
 import {
 	BASIC_MOVES,
@@ -17,8 +22,10 @@ import {
 	rollVariableDicePool,
 	showMoveDescription
 } from "../scripts/moves/moves.js";
+import { chooseApproachOverride } from "../scripts/core/approaches.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
+import { ARDENT_FEATURE_PARTS } from "../scripts/frames/ardent.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
@@ -27,15 +34,18 @@ const SUBSYSTEMS = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
 const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:bullheaded");
 const DIVINATION_CODEX = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:divination-codex");
-const BUREAUCRAT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:bureaucrat");
+const FACILITATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:facilitator");
 const PLAN_AND_PREPARE = SPECIAL_MOVES.find((m) => m.key === "plan-and-prepare");
 const ENDURING_SUPPORT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:enduring-support");
+const CHROMATIC_FOCUS = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:chromatic-focus");
+const CHROMATIC_RESERVES = ARDENT_FEATURE_PARTS.find((p) => p.key === "ardent-feature:chromatic-reserves");
 
 beforeEach(() => {
 	postMoveDescription.mockClear();
 	showMoveDescription.mockClear();
 	configureVariableDiceRoll.mockClear();
 	rollVariableDicePool.mockClear();
+	chooseApproachOverride.mockReset();
 });
 
 describe("PlaybookActorSheet#activateListeners - moves", () => {
@@ -151,21 +161,21 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, DIVINATION_CODEX);
 	});
 
-	it("posts the move's own prompt and options to chat for an activateChoices move (Bureaucrat)", async () => {
+	it("posts the move's own prompt and options to chat for an activateChoices move (Facilitator)", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
 		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
 
-		await sheet._onMoveActivate({ currentTarget: { dataset: { move: BUREAUCRAT.key } } });
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: FACILITATOR.key } } });
 
 		expect(ChatMessage.create).toHaveBeenCalledWith({
 			speaker: { actor: "speaker" },
-			flavor: "<h3>Bureaucrat</h3>",
-			content: `<p>${BUREAUCRAT.activateChoices.prompt}</p>` +
-				`<ul>${BUREAUCRAT.activateChoices.options.map((option) => `<li>${option}</li>`).join("")}</ul>`
+			flavor: "<h3>Facilitator</h3>",
+			content: `<p>${FACILITATOR.activateChoices.prompt}</p>` +
+				`<ul>${FACILITATOR.activateChoices.options.map((option) => `<li>${option}</li>`).join("")}</ul>`
 		});
 		expect(sheet.actor.update).not.toHaveBeenCalled();
-		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, BUREAUCRAT);
+		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, FACILITATOR);
 	});
 
 	it("does nothing for Enduring Support with no ally summoned", async () => {
@@ -214,6 +224,191 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 			"system.attributes.approachOverride": { approach: "profane" }
 		});
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, ENDURING_SUPPORT);
+	});
+});
+
+// Chromatic Focus (Astir Part)/Chromatic Reserves (Ardent Feature Part) — see astir-parts.js/
+// ardent.js's promptsApproachOverride and moves-mixin.js's _nextUnusedMoveUseKey. Both spend the
+// next free entry in their own `uses` pool and write the same system.attributes.approachOverride
+// field Enduring Support does, but with period: "Scene".
+describe("PlaybookActorSheet#_nextUnusedMoveUseKey", () => {
+	it("treats a move with no uses array at all as having nothing left to find", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._nextUnusedMoveUseKey({ key: "no-uses-move" })).toBeNull();
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveActivate - Chromatic Focus", () => {
+	it("does not even open the dialog once Expended is already checked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { moveUses: { [CHROMATIC_FOCUS.key]: { expended: true } } } },
+			update: vi.fn()
+		};
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: CHROMATIC_FOCUS.key } } });
+
+		expect(chooseApproachOverride).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+		expect(postMoveDescription).not.toHaveBeenCalled();
+	});
+
+	it("opens the picker excluding the actor's current approach", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { approach: "mundane" } }, update: vi.fn() };
+		chooseApproachOverride.mockResolvedValue(null);
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: CHROMATIC_FOCUS.key } } });
+
+		expect(chooseApproachOverride).toHaveBeenCalledWith("mundane");
+	});
+
+	it("excludes an empty string when the actor has no approach set at all", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+		chooseApproachOverride.mockResolvedValue(null);
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: CHROMATIC_FOCUS.key } } });
+
+		expect(chooseApproachOverride).toHaveBeenCalledWith("");
+	});
+
+	it("writes the override and checks Expended in one update, then posts the description", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { approach: "mundane" } }, update: vi.fn() };
+		chooseApproachOverride.mockResolvedValue("profane");
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: CHROMATIC_FOCUS.key } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.approachOverride": { approach: "profane", period: "Scene" },
+			[`system.attributes.moveUses.${CHROMATIC_FOCUS.key}.expended`]: true
+		});
+		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, CHROMATIC_FOCUS);
+	});
+
+	it("makes no update and posts nothing when the picker is cancelled", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { approach: "mundane" } }, update: vi.fn() };
+		chooseApproachOverride.mockResolvedValue(null);
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: CHROMATIC_FOCUS.key } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+		expect(postMoveDescription).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveActivate - Chromatic Reserves", () => {
+	it("does not even open the dialog once all three Uses are already checked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					moveUses: { [CHROMATIC_RESERVES.key]: { "use-1": true, "use-2": true, "use-3": true } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: CHROMATIC_RESERVES.key } } });
+
+		expect(chooseApproachOverride).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("checks use-1 on a fresh actor", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { approach: "mundane" } }, update: vi.fn() };
+		chooseApproachOverride.mockResolvedValue("arcane");
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: CHROMATIC_RESERVES.key } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.approachOverride": { approach: "arcane", period: "Scene" },
+			[`system.attributes.moveUses.${CHROMATIC_RESERVES.key}.use-1`]: true
+		});
+		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, CHROMATIC_RESERVES);
+	});
+
+	it("checks use-2 when use-1 is already checked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { approach: "mundane", moveUses: { [CHROMATIC_RESERVES.key]: { "use-1": true } } }
+			},
+			update: vi.fn()
+		};
+		chooseApproachOverride.mockResolvedValue("arcane");
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: CHROMATIC_RESERVES.key } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.approachOverride": { approach: "arcane", period: "Scene" },
+			[`system.attributes.moveUses.${CHROMATIC_RESERVES.key}.use-2`]: true
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_moveGroupMoves - Chromatic Focus/Chromatic Reserves Activate button", () => {
+	it("is activatable, and ungated with Expended unchecked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: {} } };
+
+		const [entry] = sheet._moveGroupMoves([CHROMATIC_FOCUS]);
+
+		expect(entry.activatable).toBe(true);
+		expect(entry.gated).toBe(false);
+	});
+
+	it("is gated once Expended is checked, with nothing left to spend", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: {}, attributes: { moveUses: { [CHROMATIC_FOCUS.key]: { expended: true } } } }
+		};
+
+		const [entry] = sheet._moveGroupMoves([CHROMATIC_FOCUS]);
+
+		expect(entry.gated).toBe(true);
+	});
+
+	it("shows approachOverrideInfo with a Scene periodLabel once an override is active", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: { approachOverride: { approach: "profane", period: "Scene" } }
+			}
+		};
+
+		const [entry] = sheet._moveGroupMoves([CHROMATIC_FOCUS]);
+
+		expect(entry.approachOverrideInfo).toEqual({ approachLabel: "Profane", periodLabel: "Refresh Scene" });
+	});
+
+	it("is ungated with two of three Chromatic Reserves Uses checked, and gated once all three are", () => {
+		const sheet = new PlaybookActorSheet();
+		const sheetTwoUsed = new PlaybookActorSheet();
+		sheetTwoUsed.actor = {
+			system: {
+				stats: {},
+				attributes: { moveUses: { [CHROMATIC_RESERVES.key]: { "use-1": true, "use-2": true } } }
+			}
+		};
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: { moveUses: { [CHROMATIC_RESERVES.key]: { "use-1": true, "use-2": true, "use-3": true } } }
+			}
+		};
+
+		const [twoUsedEntry] = sheetTwoUsed._moveGroupMoves([CHROMATIC_RESERVES]);
+		const [fullyUsedEntry] = sheet._moveGroupMoves([CHROMATIC_RESERVES]);
+
+		expect(twoUsedEntry.gated).toBe(false);
+		expect(fullyUsedEntry.gated).toBe(true);
 	});
 });
 
@@ -282,7 +477,7 @@ describe("PlaybookActorSheet#_moveGroupMoves - Enduring Support's Activate butto
 
 		const [entry] = sheet._moveGroupMoves([ENDURING_SUPPORT]);
 
-		expect(entry.approachOverrideInfo).toEqual({ approachLabel: "Profane" });
+		expect(entry.approachOverrideInfo).toEqual({ approachLabel: "Profane", periodLabel: "Refresh Sortie" });
 	});
 
 	it("falls back to the raw key in approachOverrideInfo when it doesn't match a known APPROACHES entry", () => {
@@ -296,7 +491,7 @@ describe("PlaybookActorSheet#_moveGroupMoves - Enduring Support's Activate butto
 
 		const [entry] = sheet._moveGroupMoves([ENDURING_SUPPORT]);
 
-		expect(entry.approachOverrideInfo).toEqual({ approachLabel: "not-a-real-approach" });
+		expect(entry.approachOverrideInfo).toEqual({ approachLabel: "not-a-real-approach", periodLabel: "Refresh Sortie" });
 	});
 
 	it("omits approachOverrideInfo for an ordinary move even with an active override", () => {

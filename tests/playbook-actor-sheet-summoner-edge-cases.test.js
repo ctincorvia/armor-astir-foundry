@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import { chooseSummonAlly } from "../scripts/playbook/playbook-sheet/summoner-mixin.js";
-import { BINDING, EIDOLON_DRIVE, ENDURING_SUPPORT } from "./helpers/move-fixtures.js";
+import { BINDING, CHROMATIC_FOCUS, EIDOLON_DRIVE, ENDURING_SUPPORT } from "./helpers/move-fixtures.js";
 
 beforeEach(() => {
 	Dialog.mockClear();
@@ -294,6 +294,69 @@ describe("PlaybookActorSheet#_effectiveApproach - Enduring Support", () => {
 			fromFrame: false,
 			fromMove: true,
 			moveName: ENDURING_SUPPORT.name
+		});
+	});
+});
+
+// Chromatic Focus (Astir Part) — the same dynamic per-Scene override mechanism as Enduring Support
+// above, but sourced from an installed, mounted-frame Astir Part rather than a picked move (see
+// astir-parts.js's promptsApproachOverride and progression-mixin.js's _effectiveApproach, which
+// checks this._mountedParts() alongside picked moves before falling through to a mounted frame's
+// own Approach).
+describe("PlaybookActorSheet#_effectiveApproach - Chromatic Focus", () => {
+	it("overrides to the snapshotted approach, winning over the mounted Astir's own Approach", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					approach: "mundane",
+					approachOverride: { approach: "profane", period: "Scene" },
+					astir: {
+						id: "a1",
+						approach: "elemental",
+						tier: 3,
+						power: 4,
+						parts: [CHROMATIC_FOCUS.key],
+						piloted: true
+					}
+				}
+			}
+		};
+
+		expect(sheet._effectiveApproach()).toEqual({
+			base: "mundane",
+			effective: "profane",
+			effectiveLabel: "Profane",
+			fromFrame: false,
+			fromMove: true,
+			moveName: CHROMATIC_FOCUS.name
+		});
+	});
+
+	it("does not apply while the Astir is installed but not the mounted frame", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					approach: "mundane",
+					approachOverride: { approach: "profane", period: "Scene" },
+					astir: {
+						id: "a1",
+						approach: "elemental",
+						tier: 3,
+						power: 4,
+						parts: [CHROMATIC_FOCUS.key],
+						piloted: false
+					}
+				}
+			}
+		};
+
+		expect(sheet._effectiveApproach()).toEqual({
+			base: "mundane",
+			effective: "mundane",
+			effectiveLabel: "Mundane",
+			fromFrame: false
 		});
 	});
 });

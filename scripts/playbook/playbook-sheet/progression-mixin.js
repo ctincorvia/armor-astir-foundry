@@ -79,17 +79,25 @@ export const ProgressionSheetMixin = {
 		// summon player action, so it's checked ahead of the frame check, not after it. Still requires
 		// the granting move to currently be picked, so removing Enduring Support can't leave a stale
 		// override in effect — the same defensive stance _summonedAlly() already takes for a stale id.
+		// Chromatic Focus/Chromatic Reserves (astir-parts.js/ardent.js's promptsApproachOverride) are
+		// the Astir-Part-shaped counterpart to Enduring Support's own move-shaped grant — both write
+		// the same system.attributes.approachOverride field (see move-roll-mixin.js's
+		// _onMoveActivate), so both are checked together here, ahead of the mounted-frame check below
+		// for the exact same reason the comment above already gives for Enduring Support alone: a
+		// part that only applies while its own frame is mounted would otherwise almost never be
+		// reachable, since the mounted frame's own Approach would already win first.
 		const picked = resolvePlaybookMoves(this._playbookMoves());
-		const dynamicOverrideMove = picked.find((move) => move.activatesApproachOverride);
+		const dynamicOverrideSource = picked.find((move) => move.activatesApproachOverride)
+			?? this._mountedParts().find((part) => part.promptsApproachOverride);
 		const approachOverride = this.actor.system.attributes?.approachOverride;
-		if (dynamicOverrideMove && approachOverride?.approach) {
+		if (dynamicOverrideSource && approachOverride?.approach) {
 			return {
 				base,
 				effective: approachOverride.approach,
 				effectiveLabel: APPROACHES.find((a) => a.key === approachOverride.approach)?.label ?? approachOverride.approach,
 				fromFrame: false,
 				fromMove: true,
-				moveName: dynamicOverrideMove.name
+				moveName: dynamicOverrideSource.name
 			};
 		}
 		const frame = this._mountedFrame();

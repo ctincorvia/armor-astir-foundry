@@ -769,6 +769,27 @@ describe("onRenderMoveChat/handleAdvantage (Add Advantage/Add Disadvantage)", ()
 		}));
 	});
 
+	it("also rebuilds a stored extraReminders (Bureaucrat's own unconditional reminders) after a retroactive Advantage add, regardless of the tier it lands on", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const offer = baseOffer({ value: 3, extraReminders: ["Choose 2, even on a fail:", "Some reminder"] });
+		const message = { flags: { "armor-astir": { advantageOffer: offer } }, author: "author1", update: vi.fn() };
+		const fake = fakeChatHtml();
+		mockDieRoll(6);
+
+		onRenderMoveChat(message, fake.html);
+		fake.addAdvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// Same die push as the extraSuccessReminder test above -> success tier, with no tier-specific
+		// reminder text of its own here, but Bureaucrat's own reminders still apply unconditionally.
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			reminders: ["Choose 2, even on a fail:", "Some reminder"]
+		}));
+	});
+
 	it("steps advantage back down to none when disadvantage is clicked, without rolling a new die", async () => {
 		game.actors.get.mockReturnValue({ id: "actor1" });
 		const offer = baseOffer({

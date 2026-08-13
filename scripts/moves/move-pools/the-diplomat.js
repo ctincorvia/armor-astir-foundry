@@ -101,19 +101,21 @@ export const THE_DIPLOMAT_POOL = {
 		{
 			key: "the-diplomat:bureaucrat",
 			name: "Bureaucrat",
-			// A "choose 2, even on a fail" menu with no roll of its own — the move text piggybacks
-			// on exchanging blows with +TALK, but the choice itself isn't conditioned on that
-			// roll's result (it applies "even on a fail"), so this is its own Activate button
-			// rather than something threaded into Exchange Blows' own chat card.
-			traits: [],
-			activateChoices: {
-				prompt: "When you exchange blows with +TALK to slow someone down or distract them " +
-					"with regulations, bylaws, or whatever piece of red tape you can think of, you " +
-					"also choose two from the below even on a fail.",
-				options: [
+			// Own quick-roll button that rolls the real Exchange Blows move with TALK forced (see
+			// move-roll-mixin.js's _onMoveRoll/_rollMove quickRollsMove handling) rather than a
+			// duplicate roll of its own — so weapon choice, Sharp Tongue's own reminder, equipment tag
+			// spends etc. all apply exactly as they would rolling Exchange Blows directly. Its own
+			// "choose 2, even on a fail" options ride along as unconditional (all-tier) reminders on
+			// that roll's chat card (see move-roll.js's rollMove/options.extraReminders) rather than a
+			// separate Activate button, since the choice isn't conditioned on the roll's result.
+			traits: ["talk"],
+			quickRollsMove: {
+				moveKey: "exchange-blows",
+				trait: "talk",
+				reminders: [
+					"Choose 2, even on a fail:",
 					"You're not lying—they'll really be in trouble if they don't listen to you.",
-					"They're invested in what you're saying: act in confidence against them for the " +
-						"rest of the Scene.",
+					"They're invested in what you're saying: act in confidence against them for the rest of the Scene.",
 					"They won't remember or recognise you.",
 					"You don't need to take a risk."
 				]

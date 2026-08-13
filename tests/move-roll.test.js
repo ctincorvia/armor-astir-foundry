@@ -416,8 +416,26 @@ describe("rollMove", () => {
 			extraFailureReminder: null,
 			extraSuccessReminder: null,
 			extraCriticalReminder: null,
+			extraReminders: null,
 			flavorArgs: expect.any(Object)
 		});
+	});
+
+	it("carries options.extraReminders through into the advantageOffer flag, for handleAdvantage to reattach later", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 2 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [3, 4, 2] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, {
+			advantage: "advantage",
+			effect: "confidence",
+			extraReminders: ["Choose 2, even on a fail:", "Some reminder"]
+		});
+
+		const rollInstance = Roll.mock.results.at(-1).value;
+		const flags = rollInstance.toMessage.mock.calls.at(-1)[0].flags["armor-astir"];
+		expect(flags.advantageOffer.extraReminders).toEqual(["Choose 2, even on a fail:", "Some reminder"]);
 	});
 });
 
@@ -578,6 +596,51 @@ describe("rollMove - hold", () => {
 
 		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
 			questions: null
+		}));
+	});
+});
+
+// Bureaucrat's own always-applicable reminders (see the-diplomat.js's quickRollsMove /
+// PlaybookActorSheet#_rollMove) — unlike options.extraQuestions above (which the failure-tier
+// test just above proves gets suppressed on a 6-), the source move's own text applies "even on a
+// fail," so extraReminders must land on every tier's reminders unconditionally.
+describe("rollMove - options.extraReminders (Bureaucrat)", () => {
+	it("merges options.extraReminders onto the move's own reminders on a 10+ success", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [5, 5] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { extraReminders: ["Choose 2, even on a fail:", "Some reminder"] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			reminders: ["Choose 2, even on a fail:", "Some reminder"]
+		}));
+	});
+
+	it("merges options.extraReminders onto the move's own reminders on a 7-9 mixed success", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [4, 4] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { extraReminders: ["Choose 2, even on a fail:", "Some reminder"] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			reminders: ["Choose 2, even on a fail:", "Some reminder"]
+		}));
+	});
+
+	it("merges options.extraReminders onto FAILURE_REMINDERS on a 6- failure, unlike extraQuestions", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { extraReminders: ["Choose 2, even on a fail:", "Some reminder"] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			reminders: [...FAILURE_REMINDERS, "Choose 2, even on a fail:", "Some reminder"]
 		}));
 	});
 });

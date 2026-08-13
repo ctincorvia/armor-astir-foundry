@@ -212,6 +212,15 @@ export const FramesSheetMixin = {
 		// see playbook-moves.js). _onRefreshSortie below clears the same field again as a defensive
 		// superset, since ending a Sortie always also ends its current Scene.
 		updates["system.attributes.eidolonDrive"] = { summonedAllyId: null, bonusUsed: false };
+		// Chromatic Focus/Chromatic Reserves' own override (astir-parts.js/ardent.js's
+		// promptsApproachOverride — see moves-mixin.js's _onMoveActivate) is scoped to a single Scene
+		// by its own text, unlike Enduring Support's Sortie-scoped one (which carries no `period` at
+		// all and is left untouched here, cleared only by _onRefreshSortie's own unconditional clear
+		// below).
+		const approachOverride = this.actor.system.attributes?.approachOverride;
+		if (approachOverride?.period === "Scene") {
+			updates["system.attributes.approachOverride"] = null;
+		}
 		this.actor.update(updates);
 	},
 	// Clears every Sortie-scoped spend/uses checkbox, plus the flat hold pools (B-Plot, Get Out of

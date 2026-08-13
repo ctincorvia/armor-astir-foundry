@@ -139,6 +139,13 @@ describe("ASTIR_PART_CATALOG", () => {
 			expect(part.spend.description).toBeTruthy();
 		}
 	});
+
+	// Chromatic Focus's "swap to any other Approach for a single Scene" (see moves-mixin.js's
+	// promptsApproachOverride/_nextUnusedMoveUseKey and move-roll-mixin.js's _onMoveActivate branch).
+	it("flags Chromatic Focus with promptsApproachOverride", () => {
+		const chromaticFocus = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:chromatic-focus");
+		expect(chromaticFocus.promptsApproachOverride).toBe(true);
+	});
 });
 
 describe("findAstirPart/resolveAstirParts", () => {

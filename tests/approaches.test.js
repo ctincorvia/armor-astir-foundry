@@ -1,5 +1,13 @@
-import { describe, expect, it } from "vitest";
-import { APPROACHES, PLAYBOOK_APPROACHES, availableApproaches } from "../scripts/core/approaches.js";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { APPROACHES, PLAYBOOK_APPROACHES, availableApproaches, chooseApproachOverride } from "../scripts/core/approaches.js";
+
+beforeEach(() => {
+	Dialog.mockClear();
+	Dialog.mockImplementation(function (data) {
+		this.data = data;
+		this.render = vi.fn();
+	});
+});
 
 describe("APPROACHES", () => {
 	it("lists the five approaches", () => {
@@ -67,5 +75,42 @@ describe("availableApproaches", () => {
 	it("falls back to every approach for a playbook with no restriction entry", () => {
 		expect(PLAYBOOK_APPROACHES["some-future-playbook"]).toBeUndefined();
 		expect(availableApproaches("some-future-playbook")).toEqual(APPROACHES);
+	});
+});
+
+// Chromatic Focus/Chromatic Reserves' own Activate button (see astir-parts.js/ardent.js's
+// promptsApproachOverride) — mirrors carrier-actor-sheet.js's chooseCarrier exactly (promise/
+// Dialog/resolve-null shape, one labelled button per option), tested the same way tests/astir.test.js
+// and tests/ardent.test.js already test their own Dialog-based pickers.
+describe("chooseApproachOverride", () => {
+	it("opens a Dialog with one labelled button per Approach except the excluded one", () => {
+		chooseApproachOverride("mundane");
+
+		const dialogData = Dialog.mock.calls.at(-1)[0];
+		expect(dialogData.title).toBe("Swap Approach");
+		expect(Object.keys(dialogData.buttons)).toEqual(["arcane", "divine", "profane", "elemental"]);
+		expect(dialogData.buttons.arcane.label).toBe("Arcane");
+	});
+
+	it("resolves the clicked Approach's key", async () => {
+		const promise = chooseApproachOverride("mundane");
+
+		Dialog.mock.calls.at(-1)[0].buttons.profane.callback();
+
+		expect(await promise).toBe("profane");
+	});
+
+	it("resolves null when the dialog is closed", async () => {
+		const promise = chooseApproachOverride("mundane");
+
+		Dialog.mock.calls.at(-1)[0].close();
+
+		expect(await promise).toBeNull();
+	});
+
+	it("uses the module's own styling", () => {
+		chooseApproachOverride("mundane");
+
+		expect(Dialog.mock.calls.at(-1)[1]).toEqual({ classes: ["armor-astir"] });
 	});
 });

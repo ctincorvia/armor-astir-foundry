@@ -17,7 +17,7 @@ vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal)
 import { BASIC_MOVES, configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { findCarrierActors, chooseCarrier } from "../scripts/world-actors/carrier-actor-sheet.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
-import { EXCHANGE_BLOWS, BITE_THE_DUST, WEAVE_MAGIC, LEAD_A_SORTIE, DENY, I_KNOW_YOU } from "./helpers/move-fixtures.js";
+import { EXCHANGE_BLOWS, BITE_THE_DUST, WEAVE_MAGIC, LEAD_A_SORTIE, DENY, I_KNOW_YOU, BUREAUCRAT } from "./helpers/move-fixtures.js";
 
 // _availableHeatUp's own return value for an actor with no Astir at all (see moves-mixin.js) —
 // every fixture in this file lacks one unless a test says otherwise, so _rollMove's baseOptions
@@ -459,6 +459,44 @@ describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a
 				{ key: "talk", label: "TALK", value: 0 }
 			],
 			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+		);
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveRoll - Bureaucrat's quick-roll redirect to Exchange Blows", () => {
+	it("rolls the real Exchange Blows move with TALK forced and carries Bureaucrat's own reminders", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { clash: { value: 0 }, talk: { value: 2 } } } };
+		const talk = { key: "talk", label: "TALK", value: 2 };
+		const config = { trait: talk, advantage: "normal", effect: "none" };
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: BUREAUCRAT.key } } });
+
+		// The dialog is configured against the real target move (Exchange Blows), not Bureaucrat
+		// itself, with TALK locked in from Bureaucrat's own quickRollsMove.trait.
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			[
+				{ key: "clash", label: "CLASH", value: 0 },
+				{ key: "talk", label: "TALK", value: 2 }
+			],
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: talk, astirPartSpends: [], equipmentSpends: [] }
+		);
+		// No equipment at all, so the weapon-choice step resolves straight to Unarmed, same as any
+		// other usesWeapon move with no weapons — and Bureaucrat's own reminders ride along
+		// unconditionally via extraReminders.
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor,
+			EXCHANGE_BLOWS,
+			talk,
+			{
+				...config,
+				weaponLabel: "Unarmed",
+				weaponTags: null,
+				extraReminders: BUREAUCRAT.quickRollsMove.reminders,
+				heatUp: NO_HEAT_UP
+			}
 		);
 	});
 });
