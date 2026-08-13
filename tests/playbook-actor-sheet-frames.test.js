@@ -10,7 +10,7 @@ vi.mock("../scripts/frames/ardent.js", async (importOriginal) => ({
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
 import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
-import { chooseFrame } from "../scripts/frames/ardent.js";
+import { chooseFrame, ARDENT_FEATURE_PARTS } from "../scripts/frames/ardent.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 
 const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:alchemical-suite");
@@ -20,6 +20,11 @@ const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:per
 const TACTICAL_GENIUS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:tactical-genius");
 const FORCE_MULTIPLIER = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:force-multiplier");
 const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loose");
+// ARDENT_FEATURE_PARTS' Chromatic Reserves is folded into ALL_MOVES (all-moves.js), so every
+// _onRefreshSortie assertion below sees its resetTo: "max" numericTracker reset from its
+// "nothing stored" default (0, per frames-mixin.js's own current fallback) up to its max (3) —
+// alongside Tactical Genius's own unrelated Sortie-scoped tracker.
+const CHROMATIC_RESERVES = ARDENT_FEATURE_PARTS.find((p) => p.key === "ardent-feature:chromatic-reserves");
 
 beforeEach(() => {
 	chooseFrame.mockClear();
@@ -596,6 +601,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
+			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
@@ -629,6 +635,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
+			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
@@ -655,6 +662,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
+			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
@@ -685,6 +693,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
+			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
@@ -718,6 +727,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
+			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
 	});
@@ -750,7 +760,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
-			"system.attributes.downtimeTokens.value": 2
+			"system.attributes.downtimeTokens.value": 2,
+			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3
 		});
 	});
 
@@ -825,6 +836,36 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 		// 1 (base KNOW) + 1 (Let Loose's +1-per-burden, 1 burden) = 2, so 1+KNOW = 3.
 		expect(sheet.actor.update).toHaveBeenCalledWith(
 			expect.objectContaining({ [`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 3 })
+		);
+	});
+
+	// Chromatic Reserves (ardent.js's ARDENT_FEATURE_PARTS) is the one real numericTrackers entry
+	// that opts into `resetTo: "max"` — a pool that starts full and depletes, rather than the usual
+	// starts-empty-and-fills pattern. Contrasted here against Tactical Genius's own plain min-reset
+	// (0, before its own KNOW-computed override further above ever runs) in the same actor update,
+	// confirming _refreshPeriod's `resetTo === "max" ? tracker.max : tracker.min` picks the right
+	// side of that branch for each.
+	it("resets Chromatic Reserves' partially-spent tracker up to its max (3), unlike a plain min-reset tracker", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					moveTrackers: {
+						[CHROMATIC_RESERVES.key]: { uses: 1 },
+						[TACTICAL_GENIUS.key]: { hold: 4 }
+					}
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
+				[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
+			})
 		);
 	});
 

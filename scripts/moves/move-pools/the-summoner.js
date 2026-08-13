@@ -49,10 +49,7 @@ export const THE_SUMMONER_POOL = {
 				"to perform the binding. This Power is returned 1 point at a time each time that " +
 				"ally is summoned via eidolon drive, or all at once if they are released or leave " +
 				"your service otherwise. Write down your ally's name, their approach, and a " +
-				"trait.</p>" +
-				"<p>Manage your bound allies from the Bound Allies roster on the Social tab: name, " +
-				"approach, trait, and a running Power Invested total per ally, with Invest Power and " +
-				"Release controls.</p>"
+				"trait.</p>"
 		},
 		{
 			key: "the-summoner:enduring-support",

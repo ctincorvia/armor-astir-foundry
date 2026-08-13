@@ -215,7 +215,7 @@ describe("STARTING_GEAR_POOLS", () => {
 			tags: ["melee", "bane"]
 		});
 		expect(arcanist.freeformNotes).toEqual([
-			"1 Astir III, built on the Astir & Ardents tab.",
+			"1 Astir III.",
 			"Clothes that match your look."
 		]);
 	});

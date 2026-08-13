@@ -39,7 +39,7 @@ export const ASTIR_PART_CATALOG = [
 		description:
 			"<p>A magical conduit that compensates for the heavy magical load of certain weaponry, " +
 			"trading utility for output.</p>" +
-			"<p>+2 Power towards weapons only — tracked as its own Weapon Power meter on the Astir tab.</p>"
+			"<p>+2 Power towards weapons only — tracked as its own, separate Weapon Power pool.</p>"
 	},
 	{
 		key: "astir-part:divination-codex",

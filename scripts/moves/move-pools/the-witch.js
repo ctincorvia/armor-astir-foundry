@@ -62,9 +62,8 @@ export const THE_WITCH_POOL = {
 				"<p>Your patron is unfathomable, and their interests obscure. Your Director should, once " +
 				"per Sortie, give you some minor goal or abstract requirement your patron demands of " +
 				"you—it should be doable within the session.</p>" +
-				"<p>If you complete it, you may choose your boons instead of rolling next time, using the " +
-				"\"Choose 2 Boons\" button in the Patron section. If you don't, give your patron 1 " +
-				"Influence.</p>"
+				"<p>If you complete it, you may choose your boons instead of rolling next time. If you " +
+				"don't, give your patron 1 Influence.</p>"
 		},
 		{
 			key: "the-witch:embrace-chaos",
@@ -109,9 +108,7 @@ export const THE_WITCH_POOL = {
 			description:
 				"<p>If a part of your Astir is damaged or destroyed and you take a peril as a result, you " +
 				"may relinquish your boons; losing them until you receive boons again but fixing that " +
-				"part and losing the peril. You cannot re-roll relinquished boons.</p>" +
-				"<p>Clear your boons yourself with the \"Relinquish Boons\" button in the Patron section " +
-				"— fixing the part and removing the peril are narrated at the table.</p>"
+				"part and losing the peril. You cannot re-roll relinquished boons.</p>"
 		},
 		{
 			key: "the-witch:bearer-of-curses",

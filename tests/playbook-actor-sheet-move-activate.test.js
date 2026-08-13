@@ -240,6 +240,24 @@ describe("PlaybookActorSheet#_nextUnusedMoveUseKey", () => {
 	});
 });
 
+// Direct unit coverage of the numericTrackers branch's own "nothing stored yet" fallback. Every
+// real numericTrackers move that carries promptsApproachOverride (Chromatic Reserves) opts into
+// resetTo: "max", so exercising the sheet only through real catalog data/_onMoveActivate never
+// takes the plain-0 side of that fallback — a synthetic move fixture is needed to reach it.
+describe("PlaybookActorSheet#_promptsApproachOverrideAvailable/_promptsApproachOverrideSpend - numericTrackers fallback", () => {
+	const NO_RESET_TRACKER_MOVE = { key: "fixture:no-reset-tracker", numericTrackers: [{ key: "uses", min: 0, max: 3 }] };
+
+	it("falls back to 0 (not resetTo's max) with nothing stored, for a tracker with no resetTo", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._promptsApproachOverrideAvailable(NO_RESET_TRACKER_MOVE)).toBe(false);
+		expect(sheet._promptsApproachOverrideSpend(NO_RESET_TRACKER_MOVE)).toEqual({
+			"system.attributes.moveTrackers.fixture:no-reset-tracker.uses": -1
+		});
+	});
+});
+
 describe("PlaybookActorSheet#_onMoveActivate - Chromatic Focus", () => {
 	it("does not even open the dialog once Expended is already checked", async () => {
 		const sheet = new PlaybookActorSheet();
@@ -302,12 +320,12 @@ describe("PlaybookActorSheet#_onMoveActivate - Chromatic Focus", () => {
 });
 
 describe("PlaybookActorSheet#_onMoveActivate - Chromatic Reserves", () => {
-	it("does not even open the dialog once all three Uses are already checked", async () => {
+	it("does not even open the dialog once the tracker is already at 0", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				attributes: {
-					moveUses: { [CHROMATIC_RESERVES.key]: { "use-1": true, "use-2": true, "use-3": true } }
+					moveTrackers: { [CHROMATIC_RESERVES.key]: { uses: 0 } }
 				}
 			},
 			update: vi.fn()
@@ -319,7 +337,7 @@ describe("PlaybookActorSheet#_onMoveActivate - Chromatic Reserves", () => {
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 
-	it("checks use-1 on a fresh actor", async () => {
+	it("decrements the tracker from its resetTo: max default (3) on a fresh actor", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { approach: "mundane" } }, update: vi.fn() };
 		chooseApproachOverride.mockResolvedValue("arcane");
@@ -328,16 +346,16 @@ describe("PlaybookActorSheet#_onMoveActivate - Chromatic Reserves", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.approachOverride": { approach: "arcane", period: "Scene" },
-			[`system.attributes.moveUses.${CHROMATIC_RESERVES.key}.use-1`]: true
+			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 2
 		});
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, CHROMATIC_RESERVES);
 	});
 
-	it("checks use-2 when use-1 is already checked", async () => {
+	it("decrements the tracker further when it's already partially spent", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
-				attributes: { approach: "mundane", moveUses: { [CHROMATIC_RESERVES.key]: { "use-1": true } } }
+				attributes: { approach: "mundane", moveTrackers: { [CHROMATIC_RESERVES.key]: { uses: 2 } } }
 			},
 			update: vi.fn()
 		};
@@ -347,7 +365,7 @@ describe("PlaybookActorSheet#_onMoveActivate - Chromatic Reserves", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.approachOverride": { approach: "arcane", period: "Scene" },
-			[`system.attributes.moveUses.${CHROMATIC_RESERVES.key}.use-2`]: true
+			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 1
 		});
 	});
 });
@@ -388,27 +406,38 @@ describe("PlaybookActorSheet#_moveGroupMoves - Chromatic Focus/Chromatic Reserve
 		expect(entry.approachOverrideInfo).toEqual({ approachLabel: "Profane", periodLabel: "Refresh Scene" });
 	});
 
-	it("is ungated with two of three Chromatic Reserves Uses checked, and gated once all three are", () => {
+	it("is ungated with 1 Chromatic Reserves use left, and gated once the tracker hits 0", () => {
 		const sheet = new PlaybookActorSheet();
-		const sheetTwoUsed = new PlaybookActorSheet();
-		sheetTwoUsed.actor = {
+		const sheetOneLeft = new PlaybookActorSheet();
+		sheetOneLeft.actor = {
 			system: {
 				stats: {},
-				attributes: { moveUses: { [CHROMATIC_RESERVES.key]: { "use-1": true, "use-2": true } } }
+				attributes: { moveTrackers: { [CHROMATIC_RESERVES.key]: { uses: 1 } } }
 			}
 		};
 		sheet.actor = {
 			system: {
 				stats: {},
-				attributes: { moveUses: { [CHROMATIC_RESERVES.key]: { "use-1": true, "use-2": true, "use-3": true } } }
+				attributes: { moveTrackers: { [CHROMATIC_RESERVES.key]: { uses: 0 } } }
 			}
 		};
 
-		const [twoUsedEntry] = sheetTwoUsed._moveGroupMoves([CHROMATIC_RESERVES]);
-		const [fullyUsedEntry] = sheet._moveGroupMoves([CHROMATIC_RESERVES]);
+		const [oneLeftEntry] = sheetOneLeft._moveGroupMoves([CHROMATIC_RESERVES]);
+		const [exhaustedEntry] = sheet._moveGroupMoves([CHROMATIC_RESERVES]);
 
-		expect(twoUsedEntry.gated).toBe(false);
-		expect(fullyUsedEntry.gated).toBe(true);
+		expect(oneLeftEntry.gated).toBe(false);
+		expect(exhaustedEntry.gated).toBe(true);
+	});
+
+	it("defaults Chromatic Reserves' tracker display value to its max (3) with nothing stored yet", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: {} } };
+
+		const [entry] = sheet._moveGroupMoves([CHROMATIC_RESERVES]);
+
+		expect(entry.trackers).toEqual([
+			{ key: "uses", label: "Uses Remaining", min: 0, max: 3, value: 3 }
+		]);
 	});
 });
 

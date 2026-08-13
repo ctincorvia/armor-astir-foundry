@@ -85,7 +85,7 @@ export const STARTING_GEAR_POOLS = [
 		// frame-level content built through the Astir & Ardents tab's own Ardent/Ardent Feature
 		// controls (see ardent.js's ARDENT_FEATURE_PARTS/ARDENT_FEATURE_WEAPONS), not something this
 		// picker can grant. Only the two personal-equipment items from Commander's gear list go here.
-		freeformNotes: ["1 Custom Ardent II, built on the Astir & Ardents tab.", "3 Ardent Features, added from the Custom Ardent's own controls."],
+		freeformNotes: ["1 Custom Ardent II.", "3 Ardent Features."],
 		grantedItems: [
 			{
 				key: "the-commander:saber-sidearm-i",
@@ -245,7 +245,7 @@ export const STARTING_GEAR_POOLS = [
 		// Astir's own weapon controls the way Commander's Ardent Features explicitly are, so it's
 		// granted here like any other playbook's starting weapon rather than left as a freeform note.
 		freeformNotes: [
-			"1 Astir III, built on the Astir & Ardents tab.",
+			"1 Astir III.",
 			"Clothes that match your look."
 		],
 		grantedItems: [
@@ -301,7 +301,7 @@ export const STARTING_GEAR_POOLS = [
 	{
 		playbookName: "The Paradigm",
 		freeformNotes: [
-			"1 Astir III, built on the Astir & Ardents tab.",
+			"1 Astir III.",
 			"Clothes that match your look."
 		],
 		grantedItems: [
@@ -357,7 +357,7 @@ export const STARTING_GEAR_POOLS = [
 	{
 		playbookName: "The Witch",
 		freeformNotes: [
-			"1 Astir III, built on the Astir & Ardents tab.",
+			"1 Astir III.",
 			"Clothes that match your look."
 		],
 		grantedItems: [
@@ -412,7 +412,7 @@ export const STARTING_GEAR_POOLS = [
 	{
 		playbookName: "The Wither",
 		freeformNotes: [
-			"1 Astir III, built on the Astir & Ardents tab.",
+			"1 Astir III.",
 			"Clothes that match your look."
 		],
 		grantedItems: [
@@ -468,7 +468,7 @@ export const STARTING_GEAR_POOLS = [
 	{
 		playbookName: "The Adrift",
 		freeformNotes: [
-			"1 Astir III, built on the Astir & Ardents tab.",
+			"1 Astir III.",
 			"Clothes that match your look."
 		],
 		grantedItems: [
@@ -524,7 +524,7 @@ export const STARTING_GEAR_POOLS = [
 	{
 		playbookName: "The Advocate",
 		freeformNotes: [
-			"1 Astir III, built on the Astir & Ardents tab.",
+			"1 Astir III.",
 			"Clothes that match your look."
 		],
 		grantedItems: [
@@ -581,7 +581,7 @@ export const STARTING_GEAR_POOLS = [
 	{
 		playbookName: "The Revenant",
 		freeformNotes: [
-			"1 Astir III, built on the Astir & Ardents tab.",
+			"1 Astir III.",
 			"A keepsake or souvenir."
 		],
 		grantedItems: [
@@ -622,7 +622,7 @@ export const STARTING_GEAR_POOLS = [
 	{
 		playbookName: "The Summoner",
 		freeformNotes: [
-			"1 Astir III, built on the Astir & Ardents tab.",
+			"1 Astir III.",
 			"Clothes that match your look."
 		],
 		grantedItems: [
@@ -872,7 +872,7 @@ export const STARTING_GEAR_POOLS = [
 		// existing Astir & Ardents tab rather than a modeled equipment item. "Clothing that matches
 		// your look" mirrors The Captain's own trailing freeform note above.
 		freeformNotes: [
-			"1 Transport or Service Ardent II, built on the Astir & Ardents tab.",
+			"1 Transport or Service Ardent II.",
 			"Clothing that matches your look."
 		],
 		grantedItems: [

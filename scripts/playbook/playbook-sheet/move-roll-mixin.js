@@ -396,19 +396,20 @@ export const MoveRollSheetMixin = {
 		}
 
 		// Chromatic Focus/Chromatic Reserves (astir-parts.js/ardent.js's promptsApproachOverride).
-		// No-ops with no `uses` checkbox left to spend, same as move.activatesApproachOverride's own
-		// "nothing to snapshot" guard above, so a fully-Expended/all-three-Uses-checked part never
-		// even opens the dialog. Cancelling the dialog also no-ops entirely — no actor.update call at
-		// all, unlike a real pick, which writes the override and the spend in one update so the two
-		// can never land out of sync.
+		// No-ops with nothing left to spend — a `uses` checkbox (Chromatic Focus) or a numericTrackers
+		// countdown at 0 (Chromatic Reserves), same as move.activatesApproachOverride's own "nothing
+		// to snapshot" guard above — so a fully-Expended part never even opens the dialog. Cancelling
+		// the dialog also no-ops entirely — no actor.update call at all, unlike a real pick, which
+		// writes the override and the spend in one update so the two can never land out of sync.
+		// moves-mixin.js's _promptsApproachOverrideAvailable/_promptsApproachOverrideSpend resolve
+		// both storage shapes generically, so this branch doesn't need to know which one it's got.
 		if (move.promptsApproachOverride) {
-			const nextUseKey = this._nextUnusedMoveUseKey(move);
-			if (!nextUseKey) return;
+			if (!this._promptsApproachOverrideAvailable(move)) return;
 			const chosen = await chooseApproachOverride(this.actor.system.attributes?.approach ?? "");
 			if (!chosen) return;
 			await this.actor.update({
 				"system.attributes.approachOverride": { approach: chosen, period: "Scene" },
-				[`system.attributes.moveUses.${move.key}.${nextUseKey}`]: true
+				...this._promptsApproachOverrideSpend(move)
 			});
 			await postMoveDescription(this.actor, move);
 		}

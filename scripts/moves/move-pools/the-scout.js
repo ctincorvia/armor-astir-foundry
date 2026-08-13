@@ -36,9 +36,9 @@ export const THE_SCOUT_POOL = {
 				"access to spaces too small for them. Read the room with confidence, always.</p>" +
 				"<p>Your skill at combat is above and beyond that of other fighters, too: for all purposes " +
 				"related to physical conflict, you are considered tier II rather than I. This includes " +
-				"wielding weapons, fighting, avoiding harm, and so on. Your custom weapon is tier II (set its " +
-				"own Tier to match on the Equipment tab), and is either too heavy or requires too specific " +
-				"training for other people to use without taking disadvantage.</p>"
+				"wielding weapons, fighting, avoiding harm, and so on. Your custom weapon is tier II, and " +
+				"is either too heavy or requires too specific training for other people to use without " +
+				"taking disadvantage.</p>"
 		},
 		{
 			key: "the-scout:giant-slayer",
@@ -54,8 +54,8 @@ export const THE_SCOUT_POOL = {
 				"weapons, fighting, avoiding harm, and so on, though Astir-sized weapons might still present " +
 				"you some difficulty (given their sheer weight and size) unless the Astir was particularly " +
 				"small or you have a clever solution for leverage.</p>" +
-				"<p>Your custom weapon is tier III (set its own Tier to match on the Equipment tab), and is " +
-				"a huge, unique armament that you alone can wield as easily as any other. No other person " +
+				"<p>Your custom weapon is tier III, and is a huge, unique armament that you alone can " +
+				"wield as easily as any other. No other person " +
 				"can hope to use it well with just their mere hands.</p>"
 		},
 		{

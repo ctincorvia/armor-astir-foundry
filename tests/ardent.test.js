@@ -260,11 +260,16 @@ describe("ARDENT_FEATURE_PARTS/ARDENT_FEATURE_WEAPONS", () => {
 	});
 
 	// Chromatic Reserves' "swap to any other Approach for a single Scene, 3x per Sortie" (see
-	// moves-mixin.js's promptsApproachOverride/_nextUnusedMoveUseKey and move-roll-mixin.js's
-	// _onMoveActivate branch) — same mechanism astir-parts.js's Chromatic Focus uses.
-	it("flags Chromatic Reserves with promptsApproachOverride", () => {
+	// moves-mixin.js's promptsApproachOverride/_promptsApproachOverrideAvailable and
+	// move-roll-mixin.js's _onMoveActivate branch) — same mechanism astir-parts.js's Chromatic Focus
+	// uses, but backed by a numericTrackers countdown stepper instead of Chromatic Focus's single
+	// `uses` checkbox.
+	it("flags Chromatic Reserves with promptsApproachOverride and a resetTo: max numericTrackers countdown", () => {
 		const chromaticReserves = ARDENT_FEATURE_PARTS.find((p) => p.key === "ardent-feature:chromatic-reserves");
 		expect(chromaticReserves.promptsApproachOverride).toBe(true);
+		expect(chromaticReserves.numericTrackers).toEqual([
+			{ key: "uses", label: "Uses Remaining", min: 0, max: 3, period: "Sortie", resetTo: "max" }
+		]);
 	});
 });
 

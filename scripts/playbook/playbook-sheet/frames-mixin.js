@@ -165,7 +165,11 @@ export const FramesSheetMixin = {
 				// tracker.min is always present (every numericTrackers entry declares one — see
 				// playbook-moves.js's own generic invariant test), unlike the actor's stored value
 				// below, which is genuinely absent until the player first steps the counter.
-				const resetTo = tracker.min;
+				// `resetTo: "max"` is a declarative per-tracker opt-in for a pool that starts full and
+				// depletes (Chromatic Reserves — ardent.js) rather than the usual starts-empty-and-
+				// fills pattern every other numericTrackers entry uses; a tracker without the field
+				// keeps resetting to min exactly as before.
+				const resetTo = tracker.resetTo === "max" ? tracker.max : tracker.min;
 				const current = this.actor.system.attributes?.moveTrackers?.[move.key]?.[tracker.key] ?? 0;
 				if (current !== resetTo) {
 					updates[`system.attributes.moveTrackers.${move.key}.${tracker.key}`] = resetTo;

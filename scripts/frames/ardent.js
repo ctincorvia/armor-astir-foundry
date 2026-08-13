@@ -74,17 +74,18 @@ export const ARDENT_FEATURE_PARTS = [
 		name: "Chromatic Reserves",
 		partType: "Active",
 		traits: [],
-		// Three checkboxes rather than Chromatic Focus's single EXPENDED_USE — "3x per Sortie" reuses
-		// the same generic uses mechanism (_moveGroupMoves/_onMoveUseToggle) at a longer length, no
-		// new rendering code. Approach-swap mechanism (promptsApproachOverride) is the same one
-		// Chromatic Focus uses (see astir-parts.js's own fuller comment) — Activate spends the next
-		// free "Use N" checkbox instead of a single Expended one, via the same shared
-		// _nextUnusedMoveUseKey helper.
+		// "3x per Sortie" is a countdown stepper rather than Chromatic Focus's single EXPENDED_USE
+		// checkbox — the generic numericTrackers mechanic (moves-mixin.js's trackers: mapping,
+		// move-tracking-mixin.js's _onMoveTrackerStep, tab-moves.hbs) renders it with no new template
+		// code. `resetTo: "max"` opts this tracker out of the usual starts-empty-and-fills reset (see
+		// frames-mixin.js's _refreshPeriod) since this pool starts full and depletes instead. Still
+		// spent via the same shared promptsApproachOverride mechanism Chromatic Focus uses (see
+		// astir-parts.js's own fuller comment) — moves-mixin.js's
+		// _promptsApproachOverrideAvailable/_promptsApproachOverrideSpend resolve "is there anything
+		// left"/"spend one" generically across both storage shapes.
 		promptsApproachOverride: true,
-		uses: [
-			{ key: "use-1", label: "Use 1", period: "Sortie" },
-			{ key: "use-2", label: "Use 2", period: "Sortie" },
-			{ key: "use-3", label: "Use 3", period: "Sortie" }
+		numericTrackers: [
+			{ key: "uses", label: "Uses Remaining", min: 0, max: 3, period: "Sortie", resetTo: "max" }
 		],
 		description:
 			"<p>A store of reserve reagents lets this Ardent's pilot re-aspect its output on the fly.</p>" +

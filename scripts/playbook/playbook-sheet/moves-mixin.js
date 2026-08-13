@@ -21,13 +21,40 @@ export const MovesSheetMixin = {
 	_playbookMoves() {
 		return this.actor.system.attributes?.playbookMoves ?? [];
 	},
-	// Chromatic Focus/Chromatic Reserves' own "any use left?" check (astir-parts.js/ardent.js's
-	// promptsApproachOverride) — the first `uses` entry not yet checked in this move/part's own
-	// moveUses pool, or null once every entry is spent. Chromatic Focus has one entry (Expended);
-	// Chromatic Reserves has three (Use 1-3), spent in order. Shared by _moveGroupMoves' gating
+	// Chromatic Focus's own "any use left?" check (astir-parts.js's promptsApproachOverride) — the
+	// first `uses` entry not yet checked in this move/part's own moveUses pool, or null once every
+	// entry is spent. Chromatic Focus has one entry (Expended). Shared by _moveGroupMoves' gating
 	// below and move-roll-mixin.js's _onMoveActivate, so both always agree on what's spendable.
+	// Chromatic Reserves (ardent.js) now spends a numericTrackers countdown instead of a `uses`
+	// pool — see _promptsApproachOverrideAvailable/_promptsApproachOverrideSpend below, which
+	// resolve "is there anything left"/"spend one" across both storage shapes generically.
 	_nextUnusedMoveUseKey(move) {
 		return (move.uses ?? []).find((use) => !this.actor.system.attributes?.moveUses?.[move.key]?.[use.key])?.key ?? null;
+	},
+	// Chromatic Focus (a `uses` checkbox) and Chromatic Reserves (a `numericTrackers` countdown
+	// stepper) back promptsApproachOverride with two different storage shapes — this resolves "is
+	// there anything left to spend" generically across both, shared with
+	// _promptsApproachOverrideSpend's actual write below so the two can't drift.
+	_promptsApproachOverrideAvailable(move) {
+		if (move.numericTrackers?.length) {
+			const tracker = move.numericTrackers[0];
+			const current = this.actor.system.attributes?.moveTrackers?.[move.key]?.[tracker.key]
+				?? (tracker.resetTo === "max" ? tracker.max : 0);
+			return current > tracker.min;
+		}
+		return Boolean(this._nextUnusedMoveUseKey(move));
+	},
+	// The actor.update fragment for spending one charge — checks the next `uses` box (Chromatic
+	// Focus) or decrements the tracker by 1 (Chromatic Reserves). Only ever called after
+	// _promptsApproachOverrideAvailable confirms there's something to spend.
+	_promptsApproachOverrideSpend(move) {
+		if (move.numericTrackers?.length) {
+			const tracker = move.numericTrackers[0];
+			const current = this.actor.system.attributes?.moveTrackers?.[move.key]?.[tracker.key]
+				?? (tracker.resetTo === "max" ? tracker.max : 0);
+			return { [`system.attributes.moveTrackers.${move.key}.${tracker.key}`]: current - 1 };
+		}
+		return { [`system.attributes.moveUses.${move.key}.${this._nextUnusedMoveUseKey(move)}`]: true };
 	},
 	// getData's moveGroups — Basic and Special moves are the same fixed list for every actor;
 	// Playbook Moves is the per-actor set picked via the "+" button, so it's the only group that
@@ -178,10 +205,11 @@ export const MovesSheetMixin = {
 			// to act on" stance for Eidolon Drive's Summon button.
 			const approachOverrideGated = Boolean(move.activatesApproachOverride) && !this._summonedAlly()?.approach;
 			// Chromatic Focus/Chromatic Reserves' own Activate button (see astir-parts.js/ardent.js's
-			// promptsApproachOverride) has nothing left to spend once every one of its own `uses`
-			// checkboxes is already checked — same "nothing to act on" stance approachOverrideGated
-			// above already takes for Enduring Support, via the shared _nextUnusedMoveUseKey helper.
-			const promptsApproachOverrideGated = Boolean(move.promptsApproachOverride) && !this._nextUnusedMoveUseKey(move);
+			// promptsApproachOverride) has nothing left to spend once its `uses` checkbox (Chromatic
+			// Focus) or numericTrackers countdown (Chromatic Reserves) is exhausted — same "nothing to
+			// act on" stance approachOverrideGated above already takes for Enduring Support, via the
+			// shared _promptsApproachOverrideAvailable helper.
+			const promptsApproachOverrideGated = Boolean(move.promptsApproachOverride) && !this._promptsApproachOverrideAvailable(move);
 			// Bite the Dust, disabled by Never Quite Free (see disablingMoves above) — finds the
 			// picked move, if any, whose disablesMove.moveKey targets this move.
 			const disabledBy = disablingMoves.find((m) => m.disablesMove.moveKey === move.key);
@@ -328,12 +356,17 @@ export const MovesSheetMixin = {
 				// Generic, per-move clamped numeric counters (e.g. Transmute Self's two alternate-set
 				// trackers — see playbook-moves.js). Mirrors `uses`' per-move-key storage shape, but as a
 				// bounded number rather than a boolean, at system.attributes.moveTrackers.<moveKey>.<trackerKey>.
+				// The display fallback is usually 0 (starts-empty-and-fills, like every tracker except
+				// Chromatic Reserves), but a `resetTo: "max"` tracker (ardent.js) starts full and
+				// depletes, so a freshly-installed one with no stored value yet displays its max instead
+				// of a misleading 0 before the player ever clicks Refresh Sortie.
 				trackers: (move.numericTrackers ?? []).map((tracker) => ({
 					key: tracker.key,
 					label: tracker.label,
 					min: tracker.min,
 					max: tracker.max,
-					value: this.actor.system.attributes?.moveTrackers?.[move.key]?.[tracker.key] ?? 0
+					value: this.actor.system.attributes?.moveTrackers?.[move.key]?.[tracker.key]
+						?? (tracker.resetTo === "max" ? tracker.max : 0)
 				})),
 				// Plan & Prepare's own roll button (see SPECIAL_MOVES' variableDicePool) — omitted (not
 				// `false`) for every other move, same reasoning as summonedAllyInfo/gatedTooltip above:

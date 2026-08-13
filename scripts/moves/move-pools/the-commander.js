@@ -57,9 +57,7 @@ export const THE_COMMANDER_POOL = {
 				"<p>You may retreat with your crew safely from any situation. When you do so, " +
 				"roll +TALK; on a 10+, you manage to justify your actions. On a 7-9, give up 1 " +
 				"token next Downtime as you are reprimanded for your 'cowardice'. On a 6-, start " +
-				"or advance a 4-step clock titled 'court-martialled'.</p>" +
-				"<p>Track 'court-martialled' yourself in the Clocks section (Social tab) — " +
-				"nothing here starts or advances it automatically.</p>"
+				"or advance a 4-step clock titled 'court-martialled'.</p>"
 		},
 		{
 			key: "the-commander:retrofit",
@@ -68,9 +66,7 @@ export const THE_COMMANDER_POOL = {
 			description:
 				"<p>During Downtime, your crew may spend 1 token to swap out one of your Ardent " +
 				"Features for another from the list. Alternatively, you may spend 2 tokens to " +
-				"swap all of them.</p>" +
-				"<p>Remove the old Feature and add the new one from the Custom Ardent's own " +
-				"controls, then spend the token(s) yourself on the Downtime tab.</p>"
+				"swap all of them.</p>"
 		},
 		{
 			key: "the-commander:requisitions",
@@ -104,9 +100,7 @@ export const THE_COMMANDER_POOL = {
 				"Replace all your current dangers with one peril (Bailed Out) as everyone escapes " +
 				"just in time, leaving you without it until you repair it during Downtime " +
 				"(costing 3 tokens, and removing the 'bailed out' peril). At the Director's " +
-				"discretion, the explosion might also affect other things in the Scene.</p>" +
-				"<p>Clear your Dangers and add 'Bailed Out' as a Peril yourself from the Dangers " +
-				"panel; later, remove it and spend the 3 tokens yourself on the Downtime tab.</p>"
+				"discretion, the explosion might also affect other things in the Scene.</p>"
 		},
 		{
 			key: "the-commander:tactical-entry",

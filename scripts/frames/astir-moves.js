@@ -40,7 +40,7 @@ export const ASTIR_MOVE_CATALOG = [
 			"<p>This Astir's Familiar Matrix runs on a tighter, more efficient cycle, letting each " +
 			"Familiar re-arm faster than most.</p>" +
 			"<p>Your Familiars gain the Blitz tag, and lose the Limited tag if they carry it (today, " +
-			"only Wisp Familiar does — edit its tags directly on the Equipment tab).</p>"
+			"only Wisp Familiar does).</p>"
 	},
 	{
 		key: "astir:mana-devourer",
