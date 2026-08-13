@@ -49,7 +49,7 @@ export const MoveRollSheetMixin = {
 		let weapon;
 		if (move.usesWeapon) {
 			const mountedFrameId = this._mountedFrame()?.id ?? null;
-			let weapons = this._weapons().filter((w) => this._weaponFrameId(w) === mountedFrameId);
+			let weapons = this._weapons().filter((w) => this._weaponFrameId(w) === mountedFrameId && !w.disabled);
 			// Fire Support (The Captain — see _grantsCarrierWeaponAccess/playbook-moves.js's
 			// grantsCarrierWeaponAccess): "using ... the Carrier's weaponry" folds the world's Carrier
 			// weapons into this move's own weapon choice, on top of this actor's own. Only offered
@@ -85,7 +85,7 @@ export const MoveRollSheetMixin = {
 		const { move: moveKey, equipmentId } = event.currentTarget.dataset;
 		const move = ALL_MOVES.find((m) => m.key === moveKey);
 		const weapon = this._equipment().find((item) => item.id === equipmentId);
-		if (!move || !weapon) return;
+		if (!move || !weapon || weapon.disabled) return;
 
 		await this._rollMove(move, weapon);
 	},

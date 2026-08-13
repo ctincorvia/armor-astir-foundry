@@ -72,6 +72,96 @@ describe("PlaybookActorSheet#_onAstirPilotedToggle", () => {
 	});
 });
 
+describe("PlaybookActorSheet#_isPartDisabled", () => {
+	it("is false when moveUses has no entry for the key at all", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._isPartDisabled(ALCHEMICAL_SUITE.key)).toBe(false);
+	});
+
+	it("is false when the key's own moveUses entry has no disabled flag", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { moveUses: { [ALCHEMICAL_SUITE.key]: { expended: true } } } } };
+
+		expect(sheet._isPartDisabled(ALCHEMICAL_SUITE.key)).toBe(false);
+	});
+
+	it("is true once moveUses.<key>.disabled is set", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { moveUses: { [ALCHEMICAL_SUITE.key]: { disabled: true } } } } };
+
+		expect(sheet._isPartDisabled(ALCHEMICAL_SUITE.key)).toBe(true);
+	});
+});
+
+describe("PlaybookActorSheet#_mountedParts", () => {
+	it("excludes a disabled part from the mounted frame's resolved parts", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", piloted: true, parts: [ALCHEMICAL_SUITE.key, DIVINATION_CODEX.key] },
+					moveUses: { [ALCHEMICAL_SUITE.key]: { disabled: true } }
+				}
+			}
+		};
+
+		expect(sheet._mountedParts().map((p) => p.key)).toEqual([DIVINATION_CODEX.key]);
+	});
+
+	it("keeps every installed part when none are disabled", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", piloted: true, parts: [ALCHEMICAL_SUITE.key] } } }
+		};
+
+		expect(sheet._mountedParts().map((p) => p.key)).toEqual([ALCHEMICAL_SUITE.key]);
+	});
+});
+
+describe("PlaybookActorSheet#_onPartDisabledToggle", () => {
+	it("writes moveUses.<key>.disabled true when checked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onPartDisabledToggle({ currentTarget: { dataset: { part: ALCHEMICAL_SUITE.key }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveUses.${ALCHEMICAL_SUITE.key}.disabled`]: true
+		});
+	});
+
+	it("writes moveUses.<key>.disabled false when unchecked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { moveUses: { [ALCHEMICAL_SUITE.key]: { disabled: true } } } },
+			update: vi.fn()
+		};
+
+		sheet._onPartDisabledToggle({ currentTarget: { dataset: { part: ALCHEMICAL_SUITE.key }, checked: false } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveUses.${ALCHEMICAL_SUITE.key}.disabled`]: false
+		});
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - part disabled checkbox", () => {
+	it("binds a change handler to the part-disabled checkbox", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".part-disabled-checkbox");
+		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
+	});
+});
+
 describe("PlaybookActorSheet#getData - controls with Ardents", () => {
 	it("enables Mount Up with an unpiloted Ardent and no Astir", () => {
 		const sheet = new PlaybookActorSheet();

@@ -159,7 +159,7 @@ describe("PlaybookActorSheet#getData - astir", () => {
 		};
 
 		expect(sheet.getData().astir.parts).toEqual([
-			{ key: part.key, name: part.name, powerCost: part.powerCost, partType: part.partType, tier: 3 }
+			{ key: part.key, name: part.name, powerCost: part.powerCost, partType: part.partType, tier: 3, disabled: false }
 		]);
 	});
 
@@ -446,6 +446,26 @@ describe("PlaybookActorSheet#getData - astir moves group", () => {
 		expect(group.moves.find((m) => m.key === "heat-up").gated).toBe(false);
 		expect(group.moves.find((m) => m.key === "subsystems").gated).toBe(false);
 		expect(group.moves.find((m) => m.key === part.key).gated).toBe(false);
+	});
+
+	it("gates a disabled part's own move row even while the Astir is piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		const part = ASTIR_PART_CATALOG[0];
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, parts: [part.key], move: null, piloted: true },
+					moveUses: { [part.key]: { disabled: true } }
+				}
+			}
+		};
+
+		const group = sheet.getData().moveGroups.find((g) => g.label === "Astir Moves");
+
+		expect(group.moves.find((m) => m.key === part.key).gated).toBe(true);
+		// Heat Up/Subsystems aren't Parts, so a disabled Part never touches their own gating.
+		expect(group.moves.find((m) => m.key === "heat-up").gated).toBe(false);
 	});
 });
 

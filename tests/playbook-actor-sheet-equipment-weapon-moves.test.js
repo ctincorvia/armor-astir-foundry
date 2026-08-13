@@ -61,6 +61,27 @@ describe("PlaybookActorSheet#getData - weaponMoves", () => {
 		]);
 	});
 
+	it("gates a disabled weapon's own weaponMoves, with a default tooltip", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					equipment: [
+						{ id: "eq1", kind: "weapon", disabled: true, name: "Broken Rifle", description: "", tags: [], spent: [], scale: "foot", tier: 1 }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.equipment.weapons[0].weaponMoves).toEqual([
+			{ key: "exchange-blows", name: "Exchange Blows", gated: true, tooltip: "This weapon is disabled." },
+			{ key: "strike-decisively", name: "Strike Decisively", gated: true, tooltip: "This weapon is disabled." }
+		]);
+	});
+
 	it("does not attach weaponMoves to gear", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {

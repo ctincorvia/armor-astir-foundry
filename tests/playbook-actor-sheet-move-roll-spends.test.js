@@ -122,6 +122,26 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		});
 	});
 
+	it("excludes a disabled weapon's spendable tag from the roll-dialog offering", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: {
+					equipment: [{ id: "eq1", kind: "weapon", disabled: true, name: "Halberd", description: "", tags: ["blitz"], spent: [] }]
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
+			astirPartSpends: [], equipmentSpends: []
+		});
+	});
+
 	it("excludes a tag key that no longer resolves in the catalog", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
@@ -380,6 +400,28 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 				attributes: {
 					astir: { id: "a1", parts: [ARTIFACT.key], piloted: true },
 					moveUses: { [ARTIFACT.key]: { expended: true } }
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
+			astirPartSpends: [],
+			equipmentSpends: []
+		});
+	});
+
+	it("excludes a disabled part (moveUses.<key>.disabled), the same way it's dropped from _mountedParts", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: {
+					astir: { id: "a1", parts: [ARTIFACT.key], piloted: true },
+					moveUses: { [ARTIFACT.key]: { disabled: true } }
 				}
 			}
 		};

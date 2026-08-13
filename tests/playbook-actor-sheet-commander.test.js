@@ -403,7 +403,7 @@ describe("PlaybookActorSheet#getData - Ardent Feature pool split", () => {
 
 		expect(data.ardents[0].parts).toEqual([]);
 		expect(data.ardents[0].featureParts).toEqual([
-			{ key: featurePart.key, name: featurePart.name, partType: featurePart.partType, tier: 2 }
+			{ key: featurePart.key, name: featurePart.name, partType: featurePart.partType, tier: 2, disabled: false }
 		]);
 	});
 

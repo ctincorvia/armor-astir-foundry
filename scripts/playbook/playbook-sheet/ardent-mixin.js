@@ -68,7 +68,8 @@ export const ArdentSheetMixin = {
 					key: part.key,
 					name: part.name,
 					partType: part.partType,
-					tier: ardent.tier ?? ARDENT_TIER_DEFAULT
+					tier: ardent.tier ?? ARDENT_TIER_DEFAULT,
+					disabled: this._isPartDisabled(part.key)
 				})),
 				weapons,
 				loadoutFull: ardentBaselineLoadoutCount(ardent, equipment) >= ARDENT_MAX_LOADOUT,
@@ -76,7 +77,8 @@ export const ArdentSheetMixin = {
 					key: part.key,
 					name: part.name,
 					partType: part.partType,
-					tier: ardent.tier ?? ARDENT_TIER_DEFAULT
+					tier: ardent.tier ?? ARDENT_TIER_DEFAULT,
+					disabled: this._isPartDisabled(part.key)
 				})),
 				featureWeapons,
 				featureMax: ardentFeatureCap,

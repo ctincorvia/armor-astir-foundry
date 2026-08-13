@@ -119,6 +119,7 @@ export const MovesSheetMixin = {
 				moves: this._moveGroupMoves(astirMoves).map((move) => ({
 					...move,
 					gated: move.gated || (mountedFrame?.id !== "astir" && !this._grantsUnpilotedAstirMove(move))
+						|| this._isPartDisabled(move.key)
 				}))
 			});
 		}
@@ -127,7 +128,10 @@ export const MovesSheetMixin = {
 			if (!parts.length) continue;
 			moveGroups.push({
 				label: `${ardent.name || ARDENT_DEFAULT_NAME} Moves`,
-				moves: this._moveGroupMoves(parts).map((move) => ({ ...move, gated: move.gated || mountedFrame?.id !== ardent.id }))
+				moves: this._moveGroupMoves(parts).map((move) => ({
+					...move,
+					gated: move.gated || mountedFrame?.id !== ardent.id || this._isPartDisabled(move.key)
+				}))
 			});
 		}
 		moveGroups.push({ label: "Special Moves", moves: this._moveGroupMoves(SPECIAL_MOVES.filter((m) => m !== subsystems)) });

@@ -90,7 +90,7 @@ describe("PlaybookActorSheet#getData - ardents", () => {
 		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [part.key] }] } } };
 
 		expect(sheet.getData().ardents[0].parts).toEqual([
-			{ key: part.key, name: part.name, partType: part.partType, tier: ARDENT_TIER_MIN }
+			{ key: part.key, name: part.name, partType: part.partType, tier: ARDENT_TIER_MIN, disabled: false }
 		]);
 	});
 
@@ -192,6 +192,22 @@ describe("PlaybookActorSheet#getData - ardent moves group", () => {
 				attributes: {
 					astir: { id: "a1", piloted: true, parts: [] },
 					ardents: [{ id: "ar1", name: "Warhound", parts: [WARDING.key], piloted: false }]
+				}
+			}
+		};
+
+		const group = sheet.getData().moveGroups.find((g) => g.label === "Warhound Moves");
+
+		expect(group.moves[0].gated).toBe(true);
+	});
+
+	it("gates a disabled part's own move row even while this Ardent is the mounted frame", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", name: "Warhound", parts: [WARDING.key], piloted: true }],
+					moveUses: { [WARDING.key]: { disabled: true } }
 				}
 			}
 		};
@@ -589,7 +605,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit - Ardent weapons", () => {
 		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { ardentWeapon: true });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
-				{ id: "1", spent: [], name: "Spear II", description: "", kind: "weapon", tags: ["melee"], ardent: "ar1" }
+				{ id: "1", spent: [], disabled: false, name: "Spear II", description: "", kind: "weapon", tags: ["melee"], ardent: "ar1" }
 			]
 		});
 	});

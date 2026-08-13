@@ -141,12 +141,20 @@ export const EquipmentSheetMixin = {
 					? WEAPON_SCALES.find((s) => s.key === "astir")?.label
 					: WEAPON_SCALES.find((s) => s.key === entry.scale)?.label ?? entry.scale,
 				tier: (entry.astir || entry.ardent) ? frame?.tier : this._conflictTier().base,
-				weaponMoves,
+				weaponMoves: weaponMoves.map((move) => (
+					entry.disabled ? { ...move, gated: true, tooltip: move.tooltip ?? "This weapon is disabled." } : move
+				)),
 				isAstir: Boolean(entry.astir),
 				// Commander-exclusive (see ardent.js's ardentFeatureLoadoutCount) — surfaced here so
 				// getData's per-Ardent split into baseline vs. Feature weapons can read it off the
 				// already-mapped entry rather than re-filtering the raw equipment array a second time.
-				commanderFeature: Boolean(entry.commanderFeature)
+				commanderFeature: Boolean(entry.commanderFeature),
+				// Manual "in-fiction consequence" tracker (weapon damaged) — same manual-tracker
+				// convention as astir.overheating/piloted (see claude.md's Recurring conventions).
+				// Excludes the weapon from being chosen for a roll (see move-roll-mixin.js's
+				// _onMoveRoll/_onWeaponMoveRoll) and gates its own quick-roll buttons above, but does
+				// NOT affect Drain/Power math — a disabled weapon is still installed, just unusable.
+				disabled: Boolean(entry.disabled)
 			})
 		};
 	},
@@ -175,6 +183,9 @@ export const EquipmentSheetMixin = {
 			// through _onMoveRoll's own frame filter, since a non-usesWeapon move leaves `weapon`
 			// undefined and scoped false). Gear is untouched.
 			if (entry.kind === "weapon" && this._weaponFrameId(entry) !== mountedFrameId) continue;
+			// A disabled weapon (see _equipmentEntry's own comment) offers none of its tags either —
+			// same "can't currently act" treatment its gated weaponMoves buttons already get.
+			if (entry.kind === "weapon" && entry.disabled) continue;
 			if (scoped && entry.kind === "weapon" && entry.id !== weapon?.id) continue;
 			const spent = entry.spent ?? [];
 			for (const tagKey of this._weaponTagKeys(entry)) {
@@ -388,6 +399,7 @@ export const EquipmentSheetMixin = {
 				? {
 					id: item.id,
 					spent: item.spent ?? [],
+					disabled: item.disabled ?? false,
 					...result,
 					...(item.astir && { astir: true }),
 					...(item.ardent && { ardent: item.ardent }),
@@ -433,6 +445,18 @@ export const EquipmentSheetMixin = {
 				const nextSpent = checked ? [...new Set([...spent, tagKey])] : spent.filter((key) => key !== tagKey);
 				return { ...item, spent: nextSpent };
 			})
+		});
+	},
+	// The Disabled checkbox's own write path — same manual-tracker shape as
+	// _onEquipmentTagSpentToggle immediately above; nothing auto-clears it (see claude.md's
+	// Recurring conventions).
+	_onEquipmentDisabledToggle(event) {
+		const { equipmentId } = event.currentTarget.dataset;
+		const checked = event.currentTarget.checked;
+		this.actor.update({
+			"system.attributes.equipment": this._equipment().map((item) => (
+				item.id === equipmentId ? { ...item, disabled: checked } : item
+			))
 		});
 	}
 };

@@ -93,6 +93,19 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		expect(chooseWeapon).toHaveBeenCalledWith([astirWeapon]);
 	});
 
+	it("excludes a disabled weapon from the weapon choice", async () => {
+		const sheet = new PlaybookActorSheet();
+		const disabledWeapon = { id: "eq3", kind: "weapon", disabled: true, name: "Broken Rifle", description: "", tags: [], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [halberd, disabledWeapon] } }
+		};
+		chooseWeapon.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(chooseWeapon).toHaveBeenCalledWith([halberd]);
+	});
+
 	it("aborts the whole roll when the weapon-choice dialog is dismissed", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [halberd] } } };
@@ -219,6 +232,16 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 		sheet.actor = { system: { attributes: { equipment: [halberd] } } };
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "not-a-real-id" } } });
+
+		expect(configureMoveRoll).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for a disabled weapon", async () => {
+		const sheet = new PlaybookActorSheet();
+		const disabledWeapon = { id: "eq1", kind: "weapon", disabled: true, name: "Broken Rifle", description: "", tags: [], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [disabledWeapon] } } };
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(configureMoveRoll).not.toHaveBeenCalled();
 	});

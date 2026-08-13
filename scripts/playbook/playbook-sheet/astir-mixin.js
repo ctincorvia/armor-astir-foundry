@@ -97,7 +97,8 @@ export const AstirSheetMixin = {
 					name: part.name,
 					powerCost: part.powerCost,
 					partType: part.partType,
-					tier: astir.tier ?? ASTIR_TIER_MIN
+					tier: astir.tier ?? ASTIR_TIER_MIN,
+					disabled: this._isPartDisabled(part.key)
 				})),
 				move: astirMove ? { key: astirMove.key, name: astirMove.name } : null,
 				weapons: astirWeapons

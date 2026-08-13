@@ -154,6 +154,11 @@
 	cursor: not-allowed;
 }
 
+.armor-astir.sheet .equipment-item-disabled,
+.armor-astir.sheet .move-disabled {
+	opacity: 0.6;
+}
+
 /* Solid actions (Roll / Activate / every header "+" button) take the primary fill; outline
    actions (Description / Edit) take the primary border with dark primary text. Both are chrome
    the player acts on, so both track the primary role. */

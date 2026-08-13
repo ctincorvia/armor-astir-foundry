@@ -51,7 +51,16 @@ export const FramesSheetMixin = {
 	// rather than checking piloted state and _astirParts() separately, since an Ardent's own parts
 	// (drawn from the same catalog — see ardent.js) work identically to the Astir's once mounted.
 	_mountedParts() {
-		return resolveAstirParts(this._mountedFrame()?.parts ?? [], ARDENT_PART_CATALOG);
+		return resolveAstirParts(this._mountedFrame()?.parts ?? [], ARDENT_PART_CATALOG)
+			.filter((part) => !this._isPartDisabled(part.key));
+	},
+	// Manual "in-fiction consequence" tracker (Part knocked out) — same manual-tracker convention
+	// as astir.overheating/piloted (see claude.md's Recurring conventions), stored in the shared
+	// moveUses bag alongside a Part's own Expended checkbox (see moves-mixin.js). A Part installed
+	// on both the Astir and an Ardent shares one Disabled state, since moveUses is keyed globally
+	// by part key — same behavior the Expended checkbox already has (see docs/domains/frames.md).
+	_isPartDisabled(key) {
+		return Boolean(this.actor.system.attributes?.moveUses?.[key]?.disabled);
 	},
 	// The Controls section (see the template's dangers-column) — Mount Up/Dismount just drive the
 	// same mounted-frame state every frame's own Piloted checkbox does (see _setMountedFrame), so
@@ -139,6 +148,13 @@ export const FramesSheetMixin = {
 	_onDismount() {
 		if (!this._mountedFrame()) return;
 		this._setMountedFrame(null, null);
+	},
+	// The Part Disabled checkbox's own write path — same manual-tracker shape as
+	// _onEquipmentDisabledToggle (equipment-mixin.js), just keyed by moveUses.<partKey>.disabled
+	// instead of an entry in the equipment array (see _isPartDisabled's own comment).
+	_onPartDisabledToggle(event) {
+		const { part: key } = event.currentTarget.dataset;
+		this.actor.update({ [`system.attributes.moveUses.${key}.disabled`]: event.currentTarget.checked });
 	},
 	// The generic, data-driven half of both Refresh buttons (see _onRefreshScene/_onRefreshSortie)
 	// — walks ALL_MOVES for every `uses` entry whose `period` matches (playbook moves and Astir

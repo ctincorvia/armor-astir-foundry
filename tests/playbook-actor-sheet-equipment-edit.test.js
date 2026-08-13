@@ -30,7 +30,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 		expect(configureEquipment).toHaveBeenCalledWith(entry);
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
-				{ id: "1", spent: ["blitz"], name: "Rations", description: "", kind: "gear", tags: [] },
+				{ id: "1", spent: ["blitz"], disabled: false, name: "Rations", description: "", kind: "gear", tags: [] },
 				other
 			]
 		});
@@ -47,7 +47,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { astirWeapon: true });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
-				{ id: "1", spent: [], name: "Lance II", description: "", kind: "weapon", tags: ["melee"], astir: true }
+				{ id: "1", spent: [], disabled: false, name: "Lance II", description: "", kind: "weapon", tags: ["melee"], astir: true }
 			]
 		});
 	});
@@ -65,6 +65,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 				{
 					id: "1",
 					spent: [],
+					disabled: false,
 					name: "Wisp Familiar",
 					description: "",
 					kind: "weapon",
@@ -98,6 +99,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 				{
 					id: "1",
 					spent: [],
+					disabled: false,
 					name: "Artificers",
 					description: "",
 					kind: "gear",
@@ -130,12 +132,43 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 				{
 					id: "1",
 					spent: [],
+					disabled: false,
 					name: "Artificers",
 					description: "",
 					kind: "gear",
 					tags: [],
 					bonusDowntimeTokens: entry.bonusDowntimeTokens
 				}
+			]
+		});
+	});
+
+	it("carries the disabled flag forward through an edit", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", disabled: true, name: "Halberd", description: "", tags: [], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Halberd+1", description: "", kind: "weapon", tags: [], scale: "foot", tier: 1 });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{ id: "1", spent: [], disabled: true, name: "Halberd+1", description: "", kind: "weapon", tags: [], scale: "foot", tier: 1 }
+			]
+		});
+	});
+
+	it("defaults disabled to false on an edit when the entry never had it set", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Halberd+1", description: "", kind: "weapon", tags: [], scale: "foot", tier: 1 });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{ id: "1", spent: [], disabled: false, name: "Halberd+1", description: "", kind: "weapon", tags: [], scale: "foot", tier: 1 }
 			]
 		});
 	});
@@ -149,7 +182,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.equipment": [{ id: "1", spent: [], name: "Rations", description: "", kind: "gear", tags: [] }]
+			"system.attributes.equipment": [{ id: "1", spent: [], disabled: false, name: "Rations", description: "", kind: "gear", tags: [] }]
 		});
 	});
 
@@ -185,7 +218,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 
 		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
 
-		const edited = { id: "1", spent: [], name: "Lance II", description: "", kind: "weapon", tags: ["drain-2"], astir: true };
+		const edited = { id: "1", spent: [], disabled: false, name: "Lance II", description: "", kind: "weapon", tags: ["drain-2"], astir: true };
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [edited],
 			"system.attributes.astir.power": astirMaxPower([], [edited]),
@@ -206,7 +239,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
-				{ id: "1", spent: [], name: "Sword+1", description: "", kind: "weapon", tags: ["drain-2"], scale: "foot", tier: 1 }
+				{ id: "1", spent: [], disabled: false, name: "Sword+1", description: "", kind: "weapon", tags: ["drain-2"], scale: "foot", tier: 1 }
 			]
 		});
 	});
@@ -341,6 +374,45 @@ describe("PlaybookActorSheet#_onEquipmentTagSpentToggle", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [{ ...entry, spent: ["versatile:strike-decisively", "versatile:exchange-blows"] }]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onEquipmentDisabledToggle", () => {
+	it("sets disabled: true on the matching entry when checked", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+
+		sheet._onEquipmentDisabledToggle({ currentTarget: { dataset: { equipmentId: "1" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, disabled: true }]
+		});
+	});
+
+	it("sets disabled: false on the matching entry when unchecked", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", disabled: true, name: "Halberd", description: "", tags: [], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+
+		sheet._onEquipmentDisabledToggle({ currentTarget: { dataset: { equipmentId: "1" }, checked: false } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, disabled: false }]
+		});
+	});
+
+	it("leaves entries that don't match the toggled id untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const other = { id: "2", kind: "gear", name: "Rations", description: "", tags: [], spent: [] };
+		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = { system: { attributes: { equipment: [entry, other] } }, update: vi.fn() };
+
+		sheet._onEquipmentDisabledToggle({ currentTarget: { dataset: { equipmentId: "1" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, disabled: true }, other]
 		});
 	});
 });

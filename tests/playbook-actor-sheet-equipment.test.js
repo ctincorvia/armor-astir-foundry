@@ -121,7 +121,8 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 					{ key: "strike-decisively", name: "Strike Decisively", gated: false, tooltip: null }
 				],
 				isAstir: false,
-				commanderFeature: false
+				commanderFeature: false,
+				disabled: false
 			}
 		]);
 	});
@@ -336,6 +337,7 @@ describe("PlaybookActorSheet#activateListeners - equipment", () => {
 		expect(html.find).toHaveBeenCalledWith(".equipment-edit");
 		expect(html.find).toHaveBeenCalledWith(".equipment-remove");
 		expect(html.find).toHaveBeenCalledWith(".equipment-tag-spent-checkbox");
+		expect(html.find).toHaveBeenCalledWith(".equipment-disabled-checkbox");
 		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
 		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
 	});

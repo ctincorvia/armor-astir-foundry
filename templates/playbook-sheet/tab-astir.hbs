@@ -85,12 +85,16 @@
 						</div>
 						<ol class="move-list">
 							{{#each astir.parts}}
-							<li class="move">
+							<li class="move{{#if disabled}} move-disabled{{/if}}">
 								<span class="move-name">{{name}}</span>
 								<div class="move-row-controls">
 									<span class="astir-part-tier">Tier {{tier}}</span>
 									<span class="astir-part-type">{{partType}}</span>
 									{{#if powerCost}}<span class="astir-part-power-cost">Power {{powerCost}}</span>{{/if}}
+									<label class="part-disabled-label">
+										<input type="checkbox" class="part-disabled-checkbox" data-part="{{key}}" {{#if disabled}}checked{{/if}}/>
+										Disabled
+									</label>
 									<button type="button" class="astir-part-remove" data-part="{{key}}" aria-label="Remove Astir part">✕</button>
 								</div>
 							</li>
@@ -122,12 +126,16 @@
 						</div>
 						<ol class="equipment-list">
 							{{#each astir.weapons}}
-							<li class="equipment-item" data-equipment-id="{{id}}">
+							<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}" data-equipment-id="{{id}}">
 								<div class="equipment-header">
 									<span class="equipment-name">{{name}}</span>
 									<span class="equipment-value">Value {{value}}</span>
 									<span class="equipment-tier-value">Tier {{tier}}</span>
 									<span class="equipment-scale">{{scaleLabel}}</span>
+									<label class="equipment-disabled">
+										<input type="checkbox" class="equipment-disabled-checkbox" data-equipment-id="{{id}}" {{#if disabled}}checked{{/if}}/>
+										Disabled
+									</label>
 									<div class="equipment-item-controls">
 										<button type="button" class="equipment-edit" data-equipment-id="{{id}}">Edit</button>
 										<button type="button" class="equipment-remove" data-equipment-id="{{id}}" aria-label="Remove equipment">✕</button>

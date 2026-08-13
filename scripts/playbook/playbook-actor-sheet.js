@@ -291,6 +291,8 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".equipment-edit").on("click", this._onEquipmentEdit.bind(this));
 		html.find(".equipment-remove").on("click", this._onEquipmentRemove.bind(this));
 		html.find(".equipment-tag-spent-checkbox").on("change", this._onEquipmentTagSpentToggle.bind(this));
+		html.find(".equipment-disabled-checkbox").on("change", this._onEquipmentDisabledToggle.bind(this));
+		html.find(".part-disabled-checkbox").on("change", this._onPartDisabledToggle.bind(this));
 		html.find(".weapon-move-roll").on("click", this._onWeaponMoveRoll.bind(this));
 		html.find(".astir-create").on("click", this._onAstirCreate.bind(this));
 		html.find(".astir-delete").on("click", this._onAstirDelete.bind(this));

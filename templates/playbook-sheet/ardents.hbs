@@ -42,11 +42,15 @@
 							</div>
 							<ol class="move-list">
 								{{#each parts}}
-								<li class="move">
+								<li class="move{{#if disabled}} move-disabled{{/if}}">
 									<span class="move-name">{{name}}</span>
 									<div class="move-row-controls">
 										<span class="astir-part-tier">Tier {{tier}}</span>
 										<span class="astir-part-type">{{partType}}</span>
+										<label class="part-disabled-label">
+											<input type="checkbox" class="part-disabled-checkbox" data-part="{{key}}" {{#if disabled}}checked{{/if}}/>
+											Disabled
+										</label>
 										<button type="button" class="ardent-part-remove" data-ardent-id="{{../id}}" data-part="{{key}}" aria-label="Remove Ardent part">✕</button>
 									</div>
 								</li>
@@ -62,12 +66,16 @@
 							</div>
 							<ol class="equipment-list">
 								{{#each weapons}}
-								<li class="equipment-item" data-equipment-id="{{id}}">
+								<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}" data-equipment-id="{{id}}">
 									<div class="equipment-header">
 										<span class="equipment-name">{{name}}</span>
 										<span class="equipment-value">Value {{value}}</span>
 										<span class="equipment-tier-value">Tier {{tier}}</span>
 										<span class="equipment-scale">{{scaleLabel}}</span>
+										<label class="equipment-disabled">
+											<input type="checkbox" class="equipment-disabled-checkbox" data-equipment-id="{{id}}" {{#if disabled}}checked{{/if}}/>
+											Disabled
+										</label>
 										<div class="equipment-item-controls">
 											<button type="button" class="equipment-edit" data-equipment-id="{{id}}">Edit</button>
 											<button type="button" class="equipment-remove" data-equipment-id="{{id}}" aria-label="Remove equipment">✕</button>
@@ -114,11 +122,15 @@
 							</div>
 							<ol class="move-list">
 								{{#each featureParts}}
-								<li class="move">
+								<li class="move{{#if disabled}} move-disabled{{/if}}">
 									<span class="move-name">{{name}}</span>
 									<div class="move-row-controls">
 										<span class="astir-part-tier">Tier {{tier}}</span>
 										<span class="astir-part-type">{{partType}}</span>
+										<label class="part-disabled-label">
+											<input type="checkbox" class="part-disabled-checkbox" data-part="{{key}}" {{#if disabled}}checked{{/if}}/>
+											Disabled
+										</label>
 										<button type="button" class="ardent-part-remove" data-ardent-id="{{../id}}" data-part="{{key}}" aria-label="Remove Ardent Feature part">✕</button>
 									</div>
 								</li>
@@ -126,12 +138,16 @@
 							</ol>
 							<ol class="equipment-list">
 								{{#each featureWeapons}}
-								<li class="equipment-item" data-equipment-id="{{id}}">
+								<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}" data-equipment-id="{{id}}">
 									<div class="equipment-header">
 										<span class="equipment-name">{{name}}</span>
 										<span class="equipment-value">Value {{value}}</span>
 										<span class="equipment-tier-value">Tier {{tier}}</span>
 										<span class="equipment-scale">{{scaleLabel}}</span>
+										<label class="equipment-disabled">
+											<input type="checkbox" class="equipment-disabled-checkbox" data-equipment-id="{{id}}" {{#if disabled}}checked{{/if}}/>
+											Disabled
+										</label>
 										<div class="equipment-item-controls">
 											<button type="button" class="equipment-edit" data-equipment-id="{{id}}">Edit</button>
 											<button type="button" class="equipment-remove" data-equipment-id="{{id}}" aria-label="Remove equipment">✕</button>
