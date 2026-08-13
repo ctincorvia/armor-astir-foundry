@@ -33,7 +33,7 @@ export const CUSTOM_WEAPON_EXCLUDED_TAG_KEYS = ["valuable", "treasure"];
 // budget differs from the default (The Scout's is +2; every other pool with a customWeaponNote
 // today just takes the default of +0).
 // `freeformNotes` are narrative-only lines with no mechanical hook (e.g. "Any tier I weapons that
-// feel appropriate"), transcribed as prose per claude.md's "systems that do not exist yet" guidance
+// feel appropriate"), transcribed as prose per docs/domains/moves.md's "systems that do not exist yet" guidance
 // rather than modeled.
 //
 // `grantedItems` (The Impostor's Augments I) are equipment every character of that playbook just
@@ -511,7 +511,7 @@ export const STARTING_GEAR_POOLS = [
 						// The rulebook parenthetical for this item also lists "arcane", which is not a real
 						// EQUIPMENT_TAGS key anywhere in this module (grep equipment.js's EQUIPMENT_TAGS —
 						// only melee/ranged/sniper/bane/defensive/ward/etc. exist, no "arcane"). Per
-						// claude.md's "systems that do not exist yet" guidance, only the real tag is kept.
+						// docs/domains/moves.md's "systems that do not exist yet" guidance, only the real tag is kept.
 						description: "You're fairly sure it used to be something else. Now it's for hitting people with.",
 						kind: "weapon",
 						tags: ["melee"]

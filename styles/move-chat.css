@@ -1,0 +1,278 @@
+/* The entire .armor-astir-move-chat chat-card tree: reroll/automatic-success/heat-up buttons,
+   dice display, hold/reminders, critical badges. Split out of playbook-actor-sheet.css; depends on
+   styles/tokens.css for var(--aa-*), but must NOT load before it. */
+
+/* Foundry's chat-message.html renders our whole flavor (this entire .armor-astir-move-chat tree)
+   inside <span class="flavor-text"> in the card's <header>, while its own dice-roll box (the
+   "2d6 + 2" formula pill + total) is a separate sibling <div class="message-content"> right after
+   </header> — core sets no margin on either boundary, so whatever renders last in here (usually
+   the Reroll button) sits flush against Foundry's own roll display with zero gap. This margin is
+   what puts space back between the two; it has to live on the outermost element since a flex
+   item's margin (flavor-text is a flex child of the header) doesn't collapse through its
+   container the way a normal block margin would. */
+.armor-astir-move-chat {
+	margin-bottom: var(--aa-space-2);
+}
+
+/* Applied when a reroll (Decisive/Defensive/Versatile) or Heat Up supersedes this card's result —
+   see move-chat-listeners.js#handleReroll/handleHeatUp, which edit the original message's flavor
+   in place to add this flag before posting the new roll as a fresh message. */
+.armor-astir-move-chat.superseded {
+	text-decoration: line-through;
+}
+
+.armor-astir-move-chat .move-name {
+	margin: 0 0 var(--aa-space-1);
+}
+
+.armor-astir-move-chat .move-roll-result {
+	display: flex;
+	flex-direction: row;
+	align-items: baseline;
+	gap: var(--aa-space-2);
+}
+
+.armor-astir-move-chat .move-tier {
+	font-weight: bold;
+}
+
+.armor-astir-move-chat .move-tier-success {
+	color: #18520b;
+}
+
+.armor-astir-move-chat .move-tier-mixed {
+	color: #8a6d00;
+}
+
+.armor-astir-move-chat .move-tier-failure {
+	color: var(--aa-danger);
+}
+
+/* Layered on top of move-tier-success (a 12+ still resolves tier "success" — see
+   moves.js#isCriticalResult) rather than replacing it, so a gold accent plus a little letter-
+   spacing is enough to read as "upgraded" without a whole second color needing its own contrast
+   check. */
+.armor-astir-move-chat .move-tier-critical {
+	color: #8a6300;
+	letter-spacing: 0.03em;
+	text-shadow: 0 0 6px rgba(255, 191, 0, 0.35);
+}
+
+.armor-astir-move-chat .move-result-text {
+	margin: var(--aa-space-1) 0 0;
+}
+
+.armor-astir-move-chat .move-result-text p {
+	margin: var(--aa-space-1) 0 0;
+}
+
+.armor-astir-move-chat .move-result-text p:first-child {
+	margin-top: 0;
+}
+
+.armor-astir-move-chat .move-result-text ul {
+	margin: var(--aa-space-1) 0 0;
+	padding-left: 18px;
+}
+
+.armor-astir-move-chat .move-result-text li {
+	margin: 1px 0;
+}
+
+.armor-astir-move-chat .move-hold {
+	margin: var(--aa-space-1) 0 0;
+}
+
+.armor-astir-move-chat .move-hold-count {
+	font-weight: bold;
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir-move-chat .move-hold-prompt {
+	margin: 2px 0 0;
+	font-size: 12px;
+	font-style: italic;
+}
+
+.armor-astir-move-chat .move-questions {
+	margin: 2px 0 0;
+	padding-left: 18px;
+	font-size: 12px;
+}
+
+.armor-astir-move-chat .move-questions li {
+	margin: 1px 0;
+}
+
+.armor-astir-move-chat .move-reminders {
+	margin: var(--aa-space-1) 0 0;
+	padding: 2px 6px 2px 20px;
+	border-left: 3px solid var(--aa-danger);
+	font-weight: bold;
+}
+
+.armor-astir-move-chat .move-reminders li {
+	margin: 1px 0;
+}
+
+/* Same solid-primary treatment as the sheet's own Roll/Activate buttons (see the sheet's
+   .move-roll rule) — this is chrome the player acts on too, just rendered on a chat card instead
+   of the sheet, so it can't share that rule's `.armor-astir.sheet` scope. Shared by every chat-card
+   action button (Reroll, Automatic Success, Add Advantage, Add Disadvantage) — they're styled
+   identically. */
+.armor-astir-move-chat .move-reroll,
+.armor-astir-move-chat .move-automatic-success,
+.armor-astir-move-chat .move-heatup,
+.armor-astir-move-chat .move-add-advantage,
+.armor-astir-move-chat .move-add-disadvantage {
+	padding: var(--aa-space-1) var(--aa-space-2);
+	border: 1px solid var(--aa-primary);
+	border-radius: var(--aa-radius);
+	background: var(--aa-primary);
+	color: #fff;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.armor-astir-move-chat .move-reroll,
+.armor-astir-move-chat .move-automatic-success,
+.armor-astir-move-chat .move-heatup {
+	margin-top: var(--aa-space-1);
+}
+
+/* Side by side rather than each stretching full-width — buttons are flex containers by Foundry's
+   own core style, so without a flex-row parent each one fills its own row. */
+.armor-astir-move-chat .move-advantage-controls {
+	display: flex;
+	gap: var(--aa-space-1);
+	margin-top: var(--aa-space-1);
+}
+
+.armor-astir-move-chat .move-reroll:hover,
+.armor-astir-move-chat .move-automatic-success:hover,
+.armor-astir-move-chat .move-heatup:hover,
+.armor-astir-move-chat .move-add-advantage:hover,
+.armor-astir-move-chat .move-add-disadvantage:hover {
+	background: var(--aa-primary-dark);
+}
+
+/* Same tint/-dark swap as the sheet's own solid disabled buttons (see .move-roll.disabled) —
+   opacity alone faded the primary fill and white text to unreadable gray-on-gray. */
+.armor-astir-move-chat .move-reroll:disabled,
+.armor-astir-move-chat .move-automatic-success:disabled,
+.armor-astir-move-chat .move-heatup:disabled,
+.armor-astir-move-chat .move-add-advantage:disabled,
+.armor-astir-move-chat .move-add-disadvantage:disabled {
+	background: var(--aa-primary-tint);
+	border-color: var(--aa-primary-tint);
+	color: var(--aa-primary-dark);
+	opacity: 1;
+	cursor: not-allowed;
+}
+
+.armor-astir-move-chat .move-conditions {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-1);
+	margin-top: var(--aa-space-1);
+}
+
+.armor-astir-move-chat .move-condition {
+	padding: 1px 6px;
+	border-radius: var(--aa-radius);
+	font-size: 11px;
+	font-weight: bold;
+	color: #fff;
+}
+
+.armor-astir-move-chat .move-condition-advantage,
+.armor-astir-move-chat .move-condition-advantage2 {
+	background: #18520b;
+}
+
+.armor-astir-move-chat .move-condition-disadvantage,
+.armor-astir-move-chat .move-condition-disadvantage2 {
+	background: var(--aa-danger);
+}
+
+/* -dark, not the base: these chips carry white text, and the secondary gem at full strength is
+   too pale to sit under it (see the role-token note at the top of this file). */
+.armor-astir-move-chat .move-condition-confidence,
+.armor-astir-move-chat .move-condition-desperation {
+	background: var(--aa-secondary-dark);
+}
+
+.armor-astir-move-chat .move-condition-downtime,
+.armor-astir-move-chat .move-condition-prior-help,
+.armor-astir-move-chat .move-condition-hook {
+	background: #6b5b1e;
+}
+
+/* One rule per equipment tag key, same as the Help or Hinder conditions above — a future tag
+   added to EQUIPMENT_TAGS (equipment.js) without its own rule here still renders, just without a
+   background color. */
+.armor-astir-move-chat .move-condition-blitz {
+	background: #1e6b5b;
+}
+
+.armor-astir-move-chat .move-dice {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-1);
+	margin: var(--aa-space-1) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir-move-chat .move-die {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: 3px;
+	padding: 1px 6px;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	font-size: 12px;
+	font-weight: bold;
+}
+
+.armor-astir-move-chat .move-die-dropped {
+	opacity: 0.5;
+	text-decoration: line-through;
+}
+
+.armor-astir-move-chat .move-die-changed {
+	border-color: var(--aa-secondary-dark);
+}
+
+.armor-astir-move-chat .move-die-success {
+	border-color: var(--aa-secondary-dark);
+}
+
+.armor-astir-move-chat .move-die-original {
+	opacity: 0.6;
+	text-decoration: line-through;
+	font-weight: normal;
+}
+
+/* Number Of The Beast's exploded dice (see moves.js#explodeSixes) — same .move-die look as the
+   normal dice list, just marked out with the secondary-dark border every changed die already gets,
+   so a run of exploded 6's reads as visually distinct from the roll's own kept/dropped dice. */
+.armor-astir-move-chat .move-die-exploded {
+	border-color: var(--aa-secondary-dark);
+}
+
+/* Number Of The Beast's "killed in a spectacular fashion" badge — deliberately unmissable, the
+   same --aa-danger fill the sheet's own DEFENSELESS indicator uses, since this has no automatic
+   consequence anywhere in this module (see claude.md) and depends entirely on the table noticing
+   it in chat. */
+.armor-astir-move-chat .move-beast-trigger {
+	margin-top: var(--aa-space-1);
+	padding: var(--aa-space-1) var(--aa-space-2);
+	border-radius: var(--aa-radius);
+	background: var(--aa-danger);
+	color: #fff;
+	font-weight: 700;
+}

@@ -51,7 +51,7 @@ Before writing any code for a genuinely new mechanic:
 
 ## 2. Data-only checklist (no design judgment — copy the pattern of the most recent prior playbook)
 
-Find the most recently added playbook's commit (`git log --oneline -- scripts/moves/playbook-moves.js`
+Find the most recently added playbook's commit (`git log --oneline -- scripts/moves/move-pools/`
 or similar) and mirror its shape field-for-field for:
 
 - `scripts/actor-creation.js` — `PLAYBOOKS` entry (`packId`, `name`).
@@ -64,9 +64,11 @@ or similar) and mirror its shape field-for-field for:
   `pickOneKeys`, `chooseCount`) — only needed if the playbook grants a pick from its own pool at
   creation (e.g. an Astir's bonus move); otherwise this step may be a no-op, confirm against the
   rules text.
-- `scripts/moves/playbook-moves.js` — new `MOVE_POOLS` entry (`key`, `label`, `playbookName`,
-  `moves`), inserted after the last existing entry. Every move key is pool-prefixed (`<slug>:move-
-  key>`).
+- `scripts/moves/move-pools/<slug>.js` — new pool file exporting one `{ key, label, playbookName,
+  moves }` object (mirror an existing pool file's shape exactly), then register it in
+  `scripts/moves/move-pools/index.js`: add the import and append it to the exported `MOVE_POOLS`
+  array, after the last existing entry. `scripts/moves/playbook-moves.js` itself is a barrel and
+  needs no edit for this. Every move key is pool-prefixed (`<slug>:move-key>`).
 - `src/packs/basic-playbook-<slug>/character_<Name>_<fresh-8-char-id>.json` — copy the most recent
   prior playbook's compendium source doc structure exactly; generate a **fresh** random 8-char
   alphanumeric id, never reuse another playbook's.
@@ -118,8 +120,11 @@ Mirror the shape of the most recent prior playbook's test additions:
   `tests/gravity-triggers.test.js`, `tests/playbook-flavor.test.js`, `tests/starting-gear.test.js`,
   `tests/starting-moves.test.js`, `tests/playbook-moves.test.js` (pool shape + the generic
   move-key-uniqueness assertion picks up new keys automatically).
-- Extend `tests/moves.test.js` / `tests/move-chat-listeners.test.js` for any new mechanic function
-  (e.g. a new pure dice-math helper, a new spend branch).
+- Extend the relevant `tests/move-*.test.js` file (`moves.test.js` was split by concern — see
+  `move-roll.test.js`, `move-roll-modifiers.test.js`, `move-roll-dialog.test.js`, `move-dice.test.js`,
+  `move-output.test.js`, `move-helpers.test.js`, `move-roll-moves.test.js`; match the new mechanic to
+  whichever file already covers that function) or `tests/move-chat-listeners.test.js`, for any new
+  mechanic function (e.g. a new pure dice-math helper, a new spend branch).
 - Check `tests/actor-creation.test.js` for a fixed-length/fixed-list assertion over `PLAYBOOKS`
   before assuming it needs no change — it hasn't, the last several times, because it's scoped
   generically, but verify by inspection each time rather than assuming.

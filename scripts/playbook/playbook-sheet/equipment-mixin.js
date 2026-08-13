@@ -81,7 +81,7 @@ export const EquipmentSheetMixin = {
 	// `frame` (the owning Astir's raw data, or an Ardent's — either just needs a `.tier` — or null)
 	// is only ever needed for an entry flagged astir: true or ardent: "<id>" (see astir.js/
 	// ardent.js) — such an entry never stores its own scale/tier, inheriting its frame's Tier and
-	// the "astir" WEAPON_SCALES entry instead (an Ardent weapon is Astir-scale too — see claude.md's
+	// the "astir" WEAPON_SCALES entry instead (an Ardent weapon is Astir-scale too — see docs/domains/frames.md's
 	// Ardents section), so isAstir tells the template to render that as read-only text rather than
 	// a stepper/select. A mundane weapon likewise never stores its own tier — it derives from
 	// _conflictTier().base, the character's own on-foot Tier, rather than the frame's (`.effective`
@@ -170,7 +170,7 @@ export const EquipmentSheetMixin = {
 		const spends = [];
 		for (const entry of this._equipment()) {
 			// A weapon belonging to a frame other than the one currently mounted (or, for a mundane
-			// weapon, any frame being mounted at all — see claude.md's Piloted note) never offers its
+			// weapon, any frame being mounted at all — see docs/domains/frames.md's Piloted note) never offers its
 			// tags, regardless of `weapon`/scoped (this is the one spot that isn't already reached
 			// through _onMoveRoll's own frame filter, since a non-usesWeapon move leaves `weapon`
 			// undefined and scoped false). Gear is untouched.
@@ -213,7 +213,7 @@ export const EquipmentSheetMixin = {
 			tags: item.tags ?? [],
 			...(item.kind === "weapon" && { scale: item.scale ?? "foot" }),
 			// Artificers (The Attendant) — a Bonus Downtime Tokens grant carried through the
-			// snapshot the same way any other starting-gear-picked field is (see claude.md,
+			// snapshot the same way any other starting-gear-picked field is (see docs/domains/equipment.md,
 			// "Equipment").
 			...(item.bonusDowntimeTokens && { bonusDowntimeTokens: item.bonusDowntimeTokens })
 		};
@@ -299,7 +299,7 @@ export const EquipmentSheetMixin = {
 	// which template to start from, then the exact same editor _onEquipmentAdd uses opens
 	// pre-filled with it — the player can still rename it, add/drop tags, or adjust tier before
 	// saving, same as any custom entry. A catalog pick is a snapshot, not a reference (see
-	// claude.md, "Equipment"): nothing about the saved entry records which catalog item it came
+	// docs/domains/equipment.md, "Equipment"): nothing about the saved entry records which catalog item it came
 	// from, so it's indistinguishable from hand-authored equipment from this point on.
 	async _onEquipmentCatalogAdd(event) {
 		const { kind } = event.currentTarget.dataset;
@@ -318,7 +318,7 @@ export const EquipmentSheetMixin = {
 	// customWeaponNote, e.g. The Commander before its pool is filled in). Each half resolves null
 	// independently on cancel — cancelling one still saves the other if it was completed — and
 	// picked gear items are saved as ordinary snapshot equipment entries, same treatment as a
-	// catalog pick (see claude.md, "Equipment").
+	// catalog pick (see docs/domains/equipment.md, "Equipment").
 	//
 	// Availability is a live emptiness check (see getData's startingGear.available), not a
 	// one-time flag — so a fully-cancelled run leaves the actor untouched and the button available

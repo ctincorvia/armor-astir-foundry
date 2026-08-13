@@ -156,7 +156,7 @@ export const SummonerSheetMixin = {
 	},
 	// Downtime Ally CRUD — a single slot rather than an id-keyed list (see _downtimeAlly), so this
 	// is bespoke rather than entry-list.js's generic helpers, the same reasoning Ardent Repair
-	// Tokens' own manual handler gives for a per-entry field in claude.md's Ardents section.
+	// Tokens' own manual handler gives for a per-entry field in docs/domains/frames.md's Ardents section.
 	_onDowntimeAllyAdd() {
 		if (this._downtimeAlly()) return;
 		this.actor.update({ "system.attributes.downtimeAlly": { name: "", powerInvested: 0 } });

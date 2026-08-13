@@ -10,7 +10,7 @@ export const CARRIER_ACTOR_TYPE = "armor-astir.carrier";
 const CREW_MIN = -3;
 const CREW_MAX = 3;
 
-// Carriers can carry at most two weapons (see claude.md, "World actors").
+// Carriers can carry at most two weapons (see docs/domains/world-actors.md, "World actors").
 const MAX_WEAPONS = 2;
 
 // The only two moves that use a weapon at all (Exchange Blows, Strike Decisively — see

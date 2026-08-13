@@ -16,6 +16,10 @@ import { FramesSheetMixin } from "./playbook-sheet/frames-mixin.js";
 import { AstirSheetMixin } from "./playbook-sheet/astir-mixin.js";
 import { EquipmentSheetMixin } from "./playbook-sheet/equipment-mixin.js";
 import { MovesSheetMixin } from "./playbook-sheet/moves-mixin.js";
+import { MoveTraitsSheetMixin } from "./playbook-sheet/move-traits-mixin.js";
+import { MoveGrantsSheetMixin } from "./playbook-sheet/move-grants-mixin.js";
+import { MoveTrackingSheetMixin } from "./playbook-sheet/move-tracking-mixin.js";
+import { MoveRollSheetMixin } from "./playbook-sheet/move-roll-mixin.js";
 import { PatronSheetMixin } from "./playbook-sheet/patron-mixin.js";
 import { HomeSheetMixin } from "./playbook-sheet/home-mixin.js";
 import { SummonerSheetMixin } from "./playbook-sheet/summoner-mixin.js";
@@ -135,7 +139,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		// hand-rolling gating) means these buttons inherit the exact same, already-tested `gated`
 		// semantics as the Moves tab's own Roll buttons for free.
 		// A weapon's quick-roll buttons only work while its own owning frame is the one currently
-		// mounted (see claude.md's Piloted note and _weaponFrameId) — a mundane weapon's frame id is
+		// mounted (see docs/domains/frames.md's Piloted note and _weaponFrameId) — a mundane weapon's frame id is
 		// null, so `frameWeaponMoves(null)` gates it whenever anything at all is mounted. Every
 		// frame's set is derived independently from the same ungated base rather than negating one
 		// another, so mounting frame A can never accidentally leave frame B's buttons enabled too.
@@ -329,7 +333,8 @@ export class PlaybookActorSheet extends ActorSheet {
 Object.assign(
 	PlaybookActorSheet.prototype,
 	TrackingSheetMixin, ProgressionSheetMixin, ArdentSheetMixin, FramesSheetMixin,
-	AstirSheetMixin, EquipmentSheetMixin, MovesSheetMixin, PatronSheetMixin, HomeSheetMixin,
+	AstirSheetMixin, EquipmentSheetMixin, MovesSheetMixin, MoveTraitsSheetMixin, MoveGrantsSheetMixin,
+	MoveTrackingSheetMixin, MoveRollSheetMixin, PatronSheetMixin, HomeSheetMixin,
 	SummonerSheetMixin
 );
 

@@ -1,0 +1,555 @@
+/* Sheet layout: the sticky Dangers/Tabs columns, Dangers list, Patron section, Gravity Clocks,
+   generic Clocks, Burdens, the tab nav chrome, Astir/Ardent identity sections, and tab
+   visibility/scroll overrides. Split out of playbook-actor-sheet.css; depends on styles/tokens.css
+   for var(--aa-*). */
+
+.armor-astir.sheet .sheet-main {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: var(--aa-space-3);
+}
+
+/* Sticky rather than a second clipped scroll region — see .sheet-body below for why. No
+   background needed: unlike .sheet-tabs below, .dangers-column sits beside the tab content, not
+   above it, so nothing ever scrolls underneath it once it's stuck — .sheet-header/.status-row
+   are gone from view (scrolled fully past y:0) by the time this is stuck, not hiding behind it.
+   padding-top is deliberately on the sticky element itself, not a gap left in .window-content
+   above it (see that rule's own comment for why the latter reintroduces the scroll-leak bug this
+   is fixing) — matches .sheet-tabs' own top padding below so the two columns still start flush
+   together once stuck, instead of landing flush against the window header with no breathing room
+   (the "meshing"/jittery look a first attempt at this had). */
+.armor-astir.sheet .dangers-column {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-3);
+	flex: 0 0 170px;
+	/* Without this, a flex item's automatic minimum width is its content's min-content size —
+	   a long, unbroken danger label would force the column past its 170px basis and drag the
+	   remove button out past the column's right edge with it. */
+	min-width: 0;
+	position: sticky;
+	top: 0;
+	padding-top: var(--aa-space-3);
+}
+
+.armor-astir.sheet .sheet-tabs-column {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.armor-astir.sheet .at-helm-label {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	margin: 0 0 var(--aa-space-2);
+	font-weight: bold;
+}
+
+.armor-astir.sheet .defenseless-label {
+	margin: 0 0 var(--aa-space-2);
+	padding: var(--aa-space-1) var(--aa-space-2);
+	border-radius: var(--aa-radius);
+	background: var(--aa-danger-tint);
+	font-weight: 700;
+	font-size: 11px;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	text-align: center;
+	color: var(--aa-danger);
+}
+
+.armor-astir.sheet .danger-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Grid (not flex+space-between) so the remove button always sits in the same fixed-width
+   second column, regardless of how long or short each row's label is — that's what keeps
+   every button aligned in a straight vertical line down the column. minmax(0, 1fr) on the
+   label column is what lets it shrink to fit instead of forcing the row past 170px. The left
+   border reads Peril vs Risk apart at a glance, on top of the label's own weight/color. */
+.armor-astir.sheet .danger-item {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--aa-space-2);
+	padding: var(--aa-space-1) var(--aa-space-2);
+	border-left: 3px solid transparent;
+}
+
+.armor-astir.sheet .danger-label {
+	overflow-wrap: anywhere;
+}
+
+.armor-astir.sheet .danger-peril {
+	border-left-color: var(--aa-danger);
+	background: var(--aa-danger-tint);
+}
+
+.armor-astir.sheet .danger-peril .danger-label {
+	font-weight: bold;
+	color: var(--aa-danger);
+}
+
+.armor-astir.sheet .danger-risk {
+	border-left-color: var(--color-border-light-tertiary, #c9c7b8);
+}
+
+.armor-astir.sheet .danger-risk .danger-label {
+	font-weight: normal;
+	color: inherit;
+}
+
+/* Marks the currently-summoned ally on the Bound Allies roster (see claude.md's Astir section on
+   Eidolon Drive) — the roster's own left-border + tint treatment, same shape as .danger-peril
+   above, but in secondary tokens since this is the player's own tracked state (which ally is
+   active right now), not chrome. Since Eidolon Drive's redundant uses checkbox was removed, this
+   is now the only on-sheet indicator of who's summoned, so it has to read clearly at a glance. */
+.armor-astir.sheet .entry-list-item.summoned {
+	border-left: 3px solid var(--aa-secondary-dark);
+	background: var(--aa-secondary-tint);
+}
+
+/* Paradigm's Shaken checkbox on a Tenet (a Hook entry, isParadigm-gated — see claude.md's Tenets
+   notes) — same inline label/checkbox pairing as world-actor-sheet.css's own .faction-flag-label,
+   mirrored here since the two sheets' CSS stays in separate files. */
+.armor-astir.sheet .hook-flag-label {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex: 0 0 auto;
+	gap: var(--aa-space-1);
+	white-space: nowrap;
+}
+
+/* Every small square icon-button that removes a list entry — Danger, Gravity Clock, Playbook
+   Move, Equipment, Astir Part/Move, the Astir itself — was four byte-identical rules; one
+   consolidated rule instead. */
+.armor-astir.sheet .danger-remove,
+.armor-astir.sheet .gravity-clock-remove,
+.armor-astir.sheet .clock-remove,
+.armor-astir.sheet .ace-crew-remove,
+.armor-astir.sheet .hook-remove,
+.armor-astir.sheet .playbook-move-remove,
+.armor-astir.sheet .equipment-remove,
+.armor-astir.sheet .astir-part-remove,
+.armor-astir.sheet .astir-move-remove,
+.armor-astir.sheet .astir-delete {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	line-height: 1;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .danger-remove:hover,
+.armor-astir.sheet .gravity-clock-remove:hover,
+.armor-astir.sheet .clock-remove:hover,
+.armor-astir.sheet .ace-crew-remove:hover,
+.armor-astir.sheet .hook-remove:hover,
+.armor-astir.sheet .playbook-move-remove:hover,
+.armor-astir.sheet .equipment-remove:hover,
+.armor-astir.sheet .astir-part-remove:hover,
+.armor-astir.sheet .astir-move-remove:hover,
+.armor-astir.sheet .astir-delete:hover {
+	border-color: var(--aa-danger);
+	color: var(--aa-danger);
+}
+
+.armor-astir.sheet .danger-add-controls {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+	margin-top: var(--aa-space-2);
+}
+
+.armor-astir.sheet .controls-actions {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-2);
+}
+
+.armor-astir.sheet .controls-actions button {
+	width: 100%;
+	padding: var(--aa-space-1) var(--aa-space-2);
+}
+
+/* Small square "+" buttons that live in a .section-header-actions cluster (Playbook Move,
+   Weapons x3, Gear x2, Gravity Clock, Dangers) — sized to sit next to the header text instead of
+   stretching the full row width the way the old standalone "+ Add X" buttons did. */
+.armor-astir.sheet .icon-add-button {
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	line-height: 1;
+	font-size: 14px;
+}
+
+/* Starting Moves / Starting Gear carry a text label (not just "+"), so they need to grow past
+   the square icon-add-button sizing above instead of clipping their own text. */
+.armor-astir.sheet .icon-add-button.labeled-add-button {
+	width: auto;
+	height: auto;
+	padding: var(--aa-space-1) var(--aa-space-2);
+	font-size: 12px;
+	white-space: nowrap;
+}
+
+/* Static playbook prose, not a tracker — a callout reads better than a structural panel here.
+   The secondary color marks it as tied to the player's own Gravity Clocks below it. */
+.armor-astir.sheet .gravity-trigger {
+	padding: var(--aa-space-2) var(--aa-space-3);
+	border-left: 3px solid var(--aa-secondary);
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-tint);
+}
+
+.armor-astir.sheet .gravity-trigger-text {
+	margin: var(--aa-space-1) 0 0;
+	font-size: 12px;
+	font-style: italic;
+	line-height: 1.5;
+	color: var(--aa-secondary-dark);
+}
+
+/* The Witch-only Patron section (Social tab, gated on isWitch) — Influence reuses the existing
+   .power-control stepper styling as-is; only the Boons list below needs its own rules. */
+.armor-astir.sheet .patron-boons-list {
+	margin: var(--aa-space-2) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .patron-boon-item {
+	padding: var(--aa-space-2) 0;
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.sheet .patron-boon-name {
+	font-weight: bold;
+}
+
+/* Secondary role token, same "this is the player's own tracked state" marking the equipment tag
+   label and Gravity Clock pips already use — a held Boon is highlighted the same way. */
+.armor-astir.sheet .patron-boon-item.held .patron-boon-name {
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir.sheet .patron-boon-description {
+	margin: var(--aa-space-1) 0 0;
+	font-size: 12px;
+}
+
+.armor-astir.sheet .gravity-clock-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .gravity-clock-item {
+	padding: var(--aa-space-2) 0;
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.sheet .gravity-clock-header {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+}
+
+.armor-astir.sheet .gravity-clock-label-input {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.armor-astir.sheet .gravity-clock-body {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--aa-space-2);
+	margin-top: var(--aa-space-2);
+}
+
+.armor-astir.sheet .gravity-clock-track {
+	display: flex;
+	flex-direction: row;
+	gap: var(--aa-space-2);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .gravity-clock-value-control {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+	flex: 0 0 auto;
+}
+
+/* Generic narrative clocks (clocks.js) — same list/item/header/track shape as Gravity Clocks
+   above, minus the secondary value stepper Gravity Clocks alone carry, plus a Steps number input
+   since each clock here carries its own step count rather than one shared constant. */
+.armor-astir.sheet .clock-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .clock-item {
+	padding: var(--aa-space-2) 0;
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.sheet .clock-header {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+}
+
+.armor-astir.sheet .clock-label-input {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.armor-astir.sheet .clock-steps-control {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+	flex: 0 0 auto;
+}
+
+.armor-astir.sheet .clock-steps-input {
+	width: 3em;
+}
+
+.armor-astir.sheet .clock-track {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-2);
+	margin: var(--aa-space-2) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .burden-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Grid, not flex — same reasoning as .danger-item/.move above: a variable-length label paired
+   with a fixed remove button lands in the same column on every row. minmax(0, 1fr) lets the
+   input shrink below its content's min-content size instead of overflowing. */
+.armor-astir.sheet .burden-item {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--aa-space-2);
+	padding: var(--aa-space-1) 0;
+}
+
+/* No top margin: .sheet-main lays .dangers-column and .sheet-tabs-column side by side from the
+   same y, so any top margin here would drop the tab nav below the Dangers panel's top edge and
+   visibly break the two columns' alignment. Sticky for the same reason as .dangers-column above —
+   both start at the same y-offset, so pinning both to top: 0 keeps them aligned while stuck.
+   Unlike .dangers-column, this needs an opaque background: .sheet-body's own content scrolls up
+   underneath this nav once it's stuck, and pbta's system CSS (not core Foundry's) is what actually
+   paints .window-content's background here — #fff plus its concrete-seamless.webp texture (see
+   pbta's src/styles/src/global/application/_window.scss) — so that's what has to be matched for
+   the seam to be invisible. */
+/* justify-content: flex-start overrides core Foundry's .tabs class (space-around), which would
+   otherwise redistribute any leftover width as extra gaps that grow/shrink with the window —
+   gap below is what gives every tab (including the two edges, via this rule's own padding) even,
+   fixed spacing regardless of window width. */
+/* z-index is required, not decorative: with neither this nor .dangers-column set, the browser was
+   letting the moves/equipment/etc. content scrolling underneath this stuck nav win the paint order
+   in practice, so a sliver of the last-scrolled row showed through above the nav instead of staying
+   hidden behind its opaque background. This pins the nav unambiguously on top. */
+/* The extra top padding (vs. the other three sides) is breathing room from the window header once
+   this is stuck flush against .window-content's top edge — matches .dangers-column's own added
+   padding-top for the same reason (see its comment) and by the same amount, so the two columns
+   don't land flush against the window header with nothing between them. No border-top directly on
+   this element for the same reason .dangers-panel (nested inside the padded .dangers-column)
+   doesn't carry its own border on the outer sticky column either: a border paints at an element's
+   own outer edge, *before* its padding, so one here would stay flush against the window header
+   even once the padding pushed the tab labels down, doubling up against the window header's own
+   border-bottom instead of separating from it. See the ::before rule below for the border this
+   lost — same idea as .dangers-panel's nesting, without needing a template change to add a real
+   nested element. border-top: none is a separate override of a *different* border than the one
+   just discussed — core Foundry's own public/css/style.css applies `.sheet nav.sheet-tabs { margin:
+   4px 0; border-top/border-bottom: 1px solid var(--color-border-light-primary); }` to any sheet's
+   tab nav generically (this selector's higher specificity already wins over margin/border-bottom
+   above without needing !important); its border-top was the actual extra line sitting between this
+   nav and .spotlight above it — nothing to do with this module's own (already-absent) border-top. */
+.armor-astir.sheet .sheet-tabs {
+	margin: 0 0 var(--aa-space-3);
+	padding: var(--aa-space-3) var(--aa-space-2) var(--aa-space-1);
+	border-top: none;
+	border-bottom: 2px solid var(--aa-primary);
+	position: sticky;
+	top: 0;
+	z-index: 1;
+	background: #fff url("/systems/pbta/assets/concrete-seamless.webp");
+	justify-content: flex-start;
+	gap: var(--aa-space-3);
+}
+
+/* Restores a visible top edge for alignment against .dangers-panel's own border, which (being
+   nested inside the padded .dangers-column, unlike anything here) sits var(--aa-space-3) below
+   .dangers-column's top edge — without this, .sheet-tabs has no visible marker at all for where
+   its equivalent padding-top starts (its background reads as plain white against the page), so
+   the two looked misaligned side by side despite having identical padding. Positioned via the
+   sticky .sheet-tabs itself as containing block (position: sticky establishes one for absolutely
+   positioned descendants the same as relative/fixed do) rather than a real border-top on .sheet-tabs
+   — see that rule's own comment for why a real border there reintroduces the window-header seam. */
+.armor-astir.sheet .sheet-tabs::before {
+	content: "";
+	position: absolute;
+	top: var(--aa-space-3);
+	left: 0;
+	right: 0;
+	border-top: var(--aa-border);
+}
+
+.armor-astir.sheet .sheet-tabs .item {
+	padding: var(--aa-space-1) var(--aa-space-1) calc(var(--aa-space-1) + 2px);
+	border-bottom: 2px solid transparent;
+	font-weight: 700;
+	font-size: 12px;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	color: var(--color-text-dark-secondary, #666);
+	cursor: pointer;
+}
+
+.armor-astir.sheet .sheet-tabs .item:hover {
+	color: var(--aa-primary-dark);
+}
+
+.armor-astir.sheet .sheet-tabs .item.active {
+	border-bottom-color: var(--aa-primary);
+	color: var(--aa-primary-dark);
+}
+
+/* Core/Approach/Tier sit in one row on the Astir tab's identity section — each select keeps its
+   own label above it via .form-group (pbta's own styling, same as the header's Name/Callsign
+   fields), this just lays the three fields out side by side. */
+.armor-astir.sheet .astir-identity-fields {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--aa-space-4);
+	margin: var(--aa-space-2) 0 var(--aa-space-3);
+}
+
+/* The Astir's own portrait, edited the same way as the actor's own header portrait (core Foundry's
+   img[data-edit] convention — see playbook-actor-sheet.js's getData/astir.js comments). Sized and
+   scoped to itself rather than touching .section-header, since that class is shared by every
+   other section on the sheet. */
+.armor-astir.sheet .astir-portrait {
+	width: 48px;
+	height: 48px;
+	flex: 0 0 auto;
+	object-fit: cover;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+}
+
+.armor-astir.sheet .astir-locked-note,
+.armor-astir.sheet .astir-part-power-cost,
+.armor-astir.sheet .astir-part-tier,
+.armor-astir.sheet .astir-part-type {
+	font-size: 12px;
+	font-style: italic;
+	opacity: 0.8;
+}
+
+.armor-astir.sheet .astir-empty {
+	display: flex;
+	justify-content: center;
+	padding: var(--aa-space-4) 0;
+}
+
+/* One block per Ardent, divided the same way .gravity-clock-item separates its own list entries —
+   Ardents share the Astir's .astir-identity-fields/.trait-meters/.move-list/.equipment-list rules
+   wholesale (a character may have several, each rendering the same panel shape the Astir's own
+   section does), so only the per-Ardent wrapper and its name field need rules of their own. */
+.armor-astir.sheet .ardent {
+	padding: var(--aa-space-3) 0;
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.sheet .ardent:last-child {
+	border-bottom: none;
+}
+
+.armor-astir.sheet .ardent-name-input {
+	flex: 1 1 auto;
+	min-width: 0;
+	font-weight: 700;
+}
+
+/* Foundry's core CSS hides an inactive tab with `.tab[data-tab]:not(.active) { display: none }`;
+   scoping this to .active (rather than plain .tab) keeps this rule mutually exclusive with core's
+   selector so there's no specificity fight over which one wins. */
+.armor-astir.sheet .tab.active {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-3);
+}
+
+/* .sheet-body deliberately has no scroll cap of its own — a tab with a long move/equipment list
+   just grows the sheet past the window, and core Foundry's own .window-content overflow (set in
+   public/css/style.css) is the single scroll region that handles it. Two independently scrollable
+   regions (this plus a capped .sheet-body) used to fight over the same scroll gesture: scrolling
+   over a long list only drove the inner region, and once that bottomed out nothing happened until
+   the cursor moved off the list to reach the outer one. .dangers-column and .sheet-tabs stay
+   visible via position: sticky instead (see those rules) rather than a second clipped container. */
+.armor-astir.sheet .sheet-body {
+	padding-right: var(--aa-space-2);
+}
+
+/* Core Foundry's .window-content carries its own top padding (--paddingY, 1rem — see
+   public/css/foundry2.css). Sticky elements measure "top: 0" from that padding's inner edge, not
+   the window's true top edge, which leaves a paddingY-tall band between the two that nothing
+   covers: scrolled tab content is still unclipped there (overflow only clips once content scrolls
+   fully past the padding box), so it becomes visible passing through that band above the stuck
+   .dangers-column/.sheet-tabs before disappearing — this is what was showing moves "above" the tab
+   nav while scrolling despite .sheet-tabs' z-index already keeping it visually on top wherever the
+   two actually overlap. Moving that padding onto the form itself (below) closes the gap: once
+   .window-content has no top padding of its own, "top: 0" really does mean the window's top edge,
+   with nothing left for scrolled content to peek through above it. */
+.window-app.armor-astir.playbook .window-content {
+	padding-top: 0;
+	scrollbar-width: none;
+	-ms-overflow-style: none;
+}
+
+/* Reproduces the padding-top this rule just removed from .window-content, on the one flex child
+   that receives it (see above) — so the header still starts the same distance from the window's
+   top edge as every other Foundry sheet. */
+.armor-astir.sheet.playbook {
+	padding-top: var(--paddingY);
+}
+
+.window-app.armor-astir.playbook .window-content::-webkit-scrollbar {
+	display: none;
+}

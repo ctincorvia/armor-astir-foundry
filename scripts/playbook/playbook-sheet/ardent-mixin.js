@@ -20,7 +20,7 @@ import {
 	isAceFeaturePart
 } from "../../frames/ardent.js";
 
-// Ardents (see claude.md's Ardents section) — a cheaper, more limited pilotable frame than the
+// Ardents (see docs/domains/frames.md's Ardents section) — a cheaper, more limited pilotable frame than the
 // Astir, and unlike it a character may have any number. Mounting (Piloted) is shared, generic
 // machinery covered by the Frames mixin (_setMountedFrame/_onArdentPilotedToggle); this mixin owns
 // only an Ardent's own identity/loadout fields.
@@ -28,7 +28,7 @@ export const ArdentSheetMixin = {
 	_ardents() {
 		return this.actor.system.attributes?.ardents ?? [];
 	},
-	// getData's per-Ardent shape (see claude.md's Ardents section) — never gated on CHANNEL, and
+	// getData's per-Ardent shape (see docs/domains/frames.md's Ardents section) — never gated on CHANNEL, and
 	// there can be several. Each one's approachOptions is the full APPROACHES list (not narrowed by
 	// a Core — Ardents have none), its parts read the same way the Astir's own do (drawn from the
 	// same catalog — see ardentParts), and loadoutFull disables both the Parts and Weapons "+"
@@ -111,7 +111,7 @@ export const ArdentSheetMixin = {
 		});
 	},
 	// Unlike the Astir's Core-narrowed pair, an Ardent picks freely from the full Approach list
-	// (see claude.md's Ardents section) — no dependent field to clear alongside this one.
+	// (see docs/domains/frames.md's Ardents section) — no dependent field to clear alongside this one.
 	_onArdentApproachChange(event) {
 		const { ardentId } = event.currentTarget.dataset;
 		const current = this._ardents();
@@ -234,7 +234,7 @@ export const ArdentSheetMixin = {
 	// ardentWeapons(), capped against the same Ardent Feature pool _onArdentFeaturePartAdd checks.
 	// The saved entry carries commanderFeature: true — set here and never player-editable — since a
 	// saved equipment entry is a freely-editable snapshot with no link back to its source catalog
-	// (see claude.md's Equipment notes), so this flag is the only way to tell it apart from a
+	// (see docs/domains/equipment.md's Equipment notes), so this flag is the only way to tell it apart from a
 	// baseline Ardent weapon after the fact (see ardent.js's ardentFeatureLoadoutCount).
 	async _onArdentFeatureWeaponAdd(event) {
 		const { ardentId } = event.currentTarget.dataset;

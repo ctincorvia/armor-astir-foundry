@@ -121,7 +121,7 @@ function blankEntry(extra = {}) {
 	return { id: foundry.utils.randomID(), name: "", description: "", ...extra };
 }
 
-// The non-playbook actor kinds a table can create (see claude.md, "World actors"). Unlike
+// The non-playbook actor kinds a table can create (see docs/domains/world-actors.md, "World actors"). Unlike
 // PLAYBOOKS, these aren't compendium-backed — buildSystem returns each kind's starting
 // system data directly, freshly per call so array/object fields are never shared between
 // actors created from the same kind entry.

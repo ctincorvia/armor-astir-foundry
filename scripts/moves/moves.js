@@ -64,7 +64,7 @@ const CONFIDENCE_FAILURE_REMINDER = "You may loosen a Hook";
 // PlaybookActorSheet#_grantedCriticalReminderForMove/moves-mixin.js) is the same idea again, but
 // layered on top of a 12+ result (`critical`, see isCriticalResult below) rather than replacing
 // the success tier's own reminder — a 12+ that also happens to carry an extraSuccessReminder shows
-// both, since `critical` is orthogonal to `tier` by design (see claude.md's "Adding move content").
+// both, since `critical` is orthogonal to `tier` by design (see docs/domains/moves.md's "Adding move content").
 export function buildReminders(tier, effect, extraFailureReminder = null, extraSuccessReminder = null, critical = false, extraCriticalReminder = null) {
 	return [
 		...(tier === "failure" ? FAILURE_REMINDERS : []),
@@ -88,7 +88,7 @@ export function moveResultTier(total) {
 // gate, Cold Company's dispel flip) keeps working unmodified. This is what makes a 12+ "identical
 // to 10+ by default": `critical` only ever drives the chat card's badge/label (see rollMove's
 // flavorArgs) and the two extension points below (resolveTierValue, addsCriticalReminderToMove —
-// see claude.md's "Adding move content").
+// see docs/domains/moves.md's "Adding move content").
 export function isCriticalResult(total) {
 	return total >= 12;
 }

@@ -1,0 +1,653 @@
+/* Every dialog root under .armor-astir: move-roll dialog, equipment editor, dialog-buttons chrome,
+   radio/checkbox size resets, the six pickers, picker-tabs chrome, and the tag-reference accordion.
+   Split out of playbook-actor-sheet.css; depends on styles/tokens.css for var(--aa-*). */
+
+/* The move-info dialog's own content padding — content is otherwise unstyled rich text, same
+   .move-description class postMoveDescription's chat card also uses (see move-chat.hbs), scoped
+   here to the dialog root so it never leaks into the chat card's own layout. */
+.armor-astir.move-description-dialog .move-description {
+	padding: 0 var(--aa-space-2) var(--aa-space-2);
+}
+
+.armor-astir.move-roll-dialog .form-group {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--aa-space-2);
+	margin-bottom: var(--aa-space-2);
+}
+
+.armor-astir.move-roll-dialog .move-roll-conditions {
+	align-items: flex-start;
+}
+
+.armor-astir.move-roll-dialog .move-roll-conditions-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+}
+
+.armor-astir.move-roll-dialog .move-roll-condition {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+	white-space: nowrap;
+}
+
+.armor-astir.move-roll-dialog .move-roll-locked-note {
+	margin: 0 0 var(--aa-space-2);
+	font-size: 12px;
+	font-weight: bold;
+	color: var(--aa-danger);
+	text-align: right;
+}
+
+.armor-astir.move-roll-dialog .move-roll-guided-note {
+	margin: 0 0 var(--aa-space-2);
+	font-size: 12px;
+	font-weight: bold;
+	color: var(--aa-primary-dark);
+	text-align: right;
+}
+
+.armor-astir.move-roll-dialog .move-roll-equipment-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+}
+
+.armor-astir.move-roll-dialog .move-roll-equipment-spend {
+	font-size: 12px;
+}
+
+.armor-astir.move-roll-dialog .move-roll-equipment-spend.disabled {
+	opacity: 0.5;
+}
+
+/* Checkbox + name share one row (same shape as equipment-editor-tag-option/move-picker-description
+   below); the description is a block-level sibling underneath rather than a flex item that could
+   wrap onto its own line above or beside the checkbox — that's what was stacking the checkbox on
+   top of its tag instead of beside it. */
+.armor-astir.move-roll-dialog .move-roll-equipment-spend-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+}
+
+.armor-astir.move-roll-dialog .move-roll-equipment-spend.disabled .move-roll-equipment-spend-option {
+	cursor: not-allowed;
+}
+
+.armor-astir.move-roll-dialog .move-roll-equipment-name {
+	font-weight: bold;
+}
+
+.armor-astir.move-roll-dialog .move-roll-equipment-description {
+	margin-left: 22px;
+	font-size: 11px;
+	opacity: 0.8;
+}
+
+.armor-astir.equipment-editor .form-group {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 2px;
+	margin-bottom: var(--aa-space-2);
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+	padding: var(--aa-space-1) 0 var(--aa-space-2);
+}
+
+/* Checkbox + label live in their own row (equipment-editor-tag-option); the description is a
+   block-level sibling underneath, not a flex item that can wrap into the row — the same fix
+   move-picker-description already uses for the identical checkbox/label/description shape
+   (playbook-move-picker.hbs), so a long description always stays indented under its tag instead
+   of bleeding out to the left edge of the list. */
+.armor-astir.equipment-editor .equipment-editor-tag {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+	font-size: 12px;
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-label {
+	font-weight: bold;
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-description {
+	margin-left: 22px;
+	font-size: 11px;
+	opacity: 0.8;
+}
+
+/* The Range field (Melee/Ranged/Sniper) is a native radio group, not a tag checkbox — see
+   WEAPON_RANGE_GROUP's doc comment in equipment.js — but reuses the exact same row/description
+   shape as .equipment-editor-tag/-tag-option/-tag-description above. */
+.armor-astir.equipment-editor .equipment-editor-weapon-range-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+}
+
+.armor-astir.equipment-editor .equipment-editor-weapon-range-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+	font-size: 12px;
+}
+
+.armor-astir.equipment-editor .equipment-editor-weapon-range-label {
+	font-weight: bold;
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir.equipment-editor .equipment-editor-weapon-range-description {
+	margin-left: 22px;
+	font-size: 11px;
+	opacity: 0.8;
+}
+
+/* The Tags accordion is plain <details>/<summary>, same native open/closed behaviour as the
+   playbook-move picker's own accordion (see .move-picker-section above) — no JS needed here
+   either. Grouped by the tags' own value banding (see groupEquipmentTags, equipment.js) since the
+   catalog has grown too long to scan as one flat list. */
+.armor-astir.equipment-editor .equipment-editor-tag-group {
+	margin-bottom: var(--aa-space-2);
+	padding-bottom: var(--aa-space-1);
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-group-label {
+	padding: var(--aa-space-1) 0;
+	font-weight: bold;
+	color: var(--aa-primary-dark);
+	cursor: pointer;
+}
+
+/* Pinned above the (possibly collapsed) groups, rather than after the list, so it stays visible
+   without needing every group expanded — the one number a player designing to a budget actually
+   watches. */
+.armor-astir.equipment-editor .equipment-editor-tag-total {
+	margin: 0 0 var(--aa-space-2);
+	font-weight: bold;
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-total-value {
+	color: var(--aa-primary-dark);
+}
+
+/* pbta's own CSS (pbta.css) gives every Dialog's .dialog-buttons an unwanted flex-grow inside
+   .window-content's column layout, so when a dialog's content is short — e.g. an accordion
+   section still collapsed — the Add/Cancel buttons stretch to swallow the leftover vertical
+   space instead of the content area, rendering huge. pbta already hit this for its own dialogs
+   and fixes it with a `.dialog-content:has(.pbta-attribute-dialog, .pbta-choice-dialog) +
+   .dialog-buttons { flex: 0 }` rule — unusable here since our content never carries those marker
+   classes, so this replicates the same fix (buttons pinned to their natural size, the content
+   area free to grow/scroll instead). .dialog-content/.dialog-buttons only ever exist inside a
+   Foundry Dialog (never inside an ActorSheet's .window-content), so this is scoped to every
+   armor-astir dialog at once rather than duplicated per dialog class. */
+.armor-astir .dialog-buttons {
+	flex: 0;
+}
+
+.armor-astir .dialog-content {
+	overflow-y: auto;
+}
+
+/* pbta's own Dialog buttons (Foundry gives each one the literal class "dialog-button" — see
+   templates/hud/dialog.html) render pbta's navy chrome by default, the same off-palette issue as
+   the window header above. Retheme them to the primary role here, once, for every armor-astir
+   dialog rather than per dialog class.
+
+   pbta.css themes the same buttons via `.vtt .window-app .dialog-button` — three class
+   selectors, specificity (0,3,0). A plain `.armor-astir .dialog-button` (0,2,0) loses to that
+   regardless of stylesheet load order, which is why every armor-astir dialog (Exchange Blows'
+   weapon picker, the Create Actor kind picker, etc.) was still rendering pbta's navy buttons
+   despite this rule appearing to cover them. `.vtt .window-app.armor-astir .dialog-button` adds
+   a fourth class selector so it wins outright rather than relying on source-order tiebreaking. */
+.vtt .window-app.armor-astir .dialog-button {
+	background: var(--aa-primary);
+	color: white;
+	border: 0;
+}
+
+.vtt .window-app.armor-astir .dialog-button:hover {
+	background: var(--aa-primary-dark);
+}
+
+/* choosePlaybook (actor-creation.js) renders one Dialog button per playbook via core's plain
+   buttons object rather than this module's usual templated radio-list picker, since a playbook
+   pick has no extra per-option content to show. With 10+ playbooks, pbta's own flex-wrap layout
+   (see the .dialog-buttons fix above) squeezes each button narrow enough that a two-word name
+   ("The Commander") wraps to two lines inside core's fixed 40px button height, overflowing the
+   box. Grid replaces the cramped flex-wrap with real columns that scale cleanly as more playbooks
+   are added; minmax(160px, 1fr) fits every current name on one line, and height: auto + a
+   white-space fallback (rather than nowrap) means a future longer name grows the button instead
+   of re-overflowing it. */
+.armor-astir.playbook-picker .dialog-buttons {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+	gap: var(--aa-space-2);
+}
+
+.armor-astir.playbook-picker .dialog-button {
+	height: auto;
+	min-height: 40px;
+	padding: var(--aa-space-2);
+	white-space: normal;
+	text-align: center;
+}
+
+/* pbta's own base styling (_window.scss) blows radio and checkbox inputs up to 18x18 via plain
+   width/height, rather than scaling the browser's native ~13px control. Chromium centers a
+   checkbox's glyph fine under that stretch, but not a radio's dot — it renders visibly low
+   within the enlarged box, which is what made every armor-astir radio list (this picker, the
+   playbook-move/weapon/equipment-catalog pickers) look off despite every option row already
+   using align-items: center on its flex row. Nudging the box up half a pixel corrects it without
+   touching layout flow (transform doesn't affect flex sizing), and is scoped to every armor-astir
+   dialog at once rather than duplicated per picker, matching the .dialog-button fix above. */
+.armor-astir input[type="radio"] {
+	transform: translateY(-1px);
+}
+
+/* The picker's accordion is plain <details>/<summary> — the open/closed state is native browser
+   behaviour, so no dialog-side JS is involved in expanding a section. */
+.armor-astir.playbook-move-picker .move-picker-section {
+	margin-bottom: var(--aa-space-2);
+	padding-bottom: var(--aa-space-1);
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.playbook-move-picker .move-picker-section-label {
+	padding: var(--aa-space-1) 0;
+	font-weight: bold;
+	color: var(--aa-primary-dark);
+	cursor: pointer;
+}
+
+.armor-astir.playbook-move-picker .move-picker-subsection {
+	margin: var(--aa-space-1) 0 0 14px;
+	padding-bottom: 0;
+	border-bottom: none;
+}
+
+.armor-astir.playbook-move-picker .move-picker-section-note {
+	margin: 2px 0 var(--aa-space-1);
+	font-size: 12px;
+	font-style: italic;
+	opacity: 0.8;
+}
+
+.armor-astir.playbook-move-picker .move-picker-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.playbook-move-picker .move-picker-item {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir.playbook-move-picker .move-picker-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+}
+
+.armor-astir.playbook-move-picker .move-picker-name {
+	font-weight: bold;
+}
+
+/* Trait/tag chips share one look wherever they appear — the move picker's trait pills and the
+   weapon picker's tag pills. The secondary color marks them as belonging to the player's own
+   move/gear; -dark because they carry white text (see the role-token note at the top). */
+.armor-astir.playbook-move-picker .move-picker-trait,
+.armor-astir.weapon-picker .weapon-picker-tag,
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-tag,
+.armor-astir.starting-gear-picker .starting-gear-picker-tag {
+	padding: 2px 6px;
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-dark);
+	font-size: 11px;
+	font-weight: bold;
+	color: #fff;
+}
+
+/* Indented to line up under the radio's label text rather than the radio itself, so the
+   description reads as belonging to the move above it. */
+.armor-astir.playbook-move-picker .move-picker-description {
+	margin-left: 22px;
+	font-size: 12px;
+}
+
+.armor-astir.playbook-move-picker .move-picker-description p {
+	margin: 2px 0;
+}
+
+.armor-astir.playbook-move-picker .move-picker-empty {
+	margin: 0;
+	font-style: italic;
+}
+
+/* Same checkbox/label/description row shape as .move-picker-option above (radio here instead of
+   checkbox for the pick-one list, but the alignment problem and fix are identical). */
+.armor-astir.starting-move-picker .starting-move-picker-instructions {
+	margin: 0 0 var(--aa-space-1);
+	font-weight: bold;
+}
+
+.armor-astir.starting-move-picker .starting-move-picker-list {
+	margin: 0 0 var(--aa-space-2);
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.starting-move-picker .starting-move-picker-item {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir.starting-move-picker .starting-move-picker-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+}
+
+.armor-astir.starting-move-picker .starting-move-picker-name {
+	font-weight: bold;
+}
+
+.armor-astir.starting-move-picker .starting-move-picker-trait {
+	padding: 2px 6px;
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-dark);
+	font-size: 11px;
+	font-weight: bold;
+	color: #fff;
+}
+
+/* Indented to line up under the option's label text rather than the checkbox/radio itself, same
+   as .move-picker-description above. */
+.armor-astir.starting-move-picker .starting-move-picker-description {
+	margin-left: 22px;
+	font-size: 12px;
+}
+
+.armor-astir.starting-move-picker .starting-move-picker-description p {
+	margin: 2px 0;
+}
+
+.armor-astir.witch-boons-picker .witch-boons-picker-instructions {
+	margin: 0 0 var(--aa-space-1);
+	font-weight: bold;
+}
+
+.armor-astir.witch-boons-picker .witch-boons-picker-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.witch-boons-picker .witch-boons-picker-item {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir.witch-boons-picker .witch-boons-picker-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+}
+
+.armor-astir.witch-boons-picker .witch-boons-picker-name {
+	font-weight: bold;
+}
+
+.armor-astir.witch-boons-picker .witch-boons-picker-held-tag {
+	padding: 2px 6px;
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-dark);
+	font-size: 11px;
+	font-weight: bold;
+	color: #fff;
+}
+
+/* Indented to line up under the checkbox's label text rather than the checkbox itself, same as
+   .starting-move-picker-description. */
+.armor-astir.witch-boons-picker .witch-boons-picker-description {
+	margin-left: 22px;
+	font-size: 12px;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-item {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-name {
+	font-weight: bold;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-description {
+	margin-left: 22px;
+	font-size: 12px;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-empty {
+	margin: 0;
+	font-style: italic;
+}
+
+/* Shown when a playbook is created with starting-gear choices — same list/item/option/name/
+   description/empty shape as .equipment-catalog-picker above (checkboxes instead of radios,
+   otherwise identical), plus its own lead-in instructions line and freeform notes list. */
+.armor-astir.starting-gear-picker .starting-gear-picker-instructions {
+	margin: 0 0 var(--aa-space-2);
+	font-weight: bold;
+}
+
+.armor-astir.starting-gear-picker .starting-gear-picker-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.starting-gear-picker .starting-gear-picker-item {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir.starting-gear-picker .starting-gear-picker-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+}
+
+.armor-astir.starting-gear-picker .starting-gear-picker-name {
+	font-weight: bold;
+}
+
+.armor-astir.starting-gear-picker .starting-gear-picker-description {
+	margin-left: 22px;
+	font-size: 12px;
+}
+
+.armor-astir.starting-gear-picker .starting-gear-picker-empty {
+	margin: 0;
+	font-style: italic;
+}
+
+.armor-astir.starting-gear-picker .starting-gear-picker-notes {
+	margin: var(--aa-space-2) 0 0;
+	padding-left: var(--aa-space-3);
+	font-size: 12px;
+	font-style: italic;
+}
+
+.armor-astir.weapon-picker .weapon-picker-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.weapon-picker .weapon-picker-item {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir.weapon-picker .weapon-picker-option {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	cursor: pointer;
+}
+
+.armor-astir.weapon-picker .weapon-picker-name {
+	font-weight: bold;
+}
+
+.armor-astir.weapon-picker .weapon-picker-value {
+	font-size: 12px;
+	opacity: 0.8;
+}
+
+.armor-astir.weapon-picker .weapon-picker-tags {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-1);
+	margin-left: 22px;
+}
+
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-tags {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-1);
+	margin-left: 22px;
+}
+
+.armor-astir.starting-gear-picker .starting-gear-picker-tags {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-1);
+	margin-left: 22px;
+}
+
+/* Shared "tabs inside a Dialog" chrome — weapon-picker.hbs, equipment-catalog-picker.hbs and
+   starting-gear-picker.hbs all wire the same [data-picker-tab]/[data-picker-tab-panel] markup via
+   wirePickerTabs (equipment.js), since a bare Foundry Dialog has no TabsV2 controller of its own.
+   Visually mirrors .armor-astir.sheet .sheet-tabs .item above. Scoped bare under .armor-astir
+   (not per-dialog-class) since it's genuinely identical across all three dialogs — matching the
+   existing precedent for cross-dialog concerns (.dialog-content, .dialog-buttons, radio inputs). */
+.armor-astir .picker-tabs {
+	display: flex;
+	flex-direction: row;
+	gap: var(--aa-space-3);
+	margin: 0 0 var(--aa-space-2);
+	padding-bottom: var(--aa-space-1);
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir .picker-tab {
+	padding-bottom: 2px;
+	border-bottom: 2px solid transparent;
+	font-weight: 700;
+	font-size: 12px;
+	letter-spacing: 0.03em;
+	text-transform: uppercase;
+	color: var(--color-text-dark-secondary, #666);
+	cursor: pointer;
+}
+
+.armor-astir .picker-tab:hover {
+	color: var(--aa-primary-dark);
+}
+
+.armor-astir .picker-tab.active {
+	border-bottom-color: var(--aa-primary);
+	color: var(--aa-primary-dark);
+}
+
+/* The manual equivalent of core's `.tab[data-tab]:not(.active) { display: none }` rule (see
+   claude.md's Sheet styling notes) — needed since [data-picker-tab-panel] isn't core's own
+   [data-tab], so core's rule doesn't apply to it. */
+.armor-astir .picker-tab-panel {
+	display: none;
+}
+
+.armor-astir .picker-tab-panel.active {
+	display: block;
+}
+
+/* The Tags reference tab's own accordion — same spacing/color treatment as
+   .equipment-editor-tag-group* above, just without the checkbox row, since this is a browsing
+   reference rather than a form. Every group starts closed (no "open" state to preserve). */
+.armor-astir .picker-tag-reference-group {
+	margin-bottom: var(--aa-space-2);
+	padding-bottom: var(--aa-space-1);
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir .picker-tag-reference-group-label {
+	padding: var(--aa-space-1) 0;
+	font-weight: bold;
+	color: var(--aa-primary-dark);
+	cursor: pointer;
+}
+
+.armor-astir .picker-tag-reference-list {
+	padding: 0 0 0 var(--aa-space-2);
+}
+
+.armor-astir .picker-tag-reference {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir .picker-tag-reference-label {
+	font-weight: bold;
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir .picker-tag-reference-description {
+	margin-top: 2px;
+	font-size: 12px;
+	opacity: 0.8;
+}

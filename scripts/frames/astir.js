@@ -333,7 +333,7 @@ export const ASTIR_PART_CATALOG = [
 		traits: [],
 		// The rulebook's cost is Director-assigned (-1 to -4) per pick; this catalog can only
 		// carry one fixed number, so it's pinned to the low end and left descriptive about the
-		// rest — see claude.md's "Adding move content" table for this project's default stance on
+		// rest — see docs/domains/moves.md's "Adding move content" table for this project's default stance on
 		// effects that don't map onto existing mechanics.
 		powerCost: 1,
 		description:
@@ -420,7 +420,7 @@ export function astirMaxWeaponPower(partKeys = [], equipment = [], catalog = AST
 }
 
 // The dedicated catalog for an Astir's one unique move (see astirMoveSections below) — same move
-// shape again. Most entries are pure prose (traits: [], no other flags — see claude.md's "Adding
+// shape again. Most entries are pure prose (traits: [], no other flags — see docs/domains/moves.md's "Adding
 // move content" table); a handful reuse existing declarative flags exactly as playbook moves
 // already do, resolved for an Astir Move the same way via moves-mixin.js's _grantingMoves (see
 // that file's own comment for why the Astir's move needed its own resolver alongside

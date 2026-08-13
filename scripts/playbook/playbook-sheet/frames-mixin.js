@@ -4,7 +4,7 @@ import { baseEquipmentTagKey, findEquipmentTag } from "../../equipment/equipment
 import { HOLD_MIN } from "../../moves/moves.js";
 import { ALL_MOVES } from "../../moves/all-moves.js";
 
-// The Astir/Ardent "which frame is mounted" machinery (see claude.md's Piloted note) — generic
+// The Astir/Ardent "which frame is mounted" machinery (see docs/domains/frames.md's Piloted note) — generic
 // across both frame kinds, so neither the Astir nor Ardent mixins need their own mounting logic.
 export const FramesSheetMixin = {
 	// Every pilotable frame this character has — the Astir (if created) first, then each Ardent in
@@ -55,7 +55,7 @@ export const FramesSheetMixin = {
 	},
 	// The Controls section (see the template's dangers-column) — Mount Up/Dismount just drive the
 	// same mounted-frame state every frame's own Piloted checkbox does (see _setMountedFrame), so
-	// their disabled state mirrors exactly what claude.md's Piloted note and the feature ask
+	// their disabled state mirrors exactly what docs/domains/frames.md's Piloted note and the feature ask
 	// require: no frame at all to mount, or one already mounted.
 	_controlsData(frames, mountedFrame) {
 		return {
@@ -65,7 +65,7 @@ export const FramesSheetMixin = {
 	},
 	// Which frame (by _frames' own id shape) an equipment entry belongs to, or null for a mundane
 	// weapon that belongs to none — the generalization of the old Astir/mundane piloted-boolean
-	// split (see claude.md's Piloted note) to cover Ardent-owned weapons too.
+	// split (see docs/domains/frames.md's Piloted note) to cover Ardent-owned weapons too.
 	_weaponFrameId(entry) {
 		if (entry.astir) return "astir";
 		if (entry.ardent) return entry.ardent;
@@ -83,12 +83,12 @@ export const FramesSheetMixin = {
 		}
 		return "This weapon's frame isn't mounted. Dismount your current frame and mount this one to use this weapon.";
 	},
-	// The single write path enforcing "only one frame mounted at a time" (see claude.md's Piloted
+	// The single write path enforcing "only one frame mounted at a time" (see docs/domains/frames.md's Piloted
 	// note) — every frame's own Piloted checkbox (_onAstirPilotedToggle/_onArdentPilotedToggle) and
 	// Mount Up/Dismount all funnel through this. `kind`/`id` name the frame to mount (see _frames'
 	// own id shape, "astir" or an Ardent's stored id); pass kind: null (id ignored) to dismount
 	// whatever's currently mounted. Blocks mounting the Astir while its Power is negative (see
-	// claude.md's Piloted note, mirroring _astirPowerUpdates' own auto-uncheck-on-mutation guard) —
+	// docs/domains/frames.md's Piloted note, mirroring _astirPowerUpdates' own auto-uncheck-on-mutation guard) —
 	// an Ardent has no Power to gate on, so mounting one always succeeds. Returns whether the
 	// update actually applied, so a caller with something to revert (a checkbox) can do so.
 	_setMountedFrame(kind, id) {

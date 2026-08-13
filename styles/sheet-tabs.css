@@ -1,0 +1,503 @@
+/* Sheet tab content: Moves (list rows, hold/uses/tracker controls), the button system, Advancement,
+   Equipment, Cosmetic (ProseMirror), per-weapon quick-roll buttons, and the data-gate-tooltip
+   CSS-only tooltip (including its grouped sheet+picker-dialog selectors, kept intact — see
+   CLAUDE.md). Split out of playbook-actor-sheet.css; depends on styles/tokens.css for var(--aa-*). */
+
+.armor-astir.sheet .move-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Grid (not flex) so a long move name can't push its row's controls out past the row's right
+   edge — same reasoning as .danger-item above. minmax(0, 1fr) lets the name column shrink below
+   its content's min-content size instead of overflowing. */
+.armor-astir.sheet .move {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--aa-space-2);
+	padding: var(--aa-space-2) var(--aa-space-1);
+	border-bottom: var(--aa-border);
+}
+
+/* Stripe uses the quieter secondary tint; hover uses the primary tint so an interaction always
+   reads in the primary color, whichever gem that currently is. */
+.armor-astir.sheet .move:nth-child(even),
+.armor-astir.sheet .equipment-item:nth-child(even) {
+	background: var(--aa-secondary-tint);
+}
+
+.armor-astir.sheet .move:hover,
+.armor-astir.sheet .equipment-item:hover {
+	background: var(--aa-primary-tint);
+}
+
+.armor-astir.sheet .move-name {
+	font-weight: 700;
+}
+
+/* Wraps .move-name (and, once summoned, .move-summon-info below) as .move's own first grid
+   column — see claude.md's note on wrapping an optional {{#if}} in a flex container: with
+   summonedAllyInfo absent, Handlebars leaves only whitespace-only text where the <p> would go,
+   which never becomes a flex item, so this collapses to just the name. No padding of its own —
+   the spacing already lives on .move itself. */
+.armor-astir.sheet .move-name-column {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+}
+
+/* Eidolon Drive's "who's summoned" readout (Summoner) — a plain informational line, not a
+   derived-number annotation like .trait-ally-bonus, so it gets the module's usual small/muted
+   secondary-text treatment (see .equipment-tag-description's identical font-size/opacity) rather
+   than a color role token. */
+.armor-astir.sheet .move-summon-info {
+	margin: 0;
+	font-size: 11px;
+	opacity: 0.8;
+}
+
+.armor-astir.sheet .move-row-controls {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+}
+
+.armor-astir.sheet .hold-control {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+}
+
+.armor-astir.sheet .move-uses-control {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+}
+
+.armor-astir.sheet .move-use {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+.armor-astir.sheet .move-trackers-control {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+}
+
+.armor-astir.sheet .move-tracker {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+	white-space: nowrap;
+}
+
+/* Stays compact like .move-use's own label text; the step buttons and value deliberately don't
+   inherit this — they match .hold-step/.hold-value's font size (the ambient default, unset
+   here on purpose) so a tracker counter reads identically to B-Plot's hold counter. */
+.armor-astir.sheet .move-tracker-label {
+	font-size: 11px;
+}
+
+/* Let Loose's per-actor trait pick (see trait-bonuses.js's chooseTrait) — a plain select on the
+   move's own row, same compact treatment as .move-uses-control beside it. */
+.armor-astir.sheet .move-trait-bonus-control select {
+	font-size: 11px;
+}
+
+.armor-astir.sheet .move-controls {
+	display: flex;
+	flex-direction: row;
+	gap: var(--aa-space-1);
+	flex: 0 0 auto;
+}
+
+/* Solid (filled) buttons swap their full-strength primary fill + white text for the primary tint
+   background with dark primary text instead of just fading via opacity — a faded amethyst fill
+   under faded white text washed out to a barely-there light gray, which is what made the dismount
+   button unreadable. This keeps the disabled state in the same amethyst/moonstone family. */
+.armor-astir.sheet .move-roll.disabled,
+.armor-astir.sheet .move-activate.disabled,
+.armor-astir.sheet .move-summon.disabled,
+.armor-astir.sheet .controls-mount-up.disabled,
+.armor-astir.sheet .controls-dismount.disabled,
+.armor-astir.sheet .witch-boons-choose.disabled {
+	background: var(--aa-primary-tint);
+	border-color: var(--aa-primary-tint);
+	color: var(--aa-primary-dark);
+	cursor: not-allowed;
+}
+
+/* Outline/plain buttons already read fine on a transparent background — mute the border rather
+   than the text, so the "disabled" look comes across without hurting legibility. */
+.armor-astir.sheet .move-description.disabled,
+.armor-astir.sheet .move-info.disabled,
+.armor-astir.sheet .hold-step.disabled,
+.armor-astir.sheet .flat-hold-step.disabled,
+.armor-astir.sheet .weapon-move-roll.disabled {
+	border-color: var(--aa-primary-tint);
+	color: var(--aa-primary-dark);
+	cursor: not-allowed;
+}
+
+.armor-astir.sheet .advancement-item.disabled {
+	opacity: 0.5;
+	cursor: not-allowed;
+}
+
+/* Solid actions (Roll / Activate / every header "+" button) take the primary fill; outline
+   actions (Description / Edit) take the primary border with dark primary text. Both are chrome
+   the player acts on, so both track the primary role. */
+.armor-astir.sheet .move-roll,
+.armor-astir.sheet .move-activate,
+.armor-astir.sheet .move-summon,
+.armor-astir.sheet .icon-add-button,
+.armor-astir.sheet .danger-add,
+.armor-astir.sheet .astir-create,
+.armor-astir.sheet .controls-mount-up,
+.armor-astir.sheet .controls-dismount,
+.armor-astir.sheet .controls-refresh-scene,
+.armor-astir.sheet .controls-refresh-sortie {
+	border: 1px solid var(--aa-primary);
+	border-radius: var(--aa-radius);
+	background: var(--aa-primary);
+	color: #fff;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .move-roll:not(.disabled):hover,
+.armor-astir.sheet .move-activate:not(.disabled):hover,
+.armor-astir.sheet .move-summon:not(.disabled):hover,
+.armor-astir.sheet .icon-add-button:not(.disabled):hover,
+.armor-astir.sheet .danger-add:hover,
+.armor-astir.sheet .astir-create:hover,
+.armor-astir.sheet .controls-mount-up:not(.disabled):hover,
+.armor-astir.sheet .controls-dismount:not(.disabled):hover,
+.armor-astir.sheet .controls-refresh-scene:hover,
+.armor-astir.sheet .controls-refresh-sortie:hover {
+	background: var(--aa-primary-dark);
+	border-color: var(--aa-primary-dark);
+}
+
+/* Click ("pressed") feedback, distinct from hover — a slight shrink plus the same max-contrast
+   dark step hover already uses, so a click reads as "hover, but more so" rather than a new color. */
+.armor-astir.sheet .move-roll:not(.disabled):active,
+.armor-astir.sheet .move-activate:not(.disabled):active,
+.armor-astir.sheet .move-summon:not(.disabled):active,
+.armor-astir.sheet .icon-add-button:not(.disabled):active,
+.armor-astir.sheet .danger-add:active,
+.armor-astir.sheet .astir-create:active,
+.armor-astir.sheet .controls-mount-up:not(.disabled):active,
+.armor-astir.sheet .controls-dismount:not(.disabled):active,
+.armor-astir.sheet .controls-refresh-scene:active,
+.armor-astir.sheet .controls-refresh-sortie:active {
+	background: var(--aa-primary-dark);
+	border-color: var(--aa-primary-dark);
+	transform: scale(0.96);
+}
+
+.armor-astir.sheet .move-description,
+.armor-astir.sheet .equipment-edit {
+	border: 1px solid var(--aa-primary);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	color: var(--aa-primary-dark);
+	cursor: pointer;
+}
+
+.armor-astir.sheet .move-description {
+	font-weight: 700;
+}
+
+.armor-astir.sheet .move-description:not(.disabled):hover,
+.armor-astir.sheet .equipment-edit:hover {
+	background: var(--aa-primary-tint);
+}
+
+.armor-astir.sheet .move-description:not(.disabled):active,
+.armor-astir.sheet .equipment-edit:active {
+	background: var(--aa-primary-tint);
+	transform: scale(0.96);
+}
+
+/* The "?" rules-text popup button — square, and sized to match Roll/Chat's own rendered height
+   (28px line-height + 1px padding top/bottom + 1px border top/bottom = 32px, border-box — measured
+   off .move-roll directly) rather than the remove-entry icons' unrelated fixed 20px. Deliberately a
+   fixed 32x32 rather than aspect-ratio-off-stretch: pairing aspect-ratio with two auto dimensions
+   on a stretched flex child is a real browser landmine — it can resolve the "auto" axis against the
+   flex container's own box instead of the sibling buttons' content height, ballooning every
+   auto-height sibling in the row along with it. A definite height/width sidesteps that class of bug
+   entirely. Bordered/hover-tint like move-description/equipment-edit rather than the plain
+   transparent-border remove icons, since this is a read action, not a destructive one. */
+.armor-astir.sheet .move-info {
+	flex: 0 0 auto;
+	width: 32px;
+	height: 32px;
+	box-sizing: border-box;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	border: 1px solid var(--aa-primary);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	color: var(--aa-primary-dark);
+	line-height: 1;
+	font-size: 14px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .move-info:not(.disabled):hover {
+	background: var(--aa-primary-tint);
+}
+
+.armor-astir.sheet .move-info:not(.disabled):active {
+	background: var(--aa-primary-tint);
+	transform: scale(0.96);
+}
+
+.armor-astir.sheet .advancement-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .advancement-item {
+	padding: var(--aa-space-1) 0;
+}
+
+.armor-astir.sheet .advancement-label {
+	display: flex;
+	flex-direction: row;
+	align-items: flex-start;
+	gap: var(--aa-space-2);
+}
+
+.armor-astir.sheet .advancement-unlock-hint {
+	margin: var(--aa-space-2) 0;
+	font-size: 12px;
+	font-style: italic;
+}
+
+.armor-astir.sheet .equipment-list {
+	margin: 0 0 var(--aa-space-2);
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .equipment-item {
+	padding: var(--aa-space-2) var(--aa-space-1);
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.sheet .equipment-header {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--aa-space-2);
+}
+
+.armor-astir.sheet .equipment-name {
+	font-weight: bold;
+	color: var(--aa-primary-dark);
+}
+
+.armor-astir.sheet .equipment-value {
+	font-size: 12px;
+	opacity: 0.8;
+}
+
+.armor-astir.sheet .equipment-tier-control {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+	font-size: 12px;
+}
+
+.armor-astir.sheet .equipment-scale {
+	font-size: 11px;
+	font-style: italic;
+	opacity: 0.8;
+}
+
+.armor-astir.sheet .equipment-item-controls {
+	display: flex;
+	flex-direction: row;
+	gap: var(--aa-space-1);
+	margin-left: auto;
+}
+
+.armor-astir.sheet .equipment-description {
+	margin: var(--aa-space-1) 0 0;
+	font-size: 12px;
+}
+
+.armor-astir.sheet .equipment-tag-list {
+	margin: var(--aa-space-1) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Grid, not flex — same reasoning as .danger-item/.move above: a flex row let the label and the
+   Spent checkbox drift wherever the (wildly variable-length) description happened to push them,
+   so nothing lined up between rows. `order` (rather than reordering the template's markup) puts
+   label + Spent checkbox on a fixed top row — Spent always lands in the same right-hand column
+   regardless of label length — while the description's own `grid-column: 1 / -1` forces it onto
+   its own full-width row underneath, so long rules text never fights the label for space. */
+.armor-astir.sheet .equipment-tag {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: baseline;
+	column-gap: var(--aa-space-2);
+	row-gap: 2px;
+	font-size: 12px;
+	padding: 2px 0;
+}
+
+.armor-astir.sheet .equipment-tag-label {
+	order: 1;
+	font-weight: bold;
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir.sheet .equipment-tag-spent {
+	order: 2;
+	/* Opts out of the grid row's own align-items: baseline — a flex container with a checkbox in
+	   it has no real text baseline to match against .equipment-tag-label's, which is what left it
+	   sitting visibly higher/lower than the label and description text beside it. Centering it
+	   against the row's height instead lines it up with both. */
+	align-self: center;
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+	font-size: 11px;
+	white-space: nowrap;
+}
+
+/* Secondary, matching the tag label's own --aa-secondary-dark, rather than the browser's default
+   gray control — accent-color is the standard, cross-browser way to recolor a native checkbox
+   without rebuilding it from scratch. */
+.armor-astir.sheet .equipment-tag-spent-checkbox {
+	accent-color: var(--aa-secondary-dark);
+}
+
+.armor-astir.sheet .equipment-tag-description {
+	order: 3;
+	grid-column: 1 / -1;
+	opacity: 0.8;
+}
+
+/* Each field (Look/Consider/Backstory/Notes) is its own labeled ProseMirror editor rather than
+   one shared textarea, so each can be edited and scanned independently. */
+.armor-astir.sheet .cosmetic {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-3);
+}
+
+/* Foundry's core ProseMirror CSS absolutely-positions the active editor's .editor-content to fill
+   .editor-container (inset 0), which leaves the browser's native resize handle nothing to act on.
+   Reverting position to static (per-property override — core's margin/padding/outline for this
+   selector still apply) lets Look/Consider/Backstory/Notes be dragged taller like a textarea,
+   whether the field is being actively edited or just showing its read-only preview. */
+.armor-astir.sheet .cosmetic-field .editor-content {
+	position: static;
+	height: unset;
+	min-height: 120px;
+	overflow-x: hidden;
+	overflow-y: auto;
+	resize: vertical;
+}
+
+.armor-astir.sheet .weapon-move-controls {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--aa-space-1);
+	margin-top: var(--aa-space-2);
+}
+
+/* flex: 0 0 auto and an explicit width keep these pinned to their natural compact size — without
+   it they're exposed to default flex-item stretch inside .weapon-move-controls' row, the same
+   category of unconstrained-flex bug documented on the .dialog-buttons fix above. */
+.armor-astir.sheet .weapon-move-roll {
+	flex: 0 0 auto;
+	width: auto;
+	padding: var(--aa-space-1) var(--aa-space-2);
+	border: 1px solid var(--aa-primary);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	color: var(--aa-primary-dark);
+	font-size: 11px;
+	font-weight: 700;
+	line-height: 1.2;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .weapon-move-roll:not(.disabled):hover {
+	background: var(--aa-primary-tint);
+}
+
+/* CSS-only tooltip explaining why a gated button is disabled (e.g. weapon mount/dismount state,
+   or the Witch's Choose 2 Boons requiring Whims), or why a picker option is unpickable (an unmet
+   requiresMoves/requiresParts — see playbook-moves.js/astir.js) — this module's only tooltip
+   beyond native title attributes, so it gets its own styled look rather than the plain unstyled
+   convention used elsewhere. Primary-dark since this is UI chrome, not player-tracked state, and
+   -dark because it carries white text (see the role-token note above). Deliberately named
+   data-gate-tooltip rather than data-tooltip: core Foundry's own TooltipManager
+   (client/core/tooltip.js) activates its own native tooltip on *any* element with a data-tooltip
+   attribute, so reusing that name doubled up with Foundry's own black tooltip. The sheet's own
+   gated buttons are scoped under .armor-astir.sheet, but the two "+" picker Dialogs
+   (playbook-move-picker, equipment-catalog-picker) use their own root class instead — Foundry's
+   Dialog application class never carries .sheet. */
+.armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip],
+.armor-astir.sheet .witch-boons-choose.disabled[data-gate-tooltip],
+.armor-astir.sheet .move-roll.disabled[data-gate-tooltip],
+.armor-astir.playbook-move-picker .move-picker-item-disabled[data-gate-tooltip],
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-item-disabled[data-gate-tooltip] {
+	position: relative;
+}
+
+.armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip]:hover::after,
+.armor-astir.sheet .witch-boons-choose.disabled[data-gate-tooltip]:hover::after,
+.armor-astir.sheet .move-roll.disabled[data-gate-tooltip]:hover::after,
+.armor-astir.playbook-move-picker .move-picker-item-disabled[data-gate-tooltip]:hover::after,
+.armor-astir.equipment-catalog-picker .equipment-catalog-picker-item-disabled[data-gate-tooltip]:hover::after {
+	content: attr(data-gate-tooltip);
+	position: absolute;
+	bottom: 100%;
+	/* Anchored to the button's own left edge rather than centered — a centered bubble on a button
+	   near the left edge of the tab content extends left into the Dangers/Controls sidebar column
+	   and loses out to it there. Left-anchoring keeps the bubble over the tab content instead. */
+	left: 0;
+	margin-bottom: var(--aa-space-1);
+	width: max-content;
+	max-width: 200px;
+	padding: var(--aa-space-1) var(--aa-space-2);
+	background: var(--aa-primary-dark);
+	color: #fff;
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 1.3;
+	text-align: center;
+	border-radius: var(--aa-radius);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+	z-index: 100;
+	pointer-events: none;
+	white-space: normal;
+}

@@ -13,7 +13,7 @@ export const ARDENT_TIER_MIN = 2;
 export const ARDENT_TIER_MAX = 4;
 export const ARDENT_TIER_DEFAULT = 2;
 
-// Parts and weapons together, combined — see claude.md's Ardents section.
+// Parts and weapons together, combined — see docs/domains/frames.md's Ardents section.
 export const ARDENT_MAX_LOADOUT = 2;
 
 export const ARDENT_DEFAULT_NAME = "Ardent";
@@ -92,7 +92,7 @@ export const ARDENT_FEATURE_PARTS = [
 		name: "Bane Reserves",
 		partType: "Active",
 		traits: [],
-		// "Upgrade to ruin" has no existing tag-upgrade mechanism to hook into (see claude.md's
+		// "Upgrade to ruin" has no existing tag-upgrade mechanism to hook into (see docs/domains/moves.md's
 		// "systems that do not exist yet") — stays descriptive, tracked with the same 3x-per-Sortie
 		// checkbox shape Chromatic Reserves above uses.
 		uses: [
@@ -171,7 +171,7 @@ export function ardentBaselineLoadoutCount(ardent, equipment = []) {
 // The separate Commander Feature pool's own count — parts classified by catalog-key membership
 // (see isAceFeaturePart), weapons by the commanderFeature: true flag equipment carries at add-time
 // (see PlaybookActorSheet#_onArdentFeatureWeaponAdd) — a weapon entry is a freely-editable snapshot
-// once saved (see claude.md's Equipment notes), so unlike a part it can't be traced back to its
+// once saved (see docs/domains/equipment.md's Equipment notes), so unlike a part it can't be traced back to its
 // source catalog by key alone.
 export function ardentFeatureLoadoutCount(ardent, equipment = []) {
 	const parts = (ardent?.parts ?? []).filter((key) => isAceFeaturePart(key)).length;
@@ -191,7 +191,7 @@ export function ardentFeatureMax(pickedMoves = []) {
 
 // A fresh default object per call, so array fields are never accidentally shared between Ardents
 // created from the same click — mirrors actor-creation.js's WORLD_ACTOR_KINDS.buildSystem
-// convention. No core, power, weaponPower, overheating, img or move — see claude.md's Ardents
+// convention. No core, power, weaponPower, overheating, img or move — see docs/domains/frames.md's Ardents
 // section for what an Ardent deliberately doesn't carry.
 export function buildArdent(name = ARDENT_DEFAULT_NAME) {
 	return {
@@ -206,7 +206,7 @@ export function buildArdent(name = ARDENT_DEFAULT_NAME) {
 
 // Installed parts plus every weapon flagged for this Ardent (system.attributes.equipment entries
 // with ardent === this Ardent's id) — the single count ARDENT_MAX_LOADOUT caps, combined per
-// claude.md's Ardents section.
+// docs/domains/frames.md's Ardents section.
 export function ardentLoadoutCount(ardent, equipment = []) {
 	const parts = ardent?.parts?.length ?? 0;
 	const weapons = equipment.filter((item) => item.kind === "weapon" && item.ardent === ardent?.id).length;

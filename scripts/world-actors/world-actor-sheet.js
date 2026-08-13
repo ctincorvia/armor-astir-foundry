@@ -1,6 +1,6 @@
 import { addEntry, removeEntry, updateEntryField } from "./entry-list.js";
 
-// Shared by CarrierActorSheet/AuthorityActorSheet/CauseActorSheet (see claude.md, "World
+// Shared by CarrierActorSheet/AuthorityActorSheet/CauseActorSheet (see docs/domains/world-actors.md, "World
 // actors"): each renders one or more id-keyed lists under system.attributes, all edited through
 // the same three data-attributes (data-list/data-entry-id/data-field) rather than per-list
 // handlers, so a new list on any of the three sheets needs no new JS — only template markup.

@@ -875,7 +875,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 	});
 
 	// Warding used to carry a `spend` with no `effect`/`advantage`, which leaked it into every
-	// move's roll dialog as a checkbox that did nothing when checked (see claude.md's Astir
+	// move's roll dialog as a checkbox that did nothing when checked (see docs/domains/frames.md's Astir
 	// section) — this pins it as permanently excluded, the same way an effect-less equipment tag
 	// (Ward) is excluded from _equipmentSpends, rather than relying on it merely happening to have
 	// no `spend` field today.
@@ -900,7 +900,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 
 	// No Astir Part in the catalog uses spend.effect yet (only Artifact's spend.advantage), but
 	// _astirPartSpends supports it symmetrically with an equipment tag's spend.effect (see
-	// claude.md's Astir section) — this stubs _mountedParts with a synthetic part so that support
+	// docs/domains/frames.md's Astir section) — this stubs _mountedParts with a synthetic part so that support
 	// stays exercised rather than silently rotting until a real effect-based part is added.
 	it("offers a hypothetical part whose spend sets effect rather than advantage", async () => {
 		const sheet = new PlaybookActorSheet();

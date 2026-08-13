@@ -20,7 +20,7 @@ import { playbookGrantsHomeInsteadOfChannel } from "../../moves/starting-moves.j
 
 // The Astir itself — its own identity/loadout fields, plus every reactive Astir Part effect
 // (Potions, doubles-regen Power, spend-driven Expended) that only ever applies to the Astir
-// specifically (see claude.md's Piloted note). Mounting is shared, generic machinery covered by
+// specifically (see docs/domains/frames.md's Piloted note). Mounting is shared, generic machinery covered by
 // the Frames mixin.
 export const AstirSheetMixin = {
 	_astir() {
@@ -64,14 +64,14 @@ export const AstirSheetMixin = {
 				approach: astir.approach ?? "",
 				tier: astir.tier ?? ASTIR_TIER_MIN,
 				overheating: astir.overheating ?? false,
-				// Gates every part/Astir-weapon benefit (see claude.md's Piloted note) — unchecked
+				// Gates every part/Astir-weapon benefit (see docs/domains/frames.md's Piloted note) — unchecked
 				// by default (see _onAstirCreate). Managing the loadout itself (add/remove/edit
 				// Parts, the Astir Move, Astir weapons) is never gated by this.
 				piloted: Boolean(astir.piloted),
 				// max is always derived from the current parts and equipment, never stored — same
 				// reasoning as equipmentValue/advancements.topCount — so it can't drift after a part
 				// or weapon changes. negative flags Weapon Drain having outstripped max Power (see
-				// claude.md's Piloted note) so the template can call it out visually, not just via
+				// docs/domains/frames.md's Piloted note) so the template can call it out visually, not just via
 				// the one-time warning toast the mutation handlers raise.
 				power: { value: astir.power ?? 0, max: astirMaxPower(astir.parts ?? [], equipment), negative: (astir.power ?? 0) < 0 },
 				// A second, Weapon-Conduit-only Power pool — 0/0 (and hidden by the template) for
@@ -80,7 +80,7 @@ export const AstirSheetMixin = {
 				// Only appears once a part actually grants it — an object (even one holding 0)
 				// rather than a bare number, so the template's {{#if}} doesn't mistake a legitimate
 				// 0 count for "not present". Standardised Parts' own Repair Tokens grant is now a
-				// generic Bonus Downtime Tokens pool instead (see claude.md's Ardents section) —
+				// generic Bonus Downtime Tokens pool instead (see docs/domains/frames.md's Ardents section) —
 				// this Potions field is the one remaining example of the pattern.
 				potions: astirParts.some((part) => part.grantsPotionsOnLeadASortie)
 					? {
@@ -90,7 +90,7 @@ export const AstirSheetMixin = {
 					}
 					: null,
 				// tier is derived from the Astir's own Tier, not stored on the part — every part
-				// installed here is installed on this Astir specifically (see claude.md's Astir
+				// installed here is installed on this Astir specifically (see docs/domains/frames.md's Astir
 				// section), so there's only ever one frame's Tier for it to reflect.
 				parts: astirParts.map((part) => ({
 					key: part.key,
@@ -115,7 +115,7 @@ export const AstirSheetMixin = {
 	// The Astir/Ardent Parts equivalent of _equipmentSpends above — every part installed on the
 	// currently mounted frame with a `spend.effect` or `spend.advantage` (Artifact — see astir.js)
 	// that isn't already Expended, offered in the roll dialog's own Astir Parts section (see
-	// configureMoveRoll/move-roll-dialog.hbs). Empty when nothing is mounted (see claude.md's
+	// configureMoveRoll/move-roll-dialog.hbs). Empty when nothing is mounted (see docs/domains/frames.md's
 	// Piloted note) — unlike _equipmentSpends, parts aren't scoped by weapon, since none of them
 	// are weapon-specific. A part whose `spend` sets neither (Warding, formerly) doesn't actually
 	// modify a roll, so it's excluded here the same way _equipmentSpends excludes an effect-less
@@ -139,7 +139,7 @@ export const AstirSheetMixin = {
 	},
 	// Recomputes Power/Weapon Power against a prospective parts/equipment state and, when the result
 	// is negative, forces Piloted off with a warning — an Astir with negative Power represents an
-	// unsustainable loadout and can't be piloted (see claude.md's Piloted note; mirrors
+	// unsustainable loadout and can't be piloted (see docs/domains/frames.md's Piloted note; mirrors
 	// _onAstirPilotedToggle's own guard against manually re-checking it in that state). Returns the
 	// patch to spread into whatever update call triggered the recompute (a part or Astir weapon
 	// add/edit/remove).
@@ -204,7 +204,7 @@ export const AstirSheetMixin = {
 				power: ASTIR_POWER_BASE,
 				overheating: false,
 				// Unchecked by default — a player isn't always in their Astir, and every part/Astir
-				// weapon benefit is inert until this is checked (see claude.md's Piloted note).
+				// weapon benefit is inert until this is checked (see docs/domains/frames.md's Piloted note).
 				piloted: false,
 				parts: [],
 				move: requiredAstirMoveKey(this.actor.system.playbook?.name) ?? null

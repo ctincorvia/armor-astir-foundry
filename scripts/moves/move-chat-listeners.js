@@ -104,7 +104,7 @@ async function handleAutomaticSuccess(message, offer, sourceKey) {
 		tier: "success",
 		// Explicit and defensive, not just inherited from offer.flavorArgs — this path always forces
 		// a flat 10+ ("as if you'd rolled a 10+"), never a 12+, regardless of what the original roll
-		// actually was (see moves.js#isCriticalResult/claude.md's "Adding move content").
+		// actually was (see moves.js#isCriticalResult/docs/domains/moves.md's "Adding move content").
 		critical: false,
 		tierLabel: MOVE_RESULT_LABELS.success,
 		resultText: move.results.success,

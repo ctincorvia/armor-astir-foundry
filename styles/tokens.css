@@ -1,0 +1,60 @@
+/* Design tokens shared by the actor sheet, every dialog, and the move-chat card — split out of
+   playbook-actor-sheet.css so every other stylesheet in this module can load after it and
+   reference var(--aa-*). Must stay first in module.json's styles array. */
+
+/* Design tokens. Declared on both roots this module renders under — the actor sheet + every
+   dialog (all carry the "armor-astir" class) and the chat card (its own "armor-astir-move-chat"
+   root, never nested under "armor-astir") — so nothing leaks into pbta's own chrome or other
+   modules' sheets. */
+.armor-astir,
+.armor-astir-move-chat {
+	/* Palette — the two gems, named for what they are. Nothing styles against these directly. */
+	--aa-moonstone: #7fa8b8;
+	--aa-moonstone-dark: #4a6e7c;
+	--aa-moonstone-tint: #edf4f7;
+	--aa-amethyst: #6c3483;
+	--aa-amethyst-dark: #45205a;
+	--aa-amethyst-tint: #f0e6f8;
+	--aa-danger: #8b1a1a;
+	--aa-danger-tint: #f7e8e8;
+
+	/* Roles — every rule below styles against these, never against a gem name directly, so
+	   swapping which gem plays which role is a two-line change here instead of ~40 scattered
+	   edits. Primary = chrome the player acts on (headers, tabs, buttons); secondary = the
+	   player's own tracked state (pips, value readouts, tag labels).
+
+	   Note the -dark variants aren't just "darker": moonstone at full strength (#7fa8b8) is far
+	   too pale to sit under white text (~2.4:1, under the 4.5:1 floor), so any surface that fills
+	   with a color AND carries white text must use a -dark variant, never the base. */
+	--aa-primary: var(--aa-amethyst);
+	--aa-primary-dark: var(--aa-amethyst-dark);
+	--aa-primary-tint: var(--aa-amethyst-tint);
+	--aa-secondary: var(--aa-moonstone);
+	--aa-secondary-dark: var(--aa-moonstone-dark);
+	--aa-secondary-tint: var(--aa-moonstone-tint);
+	--aa-space-1: 4px;
+	--aa-space-2: 8px;
+	--aa-space-3: 12px;
+	--aa-space-4: 16px;
+	--aa-radius: 4px;
+	--aa-border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+}
+
+/* pbta's own global SCSS themes every Foundry window (sheet or Dialog) navy, with nothing scoping
+   it away from ours — retheme the chrome here so it reads as this module's palette instead. Scoped
+   to the outer .window-app element itself (not .armor-astir.sheet, which only ever matches inside
+   .window-content) since that's the element carrying both "window-app" and "armor-astir". */
+.window-app.armor-astir {
+	border-color: var(--aa-primary-dark);
+}
+
+.window-app.armor-astir .window-header {
+	background: var(--aa-primary);
+	color: white;
+	border-bottom-color: var(--aa-primary-dark);
+}
+
+.window-app.armor-astir .window-header a,
+.window-app.armor-astir .window-header .header-button {
+	color: white;
+}

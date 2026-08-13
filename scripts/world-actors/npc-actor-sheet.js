@@ -4,7 +4,7 @@ import { TIER_MIN, TIER_MAX } from "../equipment/equipment.js";
 export const NPC_SHEET_TEMPLATE = "modules/armor-astir/templates/npc-actor-sheet.hbs";
 export const NPC_ACTOR_TYPE = "armor-astir.npc";
 
-// The NPC is the minimal "something in the world with a Tier" actor (see claude.md, "World
+// The NPC is the minimal "something in the world with a Tier" actor (see docs/domains/world-actors.md, "World
 // actors") — name, description, a freely-picked Approach, and Tier, nothing else. Its purpose is
 // to be a valid target for Tier- and Approach-comparison rules (see moves-mixin.js's
 // _targetTierAdvantage/_targetMatchupEffect and target-tier.js) rather than to model a full NPC

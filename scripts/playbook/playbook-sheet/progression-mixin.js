@@ -212,7 +212,7 @@ export const ProgressionSheetMixin = {
 	// _bonusDowntimeTokenKeyedSources) store their value at system.attributes.
 	// bonusDowntimeTokens.<key>.value, the same keyed-pool shape flatHold's own moveHold uses, so
 	// multiple granting entries on one actor stay independently valued; equipment can't share that
-	// map (equipment ids are per-actor and disposable — see claude.md's Equipment), so it stores its
+	// map (equipment ids are per-actor and disposable — see docs/domains/equipment.md's Equipment), so it stores its
 	// value right on the entry itself as bonusDowntimeTokensValue instead. `moveKey` is kept as the
 	// field name for the keyed rows even though it now also covers part keys, matching what the
 	// template already expects. No period of its own — see _onRefreshSortie, which resets every one

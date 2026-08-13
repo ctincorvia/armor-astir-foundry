@@ -14,7 +14,15 @@
 		"verified": "12"
 	},
 	"esmodules": ["scripts/main.js"],
-	"styles": ["styles/playbook-actor-sheet.css", "styles/world-actor-sheet.css"],
+	"styles": [
+		"styles/tokens.css",
+		"styles/sheet-chrome.css",
+		"styles/sheet-layout.css",
+		"styles/sheet-tabs.css",
+		"styles/move-chat.css",
+		"styles/dialogs.css",
+		"styles/world-actor-sheet.css"
+	],
 	"documentTypes": {
 		"Actor": {
 			"carrier": {},
