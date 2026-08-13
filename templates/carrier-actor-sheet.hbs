@@ -20,32 +20,29 @@
 	</section>
 	<section class="weapons">
 		<div class="section-header">
-			<h3>Weapons ({{weapons.length}})</h3>
-			{{#if canAddWeapon}}
-			<div class="section-header-actions">
-				<button type="button" class="weapon-add icon-add-button" title="Add Weapon" aria-label="Add Weapon">+</button>
-			</div>
-			{{/if}}
+			<h3>Weapons</h3>
 		</div>
 		<ol class="entry-list weapon-list">
-			{{#each weapons}}
-			<li class="entry-list-item" data-weapon-id="{{id}}">
+			{{#each weaponSlots}}
+			<li class="entry-list-item" data-slot="{{key}}">
+				<h4 class="weapon-slot-label">{{label}}</h4>
+				{{#if entry}}
 				<div class="equipment-header">
-					<span class="equipment-name">{{name}}</span>
-					<span class="equipment-value">Value {{value}}</span>
-					<span class="equipment-value">Tier {{tier}}</span>
-					<span class="equipment-scale">{{scaleLabel}}</span>
+					<span class="equipment-name">{{entry.name}}</span>
+					<span class="equipment-value">Value {{entry.value}}</span>
+					<span class="equipment-value">Tier {{entry.tier}}</span>
+					<span class="equipment-scale">{{entry.scaleLabel}}</span>
 					<div class="equipment-item-controls">
-						<button type="button" class="weapon-edit equipment-edit" data-weapon-id="{{id}}">Edit</button>
-						<button type="button" class="weapon-remove entry-list-remove" data-weapon-id="{{id}}" aria-label="Remove weapon">✕</button>
+						<button type="button" class="weapon-edit equipment-edit" data-slot="{{key}}">Edit</button>
+						<button type="button" class="weapon-remove entry-list-remove" data-slot="{{key}}" aria-label="Remove weapon">✕</button>
 					</div>
 				</div>
-				{{#if description}}
-				<div class="equipment-description">{{description}}</div>
+				{{#if entry.description}}
+				<div class="equipment-description">{{entry.description}}</div>
 				{{/if}}
-				{{#if tags.length}}
+				{{#if entry.tags.length}}
 				<ul class="equipment-tag-list">
-					{{#each tags}}
+					{{#each entry.tags}}
 					<li class="equipment-tag">
 						<span class="equipment-tag-label">{{label}} ({{value}})</span>
 						{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
@@ -53,11 +50,16 @@
 					{{/each}}
 				</ul>
 				{{/if}}
-				{{#if moves.length}}
+				{{#if entry.moves.length}}
 				<div class="weapon-move-controls">
-					{{#each moves}}
-					<button type="button" class="weapon-move-roll" data-move="{{key}}" data-weapon-id="{{../id}}">{{name}}</button>
+					{{#each entry.moves}}
+					<button type="button" class="weapon-move-roll" data-move="{{key}}" data-slot="{{../key}}">{{name}}</button>
 					{{/each}}
+				</div>
+				{{/if}}
+				{{else}}
+				<div class="section-header-actions">
+					<button type="button" class="weapon-add icon-add-button" data-slot="{{key}}" title="Add {{label}}" aria-label="Add {{label}}">+</button>
 				</div>
 				{{/if}}
 			</li>

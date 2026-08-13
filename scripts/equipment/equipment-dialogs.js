@@ -148,9 +148,12 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 //
 // `carrierWeapon` (see carrier-actor-sheet.js) is the one caller that still stores its own Tier: a
 // Carrier weapon is always a weapon, always Astir scale (Carriers are never Foot scale), and
-// always Tier 5 — but unlike every other weapon here, there's no wielder for it to inherit Tier
-// from (the Carrier itself has no Tier of its own), so Tier stays a visible, disabled field
-// (fixed at TIER_MAX) rather than being hidden outright.
+// always a fixed Tier — but unlike every other weapon here, there's no wielder for it to inherit
+// Tier from (the Carrier itself has no Tier of its own), so Tier stays a visible, disabled field
+// rather than being hidden outright. `carrierWeaponTier` (default TIER_MAX, so every existing
+// caller sees the exact same behavior as before) is that fixed value — the Carrier's own two
+// weapon slots (primary/secondary) each carry a different one, unlike astirWeapon/ardentWeapon
+// where a single tier concept covers every caller.
 //
 // `ardentWeapon` (see ardent.js/PlaybookActorSheet) is the Ardent counterpart to `astirWeapon`:
 // always a weapon, hides Kind and Tier the same way (an Ardent weapon inherits its owning Ardent's
@@ -184,7 +187,15 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 export async function configureEquipment(
 	initial = null,
 	tags = EQUIPMENT_TAGS,
-	{ note, astirWeapon = false, carrierWeapon = false, ardentWeapon = false, excludedTagKeys = [], maxTagValue = null } = {}
+	{
+		note,
+		astirWeapon = false,
+		carrierWeapon = false,
+		carrierWeaponTier = TIER_MAX,
+		ardentWeapon = false,
+		excludedTagKeys = [],
+		maxTagValue = null
+	} = {}
 ) {
 	// Drain only means anything on an Astir weapon (see DRAIN_GROUP's doc comment) — every other
 	// flow, including ardentWeapon (an Ardent has no Power for Drain to reduce), hides its
@@ -216,7 +227,7 @@ export async function configureEquipment(
 		name: initial?.name ?? "",
 		description: initial?.description ?? "",
 		isWeapon: astirWeapon || carrierWeapon || ardentWeapon || (initial?.kind ?? "weapon") === "weapon",
-		tier: carrierWeapon ? TIER_MAX : (initial?.tier ?? TIER_MIN),
+		tier: carrierWeapon ? carrierWeaponTier : (initial?.tier ?? TIER_MIN),
 		tierMin: TIER_MIN,
 		tierMax: TIER_MAX,
 		// The starting total shown before any box is touched — same equipmentValue helper the
@@ -264,6 +275,28 @@ export async function configureEquipment(
 					const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
 					html.find(".equipment-editor-tag-total-value").text(equipmentValue(checkedKeys, tags));
 				};
+				// Mirrors buttons.save.callback's own step-by-step validation as booleans, so Save can
+				// be disabled live while the dialog is open. Kept as a separate boolean predicate,
+				// deliberately not sharing code with the callback below -- Enter-to-submit invokes that
+				// callback directly (Foundry's Dialog calls the default button's callback, not a
+				// simulated click), which can bypass a disabled attribute, so the callback's own
+				// per-failure ui.notifications.warn checks stay in place unchanged as the real
+				// last-line defense. This predicate only ever improves the common (mouse-click) case.
+				const isValid = () => {
+					const name = html.find("[name='name']").val().trim();
+					if (!name) return false;
+					const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
+					if (checkedKeys.length > MAX_TAGS) return false;
+					if (maxTagValue !== null && equipmentValue(checkedKeys, tags) > maxTagValue) return false;
+					const kind = (astirWeapon || carrierWeapon || ardentWeapon) ? "weapon" : html.find("[name='kind']").val();
+					if (kind === "weapon" && !html.find("[name='weapon-range']:checked").val()) return false;
+					return true;
+				};
+				const updateSaveState = () => {
+					html.find("[data-button='save']").prop("disabled", !isValid());
+				};
+				// input, not change, so Save reacts while typing rather than only on blur.
+				html.find("[name='name']").on("input", updateSaveState);
 				// A tag with an `exclusiveGroup` (see EQUIPMENT_TAGS' doc comment) behaves like a radio
 				// button within that group: checking it unchecks every other tag sharing the same group,
 				// looked up off `tags` (already in closure) rather than new template data attributes.
@@ -277,7 +310,21 @@ export async function configureEquipment(
 						}
 					}
 					updateTotal();
+					updateSaveState();
 				});
+				// Kind is only rendered for the one caller that doesn't force it (see hideKind above) --
+				// astirWeapon/carrierWeapon/ardentWeapon never render a Kind select to wire a listener to.
+				if (!(astirWeapon || carrierWeapon || ardentWeapon)) {
+					html.find("[name='kind']").on("change", updateSaveState);
+				}
+				// weaponRangeTags (see above) is empty for an injected tags catalog with no range tags
+				// (e.g. a fixture catalog in tests) -- nothing rendered to wire a listener to either.
+				if (weaponRangeTags.length) {
+					html.find("[name='weapon-range']").on("change", updateSaveState);
+				}
+				// Sets Save's initial disabled/enabled state on open -- a blank Add dialog opens
+				// disabled, an Edit dialog pre-filled with a valid name opens enabled.
+				updateSaveState();
 			},
 			buttons: {
 				save: {
@@ -344,9 +391,9 @@ export async function configureEquipment(
 								scale: carrierWeapon ? "astir" : "foot",
 								// tier is likewise never resolved for a mundane weapon — it derives from the
 								// wielding character instead (see the doc comment above configureEquipment).
-								// Only carrierWeapon still stores its own, always fixed at TIER_MAX; the DOM
+								// Only carrierWeapon still stores its own, fixed at carrierWeaponTier; the DOM
 								// field carrierWeapon renders is disabled, so nothing else can reach here.
-								...(carrierWeapon && { tier: TIER_MAX })
+								...(carrierWeapon && { tier: carrierWeaponTier })
 							})
 						});
 					}

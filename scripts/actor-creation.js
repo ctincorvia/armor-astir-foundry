@@ -133,7 +133,7 @@ export const WORLD_ACTOR_KINDS = [
 		buildSystem: () => ({
 			stats: { crew: { value: 0 } },
 			details: { description: { value: "" } },
-			attributes: { crewMembers: [] }
+			attributes: { crewMembers: [], weapons: { primary: null, secondary: null } }
 		})
 	},
 	{

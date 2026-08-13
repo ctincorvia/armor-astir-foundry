@@ -287,6 +287,43 @@ describe("configureEquipment - carrierWeapon option", () => {
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
 	});
+
+	it("defaults carrierWeaponTier to TIER_MAX, unaffected for every existing caller", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			tier: TIER_MAX
+		}));
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Ram Cannon",
+			"[name='description']": ""
+		}, [], "melee"));
+
+		expect((await promise).tier).toBe(TIER_MAX);
+	});
+
+	it("honors a non-default carrierWeaponTier, both pre-filled and on resolve", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true, carrierWeaponTier: 3 });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			tier: 3
+		}));
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Boarding Claw",
+			"[name='description']": "",
+			"[name='tier']": "5"
+		}, [], "melee"));
+
+		expect((await promise).tier).toBe(3);
+	});
 });
 
 describe("configureEquipment - ardentWeapon option", () => {

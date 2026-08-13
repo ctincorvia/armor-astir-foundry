@@ -53,8 +53,17 @@ function fakeEquipmentHtml(values, checkedTags = [], weaponRange) {
 // handler, same as a real toggle), `.find(".equipment-editor-tag-total-value").text(...)` to
 // capture what was written, and `.find("[name='tag'][value='<key>']").prop("checked", false)` to
 // record which sibling(s) the exclusiveGroup logic force-unchecked, in `uncheckedKeys`.
-function fakeEquipmentRenderHtml() {
-	const state = { handlers: {}, total: undefined, checkedTags: [], uncheckedKeys: [] };
+function fakeEquipmentRenderHtml({ name = "", kind = "gear", weaponRange } = {}) {
+	const state = {
+		handlers: {},
+		total: undefined,
+		checkedTags: [],
+		uncheckedKeys: [],
+		name,
+		kind,
+		weaponRange,
+		saveDisabled: undefined
+	};
 	state.html = {
 		find: (selector) => {
 			if (selector === "[name='tag']") return { on: (event, handler) => { state.handlers[event] = handler; } };
@@ -62,6 +71,30 @@ function fakeEquipmentRenderHtml() {
 				return { map: (fn) => ({ get: () => state.checkedTags.map((value, index) => fn(index, { value })) }) };
 			}
 			if (selector === ".equipment-editor-tag-total-value") return { text: (value) => { state.total = value; } };
+			// name/kind/weapon-range mirror fakeEquipmentHtml's .val() reads (used by isValid, live as
+			// the dialog is open) while also capturing the listener configureEquipment's render callback
+			// wires to each, the same way `[name='tag']` already does above for its own change handler.
+			if (selector === "[name='name']") {
+				return {
+					val: () => state.name,
+					on: (event, handler) => { state.nameHandlers = { ...state.nameHandlers, [event]: handler }; }
+				};
+			}
+			if (selector === "[name='kind']") {
+				return {
+					val: () => state.kind,
+					on: (event, handler) => { state.kindHandlers = { ...state.kindHandlers, [event]: handler }; }
+				};
+			}
+			if (selector === "[name='weapon-range']:checked") return { val: () => state.weaponRange };
+			if (selector === "[name='weapon-range']") {
+				return { on: (event, handler) => { state.weaponRangeHandlers = { ...state.weaponRangeHandlers, [event]: handler }; } };
+			}
+			// Captures Save's live disabled/enabled state, mirroring the exclusiveGroup uncheck capture
+			// just below for the same `.prop(name, value)` shape.
+			if (selector === "[data-button='save']") {
+				return { prop: (prop, value) => { if (prop === "disabled") state.saveDisabled = value; } };
+			}
 			const tagCheckboxMatch = selector.match(/^\[name='tag'\]\[value='(.+)'\]$/);
 			if (tagCheckboxMatch) {
 				const key = tagCheckboxMatch[1];
@@ -466,6 +499,110 @@ describe("configureEquipment", () => {
 		// was actually checked.
 		expect(state.uncheckedKeys).toEqual(["fixture-exclusive-b"]);
 		expect(state.uncheckedKeys).not.toContain("fixture-solo");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("starts Save disabled when opening a blank Add dialog", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.saveDisabled).toBe(true);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("enables Save once a name is typed into the name field", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		expect(state.saveDisabled).toBe(true);
+
+		state.name = "Rations";
+		state.nameHandlers.input();
+
+		expect(state.saveDisabled).toBe(false);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it(`re-disables Save when checking enough tags to exceed ${MAX_TAGS}`, async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Rations" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		expect(state.saveDisabled).toBe(false);
+
+		state.checkedTags = ["blitz", "concealable", "impact", "infinite", "mounted"];
+		state.handlers.change({ target: { value: "mounted", checked: true } });
+
+		expect(state.saveDisabled).toBe(true);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("re-disables Save when checked tags' summed value exceeds an injected maxTagValue", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS, { maxTagValue: 1 });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Rations" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		expect(state.saveDisabled).toBe(false);
+
+		state.checkedTags = ["fixture-positive"];
+		state.handlers.change({ target: { value: "fixture-positive", checked: true } });
+
+		expect(state.saveDisabled).toBe(true);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("starts Save enabled when opening an Edit dialog with a valid pre-filled name", async () => {
+		const entry = { id: "abc", name: "Halberd", tags: [] };
+		const promise = configureEquipment(entry, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Halberd" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.saveDisabled).toBe(false);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("doesn't wire a Kind change listener for an astirWeapon flow (no Kind select is rendered), and forces kind to weapon so the Range radio still gates Save", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Lance" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.kindHandlers).toBeUndefined();
+		// No Range radio checked yet — kind is forced to "weapon" internally, so Save stays disabled.
+		expect(state.saveDisabled).toBe(true);
+
+		state.weaponRange = "melee";
+		state.weaponRangeHandlers.change();
+
+		expect(state.saveDisabled).toBe(false);
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
