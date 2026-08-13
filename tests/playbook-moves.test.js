@@ -483,9 +483,15 @@ describe("MOVE_POOLS - the-summoner", () => {
 		expect(livingDrive.grantsUnpilotedAstirMove).toEqual({ moveKey: "the-summoner:eidolon-drive" });
 	});
 
+	it("flags Enduring Support with activatesApproachOverride and empty traits", () => {
+		const enduringSupport = findPlaybookMove("the-summoner:enduring-support");
+
+		expect(enduringSupport.traits).toEqual([]);
+		expect(enduringSupport.activatesApproachOverride).toBe(true);
+	});
+
 	it("gives every other Additional Move (prose-only) empty traits", () => {
 		for (const key of [
-			"the-summoner:enduring-support",
 			"the-summoner:bonded-in-blood",
 			"the-summoner:spritecraft",
 			"the-summoner:dynamic-entry",

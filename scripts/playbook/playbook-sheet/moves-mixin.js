@@ -6,6 +6,7 @@ import {
 } from "../../moves/playbook-moves.js";
 import { patronChannelBonus, traitBonusesFor } from "../../moves/trait-bonuses.js";
 import { TRAITS } from "../../core/traits.js";
+import { APPROACHES } from "../../core/approaches.js";
 import { chooseCarrier, findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
 import { TIER_MIN, UNARMED, chooseWeapon } from "../../equipment/equipment.js";
 import { getTargetedNpc } from "../../moves/target-tier.js";
@@ -226,6 +227,11 @@ export const MovesSheetMixin = {
 			// eidolonDrive) is what re-enables the button.
 			const summonGated = Boolean(move.summonsAlly)
 				&& (this._boundAllies().length === 0 || Boolean(this._eidolonDrive().summonedAllyId));
+			// Enduring Support's Activate button (Summoner — see playbook-moves.js's
+			// activatesApproachOverride) has nothing to snapshot with no ally currently summoned, or
+			// a summoned ally whose own Approach was never set — mirrors summonGated's own "nothing
+			// to act on" stance for Eidolon Drive's Summon button.
+			const approachOverrideGated = Boolean(move.activatesApproachOverride) && !this._summonedAlly()?.approach;
 			// Bite the Dust, disabled by Never Quite Free (see disablingMoves above) — finds the
 			// picked move, if any, whose disablesMove.moveKey targets this move.
 			const disabledBy = disablingMoves.find((m) => m.disablesMove.moveKey === move.key);
@@ -251,6 +257,14 @@ export const MovesSheetMixin = {
 					value: this._eidolonDrive().bonusUsed ? 1 : 3
 				}
 				: null;
+			// Enduring Support's own move-card info line — mirrors summonedAllyInfo's own
+			// omit-when-empty treatment: only for the move that grants the override
+			// (activatesApproachOverride), and only once an override is actually active, so no
+			// other move's own object literal in the moveGroups toEqual snapshot needs to change.
+			const approachOverride = this.actor.system.attributes?.approachOverride;
+			const approachOverrideInfo = (move.activatesApproachOverride && approachOverride?.approach)
+				? { approachLabel: APPROACHES.find((a) => a.key === approachOverride.approach)?.label ?? approachOverride.approach }
+				: null;
 			return {
 				key: move.key,
 				name: move.name,
@@ -264,8 +278,8 @@ export const MovesSheetMixin = {
 				// this one (Never Quite Free disabling Bite the Dust, via disabledBy above), OR this
 				// move's own requiresMoves/requiresParts isn't (or is no longer) satisfied
 				// (requirementTooltip above).
-				gated: (move.traits.length > 0 && traits.length === 0) || channelGated || summonGated || Boolean(disabledBy)
-					|| Boolean(requirementTooltip),
+				gated: (move.traits.length > 0 && traits.length === 0) || channelGated || summonGated || approachOverrideGated
+					|| Boolean(disabledBy) || Boolean(requirementTooltip),
 				// Whether this move rolls anything at all, based on its static definition rather
 				// than the actor-filtered trait list above — a gated move (e.g. Weave Magic with
 				// Channel disabled) still shows a disabled Roll button, but a move with no traits or
@@ -291,7 +305,8 @@ export const MovesSheetMixin = {
 				// take.
 				activatable: Boolean(move.flatHold)
 					|| Boolean(move.showsReadTheRoomQuestions)
-					|| Boolean(move.activateChoices),
+					|| Boolean(move.activateChoices)
+					|| Boolean(move.activatesApproachOverride),
 				// Eidolon Drive's Summon button (Summoner) — replaces Roll/Activate in the template
 				// exactly the way flatHold replaces Roll with Activate above; see summoner-mixin.js's
 				// _onEidolonDriveSummon for the handler, and summonGated above for why it's disabled
@@ -301,6 +316,8 @@ export const MovesSheetMixin = {
 				// move but Eidolon Drive with a real summon active, so no other move's object
 				// literal in the moveGroups toEqual snapshot needs to change.
 				...(summonedAllyInfo && { summonedAllyInfo }),
+				// See approachOverrideInfo above — same omit-when-empty treatment as summonedAllyInfo.
+				...(approachOverrideInfo && { approachOverrideInfo }),
 				// Hover explanation for why this move's Roll button is disabled — Bite the Dust's
 				// "Replaced by Never Quite Free" (disabledBy above) and/or an unmet requiresMoves/
 				// requiresParts (requirementTooltip above); a move could in principle hit both at
@@ -1144,6 +1161,20 @@ export const MovesSheetMixin = {
 				flavor: `<h3>${move.name}</h3>`,
 				content: `<p>${prompt}</p><ul>${options.map((option) => `<li>${option}</li>`).join("")}</ul>`
 			});
+			await postMoveDescription(this.actor, move);
+			return;
+		}
+
+		// Enduring Support (Summoner — see playbook-moves.js's activatesApproachOverride). Snapshots
+		// the currently-summoned ally's own Approach into its own persisted field rather than storing
+		// a live reference, since the summon itself can clear on Refresh Scene while this effect
+		// persists through Refresh Sortie (see frames-mixin.js) — a stale reference would silently
+		// lose the override the moment the Scene ends. No-ops (same defensive stance _summonedAlly()
+		// itself already takes) if nothing is summoned or the summoned ally has no Approach set.
+		if (move.activatesApproachOverride) {
+			const summoned = this._summonedAlly();
+			if (!summoned?.approach) return;
+			await this.actor.update({ "system.attributes.approachOverride": { approach: summoned.approach } });
 			await postMoveDescription(this.actor, move);
 		}
 	},

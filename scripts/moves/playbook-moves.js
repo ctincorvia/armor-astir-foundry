@@ -1976,12 +1976,21 @@ export const MOVE_POOLS = [
 			{
 				key: "the-summoner:enduring-support",
 				name: "Enduring Support",
-				// "Use their approach instead of your own" — the same manual, non-enforced
-				// substitution the Arcane/Divine/Elemental/Mundane/Profane equipment tags already
-				// model (see equipment.js: system.attributes.approach is a single persistent field
-				// with no "actively equipped" state, so a temporary override stays descriptive).
-				// Prose only.
+				// "After you summon an ally ... you may use their approach instead of your own for
+				// the rest of the Sortie." activatesApproachOverride: true drives an Activate button
+				// (see moves-mixin.js's _onMoveActivate) that snapshots the *summoned* ally's own
+				// approach into its own persisted field, system.attributes.approachOverride — not a
+				// live reference to the summon, since Eidolon Drive's own summon is Scene-scoped (see
+				// frames-mixin.js's _onRefreshScene) while this move's own text extends the effect
+				// through the rest of the Sortie, so the two need independent lifetimes. Gated (see
+				// moves-mixin.js's approachOverrideGated) on the actor currently having a summoned
+				// ally with a real approach set — nothing meaningful to snapshot otherwise. Cleared
+				// only by Refresh Sortie (see frames-mixin.js's _onRefreshSortie), matching the move's
+				// own Sortie-long duration. Resolved into _effectiveApproach (progression-mixin.js)
+				// alongside the Attendant's static grantsApproachOverride, but as a dynamic per-roll
+				// snapshot rather than a fixed catalog value.
 				traits: [],
+				activatesApproachOverride: true,
 				description:
 					"<p>After you summon an ally with your eidolon drive, you may use their approach " +
 					"instead of your own for the rest of the Sortie.</p>"

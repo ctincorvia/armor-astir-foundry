@@ -277,6 +277,12 @@ export const FramesSheetMixin = {
 		// who clicks Refresh Sortie without first clicking Refresh Scene shouldn't carry a stale
 		// summon into the next Sortie.
 		updates["system.attributes.eidolonDrive"] = { summonedAllyId: null, bonusUsed: false };
+		// Enduring Support's snapshot override (see moves-mixin.js's _onMoveActivate) is scoped
+		// "for the rest of the Sortie" by its own text - unlike eidolonDrive above, this is
+		// deliberately NOT touched by _onRefreshScene: the whole point of Enduring Support is to
+		// outlive the summon's own Scene-scoped boundary, so Refresh Sortie is this field's real
+		// (and only) clear point.
+		updates["system.attributes.approachOverride"] = null;
 		updates["system.attributes.downtimeTokens.value"] = this._downtimeTokensMax();
 		this.actor.update(updates);
 	}

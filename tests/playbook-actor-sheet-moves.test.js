@@ -58,6 +58,7 @@ const NEVER_QUITE_FREE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:
 const ARCANE_GENERATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-artificer:arcane-generator");
 const COUNTERSPELL = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-artificer:counterspell");
 const PLAN_AND_PREPARE = SPECIAL_MOVES.find((m) => m.key === "plan-and-prepare");
+const ENDURING_SUPPORT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:enduring-support");
 
 beforeEach(() => {
 	postMoveDescription.mockClear();
@@ -1843,6 +1844,151 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 		});
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, BUREAUCRAT);
+	});
+
+	it("does nothing for Enduring Support with no ally summoned", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { boundAllies: [] } }, update: vi.fn() };
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: ENDURING_SUPPORT.key } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+		expect(postMoveDescription).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for Enduring Support when the summoned ally has no approach set", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					boundAllies: [{ id: "a1", name: "Vex" }],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: ENDURING_SUPPORT.key } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+		expect(postMoveDescription).not.toHaveBeenCalled();
+	});
+
+	it("snapshots the summoned ally's approach into approachOverride and posts the description", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					boundAllies: [{ id: "a1", name: "Vex", approach: "profane" }],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: ENDURING_SUPPORT.key } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.approachOverride": { approach: "profane" }
+		});
+		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, ENDURING_SUPPORT);
+	});
+});
+
+describe("PlaybookActorSheet#_moveGroupMoves - Enduring Support's Activate button", () => {
+	it("is activatable, and gated with no ally summoned", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { boundAllies: [] } } };
+
+		const [entry] = sheet._moveGroupMoves([ENDURING_SUPPORT]);
+
+		expect(entry.activatable).toBe(true);
+		expect(entry.gated).toBe(true);
+	});
+
+	it("is gated when the summoned ally has no approach set", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					boundAllies: [{ id: "a1", name: "Vex" }],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
+				}
+			}
+		};
+
+		const [entry] = sheet._moveGroupMoves([ENDURING_SUPPORT]);
+
+		expect(entry.gated).toBe(true);
+	});
+
+	it("is ungated once a summoned ally with a real approach exists", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					boundAllies: [{ id: "a1", name: "Vex", approach: "profane" }],
+					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
+				}
+			}
+		};
+
+		const [entry] = sheet._moveGroupMoves([ENDURING_SUPPORT]);
+
+		expect(entry.gated).toBe(false);
+	});
+
+	it("omits approachOverrideInfo entirely with no active override", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: {} } };
+
+		const [entry] = sheet._moveGroupMoves([ENDURING_SUPPORT]);
+
+		expect("approachOverrideInfo" in entry).toBe(false);
+	});
+
+	it("includes approachOverrideInfo with the resolved Approach label once an override is active", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: { approachOverride: { approach: "profane" } }
+			}
+		};
+
+		const [entry] = sheet._moveGroupMoves([ENDURING_SUPPORT]);
+
+		expect(entry.approachOverrideInfo).toEqual({ approachLabel: "Profane" });
+	});
+
+	it("falls back to the raw key in approachOverrideInfo when it doesn't match a known APPROACHES entry", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: { approachOverride: { approach: "not-a-real-approach" } }
+			}
+		};
+
+		const [entry] = sheet._moveGroupMoves([ENDURING_SUPPORT]);
+
+		expect(entry.approachOverrideInfo).toEqual({ approachLabel: "not-a-real-approach" });
+	});
+
+	it("omits approachOverrideInfo for an ordinary move even with an active override", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: { approachOverride: { approach: "profane" } }
+			}
+		};
+
+		const [entry] = sheet._moveGroupMoves([BULLHEADED]);
+
+		expect("approachOverrideInfo" in entry).toBe(false);
 	});
 });
 

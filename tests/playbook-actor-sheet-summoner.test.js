@@ -37,6 +37,7 @@ const EIDOLON_DRIVE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:eid
 const BINDING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:binding");
 const HELPING_HANDS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:helping-hands");
 const LIVING_DRIVE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:living-drive");
+const ENDURING_SUPPORT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:enduring-support");
 
 beforeEach(() => {
 	foundry.utils.randomID.mockReturnValue("test-id");
@@ -1230,5 +1231,95 @@ describe("PlaybookActorSheet#_moveTraits - Eidolon Drive ally trait label fallba
 		const traits = sheet._moveTraits({ traits: [] });
 
 		expect(traits).toContainEqual({ key: "eidolon-drive-ally", label: "Vex (not-a-real-trait)", value: 3 });
+	});
+});
+
+// Enduring Support (Summoner) — a *dynamic* per-roll Approach override, snapshotted at Activate
+// time into system.attributes.approachOverride (see moves-mixin.js's _onMoveActivate), resolved by
+// _effectiveApproach (progression-mixin.js) ahead of the Attendant's own static
+// grantsApproachOverride. Mirrors the exact result shape playbook-actor-sheet-attendant.test.js's
+// Signed & Sealed tests already use, for consistency.
+describe("PlaybookActorSheet#_effectiveApproach - Enduring Support", () => {
+	it("overrides to the snapshotted approach with Enduring Support picked and an active override", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					approach: "mundane",
+					playbookMoves: [ENDURING_SUPPORT.key],
+					approachOverride: { approach: "profane" }
+				}
+			}
+		};
+
+		expect(sheet._effectiveApproach()).toEqual({
+			base: "mundane",
+			effective: "profane",
+			effectiveLabel: "Profane",
+			fromFrame: false,
+			fromMove: true,
+			moveName: ENDURING_SUPPORT.name
+		});
+	});
+
+	it("falls back to the raw key when the snapshotted approach doesn't match a known APPROACHES entry", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					approach: "mundane",
+					playbookMoves: [ENDURING_SUPPORT.key],
+					approachOverride: { approach: "not-a-real-approach" }
+				}
+			}
+		};
+
+		expect(sheet._effectiveApproach()).toEqual({
+			base: "mundane",
+			effective: "not-a-real-approach",
+			effectiveLabel: "not-a-real-approach",
+			fromFrame: false,
+			fromMove: true,
+			moveName: ENDURING_SUPPORT.name
+		});
+	});
+
+	it("ignores a stored override when Enduring Support isn't picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					approach: "mundane",
+					playbookMoves: [],
+					approachOverride: { approach: "profane" }
+				}
+			}
+		};
+
+		expect(sheet._effectiveApproach()).toEqual({
+			base: "mundane",
+			effective: "mundane",
+			effectiveLabel: "Mundane",
+			fromFrame: false
+		});
+	});
+
+	it("still lets a mounted frame's own Approach win over an active Enduring Support override", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					approach: "mundane",
+					playbookMoves: [ENDURING_SUPPORT.key],
+					approachOverride: { approach: "profane" },
+					astir: { id: "a1", approach: "elemental", tier: 3, power: 4, parts: [], piloted: true }
+				}
+			}
+		};
+
+		const result = sheet._effectiveApproach();
+		expect(result.fromFrame).toBe(true);
+		expect(result.effective).toBe("elemental");
+		expect(result).not.toHaveProperty("fromMove");
 	});
 });

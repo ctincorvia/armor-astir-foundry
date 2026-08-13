@@ -524,6 +524,26 @@ describe("PlaybookActorSheet#_onRefreshScene", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false }
 		});
 	});
+
+	// Enduring Support's own effect lasts "for the rest of the Sortie" (see moves-mixin.js's
+	// _onMoveActivate), a longer boundary than the summon itself — see _onRefreshSortie for the real
+	// clear point, below.
+	it("does not touch Enduring Support's active Approach override", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { approachOverride: { approach: "profane" } },
+				resources: { hold: { value: 0 } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshScene();
+
+		expect(sheet.actor.update).not.toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.approachOverride": expect.anything() })
+		);
+	});
 });
 
 describe("PlaybookActorSheet#_onRefreshSortie", () => {
@@ -554,6 +574,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
+			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
@@ -586,6 +607,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
+			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
@@ -611,6 +633,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
+			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
@@ -640,6 +663,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
+			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
@@ -672,6 +696,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
+			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 		});
@@ -704,6 +729,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
+			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2
 		});
 	});
@@ -894,6 +920,20 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 					{ ...bonusEntry, bonusDowntimeTokensValue: 1 }
 				]
 			})
+		);
+	});
+
+	it("clears Enduring Support's active Approach override, unconditionally", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { approachOverride: { approach: "profane" } } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.approachOverride": null })
 		);
 	});
 });

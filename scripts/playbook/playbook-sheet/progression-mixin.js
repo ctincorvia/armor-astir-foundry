@@ -80,6 +80,24 @@ export const ProgressionSheetMixin = {
 		// follows, rather than hardcoding the move's key. Only reached once no frame is mounted, since
 		// a mounted frame's own Approach already takes precedence above.
 		const picked = resolvePlaybookMoves(this._playbookMoves());
+		// Enduring Support (The Summoner): a *dynamic* per-roll override, snapshotted at Activate
+		// time (see moves-mixin.js's _onMoveActivate) into system.attributes.approachOverride, rather
+		// than a fixed catalog value like grantsApproachOverride below — so it's checked first, off
+		// the actual stored snapshot rather than the move's own static data. Still requires the
+		// granting move to currently be picked, so removing Enduring Support can't leave a stale
+		// override in effect — the same defensive stance _summonedAlly() already takes for a stale id.
+		const dynamicOverrideMove = picked.find((move) => move.activatesApproachOverride);
+		const approachOverride = this.actor.system.attributes?.approachOverride;
+		if (dynamicOverrideMove && approachOverride?.approach) {
+			return {
+				base,
+				effective: approachOverride.approach,
+				effectiveLabel: APPROACHES.find((a) => a.key === approachOverride.approach)?.label ?? approachOverride.approach,
+				fromFrame: false,
+				fromMove: true,
+				moveName: dynamicOverrideMove.name
+			};
+		}
 		const overrideMove = picked.find((move) => move.grantsApproachOverride);
 		if (overrideMove) {
 			const override = overrideMove.grantsApproachOverride;
