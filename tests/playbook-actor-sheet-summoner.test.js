@@ -1236,8 +1236,10 @@ describe("PlaybookActorSheet#_moveTraits - Eidolon Drive ally trait label fallba
 
 // Enduring Support (Summoner) — a *dynamic* per-roll Approach override, snapshotted at Activate
 // time into system.attributes.approachOverride (see moves-mixin.js's _onMoveActivate), resolved by
-// _effectiveApproach (progression-mixin.js) ahead of the Attendant's own static
-// grantsApproachOverride. Mirrors the exact result shape playbook-actor-sheet-attendant.test.js's
+// _effectiveApproach (progression-mixin.js) ahead of BOTH a mounted frame's own Approach and the
+// Attendant's own static grantsApproachOverride (Eidolon Drive normally requires piloting the Astir
+// to summon in the first place, so checking the frame first would make this override unreachable in
+// the common case). Mirrors the exact result shape playbook-actor-sheet-attendant.test.js's
 // Signed & Sealed tests already use, for consistency.
 describe("PlaybookActorSheet#_effectiveApproach - Enduring Support", () => {
 	it("overrides to the snapshotted approach with Enduring Support picked and an active override", () => {
@@ -1304,7 +1306,7 @@ describe("PlaybookActorSheet#_effectiveApproach - Enduring Support", () => {
 		});
 	});
 
-	it("still lets a mounted frame's own Approach win over an active Enduring Support override", () => {
+	it("lets an active Enduring Support override win even while a frame is mounted", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -1317,9 +1319,13 @@ describe("PlaybookActorSheet#_effectiveApproach - Enduring Support", () => {
 			}
 		};
 
-		const result = sheet._effectiveApproach();
-		expect(result.fromFrame).toBe(true);
-		expect(result.effective).toBe("elemental");
-		expect(result).not.toHaveProperty("fromMove");
+		expect(sheet._effectiveApproach()).toEqual({
+			base: "mundane",
+			effective: "profane",
+			effectiveLabel: "Profane",
+			fromFrame: false,
+			fromMove: true,
+			moveName: ENDURING_SUPPORT.name
+		});
 	});
 });

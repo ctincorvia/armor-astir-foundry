@@ -62,8 +62,36 @@ export const ProgressionSheetMixin = {
 	// Unlike Tier, which always has a numeric default (CHARACTER_TIER_DEFAULT) and so never needs to
 	// fall through, a frame's own Approach can be unset ("") — an Astir/Ardent doesn't require one
 	// to be created — so this falls back to `base` in that case rather than reporting `fromFrame`.
+	//
+	// Checked *after* Enduring Support's own dynamic override below, not before: Eidolon Drive (the
+	// move that produces something to summon in the first place) is itself gated behind the Astir
+	// being the mounted frame unless Living Drive is also picked, so "piloting a frame with its own
+	// Approach set" is the overwhelmingly common state whenever Enduring Support could ever apply —
+	// checking the frame first would make the override silently unreachable in the normal case.
 	_effectiveApproach() {
 		const base = this.actor.system.attributes?.approach ?? "";
+		// Enduring Support (The Summoner): "you may use their approach instead of your own for the
+		// rest of the Sortie" — a *dynamic* per-roll override, snapshotted at Activate time (see
+		// moves-mixin.js's _onMoveActivate) into system.attributes.approachOverride, rather than a
+		// fixed catalog value like grantsApproachOverride below. Unlike Signed & Sealed's own static
+		// override (whose text explicitly reads "on foot" and so must stay subordinate to a mounted
+		// frame — see below), Enduring Support carries no such scoping and is an explicit, once-per-
+		// summon player action, so it's checked ahead of the frame check, not after it. Still requires
+		// the granting move to currently be picked, so removing Enduring Support can't leave a stale
+		// override in effect — the same defensive stance _summonedAlly() already takes for a stale id.
+		const picked = resolvePlaybookMoves(this._playbookMoves());
+		const dynamicOverrideMove = picked.find((move) => move.activatesApproachOverride);
+		const approachOverride = this.actor.system.attributes?.approachOverride;
+		if (dynamicOverrideMove && approachOverride?.approach) {
+			return {
+				base,
+				effective: approachOverride.approach,
+				effectiveLabel: APPROACHES.find((a) => a.key === approachOverride.approach)?.label ?? approachOverride.approach,
+				fromFrame: false,
+				fromMove: true,
+				moveName: dynamicOverrideMove.name
+			};
+		}
 		const frame = this._mountedFrame();
 		if (frame?.approach) {
 			return {
@@ -78,26 +106,8 @@ export const ProgressionSheetMixin = {
 		// generically off any picked move's own grantsApproachOverride flag, the same declarative-
 		// flag-evaluated-in-the-sheet convention every other cross-cutting move flag in this file
 		// follows, rather than hardcoding the move's key. Only reached once no frame is mounted, since
-		// a mounted frame's own Approach already takes precedence above.
-		const picked = resolvePlaybookMoves(this._playbookMoves());
-		// Enduring Support (The Summoner): a *dynamic* per-roll override, snapshotted at Activate
-		// time (see moves-mixin.js's _onMoveActivate) into system.attributes.approachOverride, rather
-		// than a fixed catalog value like grantsApproachOverride below — so it's checked first, off
-		// the actual stored snapshot rather than the move's own static data. Still requires the
-		// granting move to currently be picked, so removing Enduring Support can't leave a stale
-		// override in effect — the same defensive stance _summonedAlly() already takes for a stale id.
-		const dynamicOverrideMove = picked.find((move) => move.activatesApproachOverride);
-		const approachOverride = this.actor.system.attributes?.approachOverride;
-		if (dynamicOverrideMove && approachOverride?.approach) {
-			return {
-				base,
-				effective: approachOverride.approach,
-				effectiveLabel: APPROACHES.find((a) => a.key === approachOverride.approach)?.label ?? approachOverride.approach,
-				fromFrame: false,
-				fromMove: true,
-				moveName: dynamicOverrideMove.name
-			};
-		}
+		// a mounted frame's own Approach already takes precedence above (Enduring Support's own
+		// dynamic override was already checked first, above the frame check).
 		const overrideMove = picked.find((move) => move.grantsApproachOverride);
 		if (overrideMove) {
 			const override = overrideMove.grantsApproachOverride;
