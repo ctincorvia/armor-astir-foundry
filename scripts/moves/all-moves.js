@@ -1,6 +1,10 @@
 import { BASIC_MOVES, SPECIAL_MOVES } from "./moves.js";
 import { ALL_PLAYBOOK_MOVES } from "./playbook-moves.js";
-import { ASTIR_MOVE_CATALOG } from "../frames/astir.js";
+// Imported from the owning file directly, not the astir.js barrel — ALL_MOVES below spreads
+// ASTIR_MOVE_CATALOG eagerly at module load time, so this can't route through a barrel that
+// several tests partially vi.mock() with an async importOriginal() factory (see ardent.js's own
+// comment on the identical hazard for ARDENT_PART_CATALOG).
+import { ASTIR_MOVE_CATALOG } from "../frames/astir-moves.js";
 import { ARDENT_PART_CATALOG } from "../frames/ardent.js";
 
 // All groups share one flat list for key lookup (PlaybookActorSheet#_onMoveRoll/_onMoveDescription)

@@ -128,6 +128,7 @@
 .armor-astir.sheet .move-roll.disabled,
 .armor-astir.sheet .move-activate.disabled,
 .armor-astir.sheet .move-summon.disabled,
+.armor-astir.sheet .move-variable-dice-roll.disabled,
 .armor-astir.sheet .controls-mount-up.disabled,
 .armor-astir.sheet .controls-dismount.disabled,
 .armor-astir.sheet .witch-boons-choose.disabled {
@@ -165,6 +166,7 @@
 .armor-astir.sheet .move-roll,
 .armor-astir.sheet .move-activate,
 .armor-astir.sheet .move-summon,
+.armor-astir.sheet .move-variable-dice-roll,
 .armor-astir.sheet .icon-add-button,
 .armor-astir.sheet .danger-add,
 .armor-astir.sheet .astir-create,
@@ -183,6 +185,7 @@
 .armor-astir.sheet .move-roll:not(.disabled):hover,
 .armor-astir.sheet .move-activate:not(.disabled):hover,
 .armor-astir.sheet .move-summon:not(.disabled):hover,
+.armor-astir.sheet .move-variable-dice-roll:not(.disabled):hover,
 .armor-astir.sheet .icon-add-button:not(.disabled):hover,
 .armor-astir.sheet .danger-add:hover,
 .armor-astir.sheet .astir-create:hover,
@@ -199,6 +202,7 @@
 .armor-astir.sheet .move-roll:not(.disabled):active,
 .armor-astir.sheet .move-activate:not(.disabled):active,
 .armor-astir.sheet .move-summon:not(.disabled):active,
+.armor-astir.sheet .move-variable-dice-roll:not(.disabled):active,
 .armor-astir.sheet .icon-add-button:not(.disabled):active,
 .armor-astir.sheet .danger-add:active,
 .armor-astir.sheet .astir-create:active,
@@ -319,9 +323,30 @@
 	color: var(--aa-primary-dark);
 }
 
-.armor-astir.sheet .equipment-value {
-	font-size: 12px;
-	opacity: 0.8;
+/* Groups Value/Tier/Scale into one badge cluster, visually distinct from the name and from the
+   Disabled/Edit/Remove action cluster on the row's other end. */
+.armor-astir.sheet .equipment-meta {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: var(--aa-space-1);
+}
+
+/* Chip treatment shared by Value/Tier/Scale so they read as compact metadata badges rather than
+   plain inline text competing with the item name. .equipment-tier-value doubles as the number in
+   the Astir/Ardent Tier stepper (.equipment-tier-control's -/+ pair) — the chip background reads
+   fine there too, just double-checked visually rather than split into a second class. */
+.armor-astir.sheet .equipment-value,
+.armor-astir.sheet .equipment-tier-value,
+.armor-astir.sheet .equipment-scale {
+	padding: 2px var(--aa-space-1);
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-tint);
+	color: var(--aa-secondary-dark);
+	font-size: 11px;
+	font-weight: 600;
+	white-space: nowrap;
 }
 
 .armor-astir.sheet .equipment-tier-control {
@@ -332,22 +357,50 @@
 	font-size: 12px;
 }
 
-.armor-astir.sheet .equipment-scale {
+/* Bare checkbox label — flex row so the box and "Disabled" text line up compactly, matching the
+   size of the chips/buttons it now sits beside inside .equipment-actions. */
+.armor-astir.sheet .equipment-disabled {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
 	font-size: 11px;
-	font-style: italic;
-	opacity: 0.8;
+	white-space: nowrap;
+}
+
+/* Groups the Disabled toggle with Edit/Remove as one right-aligned action cluster, separate from
+   the identity/metadata on the row's left end. */
+.armor-astir.sheet .equipment-actions {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	margin-left: auto;
 }
 
 .armor-astir.sheet .equipment-item-controls {
 	display: flex;
 	flex-direction: row;
 	gap: var(--aa-space-1);
-	margin-left: auto;
 }
 
 .armor-astir.sheet .equipment-description {
 	margin: var(--aa-space-1) 0 0;
 	font-size: 12px;
+}
+
+/* Separates the tag list (rules text you look up) from the item's own description above it, so
+   the card reads as distinct zones instead of one continuous block of prose. */
+.armor-astir.sheet .equipment-tags-block {
+	margin-top: var(--aa-space-1);
+	padding: var(--aa-space-1) var(--aa-space-2);
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-tint);
+}
+
+.armor-astir.sheet .equipment-tags-block .equipment-tag-list {
+	margin: 0;
 }
 
 .armor-astir.sheet .equipment-tag-list {

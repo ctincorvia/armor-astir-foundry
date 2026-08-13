@@ -122,8 +122,9 @@ export function pickerSection(pool, selectedKeys, { note = pool.note, open = fal
 }
 
 // Builds the picker's accordion tree, ordered by how likely a player is to want each pool: their
-// own playbook (expanded by default), then Cantrips, then Soldier Moves, then every other
-// playbook's pool nested one level down under "Other Playbooks".
+// own playbook, then Cantrips, then Soldier Moves, then every other playbook's pool nested one
+// level down under "Other Playbooks". Every section starts collapsed so the ordering itself — not
+// an expanded first section pushing the rest offscreen — is what signals the other pools exist.
 //
 // Moves the actor already has are filtered out so the same move can't be taken twice, and any
 // section left empty by that filtering — or empty to begin with, like the not-yet-written
@@ -137,7 +138,7 @@ export function playbookMoveSections(playbookName, selectedKeys = [], pools = MO
 
 	const own = pools.find((pool) => pool.playbookName && pool.playbookName === playbookName);
 	if (own) {
-		const section = pickerSection(own, selectedKeys, { note: "Your playbook.", open: true });
+		const section = pickerSection(own, selectedKeys, { note: "Your playbook." });
 		if (section) sections.push(section);
 	}
 

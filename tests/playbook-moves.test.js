@@ -208,11 +208,11 @@ const FIXTURE_POOLS = [
 ];
 
 describe("playbookMoveSections", () => {
-	it("puts the actor's own playbook pool first, expanded", () => {
+	it("puts the actor's own playbook pool first, collapsed", () => {
 		const [first] = playbookMoveSections("The Alpha", [], FIXTURE_POOLS);
 
 		expect(first.key).toBe("alpha");
-		expect(first.open).toBe(true);
+		expect(first.open).toBe(false);
 		expect(first.note).toBe("Your playbook.");
 		expect(first.moves.map((move) => move.key)).toEqual(["alpha:one"]);
 	});

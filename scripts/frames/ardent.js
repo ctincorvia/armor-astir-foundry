@@ -1,5 +1,11 @@
 import { DRAIN_GROUP, resolveEquipmentTags } from "../equipment/equipment.js";
-import { ASTIR_PART_CATALOG, ASTIR_WEAPON_CATALOG, EXPENDED_USE } from "./astir.js";
+// Imported from the owning files directly, not the astir.js barrel — ARDENT_PART_CATALOG below
+// spreads ASTIR_PART_CATALOG eagerly at module load time, so this can't route through a barrel
+// that several tests partially vi.mock() with an async importOriginal() factory (the barrel
+// re-export wouldn't be settled yet in every load order, intermittently making ARDENT_PART_CATALOG
+// undefined at spread time).
+import { ASTIR_PART_CATALOG, EXPENDED_USE } from "./astir-parts.js";
+import { ASTIR_WEAPON_CATALOG } from "./astir-weapons.js";
 
 // Ardents are a cheaper, more limited pilotable frame than the Astir (see claude.md's Domain
 // conventions): no Power, no Core, no unique Move, and a hard combined parts+weapons loadout cap.

@@ -710,11 +710,11 @@ const FIXTURE_POOLS = [
 const FIXTURE_ASTIR_CATALOG = [{ key: "astir:one", name: "Astir One", traits: [], description: "<p>m</p>" }];
 
 describe("astirMoveSections", () => {
-	it("puts the actor's own playbook pool first, expanded", () => {
+	it("puts the actor's own playbook pool first, collapsed", () => {
 		const [first] = astirMoveSections("The Alpha", [], FIXTURE_POOLS, FIXTURE_ASTIR_CATALOG);
 
 		expect(first.key).toBe("alpha");
-		expect(first.open).toBe(true);
+		expect(first.open).toBe(false);
 		expect(first.moves.map((m) => m.key)).toEqual(["alpha:one"]);
 	});
 

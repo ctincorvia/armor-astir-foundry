@@ -121,7 +121,7 @@ export function astirMoveSections(
 
 	const ownPool = pools.find((pool) => pool.playbookName && pool.playbookName === playbookName);
 	if (ownPool) {
-		const section = pickerSection(ownPool, selectedKeys, { note: "Your playbook.", open: true, extraTooltip });
+		const section = pickerSection(ownPool, selectedKeys, { note: "Your playbook.", extraTooltip });
 		if (section) sections.push(section);
 	}
 
