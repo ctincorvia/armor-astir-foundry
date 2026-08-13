@@ -1,0 +1,50 @@
+		<aside class="dangers-column">
+			<div class="dangers-panel">
+				<div class="section-header">
+					<h3>Dangers ({{dangers.list.length}}/{{dangers.max}})</h3>
+					{{#if dangers.canAdd}}
+					<div class="section-header-actions">
+						<button type="button" class="danger-add-toggle icon-add-button" title="Add a Danger" aria-label="Add a Danger" aria-expanded="{{dangers.addOpen}}">+</button>
+					</div>
+					{{/if}}
+				</div>
+				{{#if isCaptain}}
+				<label class="at-helm-label">
+					<input type="checkbox" class="at-helm-checkbox" {{#if atHelm}}checked{{/if}}/>
+					At the Helm
+				</label>
+				{{/if}}
+				{{#if dangers.atMax}}
+				<p class="defenseless-label">DEFENSELESS</p>
+				{{/if}}
+				<ol class="danger-list">
+					{{#each dangers.list}}
+					<li class="danger-item {{#if isPeril}}danger-peril{{else}}danger-risk{{/if}}">
+						<span class="danger-label">{{label}}</span>
+						<button type="button" class="danger-remove" data-danger-id="{{id}}" aria-label="Remove danger">✕</button>
+					</li>
+					{{/each}}
+				</ol>
+				{{#if dangers.addOpen}}
+				<div class="danger-add-controls">
+					<input type="text" class="danger-label-input" placeholder="Describe the danger…"/>
+					<select class="danger-type-select">
+						<option value="risk">Risk</option>
+						<option value="peril">Peril</option>
+					</select>
+					<button type="button" class="danger-add">Add</button>
+				</div>
+				{{/if}}
+			</div>
+			<div class="controls-panel">
+				<div class="section-header">
+					<h3>Controls</h3>
+				</div>
+				<div class="controls-actions">
+					<button type="button" class="controls-mount-up{{#if controls.mountUpDisabled}} disabled{{/if}}" {{#if controls.mountUpDisabled}}disabled{{/if}}>Mount Up</button>
+					<button type="button" class="controls-dismount{{#if controls.dismountDisabled}} disabled{{/if}}" {{#if controls.dismountDisabled}}disabled{{/if}}>Dismount</button>
+					<button type="button" class="controls-refresh-scene">Refresh Scene</button>
+					<button type="button" class="controls-refresh-sortie">Refresh Sortie</button>
+				</div>
+			</div>
+		</aside>

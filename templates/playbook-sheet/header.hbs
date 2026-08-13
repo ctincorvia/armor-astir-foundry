@@ -1,0 +1,34 @@
+	<header class="sheet-header">
+		<img class="profile-img" src="{{actor.img}}" data-edit="img" alt="{{actor.name}}"/>
+		<div class="flex3">
+			<div class="form-group">
+				<label>Name</label>
+				<input type="text" name="name" value="{{actor.name}}" placeholder="Name"/>
+			</div>
+			<div class="form-group">
+				<label>Callsign</label>
+				<input type="text" name="system.details.callsign.value" value="{{data.system.details.callsign.value}}" placeholder="Callsign"/>
+			</div>
+		</div>
+		<div class="playbook-swap">
+			<label>Playbook</label>
+			<select class="playbook-select" name="playbook">
+				{{selectOptions playbooks selected=currentPlaybookId valueAttr="packId" labelAttr="name"}}
+			</select>
+		</div>
+		<div class="approach-swap">
+			<label>Approach</label>
+			<select name="system.attributes.approach">
+				{{selectOptions approachOptions selected=approach.base valueAttr="key" labelAttr="label" blank="— Choose —"}}
+			</select>
+			{{#if approach.effectiveLabel}}
+			<span class="approach-effective-note">
+				Current: {{approach.effectiveLabel}}{{#if approach.fromFrame}} (from {{approach.frameName}}){{/if}}{{#if approach.fromMove}} (from {{approach.moveName}}){{/if}}
+			</span>
+			{{/if}}
+		</div>
+		<div class="tier-readout">
+			<label>Tier</label>
+			<span class="tier-value">{{tier.effective}}{{#if tier.fromFrame}} ({{tier.frameName}}){{/if}}</span>
+		</div>
+	</header>

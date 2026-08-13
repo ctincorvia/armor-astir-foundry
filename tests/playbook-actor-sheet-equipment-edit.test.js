@@ -1,0 +1,346 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// Only the editor and catalog picker dialogs are mocked — the tag catalog, item catalog, and
+// resolve helpers stay real, so the sheet is exercised against the actual Blitz/placeholder
+// content.
+vi.mock("../scripts/equipment/equipment.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	configureEquipment: vi.fn(),
+	chooseEquipmentCatalogItem: vi.fn()
+}));
+
+import { configureEquipment } from "../scripts/equipment/equipment.js";
+import { astirMaxPower } from "../scripts/frames/astir.js";
+import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+
+beforeEach(() => {
+	configureEquipment.mockClear();
+});
+
+describe("PlaybookActorSheet#_onEquipmentEdit", () => {
+	it("replaces the matching entry wholesale, keeping only its id and spent array, leaving other entries untouched", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: ["blitz"], spent: ["blitz"], scale: "foot", tier: 2 };
+		const other = { id: "2", kind: "gear", name: "Rope", description: "", tags: [], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry, other] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Rations", description: "", kind: "gear", tags: [] });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(configureEquipment).toHaveBeenCalledWith(entry);
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{ id: "1", spent: ["blitz"], name: "Rations", description: "", kind: "gear", tags: [] },
+				other
+			]
+		});
+	});
+
+	it("reopens an Astir weapon with the astirWeapon option and carries the astir flag forward", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", astir: true, name: "Lance", description: "", tags: ["melee"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Lance II", description: "", kind: "weapon", tags: ["melee"] });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { astirWeapon: true });
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{ id: "1", spent: [], name: "Lance II", description: "", kind: "weapon", tags: ["melee"], astir: true }
+			]
+		});
+	});
+
+	it("carries the familiar flag forward on a Familiar weapon", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", astir: true, familiar: true, name: "Wisp Familiar", description: "", tags: ["ranged"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Wisp Familiar", description: "", kind: "weapon", tags: ["ranged"] });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{
+					id: "1",
+					spent: [],
+					name: "Wisp Familiar",
+					description: "",
+					kind: "weapon",
+					tags: ["ranged"],
+					astir: true,
+					familiar: true
+				}
+			]
+		});
+	});
+
+	it("carries a bonusDowntimeTokens flag and its current value forward through an edit", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = {
+			id: "1",
+			kind: "gear",
+			name: "Artificers",
+			description: "",
+			tags: [],
+			spent: [],
+			bonusDowntimeTokens: { max: 1, description: "Repairs, or magic or mechanical long-term projects." },
+			bonusDowntimeTokensValue: 0
+		};
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Artificers", description: "", kind: "gear", tags: [] });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{
+					id: "1",
+					spent: [],
+					name: "Artificers",
+					description: "",
+					kind: "gear",
+					tags: [],
+					bonusDowntimeTokens: entry.bonusDowntimeTokens,
+					bonusDowntimeTokensValue: 0
+				}
+			]
+		});
+	});
+
+	it("carries a bonusDowntimeTokens flag forward without a bonusDowntimeTokensValue when none was ever stepped", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = {
+			id: "1",
+			kind: "gear",
+			name: "Artificers",
+			description: "",
+			tags: [],
+			spent: [],
+			bonusDowntimeTokens: { max: 1, description: "Repairs, or magic or mechanical long-term projects." }
+		};
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Artificers", description: "", kind: "gear", tags: [] });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{
+					id: "1",
+					spent: [],
+					name: "Artificers",
+					description: "",
+					kind: "gear",
+					tags: [],
+					bonusDowntimeTokens: entry.bonusDowntimeTokens
+				}
+			]
+		});
+	});
+
+	it("treats a missing spent array on the edited entry as empty", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "gear", name: "Odd", description: "", tags: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Rations", description: "", kind: "gear", tags: [] });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ id: "1", spent: [], name: "Rations", description: "", kind: "gear", tags: [] }]
+		});
+	});
+
+	it("does nothing for an id that doesn't match any entry", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { equipment: [] } }, update: vi.fn() };
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "not-a-real-id" } } });
+
+		expect(configureEquipment).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does not update the actor when the dialog is dismissed", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "gear", name: "Rations", description: "", tags: [], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("recomputes Power when editing an Astir weapon's tags changes its Drain, with an Astir present", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", astir: true, name: "Lance", description: "", tags: ["melee"], spent: [] };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, piloted: true, parts: [] }, equipment: [entry] } },
+			update: vi.fn()
+		};
+		configureEquipment.mockResolvedValue({ name: "Lance II", description: "", kind: "weapon", tags: ["drain-2"] });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		const edited = { id: "1", spent: [], name: "Lance II", description: "", kind: "weapon", tags: ["drain-2"], astir: true };
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [edited],
+			"system.attributes.astir.power": astirMaxPower([], [edited]),
+			"system.attributes.astir.weaponPower": 0
+		});
+	});
+
+	it("leaves Power untouched when editing a mundane weapon even with an Astir present", async () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", name: "Sword", description: "", tags: ["melee"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, parts: [] }, equipment: [entry] } },
+			update: vi.fn()
+		};
+		configureEquipment.mockResolvedValue({ name: "Sword+1", description: "", kind: "weapon", tags: ["drain-2"], scale: "foot", tier: 1 });
+
+		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{ id: "1", spent: [], name: "Sword+1", description: "", kind: "weapon", tags: ["drain-2"], scale: "foot", tier: 1 }
+			]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onEquipmentRemove", () => {
+	it("removes the entry matching the clicked button's id", () => {
+		const sheet = new PlaybookActorSheet();
+		const a = { id: "1", kind: "gear", name: "a", description: "", tags: [], spent: [] };
+		const b = { id: "2", kind: "gear", name: "b", description: "", tags: [], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [a, b] } }, update: vi.fn() };
+
+		sheet._onEquipmentRemove({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.equipment": [b] });
+	});
+
+	it("leaves the list untouched when the id doesn't match any entry", () => {
+		const sheet = new PlaybookActorSheet();
+		const a = { id: "1", kind: "gear", name: "a", description: "", tags: [], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [a] } }, update: vi.fn() };
+
+		sheet._onEquipmentRemove({ currentTarget: { dataset: { equipmentId: "not-a-real-id" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.equipment": [a] });
+	});
+
+	it("recomputes Power (freeing it back up) when removing a Drain-tagged Astir weapon, with an Astir present", () => {
+		const sheet = new PlaybookActorSheet();
+		const weapon = { id: "1", kind: "weapon", astir: true, tags: ["drain-2"] };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 1, parts: [] }, equipment: [weapon] } },
+			update: vi.fn()
+		};
+
+		sheet._onEquipmentRemove({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [],
+			"system.attributes.astir.power": 1,
+			"system.attributes.astir.weaponPower": 0
+		});
+	});
+
+	it("leaves Power untouched when removing gear even with an Astir present", () => {
+		const sheet = new PlaybookActorSheet();
+		const gear = { id: "1", kind: "gear", name: "Rope", description: "", tags: [], spent: [] };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, parts: [] }, equipment: [gear] } },
+			update: vi.fn()
+		};
+
+		sheet._onEquipmentRemove({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.equipment": [] });
+	});
+});
+
+describe("PlaybookActorSheet#_onEquipmentTagSpentToggle", () => {
+	it("adds the tag key to the entry's spent array when checked", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: ["blitz"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+
+		sheet._onEquipmentTagSpentToggle({ currentTarget: { dataset: { equipmentId: "1", tag: "blitz" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, spent: ["blitz"] }]
+		});
+	});
+
+	it("treats a missing spent array as empty when checking a tag", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: ["blitz"], scale: "foot", tier: 1 };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+
+		sheet._onEquipmentTagSpentToggle({ currentTarget: { dataset: { equipmentId: "1", tag: "blitz" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, spent: ["blitz"] }]
+		});
+	});
+
+	it("does not duplicate an already-spent tag key", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: ["blitz"], spent: ["blitz"], scale: "foot", tier: 1 };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+
+		sheet._onEquipmentTagSpentToggle({ currentTarget: { dataset: { equipmentId: "1", tag: "blitz" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, spent: ["blitz"] }]
+		});
+	});
+
+	it("removes the tag key from the entry's spent array when unchecked", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: ["blitz"], spent: ["blitz"], scale: "foot", tier: 1 };
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+
+		sheet._onEquipmentTagSpentToggle({ currentTarget: { dataset: { equipmentId: "1", tag: "blitz" }, checked: false } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, spent: [] }]
+		});
+	});
+
+	it("leaves entries that don't match the toggled id untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const other = { id: "2", kind: "gear", name: "Rations", description: "", tags: [], spent: [] };
+		const entry = { id: "1", kind: "weapon", name: "Halberd", description: "", tags: ["blitz"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = { system: { attributes: { equipment: [entry, other] } }, update: vi.fn() };
+
+		sheet._onEquipmentTagSpentToggle({ currentTarget: { dataset: { equipmentId: "1", tag: "blitz" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, spent: ["blitz"] }, other]
+		});
+	});
+
+	it("toggling one of Versatile's two compound-key rows leaves the other untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = {
+			id: "1", kind: "weapon", name: "Rifle", description: "", tags: ["versatile"],
+			spent: ["versatile:strike-decisively"], scale: "foot", tier: 1
+		};
+		sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+
+		sheet._onEquipmentTagSpentToggle({
+			currentTarget: { dataset: { equipmentId: "1", tag: "versatile:exchange-blows" }, checked: true }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ ...entry, spent: ["versatile:strike-decisively", "versatile:exchange-blows"] }]
+		});
+	});
+});

@@ -1,0 +1,87 @@
+				<div class="tab" data-group="primary" data-tab="moves">
+					<section class="moves">
+						{{#each moveGroups}}
+						<div class="section-header">
+							<h3>{{label}}</h3>
+							{{#if addable}}
+							<div class="section-header-actions">
+								{{#if startingMovesAvailable}}
+								<button type="button" class="starting-moves-add icon-add-button labeled-add-button" title="Choose Starting Moves" aria-label="Choose Starting Moves">+ Starting Moves</button>
+								{{else}}
+								<button type="button" class="playbook-move-add icon-add-button" title="Add a Playbook Move" aria-label="Add a Playbook Move">+</button>
+								{{/if}}
+							</div>
+							{{/if}}
+						</div>
+						<ol class="move-list">
+							{{#each moves}}
+							<li class="move" data-move="{{key}}">
+								<div class="move-name-column">
+									<span class="move-name">{{name}}</span>
+									{{#if summonedAllyInfo}}
+									<p class="move-summon-info">Summoned: {{summonedAllyInfo.name}} ({{summonedAllyInfo.traitLabel}}) — currently +{{summonedAllyInfo.value}}</p>
+									{{/if}}
+									{{#if approachOverrideInfo}}
+									<p class="move-summon-info">Active: {{approachOverrideInfo.approachLabel}} approach (until Refresh Sortie)</p>
+									{{/if}}
+								</div>
+								<div class="move-row-controls">
+									{{#if trackHold}}
+									<div class="hold-control">
+										<button type="button" class="{{#if separateHoldPool}}flat-hold-step{{else}}hold-step{{/if}} hold-decrement{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-delta="-1" {{#if gated}}disabled{{/if}}>-</button>
+										<span class="hold-value">{{hold}}</span>
+										<button type="button" class="{{#if separateHoldPool}}flat-hold-step{{else}}hold-step{{/if}} hold-increment{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-delta="1" {{#if gated}}disabled{{/if}}>+</button>
+									</div>
+									{{/if}}
+									{{#if uses.length}}
+									<div class="move-uses-control">
+										{{#each uses}}
+										<label class="move-use">
+											<input type="checkbox" class="move-use-checkbox" data-move="{{../key}}" data-use="{{key}}" {{#if checked}}checked{{/if}}/>
+											{{label}}
+										</label>
+										{{/each}}
+									</div>
+									{{/if}}
+									{{#if trackers.length}}
+									<div class="move-trackers-control">
+										{{#each trackers}}
+										<div class="move-tracker">
+											<span class="move-tracker-label">{{label}}</span>
+											<button type="button" class="move-tracker-step move-tracker-decrement" data-move="{{../key}}" data-tracker="{{key}}" data-delta="-1" data-min="{{min}}" data-max="{{max}}" aria-label="Decrease {{label}}">-</button>
+											<span class="move-tracker-value">{{value}}</span>
+											<button type="button" class="move-tracker-step move-tracker-increment" data-move="{{../key}}" data-tracker="{{key}}" data-delta="1" data-min="{{min}}" data-max="{{max}}" aria-label="Increase {{label}}">+</button>
+										</div>
+										{{/each}}
+									</div>
+									{{/if}}
+									{{#if traitBonusChoosable}}
+									<div class="move-trait-bonus-control">
+										<select class="trait-bonus-select" data-move="{{key}}">
+											{{selectOptions @root.traits selected=traitBonusChoice valueAttr="key" labelAttr="label" blank="—"}}
+										</select>
+									</div>
+									{{/if}}
+									<div class="move-controls">
+										{{#if rollable}}
+										<button type="button" class="move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{#if gatedTooltip}} data-gate-tooltip="{{gatedTooltip}}"{{/if}}{{/if}}>Roll</button>
+										{{else if activatable}}
+										<button type="button" class="move-activate{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Activate</button>
+										{{else if summonable}}
+										<button type="button" class="move-summon{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Summon</button>
+										{{else if variableDiceRoll}}
+										<button type="button" class="move-variable-dice-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Roll</button>
+										{{/if}}
+										<button type="button" class="move-description{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}}>Chat</button>
+										<button type="button" class="move-info{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}} aria-label="{{name}} rules text">?</button>
+										{{#if ../removable}}
+										<button type="button" class="playbook-move-remove" data-move="{{key}}" aria-label="Remove playbook move">✕</button>
+										{{/if}}
+									</div>
+								</div>
+							</li>
+							{{/each}}
+						</ol>
+						{{/each}}
+					</section>
+				</div>

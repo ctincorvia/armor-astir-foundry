@@ -1,0 +1,208 @@
+				<div class="tab" data-group="primary" data-tab="social">
+					{{#if gravityTrigger}}
+					<section class="gravity-trigger">
+						<h3>Gravity Trigger</h3>
+						<p class="gravity-trigger-text">{{gravityTrigger}}</p>
+					</section>
+					{{/if}}
+					{{#if home}}
+					<section class="home-clock">
+						<h3>+HOME</h3>
+						<div class="gravity-clock-body">
+							<ol class="gravity-clock-track">
+								{{#each home.progressSteps}}
+								<li class="gravity-clock-step-item">
+									<button type="button" class="home-clock-step gravity-clock-step{{#if filled}} filled{{/if}}" data-step="{{step}}" aria-label="Home clock step {{step}}"></button>
+								</li>
+								{{/each}}
+							</ol>
+							<div class="gravity-clock-value-control">
+								<button type="button" class="home-value-step gravity-clock-value-step gravity-clock-value-decrement" data-delta="-1">-</button>
+								<span class="gravity-clock-value">{{home.value}}</span>
+								<button type="button" class="home-value-step gravity-clock-value-step gravity-clock-value-increment" data-delta="1">+</button>
+							</div>
+						</div>
+					</section>
+					{{/if}}
+					<section class="gravity-clocks">
+						<div class="section-header">
+							<h3>Gravity Clocks ({{gravityClocks.list.length}}/{{gravityClocks.max}})</h3>
+							{{#if gravityClocks.canAdd}}
+							<div class="section-header-actions">
+								<button type="button" class="gravity-clock-add icon-add-button" title="Add Gravity Clock" aria-label="Add Gravity Clock">+</button>
+							</div>
+							{{/if}}
+						</div>
+						<ol class="gravity-clock-list">
+							{{#each gravityClocks.list}}
+							<li class="gravity-clock-item" data-clock-id="{{id}}">
+								<div class="gravity-clock-header">
+									<input type="text" class="gravity-clock-label-input" data-clock-id="{{id}}" value="{{label}}" placeholder="Clock label…"/>
+									<button type="button" class="gravity-clock-remove" data-clock-id="{{id}}" aria-label="Remove gravity clock">✕</button>
+								</div>
+								<div class="gravity-clock-body">
+									<ol class="gravity-clock-track">
+										{{#each progressSteps}}
+										<li class="gravity-clock-step-item">
+											<button type="button" class="gravity-clock-step{{#if filled}} filled{{/if}}" data-clock-id="{{../id}}" data-step="{{step}}" aria-label="Gravity clock step {{step}}"></button>
+										</li>
+										{{/each}}
+									</ol>
+									<div class="gravity-clock-value-control">
+										<button type="button" class="gravity-clock-value-step gravity-clock-value-decrement" data-clock-id="{{id}}" data-delta="-1">-</button>
+										<span class="gravity-clock-value">{{value}}</span>
+										<button type="button" class="gravity-clock-value-step gravity-clock-value-increment" data-clock-id="{{id}}" data-delta="1">+</button>
+									</div>
+								</div>
+							</li>
+							{{/each}}
+						</ol>
+					</section>
+					<section class="clocks">
+						<div class="section-header">
+							<h3>Clocks</h3>
+							<div class="section-header-actions">
+								<button type="button" class="clock-add icon-add-button" title="Add Clock" aria-label="Add Clock">+</button>
+							</div>
+						</div>
+						<ol class="clock-list">
+							{{#each clocks.list}}
+							<li class="clock-item" data-clock-id="{{id}}">
+								<div class="clock-header">
+									<input type="text" class="clock-label-input" data-clock-id="{{id}}" value="{{label}}" placeholder="Clock label…"/>
+									<div class="clock-steps-control">
+										<label>Steps</label>
+										<input type="number" class="clock-steps-input" data-clock-id="{{id}}" value="{{steps}}" min="{{../clocks.min}}" max="{{../clocks.max}}"/>
+									</div>
+									<button type="button" class="clock-remove" data-clock-id="{{id}}" aria-label="Remove clock">✕</button>
+								</div>
+								<ol class="clock-track">
+									{{#each progressSteps}}
+									<li class="clock-step-item">
+										<button type="button" class="clock-step{{#if filled}} filled{{/if}}" data-clock-id="{{../id}}" data-step="{{step}}" aria-label="Clock step {{step}}"></button>
+									</li>
+									{{/each}}
+								</ol>
+							</li>
+							{{/each}}
+						</ol>
+					</section>
+					<section class="burdens">
+						<div class="section-header">
+							<h3>Burdens</h3>
+							<div class="section-header-actions">
+								<button type="button" class="burden-add icon-add-button" title="Add a Burden" aria-label="Add a Burden">+</button>
+							</div>
+						</div>
+						<ol class="burden-list">
+							{{#each burdens.list}}
+							<li class="burden-item" data-burden-id="{{id}}">
+								<input type="text" class="burden-label-input" data-burden-id="{{id}}" value="{{label}}" placeholder="Describe the burden…"/>
+								<button type="button" class="burden-remove" data-burden-id="{{id}}" aria-label="Remove burden">✕</button>
+							</li>
+							{{/each}}
+						</ol>
+					</section>
+					<section class="hooks">
+						<div class="section-header">
+							<h3>{{#if isParadigm}}Tenets{{else}}Hooks{{/if}}</h3>
+							<div class="section-header-actions">
+								<button type="button" class="hook-add icon-add-button" title="{{#if isParadigm}}Add Tenet{{else}}Add Hook{{/if}}" aria-label="{{#if isParadigm}}Add Tenet{{else}}Add Hook{{/if}}">+</button>
+							</div>
+						</div>
+						<ol class="entry-list hook-list">
+							{{#each hooks.list}}
+							<li class="entry-list-item" data-entry-id="{{id}}">
+								<div class="entry-list-row">
+									<input type="text" class="entry-list-field hook-field hook-description" data-entry-id="{{id}}" data-field="description" value="{{description}}" placeholder="Describe the {{#if ../isParadigm}}tenet{{else}}hook{{/if}}…"/>
+									<select class="entry-list-field hook-field hook-depth-select" data-entry-id="{{id}}" data-field="depth">
+										{{selectOptions ../hooks.depths selected=depth valueAttr="key" labelAttr="label"}}
+									</select>
+									{{#if ../isParadigm}}
+									<label class="hook-flag-label">
+										<input type="checkbox" class="entry-list-field hook-field hook-shaken-checkbox" data-entry-id="{{id}}" data-field="shaken" {{#if shaken}}checked{{/if}}/>
+										Shaken
+									</label>
+									{{/if}}
+									<button type="button" class="hook-remove" data-entry-id="{{id}}" aria-label="Remove hook">✕</button>
+								</div>
+							</li>
+							{{/each}}
+						</ol>
+					</section>
+					{{#if isWitch}}
+					<section class="patron">
+						<div class="section-header">
+							<h3>Patron</h3>
+							<div class="section-header-actions">
+								<button type="button" class="witch-boons-random icon-add-button labeled-add-button" title="Two Random Boons" aria-label="Two Random Boons">Two Random Boons</button>
+								<button type="button" class="witch-boons-choose icon-add-button labeled-add-button{{#unless witch.canChooseBoons}} disabled{{/unless}}" title="Choose 2 Boons" aria-label="Choose 2 Boons" {{#unless witch.canChooseBoons}}disabled data-gate-tooltip="Requires the Whims move. Pick it in Playbook Moves to choose your boons instead of rolling."{{/unless}}>Choose 2 Boons</button>
+								<button type="button" class="witch-boons-relinquish icon-add-button labeled-add-button" title="Relinquish Boons" aria-label="Relinquish Boons">Relinquish Boons</button>
+							</div>
+						</div>
+						<div class="power-control patron-influence">
+							<label class="power-label">Influence</label>
+							<button type="button" class="power-step witch-influence-step witch-influence-decrement" data-delta="-1">-</button>
+							<span class="power-value">{{witch.influence}}</span>
+							<button type="button" class="power-step witch-influence-step witch-influence-increment" data-delta="1">+</button>
+						</div>
+						<ol class="patron-boons-list">
+							{{#each witch.boons}}
+							<li class="patron-boon-item{{#if held}} held{{/if}}">
+								<span class="patron-boon-name">{{name}}</span>
+								<p class="patron-boon-description">{{description}}</p>
+							</li>
+							{{/each}}
+						</ol>
+					</section>
+					{{/if}}
+					{{#if isCommander}}
+					<section class="ace-crew">
+						<div class="section-header">
+							<h3>Ace Crew</h3>
+							<div class="section-header-actions">
+								<button type="button" class="ace-crew-add icon-add-button" title="Add Crew Member" aria-label="Add Crew Member">+</button>
+							</div>
+						</div>
+						<ol class="entry-list ace-crew-list">
+							{{#each aceCrew.list}}
+							<li class="entry-list-item" data-entry-id="{{id}}">
+								<div class="entry-list-row">
+									<input type="text" class="entry-list-field ace-crew-field ace-crew-name" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Name"/>
+									<input type="text" class="entry-list-field ace-crew-field ace-crew-adjective" data-entry-id="{{id}}" data-field="adjective" value="{{adjective}}" placeholder="Adjective(s)"/>
+									<button type="button" class="ace-crew-remove" data-entry-id="{{id}}" aria-label="Remove crew member">✕</button>
+								</div>
+							</li>
+							{{/each}}
+						</ol>
+					</section>
+					{{/if}}
+					{{#if boundAllies}}
+					<section class="bound-allies">
+						<div class="section-header">
+							<h3>Bound Allies</h3>
+							<div class="section-header-actions">
+								<button type="button" class="bound-ally-add icon-add-button" title="Bind an Ally" aria-label="Bind an Ally">+</button>
+							</div>
+						</div>
+						<ol class="entry-list bound-ally-list">
+							{{#each boundAllies.list}}
+							<li class="entry-list-item{{#if summoned}} summoned{{/if}}" data-entry-id="{{id}}">
+								<div class="entry-list-row">
+									<input type="text" class="entry-list-field bound-ally-field bound-ally-name" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Ally name"/>
+									<select class="entry-list-field bound-ally-field bound-ally-approach" data-entry-id="{{id}}" data-field="approach">
+										{{selectOptions ../boundAllies.approaches selected=approach valueAttr="key" labelAttr="label" blank="— Approach —"}}
+									</select>
+									<select class="entry-list-field bound-ally-field bound-ally-trait" data-entry-id="{{id}}" data-field="trait">
+										{{selectOptions ../boundAllies.traits selected=trait valueAttr="key" labelAttr="label" blank="— Trait —"}}
+									</select>
+									<span class="bound-ally-power">Power Invested: {{powerInvested}}</span>
+									<button type="button" class="bound-ally-invest icon-add-button labeled-add-button{{#unless ../boundAllies.canInvest}} disabled{{/unless}}" data-entry-id="{{id}}" {{#unless ../boundAllies.canInvest}}disabled{{/unless}} title="Invest 1 Power" aria-label="Invest 1 Power">+1 Power</button>
+									<button type="button" class="bound-ally-release icon-add-button labeled-add-button" data-entry-id="{{id}}" aria-label="Release ally">Release</button>
+								</div>
+							</li>
+							{{/each}}
+						</ol>
+					</section>
+					{{/if}}
+				</div>

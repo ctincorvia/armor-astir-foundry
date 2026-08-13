@@ -1,0 +1,27 @@
+	<div class="status-row">
+		<section class="traits">
+			<h3>Traits</h3>
+			<ol class="traits-list">
+				{{#each traits}}
+				<li class="trait {{#if disabled}}disabled{{/if}}" data-trait="{{key}}">
+					<label class="trait-label">{{label}}</label>
+					<div class="trait-control">
+						<button type="button" class="trait-step trait-decrement" data-trait="{{key}}" data-delta="-1" {{#if disabled}}disabled{{/if}}>-</button>
+						<span class="trait-value">{{value}}{{#if bonus}}<span class="trait-bonus">+{{bonus}}</span>{{/if}}{{#if allyBonus}}<span class="trait-ally-bonus"> ({{allyBonus}})</span>{{/if}}</span>
+						<button type="button" class="trait-step trait-increment" data-trait="{{key}}" data-delta="1" {{#if disabled}}disabled{{/if}}>+</button>
+					</div>
+				</li>
+				{{/each}}
+			</ol>
+		</section>
+		<section class="spotlight">
+			<h3>Spotlight</h3>
+			<ol class="spotlight-track">
+				{{#each spotlight.steps}}
+				<li class="spotlight-step-item">
+					<button type="button" class="spotlight-step{{#if filled}} filled{{/if}}" data-step="{{step}}" aria-label="Spotlight step {{step}}"></button>
+				</li>
+				{{/each}}
+			</ol>
+		</section>
+	</div>

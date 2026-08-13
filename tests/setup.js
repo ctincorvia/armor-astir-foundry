@@ -99,3 +99,4 @@ vi.stubGlobal("ChatMessage", {
 });
 
 vi.stubGlobal("renderTemplate", vi.fn().mockResolvedValue(""));
+vi.stubGlobal("loadTemplates", vi.fn().mockResolvedValue([]));

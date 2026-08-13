@@ -1,0 +1,177 @@
+				<div class="tab" data-group="primary" data-tab="astir">
+					{{#if astir.available}}
+					{{#if astir.exists}}
+					<section class="astir">
+						<div class="section-header">
+							<img class="astir-portrait" src="{{astir.img}}" data-edit="system.attributes.astir.img" alt="{{astir.name}}"/>
+							<h3>{{astir.name}}</h3>
+							<div class="section-header-actions">
+								<button type="button" class="astir-delete icon-add-button" title="Delete Astir" aria-label="Delete Astir">✕</button>
+							</div>
+						</div>
+						<div class="astir-identity-fields">
+							<div class="form-group">
+								<label>Core</label>
+								<select class="astir-core-select">
+									{{selectOptions astir.cores selected=astir.core valueAttr="key" labelAttr="label" blank="— Choose —"}}
+								</select>
+							</div>
+							<div class="form-group">
+								<label>Approach</label>
+								<select class="astir-approach-select">
+									{{selectOptions astir.approachOptions selected=astir.approach valueAttr="key" labelAttr="label" blank="— Choose —"}}
+								</select>
+							</div>
+							<div class="equipment-tier-control">
+								<button type="button" class="equipment-tier-step astir-tier-step astir-tier-decrement" data-delta="-1">-</button>
+								<span class="equipment-tier-value">Tier {{astir.tier}}</span>
+								<button type="button" class="equipment-tier-step astir-tier-step astir-tier-increment" data-delta="1">+</button>
+							</div>
+						</div>
+						<div class="trait-meters">
+							<label class="overheating-label">
+								<input type="checkbox" class="astir-overheating-checkbox" {{#if astir.overheating}}checked{{/if}}/>
+								Overheating
+							</label>
+							<label class="piloted-label">
+								<input type="checkbox" class="astir-piloted-checkbox" {{#if astir.piloted}}checked{{/if}}/>
+								Piloted
+							</label>
+							{{#if astir.power.negative}}
+							<p class="astir-power-negative-note">Power is negative — this Astir cannot be piloted until the loadout changes.</p>
+							{{/if}}
+							<div class="power-control">
+								<label class="power-label">Power</label>
+								<button type="button" class="power-step astir-power-step astir-power-decrement" data-delta="-1">-</button>
+								<span class="power-value{{#if astir.power.negative}} power-value-negative{{/if}}">{{astir.power.value}} / {{astir.power.max}}</span>
+								<button type="button" class="power-step astir-power-step astir-power-increment" data-delta="1">+</button>
+							</div>
+							{{#if astir.weaponPower.max}}
+							<div class="power-control">
+								<label class="power-label">Weapon Power</label>
+								<button type="button" class="power-step astir-weapon-power-step astir-weapon-power-decrement" data-delta="-1">-</button>
+								<span class="power-value">{{astir.weaponPower.value}} / {{astir.weaponPower.max}}</span>
+								<button type="button" class="power-step astir-weapon-power-step astir-weapon-power-increment" data-delta="1">+</button>
+							</div>
+							{{/if}}
+						</div>
+						{{#if astir.potions}}
+						<div class="section-header">
+							<h3>Potions</h3>
+						</div>
+						<ol class="potion-list">
+							<li class="potion">
+								<span class="potion-label">Red</span>
+								<span class="potion-value">{{astir.potions.red}}</span>
+								<button type="button" class="astir-potion-use" data-potion="red" {{#unless astir.potions.red}}disabled{{/unless}}>Use</button>
+							</li>
+							<li class="potion">
+								<span class="potion-label">Blue</span>
+								<span class="potion-value">{{astir.potions.blue}}</span>
+								<button type="button" class="astir-potion-use" data-potion="blue" {{#unless astir.potions.blue}}disabled{{/unless}}>Use</button>
+							</li>
+							<li class="potion">
+								<span class="potion-label">Yellow</span>
+								<span class="potion-value">{{astir.potions.yellow}}</span>
+								<button type="button" class="astir-potion-use" data-potion="yellow" {{#unless astir.potions.yellow}}disabled{{/unless}}>Use</button>
+							</li>
+						</ol>
+						{{/if}}
+						<div class="section-header">
+							<h3>Parts</h3>
+							<div class="section-header-actions">
+								<button type="button" class="astir-part-add icon-add-button" title="Add an Astir Part" aria-label="Add an Astir Part">+</button>
+							</div>
+						</div>
+						<ol class="move-list">
+							{{#each astir.parts}}
+							<li class="move">
+								<span class="move-name">{{name}}</span>
+								<div class="move-row-controls">
+									<span class="astir-part-tier">Tier {{tier}}</span>
+									<span class="astir-part-type">{{partType}}</span>
+									{{#if powerCost}}<span class="astir-part-power-cost">Power {{powerCost}}</span>{{/if}}
+									<button type="button" class="astir-part-remove" data-part="{{key}}" aria-label="Remove Astir part">✕</button>
+								</div>
+							</li>
+							{{/each}}
+						</ol>
+						<div class="section-header">
+							<h3>Astir Move</h3>
+							{{#unless astir.move}}
+							<div class="section-header-actions">
+								<button type="button" class="astir-move-add icon-add-button" title="Choose an Astir Move" aria-label="Choose an Astir Move">+</button>
+							</div>
+							{{/unless}}
+						</div>
+						{{#if astir.move}}
+						<ol class="move-list">
+							<li class="move">
+								<span class="move-name">{{astir.move.name}}</span>
+								<div class="move-row-controls">
+									<button type="button" class="astir-move-remove" aria-label="Remove Astir move">✕</button>
+								</div>
+							</li>
+						</ol>
+						{{/if}}
+						<div class="section-header">
+							<h3>Weapons</h3>
+							<div class="section-header-actions">
+								<button type="button" class="astir-weapon-catalog-add icon-add-button" title="Pick Astir Weapon from Catalog" aria-label="Pick Astir Weapon from Catalog">O</button>
+							</div>
+						</div>
+						<ol class="equipment-list">
+							{{#each astir.weapons}}
+							<li class="equipment-item" data-equipment-id="{{id}}">
+								<div class="equipment-header">
+									<span class="equipment-name">{{name}}</span>
+									<span class="equipment-value">Value {{value}}</span>
+									<span class="equipment-tier-value">Tier {{tier}}</span>
+									<span class="equipment-scale">{{scaleLabel}}</span>
+									<div class="equipment-item-controls">
+										<button type="button" class="equipment-edit" data-equipment-id="{{id}}">Edit</button>
+										<button type="button" class="equipment-remove" data-equipment-id="{{id}}" aria-label="Remove equipment">✕</button>
+									</div>
+								</div>
+								{{#if description}}
+								<div class="equipment-description">{{description}}</div>
+								{{/if}}
+								{{#if tags.length}}
+								<ul class="equipment-tag-list">
+									{{#each tags}}
+									<li class="equipment-tag">
+										<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
+										{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
+										{{#if spendable}}
+										<label class="equipment-tag-spent">
+											<input type="checkbox" class="equipment-tag-spent-checkbox" data-equipment-id="{{../id}}" data-tag="{{key}}" {{#if spent}}checked{{/if}}/>
+											Spent
+										</label>
+										{{/if}}
+									</li>
+									{{/each}}
+								</ul>
+								{{/if}}
+								{{#if weaponMoves.length}}
+								<div class="weapon-move-controls">
+									{{#each weaponMoves}}
+									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-gate-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
+									{{/each}}
+								</div>
+								{{/if}}
+							</li>
+							{{/each}}
+						</ol>
+					</section>
+					{{else}}
+					<section class="astir-empty">
+						<button type="button" class="astir-create">Create Astir</button>
+					</section>
+					{{/if}}
+					{{else}}
+					<section class="astir-locked">
+						<p class="astir-locked-note">Piloting an Astir requires the CHANNEL trait.</p>
+					</section>
+					{{/if}}
+					{{> "modules/armor-astir/templates/playbook-sheet/ardents.hbs"}}
+				</div>

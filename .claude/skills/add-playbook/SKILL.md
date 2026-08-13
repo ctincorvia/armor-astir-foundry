@@ -58,8 +58,9 @@ or similar) and mirror its shape field-for-field for:
 - `scripts/core/approaches.js` — `PLAYBOOK_APPROACHES["<slug>"]`.
 - `scripts/playbook/gravity-triggers.js` — `GRAVITY_TRIGGERS["<slug>"]`.
 - `scripts/playbook/playbook-flavor.js` — `PLAYBOOK_FLAVOR["<slug>"]` (`look` + `consider` arrays).
-- `scripts/equipment/starting-gear.js` — new `STARTING_GEAR_POOLS` entry (`freeformNotes`,
-  `grantedItems`, `groups` with `chooseCount`).
+- `scripts/equipment/starting-gear-pools.js` — new `STARTING_GEAR_POOLS` entry (`freeformNotes`,
+  `grantedItems`, `groups` with `chooseCount`) — `starting-gear.js` itself just re-exports this
+  array now, see CLAUDE.md's "Code organization".
 - `scripts/moves/starting-moves.js` — new `STARTING_MOVE_POOLS` entry (`grantedKeys`,
   `pickOneKeys`, `chooseCount`) — only needed if the playbook grants a pick from its own pool at
   creation (e.g. an Astir's bonus move); otherwise this step may be a no-op, confirm against the

@@ -1,0 +1,28 @@
+				<div class="tab" data-group="primary" data-tab="advancement">
+					<section class="advancement">
+						<h3>Advancement</h3>
+						<ol class="advancement-list advancement-list-top">
+							{{#each advancements.top}}
+							<li class="advancement-item">
+								<label class="advancement-label">
+									<input type="checkbox" class="advancement-checkbox" data-advancement-key="{{key}}" {{#if checked}}checked{{/if}}/>
+									<span class="advancement-text">{{label}}</span>
+								</label>
+							</li>
+							{{/each}}
+						</ol>
+						<p class="advancement-unlock-hint">
+							Check any {{advancements.unlockThreshold}} of the above to unlock the options below ({{advancements.topCount}}/{{advancements.unlockThreshold}}).
+						</p>
+						<ol class="advancement-list advancement-list-bottom">
+							{{#each advancements.bottom}}
+							<li class="advancement-item{{#if locked}} disabled{{/if}}">
+								<label class="advancement-label">
+									<input type="checkbox" class="advancement-checkbox" data-advancement-key="{{key}}" {{#if checked}}checked{{/if}} {{#if locked}}disabled{{/if}}/>
+									<span class="advancement-text">{{label}}</span>
+								</label>
+							</li>
+							{{/each}}
+						</ol>
+					</section>
+				</div>

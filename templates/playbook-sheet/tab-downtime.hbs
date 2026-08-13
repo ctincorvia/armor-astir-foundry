@@ -1,0 +1,38 @@
+				<div class="tab" data-group="primary" data-tab="downtime">
+					<section class="downtime">
+						<div class="power-control downtime-tokens-control">
+							<label class="power-label">Downtime Tokens</label>
+							<button type="button" class="power-step downtime-tokens-step downtime-tokens-decrement" data-delta="-1">-</button>
+							<span class="power-value">{{downtimeTokens.value}} / {{downtimeTokens.max}}</span>
+							<button type="button" class="power-step downtime-tokens-step downtime-tokens-increment" data-delta="1">+</button>
+						</div>
+						{{#if bonusDowntimeTokens.length}}
+						<ol class="bonus-downtime-tokens-list">
+							{{#each bonusDowntimeTokens}}
+							<li class="power-control bonus-downtime-tokens-control">
+								<div class="bonus-downtime-tokens-label-column">
+									<label class="power-label">{{name}}</label>
+									<p class="bonus-downtime-tokens-description">{{description}}</p>
+								</div>
+								<button type="button" class="power-step bonus-downtime-tokens-step bonus-downtime-tokens-decrement" data-move-key="{{moveKey}}" data-equipment-id="{{equipmentId}}" data-delta="-1">-</button>
+								<span class="power-value">{{value}} / {{max}}</span>
+								<button type="button" class="power-step bonus-downtime-tokens-step bonus-downtime-tokens-increment" data-move-key="{{moveKey}}" data-equipment-id="{{equipmentId}}" data-delta="1">+</button>
+							</li>
+							{{/each}}
+						</ol>
+						{{/if}}
+						{{#if downtimeAlly}}
+						<div class="power-control downtime-ally-control">
+							<label class="power-label">Downtime Ally</label>
+							{{#if downtimeAlly.exists}}
+							<input type="text" class="downtime-ally-name-input" value="{{downtimeAlly.name}}" placeholder="Ally name"/>
+							<button type="button" class="downtime-ally-invest icon-add-button labeled-add-button{{#unless downtimeAlly.canInvest}} disabled{{/unless}}" {{#unless downtimeAlly.canInvest}}disabled{{/unless}} title="Invest 1 Power" aria-label="Invest 1 Power">+1 Power</button>
+							<span class="power-value">Power Invested: {{downtimeAlly.powerInvested}}</span>
+							<button type="button" class="downtime-ally-release icon-add-button labeled-add-button" aria-label="Release Downtime Ally">Release</button>
+							{{else}}
+							<button type="button" class="downtime-ally-add icon-add-button labeled-add-button" title="Bind a Downtime Ally" aria-label="Bind a Downtime Ally">+ Bind Downtime Ally</button>
+							{{/if}}
+						</div>
+						{{/if}}
+					</section>
+				</div>
