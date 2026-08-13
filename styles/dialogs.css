@@ -44,6 +44,10 @@
 	text-align: right;
 }
 
+.armor-astir.move-roll-dialog .move-roll-trait-label {
+	font-weight: bold;
+}
+
 .armor-astir.move-roll-dialog .move-roll-guided-note {
 	margin: 0 0 var(--aa-space-2);
 	font-size: 12px;

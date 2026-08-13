@@ -2,9 +2,16 @@
 	{{#if traits.length}}
 	<div class="form-group">
 		<label>Trait</label>
+		{{#if (gt traits.length 1)}}
 		<select name="trait" {{#if lockedTrait}}disabled{{/if}}>
 			{{selectOptions traitOptions selected=lockedTrait.key valueAttr="key" labelAttr="label"}}
 		</select>
+		{{else}}
+		{{#each traits}}
+		<span class="move-roll-trait-label">{{label}} ({{value}})</span>
+		<input type="hidden" name="trait" value="{{key}}"/>
+		{{/each}}
+		{{/if}}
 	</div>
 	{{/if}}
 	{{#if intents}}

@@ -34,9 +34,8 @@ export const DRAIN_GROUP = "drain";
 // something this cap has to account for: WEAPON_RANGE_GROUP tags are never rendered as checkboxes
 // at all (see WEAPON_RANGE_GROUP's own doc comment), so they can never appear among the checked
 // tag keys this cap counts. Enforced only at Save, same as the blank-name and weapon-range checks
-// in configureEquipment. Flat across every tier (not scaled by TIER_MIN/TIER_MAX) — Ashstaff I in
-// EQUIPMENT_CATALOG needs 4 regular tags despite being Tier I, which is what pushed this cap to 4.
-export const MAX_TAGS = 4;
+// in configureEquipment. Flat across every tier (not scaled by TIER_MIN/TIER_MAX).
+export const MAX_TAGS = 8;
 
 export const TIER_MIN = 1;
 export const TIER_MAX = 5;

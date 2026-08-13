@@ -545,8 +545,10 @@ describe("configureEquipment", () => {
 		Dialog.mock.calls.at(-1)[0].render(state.html);
 		expect(state.saveDisabled).toBe(false);
 
-		state.checkedTags = ["blitz", "concealable", "impact", "infinite", "mounted"];
-		state.handlers.change({ target: { value: "mounted", checked: true } });
+		state.checkedTags = [
+			"blitz", "concealable", "impact", "infinite", "mounted", "decisive", "defensive", "distinct", "fragile"
+		];
+		state.handlers.change({ target: { value: "fragile", checked: true } });
 
 		expect(state.saveDisabled).toBe(true);
 
@@ -683,7 +685,7 @@ describe("configureEquipment", () => {
 			"[name='name']": "Rations",
 			"[name='kind']": "gear",
 			"[name='description']": ""
-		}, ["blitz", "concealable", "impact", "infinite", "mounted"]));
+		}, ["blitz", "concealable", "impact", "infinite", "mounted", "decisive", "defensive", "distinct", "fragile"]));
 
 		expect(await promise).toBeNull();
 		expect(ui.notifications.warn).toHaveBeenCalled();
@@ -695,13 +697,14 @@ describe("configureEquipment", () => {
 		await Promise.resolve();
 
 		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		const tags = ["blitz", "concealable", "impact", "infinite", "mounted", "decisive", "defensive", "distinct"];
 		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
 			"[name='name']": "Rations",
 			"[name='kind']": "gear",
 			"[name='description']": ""
-		}, ["blitz", "concealable", "impact", "infinite"]));
+		}, tags));
 
-		expect(await promise).toEqual(expect.objectContaining({ tags: ["blitz", "concealable", "impact", "infinite"] }));
+		expect(await promise).toEqual(expect.objectContaining({ tags }));
 	});
 
 	it("counts a Drain tag against the MAX_TAGS cap, unlike Melee/Ranged/Sniper", async () => {
@@ -714,7 +717,7 @@ describe("configureEquipment", () => {
 			"[name='name']": "Rations",
 			"[name='kind']": "gear",
 			"[name='description']": ""
-		}, ["blitz", "concealable", "impact", "infinite", "drain-1"]));
+		}, ["blitz", "concealable", "impact", "infinite", "mounted", "decisive", "defensive", "distinct", "drain-1"]));
 
 		expect(await promise).toBeNull();
 		expect(ui.notifications.warn).toHaveBeenCalled();

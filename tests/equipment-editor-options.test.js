@@ -111,7 +111,9 @@ describe("configureEquipment - astirWeapon option", () => {
 		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
 			"[name='name']": "Lance",
 			"[name='description']": ""
-		}, ["blitz", "concealable", "impact", "infinite", "mounted", "restraining"], "melee"));
+		}, [
+			"blitz", "concealable", "impact", "infinite", "mounted", "decisive", "defensive", "distinct", "restraining"
+		], "melee"));
 
 		expect(await promise).toBeNull();
 	});
