@@ -61,6 +61,7 @@ export const SPECIAL_MOVES = [
 		// Its own text scopes spending this hold to "During the Sortie" — cleared by the
 		// Controls tab's Refresh Sortie button (see PlaybookActorSheet#_onRefreshSortie).
 		period: "Sortie",
+		downtimeAbility: "Spend a point of B-Plot hold to frame a Downtime Scene.",
 		description:
 			"<p>When you head out for some solitary revenge, leave to take part in negotiations, or " +
 			"otherwise take part in a secondary narrative thread to the players involved in the Sortie, " +
@@ -86,6 +87,7 @@ export const SPECIAL_MOVES = [
 		// independently against a manually-entered target). See configureVariableDiceRoll
 		// (move-dialogs.js) and rollVariableDicePool (move-roll.js).
 		variableDicePool: true,
+		downtimeAbility: "Roll extra dice on Plan & Prepare for each die earned during Downtime Scenes.",
 		description:
 			"<p>When you review orders for the next Sortie, go over scouting reports and maps, or otherwise " +
 			"attempt to prepare the crew for what comes next, you're trying to plan & prepare.</p>" +

@@ -76,6 +76,9 @@ export const THE_IMPOSTOR_POOL = {
 			// in this module (see docs/domains/moves.md's "systems that do not exist yet").
 			grantsTraitOnMove: { moveKey: "lead-a-sortie", trait: "defy" },
 			grantsAdvantageOnMove: { moveKey: "lead-a-sortie", advantage: "advantage" },
+			downtimeAbility:
+				"During any Downtime Scene, you may take your Astir and rush ahead to lead a Sortie " +
+				"with +DEFY and advantage — without spending a token.",
 			description:
 				"<p>During any Downtime Scene, you may do the below without spending a token:</p>" +
 				"<ul>" +

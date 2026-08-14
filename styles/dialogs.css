@@ -386,6 +386,26 @@
 	accent-color: var(--aa-secondary-dark);
 }
 
+/* Same themed border/radius/focus treatment as sheet-chrome.css's copy of this rule — dialogs
+   never carry ".sheet", so this is scoped to bare .armor-astir instead. */
+.armor-astir input:not([type="checkbox"]):not([type="radio"]),
+.armor-astir select,
+.armor-astir textarea {
+	box-sizing: border-box;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: #fff;
+	padding: var(--aa-space-1) var(--aa-space-2);
+}
+
+.armor-astir input:not([type="checkbox"]):not([type="radio"]):focus,
+.armor-astir select:focus,
+.armor-astir textarea:focus {
+	outline: none;
+	border-color: var(--aa-primary);
+	box-shadow: 0 0 0 2px var(--aa-primary-tint);
+}
+
 /* The half-pixel nudge above isn't enough for the equipment editor's Range radios specifically —
    confirmed by testing directly in a live client. `.vtt .window-app input[type=radio]` (pbta) is
    (0,3,1) specificity; a plain `.armor-astir` override is only (0,2,1) and loses outright, the

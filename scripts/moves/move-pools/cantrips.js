@@ -137,6 +137,7 @@ export const CANTRIPS_POOL = {
 				// PlaybookActorSheet#_refreshPeriod), so this stays purely manual.
 				{ key: "downtime", label: "Reported back this Downtime" }
 			],
+			downtimeAbility: "Once per Downtime, your familiar reports back on a Scene you weren't present for.",
 			description:
 				"<p>You have a small familiar that aids you, like an animal companion or spirit or summoned " +
 				"creature. Once per Sortie, you can ignore a single disadvantage as they help you out of " +

@@ -16,6 +16,31 @@
 	accent-color: var(--aa-secondary-dark);
 }
 
+/* Text/number inputs, selects and textareas otherwise fall back to the browser's bare default
+   chrome (no border-radius, no themed border, a plain system focus outline) — this brings
+   every free-text/number field and dropdown across the sheet in line with the bordered,
+   rounded look panels, pip tracks and buttons already share. Dialog fields get the same
+   treatment in dialogs.css (dialogs never carry the ".sheet" class this rule keys off).
+   Checkboxes/radios are excluded since they already have their own accent-color treatment
+   above and would have their native square/circle rendering broken by a border+padding. */
+.armor-astir.sheet input:not([type="checkbox"]):not([type="radio"]),
+.armor-astir.sheet select,
+.armor-astir.sheet textarea {
+	box-sizing: border-box;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: #fff;
+	padding: var(--aa-space-1) var(--aa-space-2);
+}
+
+.armor-astir.sheet input:not([type="checkbox"]):not([type="radio"]):focus,
+.armor-astir.sheet select:focus,
+.armor-astir.sheet textarea:focus {
+	outline: none;
+	border-color: var(--aa-primary);
+	box-shadow: 0 0 0 2px var(--aa-primary-tint);
+}
+
 .armor-astir.sheet h3 {
 	margin: var(--aa-space-4) 0 var(--aa-space-2);
 	padding-bottom: var(--aa-space-1);
@@ -105,7 +130,6 @@
 	flex:  0 0 auto;
 	height: 28px;
 	line-height: 19px;
-	padding-left: 0.25em;
 }
 
 /* Every label in the header — Name, Callsign, Playbook, Approach, Tier — reads as bold and
@@ -172,6 +196,7 @@
 	align-items: stretch;
 	gap: var(--aa-space-3);
 	margin: var(--aa-space-3) 0;
+	margin-bottom: 0;
 }
 
 .armor-astir.sheet .status-row .traits {
@@ -335,6 +360,16 @@
 .armor-astir.sheet .bonus-downtime-tokens-label-column {
 	width: 180px;
 	flex-shrink: 0;
+}
+
+.armor-astir.sheet .downtime-ability-description {
+	margin: 0;
+}
+.armor-astir.sheet .downtime-ability-source {
+	margin: var(--aa-space-1) 0 0;
+	font-size: 12px;
+	font-style: italic;
+	opacity: 0.8;
 }
 
 /* Potions (Alchemical Suite — see astir.js) — a compact row per color rather than the full

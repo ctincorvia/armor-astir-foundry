@@ -83,6 +83,9 @@ export const THE_ADRIFT_POOL = {
 			// new needed here.
 			name: "Wish You Were Here",
 			traits: [],
+			downtimeAbility:
+				"Spend a Social Space or Private Quarters Scene alone during Downtime to clear a peril " +
+				"from yourself and advance your HOME clock.",
 			description:
 				"<p>You may spend Social Space Or Private Quarters scenes alone during Downtime, " +
 				"contemplating your home and the people you left behind. When you do so, you may clear a " +
@@ -124,6 +127,8 @@ export const THE_ADRIFT_POOL = {
 					"absences: start or advance a 6-step clock titled 'Someone Else Gets Involved'.",
 				failure: null
 			},
+			downtimeAbility:
+				"Spend your Downtimes away from the party at your other means of return; roll +HOME when you do.",
 			description:
 				"<p>You have some method of travelling or returning back to where you came from temporarily. " +
 				"You may spend your Downtimes there, away from the party.</p>" +

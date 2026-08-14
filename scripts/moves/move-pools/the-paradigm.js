@@ -20,6 +20,9 @@ export const THE_PARADIGM_POOL = {
 			// forced-Desperation flag or a tracked tenet/broken-flag structure.
 			traits: ["channel"],
 			results: { success: null, mixed: null, failure: null },
+			downtimeAbility:
+				"Gain an extra Social Space or Private Quarters Scene during Downtime to tend to your " +
+				"crew's spiritual well-being.",
 			description:
 				"<p>Instead of Hooks, write three tenets that represent your deity's will. When you break " +
 				"or lose faith in a tenet, your deity will ask something of you. Roll +CHANNEL with " +
@@ -63,6 +66,9 @@ export const THE_PARADIGM_POOL = {
 			// extra-Scene cost references the same untracked Downtime-Scene concept as Tenets above, so
 			// this stays descriptive too.
 			traits: [],
+			downtimeAbility:
+				"If you ignored risks to pursue a target, Tenets' extra Scene is lost next Downtime — " +
+				"spend it on yourself instead.",
 			description:
 				"<p>When an ally or yourself is put in peril, you may declare the responsible party (you " +
 				"are the judge of who is responsible in this context) your target. You may freely ignore " +

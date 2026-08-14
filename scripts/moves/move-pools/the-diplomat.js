@@ -184,6 +184,9 @@ export const THE_DIPLOMAT_POOL = {
 						"equipment (one you have access to) to be hidden just where you'll need it."
 				]
 			},
+			downtimeAbility:
+				"During Downtime, prepare an alias or disguise, securing 2 of Shree Klime's listed " +
+				"benefits instead of a Scene's usual one.",
 			description:
 				"<p>During Downtime, you may also prepare an alias or disguise. Most people will " +
 				"believe you are who you say you are, unless you're disguised as someone they're very " +

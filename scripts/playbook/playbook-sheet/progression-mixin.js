@@ -1,4 +1,5 @@
 import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
+import { BASIC_MOVES, SPECIAL_MOVES } from "../../moves/moves.js";
 import { TRAITS } from "../../core/traits.js";
 import { APPROACHES } from "../../core/approaches.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../advancements.js";
@@ -242,6 +243,17 @@ export const ProgressionSheetMixin = {
 				return { equipmentId: entry.id, name: entry.name, description, value, max };
 			});
 		return [...fromKeyed, ...fromEquipment];
+	},
+	// Downtime tab's read-only reference list — every picked move that grants a Downtime-relevant
+	// ability, via its own declarative downtimeAbility flag (a plain description string, e.g. Help
+	// or Hinder, B-Plot, Eidolon Drive). Basic and Special moves are unioned in alongside picked
+	// playbook moves since they're not opt-in — every actor has them — the same combining pattern
+	// moves-mixin.js's _movesData already establishes for those three sources.
+	_downtimeAbilitiesData() {
+		const moves = [...BASIC_MOVES, ...SPECIAL_MOVES, ...resolvePlaybookMoves(this._playbookMoves())];
+		return moves
+			.filter((move) => move.downtimeAbility)
+			.map((move) => ({ key: move.key, name: move.name, description: move.downtimeAbility }));
 	},
 	// The bottom four Advancement options unlock once at least ADVANCEMENT_UNLOCK_THRESHOLD of the
 	// top six are checked. `checked` for bottom items is always read from stored data regardless of

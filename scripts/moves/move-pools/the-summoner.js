@@ -20,6 +20,7 @@ export const THE_SUMMONER_POOL = {
 			// bonusUsed shape, not a uses checkbox — and cleared by Refresh Scene (the real rules
 			// boundary), with Refresh Sortie clearing it too as a defensive superset (see
 			// frames-mixin.js). There's no uses entry for this move at all.
+			downtimeAbility: "Transfer this Astir Move into a new Astir during Downtime if you ever get one.",
 			description:
 				"<p>This is your Astir Move—if you ever get a new Astir, it can be transferred into the " +
 				"new one during Downtime, replacing any Astir Move it might have had. Once per Scene, " +
@@ -100,6 +101,7 @@ export const THE_SUMMONER_POOL = {
 			// (Social tab) and manages the resulting ally through the ordinary Bound Allies roster
 			// once it's ready.
 			traits: [],
+			downtimeAbility: "Create allies during Downtime as a long-term project by filling a 4-step clock.",
 			description:
 				"<p>You may magically create allies for yourself during Downtime as long-term " +
 				"projects, requiring a 4-step clock to be filled. They can only sustain themselves " +
@@ -145,6 +147,7 @@ export const THE_SUMMONER_POOL = {
 			// mechanism exists anywhere in this module (every roll/state change is scoped to one
 			// actor's own sheet). Prose only, per docs/domains/moves.md's "systems that do not exist yet".
 			traits: [],
+			downtimeAbility: "Open a portal between your linked Astirs during Downtime (or when you weave magic).",
 			description:
 				"<p>When another Channeler lays a hand on your eidolon drive, they may link their " +
 				"Astir to yours. During Downtime, or when you weave magic, you may open a portal " +

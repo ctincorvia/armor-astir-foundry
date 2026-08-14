@@ -126,6 +126,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		data.spotlight = this._spotlightData();
 		data.downtimeTokens = this._downtimeTokensData();
 		data.bonusDowntimeTokens = this._bonusDowntimeTokensData();
+		data.downtimeAbilities = this._downtimeAbilitiesData();
 		const startingMovePool = findStartingMovePool(this.actor.system.playbook?.name);
 		const astirParts = this._astirParts();
 		const astirMove = astir?.move ? findAstirMove(astir.move) : null;

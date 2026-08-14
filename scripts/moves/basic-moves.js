@@ -137,6 +137,8 @@ export const BASIC_MOVES = [
 			{ key: "prior-help", label: "They've helped or hindered you previously this Sortie" },
 			{ key: "hook", label: "They're part of one of your Hooks" }
 		],
+		downtimeAbility:
+			"Spending meaningful time with someone during Downtime gives +1 when you help or hinder them afterward.",
 		description:
 			"<p>When you attempt to lend aid to someone or interfere with their ability to make a roll, you are " +
 			"trying to help or hinder.</p>" +

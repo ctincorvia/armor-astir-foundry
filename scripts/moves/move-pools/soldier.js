@@ -119,6 +119,7 @@ export const SOLDIER_POOL = {
 			key: "soldier:original-video-episode",
 			name: "Original Video Episode",
 			traits: [],
+			downtimeAbility: "Lead a raid or operation against the Authority as your Downtime Scene.",
 			description:
 				"<p>During Downtime, you may lead a raid or operation against the Authority to disrupt " +
 				"their activities as your Downtime Scene. Tell the Director what you set out to do, and " +
@@ -137,6 +138,9 @@ export const SOLDIER_POOL = {
 			// 10+" — same automatic-success button as Hot-blooded, at a 1-hold cost per use rather
 			// than Hot-blooded's flat 3 — see PlaybookActorSheet#_availableAutomaticSuccess.
 			grantsAutomaticSuccess: { cost: 1 },
+			downtimeAbility:
+				"You will perish before your next Downtime begins, on your own terms rather than rolling " +
+				"to bite the dust.",
 			description:
 				"<p>When you talk about what's waiting for you after the fighting's over, hold 3.</p>" +
 				"<p>You may spend your hold 1-for-1 to automatically succeed on any move as if you had " +
@@ -154,6 +158,9 @@ export const SOLDIER_POOL = {
 			// docs/domains/moves.md's "systems that do not exist yet" guidance, transcribed as prose rather than
 			// inventing new tracking machinery.
 			traits: [],
+			downtimeAbility:
+				"Work your long-term project with the other Faction at least once per Downtime, or your " +
+				"influence over them dwindles.",
 			description:
 				"<p>You take over another Faction of the Cause, and steer them towards something " +
 				"impressive. Start an 6-step long-term project clock. Once it's filled, on your next plan " +

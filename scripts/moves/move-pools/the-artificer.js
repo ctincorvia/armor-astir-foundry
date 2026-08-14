@@ -13,6 +13,7 @@ export const THE_ARTIFICER_POOL = {
 			// Troublemaker's/That's Dialectics' own comments for the same Downtime-Scene gap).
 			// Prose only.
 			traits: [],
+			downtimeAbility: "Perform an extra Infirmary or Hangar Scene during Downtime to repair and mend.",
 			description:
 				"<p>You're an expert at making and mending, and may perform an extra Infirmary or " +
 				"Hangar Scene during Downtime, as you repair and mend the things around you. Whenever " +

@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../scripts/playbook/advancements.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
+import { BASIC_MOVES, SPECIAL_MOVES } from "../scripts/moves/moves.js";
 import { TRAITS } from "../scripts/core/traits.js";
 import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
@@ -14,6 +15,10 @@ const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know
 const MASTER_SERVANT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-attendant:master-servant");
 const INFORMATION_NETWORK = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:information-network");
 const STANDARDISED_PARTS = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:standardised-parts");
+const HELP_OR_HINDER = BASIC_MOVES.find((m) => m.key === "help-or-hinder");
+const B_PLOT = SPECIAL_MOVES.find((m) => m.key === "b-plot");
+const PLAN_AND_PREPARE = SPECIAL_MOVES.find((m) => m.key === "plan-and-prepare");
+const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
 
 describe("PlaybookActorSheet#getData - traits", () => {
 	it("defaults every trait to value 0, no bonus, and enabled when system.stats is empty", () => {
@@ -716,6 +721,37 @@ describe("PlaybookActorSheet#_bonusDowntimeTokensData", () => {
 		sheet.actor = { system: { attributes: { equipment: [item] } } };
 
 		expect(sheet._bonusDowntimeTokensData()[0]).toEqual(expect.objectContaining({ equipmentId: "eq1", value: 0 }));
+	});
+});
+
+describe("PlaybookActorSheet#_downtimeAbilitiesData", () => {
+	it("returns only the flagged Basic/Special moves when no playbook moves are picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
+
+		expect(sheet._downtimeAbilitiesData()).toEqual([
+			{ key: HELP_OR_HINDER.key, name: HELP_OR_HINDER.name, description: HELP_OR_HINDER.downtimeAbility },
+			{ key: B_PLOT.key, name: B_PLOT.name, description: B_PLOT.downtimeAbility },
+			{ key: PLAN_AND_PREPARE.key, name: PLAN_AND_PREPARE.name, description: PLAN_AND_PREPARE.downtimeAbility }
+		]);
+	});
+
+	it("includes a flagged playbook move once its key is picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [PERSONAL_FAMILIAR.key] } } };
+
+		expect(sheet._downtimeAbilitiesData()).toContainEqual({
+			key: PERSONAL_FAMILIAR.key,
+			name: PERSONAL_FAMILIAR.name,
+			description: PERSONAL_FAMILIAR.downtimeAbility
+		});
+	});
+
+	it("excludes a picked playbook move that carries no downtimeAbility flag", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [MASTER_SERVANT.key] } } };
+
+		expect(sheet._downtimeAbilitiesData().some((entry) => entry.key === MASTER_SERVANT.key)).toBe(false);
 	});
 });
 

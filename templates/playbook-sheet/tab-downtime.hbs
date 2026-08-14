@@ -34,5 +34,20 @@
 							{{/if}}
 						</div>
 						{{/if}}
+						{{#if downtimeAbilities.length}}
+						<section class="downtime-abilities">
+							<div class="section-header">
+								<h3>Downtime Abilities</h3>
+							</div>
+							<ol class="entry-list downtime-ability-list">
+								{{#each downtimeAbilities}}
+								<li class="entry-list-item downtime-ability-item">
+									<p class="downtime-ability-description">{{description}}</p>
+									<p class="downtime-ability-source">{{name}}</p>
+								</li>
+								{{/each}}
+							</ol>
+						</section>
+						{{/if}}
 					</section>
 				</div>
