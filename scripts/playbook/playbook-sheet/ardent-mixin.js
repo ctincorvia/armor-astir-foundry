@@ -296,6 +296,23 @@ export const ArdentSheetMixin = {
 			]
 		});
 	},
+	// The Extra Weapon pool's custom-creation counterpart to _onArdentExtraWeaponAdd, combining
+	// _onArdentWeaponCustomAdd's no-catalog/budget-rule shape with extra: true and no loadout-cap
+	// guard, matching its own catalog sibling (Extra Weapons is deliberately uncapped).
+	async _onArdentExtraWeaponCustomAdd(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		const ardent = this._ardents().find((a) => a.id === ardentId);
+		if (!ardent) return;
+		const result = await configureEquipment({ kind: "weapon" }, undefined, { ardentWeapon: true, maxTagValue: 0 });
+		if (!result) return;
+
+		this.actor.update({
+			"system.attributes.equipment": [
+				...this._equipment(),
+				{ id: foundry.utils.randomID(), spent: [], ardent: ardentId, extra: true, catalogSource: false, ...result }
+			]
+		});
+	},
 	// Commander-exclusive counterpart to _onArdentPartAdd, drawing from ARDENT_FEATURE_PARTS (see
 	// ardent.js) instead of the generic Astir-derived catalog, and capped against the separate
 	// Ardent Feature pool (ardentFeatureLoadoutCount/ardentFeatureMax) rather than ARDENT_MAX_LOADOUT

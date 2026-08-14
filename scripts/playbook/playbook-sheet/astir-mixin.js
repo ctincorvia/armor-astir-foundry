@@ -471,5 +471,23 @@ export const AstirSheetMixin = {
 			"system.attributes.equipment": equipment,
 			...this._astirPowerUpdates(astir, { equipment })
 		});
+	},
+	// The Extra Weapon pool's custom-creation counterpart to _onAstirExtraWeaponAdd, combining
+	// _onAstirWeaponCustomAdd's no-catalog/budget-rule shape with extra: true and no loadout-cap
+	// guard, matching its own catalog sibling (Extra Weapons is deliberately uncapped).
+	async _onAstirExtraWeaponCustomAdd() {
+		const astir = this._astir();
+		if (!astir) return;
+		const result = await configureEquipment({ kind: "weapon" }, undefined, { astirWeapon: true, maxTagValue: 0 });
+		if (!result) return;
+
+		const equipment = [
+			...this._equipment(),
+			{ id: foundry.utils.randomID(), spent: [], astir: true, extra: true, catalogSource: false, ...result }
+		];
+		this.actor.update({
+			"system.attributes.equipment": equipment,
+			...this._astirPowerUpdates(astir, { equipment })
+		});
 	}
 };

@@ -820,6 +820,71 @@ describe("PlaybookActorSheet#_onAstirExtraWeaponAdd", () => {
 	});
 });
 
+describe("PlaybookActorSheet#_onAstirExtraWeaponCustomAdd", () => {
+	it("skips the catalog step, opening configureEquipment directly with astirWeapon and maxTagValue: 0, saving extra: true and catalogSource: false", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1" }, equipment: [] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Spare Lance", description: "", kind: "weapon", tags: ["melee"] });
+
+		await sheet._onAstirExtraWeaponCustomAdd();
+
+		expect(chooseAstirWeapon).not.toHaveBeenCalled();
+		expect(configureEquipment).toHaveBeenCalledWith({ kind: "weapon" }, undefined, { astirWeapon: true, maxTagValue: 0 });
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{
+					id: "test-id", spent: [], astir: true, extra: true, catalogSource: false, name: "Spare Lance", description: "",
+					kind: "weapon", tags: ["melee"]
+				}
+			],
+			"system.attributes.astir.power": 0,
+			"system.attributes.astir.weaponPower": 0
+		});
+	});
+
+	it("lowers Power when the custom Extra Weapon carries Drain, same as a regular custom Astir weapon", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, parts: [] }, equipment: [] } },
+			update: vi.fn()
+		};
+		configureEquipment.mockResolvedValue({ name: "Spare Lance", description: "", kind: "weapon", tags: ["drain-2"] });
+
+		await sheet._onAstirExtraWeaponCustomAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{
+					id: "test-id", spent: [], astir: true, extra: true, catalogSource: false, name: "Spare Lance", description: "",
+					kind: "weapon", tags: ["drain-2"]
+				}
+			],
+			"system.attributes.astir.power": 2,
+			"system.attributes.astir.weaponPower": 0
+		});
+	});
+
+	it("does nothing when the editor is dismissed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1" }, equipment: [] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onAstirExtraWeaponCustomAdd();
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when there is no Astir", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		await sheet._onAstirExtraWeaponCustomAdd();
+
+		expect(configureEquipment).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
 describe("PlaybookActorSheet#getData - astir extraParts/extraWeapons", () => {
 	it("resolves extraParts separately from parts, with the same per-item shape", () => {
 		const sheet = new PlaybookActorSheet();

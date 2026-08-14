@@ -1041,6 +1041,66 @@ describe("PlaybookActorSheet#_onArdentExtraWeaponAdd", () => {
 	});
 });
 
+describe("PlaybookActorSheet#_onArdentExtraWeaponCustomAdd", () => {
+	it("skips the catalog step, opening configureEquipment directly with ardentWeapon and maxTagValue: 0, saving extra: true and catalogSource: false", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }], equipment: [] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Custom Spear", description: "", kind: "weapon", tags: ["melee"] });
+
+		await sheet._onArdentExtraWeaponCustomAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(chooseAstirWeapon).not.toHaveBeenCalled();
+		expect(configureEquipment).toHaveBeenCalledWith({ kind: "weapon" }, undefined, { ardentWeapon: true, maxTagValue: 0 });
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{
+					id: "test-id", spent: [], ardent: "ar1", extra: true, catalogSource: false, name: "Custom Spear", description: "",
+					kind: "weapon", tags: ["melee"]
+				}
+			]
+		});
+	});
+
+	it("is never refused by the baseline loadout cap, unlike the regular custom Add Weapon", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", parts: [WARDING.key] }],
+					equipment: [{ id: "1", kind: "weapon", ardent: "ar1" }]
+				}
+			},
+			update: vi.fn()
+		};
+		configureEquipment.mockResolvedValue({ name: "Custom Spear", description: "", kind: "weapon", tags: ["melee"] });
+
+		await sheet._onArdentExtraWeaponCustomAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(ui.notifications.warn).not.toHaveBeenCalled();
+		expect(sheet.actor.update).toHaveBeenCalled();
+	});
+
+	it("does nothing when the editor is dismissed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }], equipment: [] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onArdentExtraWeaponCustomAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for an unknown Ardent id", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		await sheet._onArdentExtraWeaponCustomAdd({ currentTarget: { dataset: { ardentId: "nope" } } });
+
+		expect(configureEquipment).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
 describe("PlaybookActorSheet#getData - ardents extraParts/extraWeapons", () => {
 	it("resolves extraParts separately from parts and featureParts, with the same per-item shape", () => {
 		const sheet = new PlaybookActorSheet();

@@ -331,13 +331,17 @@ export async function configureEquipment(
 				// callback directly (Foundry's Dialog calls the default button's callback, not a
 				// simulated click), which can bypass a disabled attribute, so that callback calls
 				// invalidReason again itself as the real last-line defense. This live check only ever
-				// improves the common (mouse-click) case. Also sets the button's title to the reason
-				// text, so hovering a disabled Save explains why.
+				// improves the common (mouse-click) case. Also toggles a .disabled class and a
+				// data-gate-tooltip attribute, mirroring the weapon-move-roll gated-button pattern
+				// (sheet-tabs.css) -- native title tooltips do not fire on disabled form elements in
+				// Chromium, so a genuinely disabled Save button needs this CSS-only tooltip instead.
 				const updateSaveState = () => {
 					const reason = invalidReason(html);
 					const saveButton = html.find("[data-button='save']");
 					saveButton.prop("disabled", Boolean(reason));
-					saveButton.attr("title", reason ?? "");
+					saveButton.toggleClass("disabled", Boolean(reason));
+					if (reason) saveButton.attr("data-gate-tooltip", reason);
+					else saveButton.removeAttr("data-gate-tooltip");
 				};
 				// input, not change, so Save reacts while typing rather than only on blur.
 				html.find("[name='name']").on("input", updateSaveState);

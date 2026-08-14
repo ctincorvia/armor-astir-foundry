@@ -429,7 +429,7 @@
 }
 
 .armor-astir.sheet .sheet-tabs .item {
-	padding: var(--aa-space-1) var(--aa-space-1) calc(var(--aa-space-1) + 2px);
+	padding: 10px var(--aa-space-1) calc(var(--aa-space-1) + 2px);
 	border-bottom: 2px solid transparent;
 	font-weight: 700;
 	font-size: 12px;

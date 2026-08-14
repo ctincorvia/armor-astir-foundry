@@ -63,7 +63,8 @@ function fakeEquipmentRenderHtml({ name = "", kind = "gear", weaponRange } = {})
 		kind,
 		weaponRange,
 		saveDisabled: undefined,
-		saveTitle: undefined,
+		saveDisabledClass: undefined,
+		saveGateTooltip: undefined,
 		gearOnlyHidden: undefined,
 		gearOnlyUnchecked: false
 	};
@@ -93,12 +94,16 @@ function fakeEquipmentRenderHtml({ name = "", kind = "gear", weaponRange } = {})
 			if (selector === "[name='weapon-range']") {
 				return { on: (event, handler) => { state.weaponRangeHandlers = { ...state.weaponRangeHandlers, [event]: handler }; } };
 			}
-			// Captures Save's live disabled/enabled state and its title tooltip, mirroring the
-			// exclusiveGroup uncheck capture just below for the same `.prop(name, value)` shape.
+			// Captures Save's live disabled/enabled state and its .disabled class + data-gate-tooltip
+			// attribute (the weapon-move-roll gated-button pattern — see equipment-dialogs.js's
+			// updateSaveState), mirroring the exclusiveGroup uncheck capture just below for the same
+			// `.prop(name, value)` shape.
 			if (selector === "[data-button='save']") {
 				return {
 					prop: (prop, value) => { if (prop === "disabled") state.saveDisabled = value; },
-					attr: (attr, value) => { if (attr === "title") state.saveTitle = value; }
+					toggleClass: (cls, value) => { if (cls === "disabled") state.saveDisabledClass = value; },
+					attr: (attr, value) => { if (attr === "data-gate-tooltip") state.saveGateTooltip = value; },
+					removeAttr: (attr) => { if (attr === "data-gate-tooltip") state.saveGateTooltip = undefined; }
 				};
 			}
 			const tagCheckboxMatch = selector.match(/^\[name='tag'\]\[value='(.+)'\]$/);
@@ -691,7 +696,7 @@ describe("configureEquipment", () => {
 		await promise;
 	});
 
-	it("sets the Save button's title to the disabled reason, and clears it once valid", async () => {
+	it("toggles the Save button's disabled class and gate-tooltip to the disabled reason, and clears them once valid", async () => {
 		const promise = configureEquipment(null, FIXTURE_TAGS);
 		await Promise.resolve();
 		await Promise.resolve();
@@ -699,18 +704,20 @@ describe("configureEquipment", () => {
 		const state = fakeEquipmentRenderHtml();
 		Dialog.mock.calls.at(-1)[0].render(state.html);
 
-		expect(state.saveTitle).toBe("Equipment needs a name.");
+		expect(state.saveDisabledClass).toBe(true);
+		expect(state.saveGateTooltip).toBe("Equipment needs a name.");
 
 		state.name = "Rations";
 		state.nameHandlers.input();
 
-		expect(state.saveTitle).toBe("");
+		expect(state.saveDisabledClass).toBe(false);
+		expect(state.saveGateTooltip).toBeUndefined();
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
 	});
 
-	it("sets the Save button's title to the MAX_TAGS-exceeded reason", async () => {
+	it("sets the Save button's gate-tooltip to the MAX_TAGS-exceeded reason", async () => {
 		const promise = configureEquipment(null, EQUIPMENT_TAGS);
 		await Promise.resolve();
 		await Promise.resolve();
@@ -723,13 +730,14 @@ describe("configureEquipment", () => {
 		];
 		state.handlers.change({ target: { value: "fragile", checked: true } });
 
-		expect(state.saveTitle).toBe(`Equipment can have at most ${MAX_TAGS} tags, not counting Melee/Ranged/Sniper.`);
+		expect(state.saveDisabledClass).toBe(true);
+		expect(state.saveGateTooltip).toBe(`Equipment can have at most ${MAX_TAGS} tags, not counting Melee/Ranged/Sniper.`);
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
 	});
 
-	it("sets the Save button's title to the maxTagValue-exceeded reason", async () => {
+	it("sets the Save button's gate-tooltip to the maxTagValue-exceeded reason", async () => {
 		const promise = configureEquipment(null, FIXTURE_TAGS, { maxTagValue: 1 });
 		await Promise.resolve();
 		await Promise.resolve();
@@ -740,13 +748,14 @@ describe("configureEquipment", () => {
 		state.checkedTags = ["fixture-positive"];
 		state.handlers.change({ target: { value: "fixture-positive", checked: true } });
 
-		expect(state.saveTitle).toBe("This equipment's tags can total at most 1.");
+		expect(state.saveDisabledClass).toBe(true);
+		expect(state.saveGateTooltip).toBe("This equipment's tags can total at most 1.");
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
 	});
 
-	it("sets the Save button's title to the missing-weapon-range reason", async () => {
+	it("sets the Save button's gate-tooltip to the missing-weapon-range reason", async () => {
 		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true });
 		await Promise.resolve();
 		await Promise.resolve();
@@ -754,13 +763,14 @@ describe("configureEquipment", () => {
 		const state = fakeEquipmentRenderHtml({ name: "Lance" });
 		Dialog.mock.calls.at(-1)[0].render(state.html);
 
-		expect(state.saveTitle).toBe("A weapon needs one of the Melee, Ranged or Sniper tags.");
+		expect(state.saveDisabledClass).toBe(true);
+		expect(state.saveGateTooltip).toBe("A weapon needs one of the Melee, Ranged or Sniper tags.");
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
 	});
 
-	it("sets the Save button's title to the gearOnly-on-a-weapon reason", async () => {
+	it("sets the Save button's gate-tooltip to the gearOnly-on-a-weapon reason", async () => {
 		const promise = configureEquipment(null, EQUIPMENT_TAGS);
 		await Promise.resolve();
 		await Promise.resolve();
@@ -771,7 +781,8 @@ describe("configureEquipment", () => {
 		state.checkedTags = ["ward"];
 		state.handlers.change({ target: { value: "ward", checked: true } });
 
-		expect(state.saveTitle).toBe("Ward can only be added to Gear, not Weapons.");
+		expect(state.saveDisabledClass).toBe(true);
+		expect(state.saveGateTooltip).toBe("Ward can only be added to Gear, not Weapons.");
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
@@ -817,7 +828,8 @@ describe("configureEquipment", () => {
 			Dialog.mock.calls.at(-1)[0].render(state.html);
 
 			expect(state.saveDisabled).toBe(false);
-			expect(state.saveTitle).toBe("");
+			expect(state.saveDisabledClass).toBe(false);
+			expect(state.saveGateTooltip).toBeUndefined();
 
 			Dialog.mock.calls.at(-1)[0].close();
 			await promise;
@@ -832,7 +844,8 @@ describe("configureEquipment", () => {
 			Dialog.mock.calls.at(-1)[0].render(state.html);
 
 			expect(state.saveDisabled).toBe(true);
-			expect(state.saveTitle).toBe("Equipment needs a name.");
+			expect(state.saveDisabledClass).toBe(true);
+			expect(state.saveGateTooltip).toBe("Equipment needs a name.");
 
 			Dialog.mock.calls.at(-1)[0].close();
 			await promise;
