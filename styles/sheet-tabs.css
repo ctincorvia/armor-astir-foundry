@@ -65,6 +65,22 @@
 	gap: var(--aa-space-2);
 }
 
+/* Bare checkbox label — same shape as .equipment-disabled, so an Astir/Ardent Part's Disabled
+   toggle lines up compactly with the Tier/Type chips beside it instead of falling back to the
+   browser's default block-level label rendering. Unlike .equipment-disabled (whose row siblings
+   are bold, full-opacity chips), this row's siblings are the muted .astir-part-tier/-type/
+   -power-cost spans (opacity 0.8) — matching their opacity here keeps Disabled from being the
+   one full-strength element in an otherwise dimmed row. */
+.armor-astir.sheet .part-disabled-label {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+	font-size: 11px;
+	white-space: nowrap;
+	opacity: 0.8;
+}
+
 .armor-astir.sheet .hold-control {
 	display: flex;
 	flex-direction: row;
@@ -334,12 +350,12 @@
 }
 
 /* Chip treatment shared by Value/Tier/Scale so they read as compact metadata badges rather than
-   plain inline text competing with the item name. .equipment-tier-value doubles as the number in
-   the Astir/Ardent Tier stepper (.equipment-tier-control's -/+ pair) — the chip background reads
-   fine there too, just double-checked visually rather than split into a second class. */
-.armor-astir.sheet .equipment-value,
-.armor-astir.sheet .equipment-tier-value,
-.armor-astir.sheet .equipment-scale {
+   plain inline text competing with the item name. Scoped to .equipment-meta so it doesn't also
+   catch .equipment-tier-value's other use as the plain-label readout in the Astir/Ardent Tier
+   stepper (.equipment-tier-control's -/+ pair). */
+.armor-astir.sheet .equipment-meta .equipment-value,
+.armor-astir.sheet .equipment-meta .equipment-tier-value,
+.armor-astir.sheet .equipment-meta .equipment-scale {
 	padding: 2px var(--aa-space-1);
 	border-radius: var(--aa-radius);
 	background: var(--aa-secondary-tint);
@@ -444,13 +460,6 @@
 	gap: var(--aa-space-1);
 	font-size: 11px;
 	white-space: nowrap;
-}
-
-/* Secondary, matching the tag label's own --aa-secondary-dark, rather than the browser's default
-   gray control — accent-color is the standard, cross-browser way to recolor a native checkbox
-   without rebuilding it from scratch. */
-.armor-astir.sheet .equipment-tag-spent-checkbox {
-	accent-color: var(--aa-secondary-dark);
 }
 
 .armor-astir.sheet .equipment-tag-description {

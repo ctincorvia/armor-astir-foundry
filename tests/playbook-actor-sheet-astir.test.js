@@ -358,6 +358,7 @@ describe("PlaybookActorSheet#getData - astir", () => {
 			weaponPower: { value: 0, max: 0 },
 			potions: null,
 			parts: [],
+			partsFull: false,
 			extraParts: [],
 			move: null,
 			weapons: [],

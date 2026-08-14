@@ -136,8 +136,11 @@
 .armor-astir.sheet .playbook-move-remove,
 .armor-astir.sheet .equipment-remove,
 .armor-astir.sheet .astir-part-remove,
+.armor-astir.sheet .astir-extra-part-remove,
 .armor-astir.sheet .astir-move-remove,
-.armor-astir.sheet .astir-delete {
+.armor-astir.sheet .astir-delete,
+.armor-astir.sheet .ardent-part-remove,
+.armor-astir.sheet .ardent-extra-part-remove {
 	flex: 0 0 auto;
 	width: 20px;
 	height: 20px;
@@ -158,8 +161,11 @@
 .armor-astir.sheet .playbook-move-remove:hover,
 .armor-astir.sheet .equipment-remove:hover,
 .armor-astir.sheet .astir-part-remove:hover,
+.armor-astir.sheet .astir-extra-part-remove:hover,
 .armor-astir.sheet .astir-move-remove:hover,
-.armor-astir.sheet .astir-delete:hover {
+.armor-astir.sheet .astir-delete:hover,
+.armor-astir.sheet .ardent-part-remove:hover,
+.armor-astir.sheet .ardent-extra-part-remove:hover {
 	border-color: var(--aa-danger);
 	color: var(--aa-danger);
 }
@@ -476,10 +482,15 @@
 .armor-astir.sheet .astir-locked-note,
 .armor-astir.sheet .astir-part-power-cost,
 .armor-astir.sheet .astir-part-tier,
-.armor-astir.sheet .astir-part-type {
+.armor-astir.sheet .astir-part-type,
+.armor-astir.sheet .loadout-empty-note {
 	font-size: 12px;
 	font-style: italic;
 	opacity: 0.8;
+}
+
+.armor-astir.sheet .loadout-empty-note {
+	margin: 0;
 }
 
 .armor-astir.sheet .astir-empty {

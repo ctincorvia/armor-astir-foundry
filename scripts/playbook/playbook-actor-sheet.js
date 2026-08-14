@@ -42,7 +42,7 @@ export class PlaybookActorSheet extends ActorSheet {
 			template: PLAYBOOK_SHEET_TEMPLATE,
 			// Matches styles/playbook-actor-sheet.css's min-width floor — keeping them in sync avoids
 			// Foundry's tracked position starting narrower than the CSS floor allows it to render.
-			width: 760,
+			width: 780,
 			// Deliberately not "auto": core Application#setPosition special-cases options.height === "auto"
 			// by re-measuring content and resetting el.style.height on every position update, including
 			// every mousemove while dragging the resize handle — so the window could never be dragged

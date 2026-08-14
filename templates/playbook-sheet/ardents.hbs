@@ -62,6 +62,7 @@
 									<button type="button" class="ardent-extra-part-add icon-add-button" data-ardent-id="{{id}}" title="Add an Extra Ardent Part" aria-label="Add an Extra Ardent Part">+</button>
 								</div>
 							</div>
+							{{#if extraParts.length}}
 							<ol class="move-list">
 								{{#each extraParts}}
 								<li class="move{{#if disabled}} move-disabled{{/if}}">
@@ -78,6 +79,9 @@
 								</li>
 								{{/each}}
 							</ol>
+							{{else}}
+							<p class="loadout-empty-note">Extra Parts are obtained through downtime and are discarded at the end of a sortie.</p>
+							{{/if}}
 							<div class="section-header">
 								<h3>Weapons</h3>
 								{{#unless loadoutFull}}
@@ -146,6 +150,7 @@
 									<button type="button" class="ardent-extra-weapon-catalog-add icon-add-button" data-ardent-id="{{id}}" title="Pick an Extra Ardent Weapon from Catalog" aria-label="Pick an Extra Ardent Weapon from Catalog">O</button>
 								</div>
 							</div>
+							{{#if extraWeapons.length}}
 							<ol class="equipment-list">
 								{{#each extraWeapons}}
 								<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}" data-equipment-id="{{id}}">
@@ -198,6 +203,9 @@
 								</li>
 								{{/each}}
 							</ol>
+							{{else}}
+							<p class="loadout-empty-note">Extra Weapons are obtained through downtime and are discarded at the end of a sortie.</p>
+							{{/if}}
 							{{#if ../isCommander}}
 							<div class="section-header">
 								<h3>Ardent Features ({{featureParts.length}}{{#with featureWeapons}}{{#if length}}+{{length}}{{/if}}{{/with}} / {{featureMax}})</h3>

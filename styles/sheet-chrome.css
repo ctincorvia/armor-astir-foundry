@@ -7,6 +7,15 @@
    gives every "Traits" / "Weapons" / "Advancement" label the same clear delineation from body
    text. Scoped to the sheet only, not dialogs or the chat card, so it doesn't catch move-chat's
    h3.move-name (a card title, not a section label). */
+/* Secondary, not the browser's default gray control — every checkbox on every actor sheet
+   (Exhausted/Seized, Shaken, move uses, Advancement, at-helm, part/equipment Disabled, Piloted,
+   Overheating, quarters benefits, ...) tracks the player's own state, never chrome, so all of them
+   share this one rule rather than repeating accent-color per class. Dialog/picker checkboxes get
+   the same treatment in dialogs.css. */
+.armor-astir.sheet input[type="checkbox"] {
+	accent-color: var(--aa-secondary-dark);
+}
+
 .armor-astir.sheet h3 {
 	margin: var(--aa-space-4) 0 var(--aa-space-2);
 	padding-bottom: var(--aa-space-1);
@@ -54,6 +63,7 @@
 .armor-astir.sheet .sheet-header {
 	align-items: flex-start;
 	gap: var(--aa-space-4);
+	margin-top: var(--aa-space-3);
 }
 
 /* The portrait gets the same bordered-box treatment as every other portrait on the sheet

@@ -1,6 +1,7 @@
 import {
 	ASTIR_CORES,
 	ASTIR_DEFAULT_IMG,
+	ASTIR_MAX_PARTS,
 	ASTIR_POWER_BASE,
 	ASTIR_POWER_MIN,
 	ASTIR_TIER_MAX,
@@ -112,6 +113,7 @@ export const AstirSheetMixin = {
 					tier: astir.tier ?? ASTIR_TIER_MIN,
 					disabled: this._isPartDisabled(part.key)
 				})),
+				partsFull: (astir.parts ?? []).length >= ASTIR_MAX_PARTS,
 				extraParts: resolveAstirParts(astir.extraParts ?? []).map((part) => ({
 					key: part.key,
 					name: part.name,
@@ -312,6 +314,10 @@ export const AstirSheetMixin = {
 		const astir = this._astir();
 		if (!astir) return;
 		const current = astir.parts ?? [];
+		if (current.length >= ASTIR_MAX_PARTS) {
+			ui.notifications.warn(`An Astir can carry at most ${ASTIR_MAX_PARTS} Parts.`);
+			return;
+		}
 		const key = await chooseAstirPart(current);
 		if (!key || current.includes(key)) return;
 		const parts = [...current, key];

@@ -379,6 +379,13 @@
 	transform: translateY(-1px);
 }
 
+/* Secondary, matching every checkbox on the sheet (see sheet-chrome.css) — these pickers'
+   checkboxes carry no shared class, only a `name` attribute, so this has to key off the type
+   selector rather than a class. */
+.armor-astir input[type="checkbox"] {
+	accent-color: var(--aa-secondary-dark);
+}
+
 /* The half-pixel nudge above isn't enough for the equipment editor's Range radios specifically —
    confirmed by testing directly in a live client. `.vtt .window-app input[type=radio]` (pbta) is
    (0,3,1) specificity; a plain `.armor-astir` override is only (0,2,1) and loses outright, the

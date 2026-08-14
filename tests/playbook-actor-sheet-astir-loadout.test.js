@@ -104,6 +104,21 @@ describe("PlaybookActorSheet#_onAstirPartAdd", () => {
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 
+	it("warns and refuses to open the picker once the Astir already has ASTIR_MAX_PARTS parts", async () => {
+		const sheet = new PlaybookActorSheet();
+		const [partA, partB] = ASTIR_PART_CATALOG;
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, parts: [partA.key, partB.key] } } },
+			update: vi.fn()
+		};
+
+		await sheet._onAstirPartAdd();
+
+		expect(ui.notifications.warn).toHaveBeenCalled();
+		expect(chooseAstirPart).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
 	it("accounts for existing Astir weapon Drain when re-clamping power", async () => {
 		const sheet = new PlaybookActorSheet();
 		const partKey = ASTIR_PART_CATALOG[0].key;
@@ -906,6 +921,36 @@ describe("PlaybookActorSheet#getData - astir extraParts/extraWeapons", () => {
 		expect(data.astir.extraParts).toEqual([
 			{ key: partB.key, name: partB.name, powerCost: partB.powerCost, partType: partB.partType, tier: 3, disabled: false }
 		]);
+	});
+
+	it("flags partsFull once the regular Parts pool reaches ASTIR_MAX_PARTS, ignoring extraParts", () => {
+		const sheet = new PlaybookActorSheet();
+		const [partA, partB] = ASTIR_PART_CATALOG;
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", tier: 3, power: 4, parts: [partA.key, partB.key], extraParts: [], move: null }
+				}
+			}
+		};
+
+		expect(sheet.getData().astir.partsFull).toBe(true);
+	});
+
+	it("leaves partsFull false while the regular Parts pool is under ASTIR_MAX_PARTS", () => {
+		const sheet = new PlaybookActorSheet();
+		const partKey = ASTIR_PART_CATALOG[0].key;
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", tier: 3, power: 4, parts: [partKey], move: null }
+				}
+			}
+		};
+
+		expect(sheet.getData().astir.partsFull).toBe(false);
 	});
 
 	it("defaults an extraPart's tier to ASTIR_TIER_MIN when the Astir has none set", () => {

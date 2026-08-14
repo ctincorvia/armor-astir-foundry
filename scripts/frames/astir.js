@@ -36,6 +36,11 @@ export function astirCoreApproaches(coreKey, cores = ASTIR_CORES) {
 export const ASTIR_TIER_MIN = 3;
 export const ASTIR_TIER_MAX = 4;
 
+// Caps the Astir's regular Parts pool (see astir-mixin.js's _onAstirPartAdd) — Extra Parts
+// (system.attributes.astir.extraParts) are a separate, uncapped Sortie-scoped pool and must never
+// be counted against this.
+export const ASTIR_MAX_PARTS = 2;
+
 export const ASTIR_POWER_MIN = 0;
 export const ASTIR_POWER_BASE = 4;
 

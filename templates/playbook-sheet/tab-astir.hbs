@@ -79,9 +79,11 @@
 						{{/if}}
 						<div class="section-header">
 							<h3>Parts</h3>
+							{{#unless astir.partsFull}}
 							<div class="section-header-actions">
 								<button type="button" class="astir-part-add icon-add-button" title="Add an Astir Part" aria-label="Add an Astir Part">+</button>
 							</div>
+							{{/unless}}
 						</div>
 						<ol class="move-list">
 							{{#each astir.parts}}
@@ -106,6 +108,7 @@
 								<button type="button" class="astir-extra-part-add icon-add-button" title="Add an Extra Astir Part" aria-label="Add an Extra Astir Part">+</button>
 							</div>
 						</div>
+						{{#if astir.extraParts.length}}
 						<ol class="move-list">
 							{{#each astir.extraParts}}
 							<li class="move{{#if disabled}} move-disabled{{/if}}">
@@ -123,6 +126,9 @@
 							</li>
 							{{/each}}
 						</ol>
+						{{else}}
+						<p class="loadout-empty-note">Extra Parts are obtained through downtime and are discarded at the end of a sortie.</p>
+						{{/if}}
 						<div class="section-header">
 							<h3>Astir Move</h3>
 							{{#unless astir.move}}
@@ -207,6 +213,7 @@
 								<button type="button" class="astir-extra-weapon-catalog-add icon-add-button" title="Pick an Extra Astir Weapon from Catalog" aria-label="Pick an Extra Astir Weapon from Catalog">O</button>
 							</div>
 						</div>
+						{{#if astir.extraWeapons.length}}
 						<ol class="equipment-list">
 							{{#each astir.extraWeapons}}
 							<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}" data-equipment-id="{{id}}">
@@ -259,6 +266,9 @@
 							</li>
 							{{/each}}
 						</ol>
+						{{else}}
+						<p class="loadout-empty-note">Extra Weapons are obtained through downtime and are discarded at the end of a sortie.</p>
+						{{/if}}
 					</section>
 					{{else}}
 					<section class="astir-empty">

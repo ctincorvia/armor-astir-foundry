@@ -27,7 +27,7 @@ describe("PlaybookActorSheet.defaultOptions", () => {
 		expect(options).toEqual({
 			classes: ["armor-astir", "sheet", "actor", "playbook"],
 			template: "modules/armor-astir/templates/playbook-actor-sheet.hbs",
-			width: 760,
+			width: 780,
 			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "moves" }],
 			scrollY: [".window-content"]
 		});
