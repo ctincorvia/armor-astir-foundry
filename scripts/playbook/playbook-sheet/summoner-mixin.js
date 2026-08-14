@@ -146,7 +146,7 @@ export const SummonerSheetMixin = {
 		const astir = this._astir();
 		const updates = { "system.attributes.boundAllies": removeEntry(allies, entryId) };
 		if (astir && ally.powerInvested) {
-			const max = astirMaxPower(astir.parts ?? [], this._equipment());
+			const max = astirMaxPower(this._astirPartKeys(astir), this._equipment());
 			updates["system.attributes.astir.power"] = Math.min(max, (astir.power ?? 0) + ally.powerInvested);
 		}
 		if (this._eidolonDrive().summonedAllyId === entryId) {
@@ -185,7 +185,7 @@ export const SummonerSheetMixin = {
 		const astir = this._astir();
 		const updates = { "system.attributes.downtimeAlly": null };
 		if (astir && ally.powerInvested) {
-			const max = astirMaxPower(astir.parts ?? [], this._equipment());
+			const max = astirMaxPower(this._astirPartKeys(astir), this._equipment());
 			updates["system.attributes.astir.power"] = Math.min(max, (astir.power ?? 0) + ally.powerInvested);
 		}
 		this.actor.update(updates);
@@ -228,7 +228,7 @@ export const SummonerSheetMixin = {
 			updates["system.attributes.boundAllies"] = updateEntryField(
 				allies, ally.id, "powerInvested", Math.max(0, (ally.powerInvested ?? 0) - 1)
 			);
-			const max = astirMaxPower(astir.parts ?? [], this._equipment());
+			const max = astirMaxPower(this._astirPartKeys(astir), this._equipment());
 			updates["system.attributes.astir.power"] = Math.min(max, (astir.power ?? 0) + 1);
 		}
 		await this.actor.update(updates);

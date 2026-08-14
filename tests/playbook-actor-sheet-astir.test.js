@@ -327,7 +327,10 @@ describe("PlaybookActorSheet#getData - astir", () => {
 		expect(data.astir.weapons.map((w) => w.id)).toEqual(["1"]);
 		expect(data.astir.weapons[0].tier).toBe(4);
 		expect(data.astir.weapons[0].scaleLabel).toBe("Astir Scale");
-		expect(data.equipment.astirWeapons).toBe(data.astir.weapons);
+		// data.astir.weapons is now data.equipment.astirWeapons filtered to exclude Extra Weapons
+		// (see _astirData's own weapons/extraWeapons split), so the two are content-equal rather than
+		// the same array reference whenever nothing is flagged extra, as here.
+		expect(data.equipment.astirWeapons).toEqual(data.astir.weapons);
 		expect(data.equipment.weapons.map((w) => w.id)).toEqual(["2"]);
 	});
 
@@ -355,8 +358,10 @@ describe("PlaybookActorSheet#getData - astir", () => {
 			weaponPower: { value: 0, max: 0 },
 			potions: null,
 			parts: [],
+			extraParts: [],
 			move: null,
-			weapons: []
+			weapons: [],
+			extraWeapons: []
 		});
 	});
 });

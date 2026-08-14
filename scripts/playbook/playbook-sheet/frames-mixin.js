@@ -25,7 +25,7 @@ export const FramesSheetMixin = {
 				tier: astir.tier ?? ASTIR_TIER_MIN,
 				approach: astir.approach ?? "",
 				piloted: Boolean(astir.piloted),
-				parts: astir.parts ?? []
+				parts: this._astirPartKeys(astir)
 			});
 		}
 		for (const ardent of this._ardents()) {
@@ -36,7 +36,7 @@ export const FramesSheetMixin = {
 				tier: ardent.tier ?? ARDENT_TIER_DEFAULT,
 				approach: ardent.approach ?? "",
 				piloted: Boolean(ardent.piloted),
-				parts: ardent.parts ?? []
+				parts: this._ardentPartKeys(ardent)
 			});
 		}
 		return frames;
@@ -251,6 +251,7 @@ export const FramesSheetMixin = {
 	// than a flat min (see the in-loop comment below).
 	_onRefreshSortie() {
 		const updates = this._refreshPeriod("Sortie");
+		const astir = this._astir();
 		for (const move of ALL_MOVES) {
 			if (move.flatHold && move.period === "Sortie") {
 				updates[`system.attributes.moveHold.${move.key}.value`] = HOLD_MIN;
@@ -292,12 +293,15 @@ export const FramesSheetMixin = {
 		// clobbering the other, same reference-preserving pattern _refreshPeriod's own equipment
 		// rewrite already uses.
 		const equipmentSource = updates["system.attributes.equipment"] ?? this._equipment();
-		const nextEquipment = equipmentSource.map((item) => {
+		// Every Extra Weapon (Astir- or Ardent-owned — see docs/domains/frames.md's Ardents section)
+		// is entirely removed on Refresh Sortie, composed with the Bonus Downtime Tokens reset below
+		// rather than a second separate equipment rewrite.
+		const nextEquipment = equipmentSource.filter((item) => !item.extra).map((item) => {
 			if (!item.bonusDowntimeTokens) return item;
 			const { max } = item.bonusDowntimeTokens;
 			return (item.bonusDowntimeTokensValue ?? max) === max ? item : { ...item, bonusDowntimeTokensValue: max };
 		});
-		if (nextEquipment.some((item, i) => item !== equipmentSource[i])) {
+		if (nextEquipment.length !== equipmentSource.length || nextEquipment.some((item, i) => item !== equipmentSource[i])) {
 			updates["system.attributes.equipment"] = nextEquipment;
 		}
 		// Quarters' own Bonus Downtime Tokens pool (extra-token benefit — see quarters.js) isn't a
@@ -320,6 +324,29 @@ export const FramesSheetMixin = {
 		// (and only) clear point.
 		updates["system.attributes.approachOverride"] = null;
 		updates["system.attributes.downtimeTokens.value"] = this._downtimeTokensMax();
+		// The Extra Parts/Weapons pool (see docs/domains/frames.md's Ardents section) is entirely
+		// removed here, not just uses-reset like everything above — guarded on astir existing and
+		// non-empty, since writing a sub-path of a null astir would wrongly resurrect it as
+		// { extraParts: [] }.
+		if (astir?.extraParts?.length) {
+			updates["system.attributes.astir.extraParts"] = [];
+		}
+		const ardents = this._ardents();
+		if (ardents.some((ardent) => ardent.extraParts?.length)) {
+			updates["system.attributes.ardents"] = ardents.map((ardent) => (
+				ardent.extraParts?.length ? { ...ardent, extraParts: [] } : ardent
+			));
+		}
+		// Extra Parts/Weapons are gone after this click, so Power/Weapon Power reclamp against the
+		// regular-only loadout — the same recompute a manual part/weapon removal already triggers via
+		// _astirPowerUpdates — in case an Extra Part granted Weapon Power capacity or an Extra Weapon
+		// carried Drain.
+		if (astir) {
+			Object.assign(updates, this._astirPowerUpdates(astir, {
+				parts: astir.parts ?? [],
+				equipment: updates["system.attributes.equipment"] ?? this._equipment()
+			}));
+		}
 		this.actor.update(updates);
 	}
 };

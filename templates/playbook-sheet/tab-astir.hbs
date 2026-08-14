@@ -101,6 +101,29 @@
 							{{/each}}
 						</ol>
 						<div class="section-header">
+							<h3>Extra Parts</h3>
+							<div class="section-header-actions">
+								<button type="button" class="astir-extra-part-add icon-add-button" title="Add an Extra Astir Part" aria-label="Add an Extra Astir Part">+</button>
+							</div>
+						</div>
+						<ol class="move-list">
+							{{#each astir.extraParts}}
+							<li class="move{{#if disabled}} move-disabled{{/if}}">
+								<span class="move-name">{{name}}</span>
+								<div class="move-row-controls">
+									<span class="astir-part-tier">Tier {{tier}}</span>
+									<span class="astir-part-type">{{partType}}</span>
+									{{#if powerCost}}<span class="astir-part-power-cost">Power {{powerCost}}</span>{{/if}}
+									<label class="part-disabled-label">
+										<input type="checkbox" class="part-disabled-checkbox" data-part="{{key}}" {{#if disabled}}checked{{/if}}/>
+										Disabled
+									</label>
+									<button type="button" class="astir-extra-part-remove" data-part="{{key}}" aria-label="Remove Extra Astir part">✕</button>
+								</div>
+							</li>
+							{{/each}}
+						</ol>
+						<div class="section-header">
 							<h3>Astir Move</h3>
 							{{#unless astir.move}}
 							<div class="section-header-actions">
@@ -126,6 +149,64 @@
 						</div>
 						<ol class="equipment-list">
 							{{#each astir.weapons}}
+							<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}" data-equipment-id="{{id}}">
+								<div class="equipment-header">
+									<span class="equipment-name">{{name}}</span>
+									<div class="equipment-meta">
+										<span class="equipment-value">Value {{value}}</span>
+										<span class="equipment-tier-value">Tier {{tier}}</span>
+										<span class="equipment-scale">{{scaleLabel}}</span>
+									</div>
+									<div class="equipment-actions">
+										<label class="equipment-disabled">
+											<input type="checkbox" class="equipment-disabled-checkbox" data-equipment-id="{{id}}" {{#if disabled}}checked{{/if}}/>
+											Disabled
+										</label>
+										<div class="equipment-item-controls">
+											<button type="button" class="equipment-edit" data-equipment-id="{{id}}">Edit</button>
+											<button type="button" class="equipment-remove" data-equipment-id="{{id}}" aria-label="Remove equipment">✕</button>
+										</div>
+									</div>
+								</div>
+								{{#if description}}
+								<div class="equipment-description">{{description}}</div>
+								{{/if}}
+								{{#if tags.length}}
+								<div class="equipment-tags-block">
+									<ul class="equipment-tag-list">
+										{{#each tags}}
+										<li class="equipment-tag">
+											<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
+											{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
+											{{#if spendable}}
+											<label class="equipment-tag-spent">
+												<input type="checkbox" class="equipment-tag-spent-checkbox" data-equipment-id="{{../id}}" data-tag="{{key}}" {{#if spent}}checked{{/if}}/>
+												Spent
+											</label>
+											{{/if}}
+										</li>
+										{{/each}}
+									</ul>
+								</div>
+								{{/if}}
+								{{#if weaponMoves.length}}
+								<div class="weapon-move-controls">
+									{{#each weaponMoves}}
+									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-gate-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
+									{{/each}}
+								</div>
+								{{/if}}
+							</li>
+							{{/each}}
+						</ol>
+						<div class="section-header">
+							<h3>Extra Weapons</h3>
+							<div class="section-header-actions">
+								<button type="button" class="astir-extra-weapon-catalog-add icon-add-button" title="Pick an Extra Astir Weapon from Catalog" aria-label="Pick an Extra Astir Weapon from Catalog">O</button>
+							</div>
+						</div>
+						<ol class="equipment-list">
+							{{#each astir.extraWeapons}}
 							<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}" data-equipment-id="{{id}}">
 								<div class="equipment-header">
 									<span class="equipment-name">{{name}}</span>

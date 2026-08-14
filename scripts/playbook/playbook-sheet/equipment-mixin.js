@@ -149,6 +149,10 @@ export const EquipmentSheetMixin = {
 				// getData's per-Ardent split into baseline vs. Feature weapons can read it off the
 				// already-mapped entry rather than re-filtering the raw equipment array a second time.
 				commanderFeature: Boolean(entry.commanderFeature),
+				// The Extra Weapon pool's own flag (see docs/domains/frames.md's Ardents section) —
+				// surfaced here so getData's Astir/Ardent weapons/extraWeapons split can read it off
+				// the already-mapped entry rather than re-filtering the raw equipment array again.
+				extra: Boolean(entry.extra),
 				// Manual "in-fiction consequence" tracker (weapon damaged) — same manual-tracker
 				// convention as astir.overheating/piloted (see claude.md's Recurring conventions).
 				// Excludes the weapon from being chosen for a roll (see move-roll-mixin.js's

@@ -124,7 +124,7 @@ export const MovesSheetMixin = {
 			});
 		}
 		for (const ardent of ardents) {
-			const parts = resolveAstirParts(ardent.parts ?? [], ARDENT_PART_CATALOG);
+			const parts = resolveAstirParts(this._ardentPartKeys(ardent), ARDENT_PART_CATALOG);
 			if (!parts.length) continue;
 			moveGroups.push({
 				label: `${ardent.name || ARDENT_DEFAULT_NAME} Moves`,

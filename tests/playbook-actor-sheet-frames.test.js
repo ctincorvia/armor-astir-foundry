@@ -8,10 +8,11 @@ vi.mock("../scripts/frames/ardent.js", async (importOriginal) => ({
 }));
 
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
-import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
+import { ASTIR_PART_CATALOG, astirMaxPower } from "../scripts/frames/astir.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { chooseFrame, ARDENT_FEATURE_PARTS } from "../scripts/frames/ardent.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+import { WEAPON_CONDUIT } from "./helpers/move-fixtures.js";
 
 const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:alchemical-suite");
 const DIVINATION_CODEX = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:divination-codex");
@@ -117,6 +118,46 @@ describe("PlaybookActorSheet#_mountedParts", () => {
 		};
 
 		expect(sheet._mountedParts().map((p) => p.key)).toEqual([ALCHEMICAL_SUITE.key]);
+	});
+
+	it("folds in an Extra Part's effects while the Astir is mounted, alongside its regular parts", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", piloted: true, parts: [ALCHEMICAL_SUITE.key], extraParts: [DIVINATION_CODEX.key] }
+				}
+			}
+		};
+
+		expect(sheet._mountedParts().map((p) => p.key)).toEqual([ALCHEMICAL_SUITE.key, DIVINATION_CODEX.key]);
+	});
+
+	it("folds in an Extra Part's effects while an Ardent is mounted, alongside its regular parts", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", piloted: true, parts: [DIVINATION_CODEX.key], extraParts: [ALCHEMICAL_SUITE.key] }]
+				}
+			}
+		};
+
+		expect(sheet._mountedParts().map((p) => p.key)).toEqual([DIVINATION_CODEX.key, ALCHEMICAL_SUITE.key]);
+	});
+
+	it("excludes a disabled Extra Part the same way it excludes a disabled regular one", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", piloted: true, parts: [], extraParts: [ALCHEMICAL_SUITE.key] },
+					moveUses: { [ALCHEMICAL_SUITE.key]: { disabled: true } }
+				}
+			}
+		};
+
+		expect(sheet._mountedParts()).toEqual([]);
 	});
 });
 
@@ -784,7 +825,11 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
-			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
+			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
+			// The end-of-method Power reclamp against the regular-only loadout (no Extra Parts stored
+			// here) — Alchemical Suite's own -2 Power cost, already reflected before this refresh.
+			"system.attributes.astir.power": 0,
+			"system.attributes.astir.weaponPower": 0
 		});
 	});
 
@@ -1115,5 +1160,167 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 
 		const updates = sheet.actor.update.mock.calls.at(-1)[0];
 		expect(Object.keys(updates).some((key) => key.includes("quarters:extra-token"))).toBe(false);
+	});
+});
+
+describe("PlaybookActorSheet#_onRefreshSortie - Extra Parts/Weapons", () => {
+	it("clears a non-empty astir.extraParts", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, parts: [], extraParts: [ALCHEMICAL_SUITE.key] } } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.astir.extraParts": [] })
+		);
+	});
+
+	it("writes no astir.extraParts key when it's already empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, parts: [], extraParts: [] } } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		const updates = sheet.actor.update.mock.calls.at(-1)[0];
+		expect(Object.keys(updates)).not.toContain("system.attributes.astir.extraParts");
+	});
+
+	it("never resurrects a null astir by writing a sub-path of it", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		const updates = sheet.actor.update.mock.calls.at(-1)[0];
+		expect(Object.keys(updates).some((key) => key.startsWith("system.attributes.astir"))).toBe(false);
+	});
+
+	it("clears an Ardent's extraParts, leaving an Ardent with nothing to clear untouched (same reference)", () => {
+		const sheet = new PlaybookActorSheet();
+		const untouched = { id: "ar2", parts: [], extraParts: [] };
+		sheet.actor = {
+			system: {
+				attributes: { ardents: [{ id: "ar1", parts: [], extraParts: [ALCHEMICAL_SUITE.key] }, untouched] }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		const updates = sheet.actor.update.mock.calls.at(-1)[0];
+		expect(updates["system.attributes.ardents"]).toEqual([{ id: "ar1", parts: [], extraParts: [] }, untouched]);
+		expect(updates["system.attributes.ardents"][1]).toBe(untouched);
+	});
+
+	it("writes no ardents key when no Ardent has anything to clear", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }] } }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		const updates = sheet.actor.update.mock.calls.at(-1)[0];
+		expect(Object.keys(updates)).not.toContain("system.attributes.ardents");
+	});
+
+	it("drops every extra: true equipment entry (Astir- or Ardent-owned) entirely", () => {
+		const sheet = new PlaybookActorSheet();
+		const regular = { id: "1", kind: "weapon", astir: true, name: "Lance", tags: [], spent: [] };
+		const extraAstir = { id: "2", kind: "weapon", astir: true, extra: true, name: "Spare Lance", tags: [], spent: [] };
+		const extraArdent = { id: "3", kind: "weapon", ardent: "ar1", extra: true, name: "Spare Spear", tags: [], spent: [] };
+		sheet.actor = {
+			system: { attributes: { equipment: [regular, extraAstir, extraArdent] } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.equipment": [regular] })
+		);
+	});
+
+	it("still applies the equipment-array rewrite when only an Extra Weapon needs dropping and nothing else changes", () => {
+		const sheet = new PlaybookActorSheet();
+		const extraWeapon = { id: "1", kind: "weapon", astir: true, extra: true, name: "Spare Lance", tags: [], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [extraWeapon] } }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.equipment": [] })
+		);
+	});
+
+	it("reclamps Power down when an Extra Part granting Weapon Power capacity is cleared", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { astir: { id: "a1", power: 4, weaponPower: 2, parts: [], extraParts: [WEAPON_CONDUIT.key] } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		// Weapon Conduit's own Weapon Power capacity (2) is gone once the Extra Part is cleared, so
+		// Weapon Power reclamps down to 0 the same way removing a regular part already would.
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				"system.attributes.astir.power": astirMaxPower([], []),
+				"system.attributes.astir.weaponPower": 0
+			})
+		);
+	});
+
+	it("reclamps Power using only the extras-filtered equipment once a Drain-tagged Extra Weapon is cleared", () => {
+		const sheet = new PlaybookActorSheet();
+		const regularDrainWeapon = { id: "1", kind: "weapon", astir: true, tags: ["drain-1"], name: "Lance", spent: [] };
+		const extraDrainWeapon = {
+			id: "2", kind: "weapon", astir: true, extra: true, tags: ["drain-2"], name: "Spare Lance", spent: []
+		};
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", power: 3, parts: [] },
+					equipment: [regularDrainWeapon, extraDrainWeapon]
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		// Only the Extra Weapon's Drain-2 is dropped — the regular weapon's own Drain-1 still applies,
+		// so max Power recovers to 3 (base 4 minus the remaining Drain-1), not all the way back to 4.
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				"system.attributes.equipment": [regularDrainWeapon],
+				"system.attributes.astir.power": astirMaxPower([], [regularDrainWeapon]),
+				"system.attributes.astir.weaponPower": 0
+			})
+		);
+	});
+
+	it("treats a missing regular parts array as empty when reclamping Power", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, extraParts: [WEAPON_CONDUIT.key] } } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				"system.attributes.astir.power": astirMaxPower([], []),
+				"system.attributes.astir.weaponPower": 0
+			})
+		);
 	});
 });

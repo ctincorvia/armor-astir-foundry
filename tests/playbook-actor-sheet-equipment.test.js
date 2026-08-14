@@ -122,9 +122,26 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 				],
 				isAstir: false,
 				commanderFeature: false,
+				extra: false,
 				disabled: false
 			}
 		]);
+	});
+
+	it("surfaces the extra flag on an Astir weapon entry", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", tier: 3, parts: [] },
+					equipment: [
+						{ id: "1", kind: "weapon", astir: true, extra: true, name: "Spare Lance", description: "", tags: [], spent: [] }
+					]
+				}
+			}
+		};
+
+		expect(sheet.getData().equipment.astirWeapons[0].extra).toBe(true);
 	});
 
 	it("marks a forcesEffect-only tag (e.g. Unreliable) spendable, same as a player-opted spend", () => {

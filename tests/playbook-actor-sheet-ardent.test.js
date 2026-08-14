@@ -739,3 +739,300 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends from a mounted Arde
 		});
 	});
 });
+
+describe("PlaybookActorSheet#_ardentPartKeys", () => {
+	it("returns the regular parts when there are no extraParts", () => {
+		const sheet = new PlaybookActorSheet();
+
+		expect(sheet._ardentPartKeys({ parts: [WARDING.key] })).toEqual([WARDING.key]);
+	});
+
+	it("unions regular parts and extraParts", () => {
+		const sheet = new PlaybookActorSheet();
+
+		expect(sheet._ardentPartKeys({ parts: [WARDING.key], extraParts: [ARTIFACT.key] })).toEqual([WARDING.key, ARTIFACT.key]);
+	});
+
+	it("treats a missing ardent as empty", () => {
+		const sheet = new PlaybookActorSheet();
+
+		expect(sheet._ardentPartKeys(undefined)).toEqual([]);
+	});
+
+	it("treats missing parts/extraParts fields as empty", () => {
+		const sheet = new PlaybookActorSheet();
+
+		expect(sheet._ardentPartKeys({})).toEqual([]);
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentExtraPartAdd", () => {
+	it("adds the chosen part to extraParts, leaving other Ardents untouched", async () => {
+		const sheet = new PlaybookActorSheet();
+		const other = { id: "ar2", extraParts: [ARTIFACT.key] };
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [], extraParts: [] }, other] } }, update: vi.fn() };
+		chooseAstirPart.mockResolvedValue(WARDING.key);
+
+		await sheet._onArdentExtraPartAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(chooseAstirPart).toHaveBeenCalledWith([], ardentParts(), { title: "Add an Ardent Part" });
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [{ id: "ar1", parts: [], extraParts: [WARDING.key] }, other]
+		});
+	});
+
+	it("excludes both regular and already-installed extra parts from the picker", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", parts: [ARTIFACT.key], extraParts: [WARDING.key] }] } },
+			update: vi.fn()
+		};
+		chooseAstirPart.mockResolvedValue(null);
+
+		await sheet._onArdentExtraPartAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(chooseAstirPart).toHaveBeenCalledWith([ARTIFACT.key, WARDING.key], ardentParts(), { title: "Add an Ardent Part" });
+	});
+
+	it("is never refused by the baseline loadout cap, unlike the regular Add Part", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", parts: [WARDING.key], extraParts: [] }],
+					equipment: [{ id: "1", kind: "weapon", ardent: "ar1" }]
+				}
+			},
+			update: vi.fn()
+		};
+		chooseAstirPart.mockResolvedValue(ARTIFACT.key);
+
+		await sheet._onArdentExtraPartAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(ui.notifications.warn).not.toHaveBeenCalled();
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [{ id: "ar1", parts: [WARDING.key], extraParts: [ARTIFACT.key] }]
+		});
+	});
+
+	it("treats a missing extraParts array as empty", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1" }] } }, update: vi.fn() };
+		chooseAstirPart.mockResolvedValue(WARDING.key);
+
+		await sheet._onArdentExtraPartAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [{ id: "ar1", extraParts: [WARDING.key] }]
+		});
+	});
+
+	it("does nothing when the picker is cancelled", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", extraParts: [] }] } }, update: vi.fn() };
+		chooseAstirPart.mockResolvedValue(null);
+
+		await sheet._onArdentExtraPartAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for an already-picked extra part", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", extraParts: [WARDING.key] }] } }, update: vi.fn() };
+		chooseAstirPart.mockResolvedValue(WARDING.key);
+
+		await sheet._onArdentExtraPartAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for an unknown Ardent id", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		await sheet._onArdentExtraPartAdd({ currentTarget: { dataset: { ardentId: "nope" } } });
+
+		expect(chooseAstirPart).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentExtraPartRemove", () => {
+	it("removes the matching extra part, leaving regular parts and other Ardents untouched", () => {
+		const sheet = new PlaybookActorSheet();
+		const other = { id: "ar2", extraParts: [ARTIFACT.key] };
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", parts: [ARTIFACT.key], extraParts: [WARDING.key] }, other] } },
+			update: vi.fn()
+		};
+
+		sheet._onArdentExtraPartRemove({ currentTarget: { dataset: { ardentId: "ar1", part: WARDING.key } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.ardents": [{ id: "ar1", parts: [ARTIFACT.key], extraParts: [] }, other]
+		});
+	});
+
+	it("does nothing for an extra part that isn't installed", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", extraParts: [] }] } }, update: vi.fn() };
+
+		sheet._onArdentExtraPartRemove({ currentTarget: { dataset: { ardentId: "ar1", part: WARDING.key } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing extraParts array as empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1" }] } }, update: vi.fn() };
+
+		sheet._onArdentExtraPartRemove({ currentTarget: { dataset: { ardentId: "ar1", part: WARDING.key } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for an unknown Ardent id", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		sheet._onArdentExtraPartRemove({ currentTarget: { dataset: { ardentId: "nope", part: WARDING.key } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onArdentExtraWeaponAdd", () => {
+	it("chains the catalog picker into configureEquipment with ardentWeapon, then saves flagged for this Ardent with extra: true", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }], equipment: [] } }, update: vi.fn() };
+		const template = { key: "placeholder-astir-weapon", name: "Placeholder Astir Weapon", description: "", tags: ["melee"] };
+		chooseAstirWeapon.mockResolvedValue(template);
+		configureEquipment.mockResolvedValue({ name: "Spear", description: "", kind: "weapon", tags: ["melee"] });
+
+		await sheet._onArdentExtraWeaponAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(chooseAstirWeapon).toHaveBeenCalledWith(ardentWeapons(), [], { title: "Pick an Ardent Weapon" });
+		expect(configureEquipment).toHaveBeenCalledWith(template, undefined, { ardentWeapon: true });
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{ id: "test-id", spent: [], ardent: "ar1", extra: true, name: "Spear", description: "", kind: "weapon", tags: ["melee"] }
+			]
+		});
+	});
+
+	it("is never refused by the baseline loadout cap, unlike the regular Add Weapon", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", parts: [WARDING.key] }],
+					equipment: [{ id: "1", kind: "weapon", ardent: "ar1" }]
+				}
+			},
+			update: vi.fn()
+		};
+		const template = { key: "placeholder-astir-weapon", name: "Placeholder Astir Weapon", description: "", tags: ["melee"] };
+		chooseAstirWeapon.mockResolvedValue(template);
+		configureEquipment.mockResolvedValue({ name: "Spear", description: "", kind: "weapon", tags: ["melee"] });
+
+		await sheet._onArdentExtraWeaponAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(ui.notifications.warn).not.toHaveBeenCalled();
+		expect(sheet.actor.update).toHaveBeenCalled();
+	});
+
+	it("does nothing when the catalog picker is cancelled", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }], equipment: [] } }, update: vi.fn() };
+		chooseAstirWeapon.mockResolvedValue(null);
+
+		await sheet._onArdentExtraWeaponAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(configureEquipment).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the editor is dismissed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }], equipment: [] } }, update: vi.fn() };
+		chooseAstirWeapon.mockResolvedValue({ key: "x", name: "x", description: "", tags: [] });
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onArdentExtraWeaponAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for an unknown Ardent id", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		await sheet._onArdentExtraWeaponAdd({ currentTarget: { dataset: { ardentId: "nope" } } });
+
+		expect(chooseAstirWeapon).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#getData - ardents extraParts/extraWeapons", () => {
+	it("resolves extraParts separately from parts and featureParts, with the same per-item shape", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", parts: [WARDING.key], extraParts: [ARTIFACT.key] }] } }
+		};
+
+		const [ardent] = sheet.getData().ardents;
+
+		expect(ardent.parts).toEqual([
+			{ key: WARDING.key, name: WARDING.name, partType: WARDING.partType, tier: ARDENT_TIER_MIN, disabled: false }
+		]);
+		expect(ardent.extraParts).toEqual([
+			{ key: ARTIFACT.key, name: ARTIFACT.name, partType: ARTIFACT.partType, tier: ARDENT_TIER_MIN, disabled: false }
+		]);
+	});
+
+	it("defaults extraParts to an empty list when none are stored", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }] } } };
+
+		expect(sheet.getData().ardents[0].extraParts).toEqual([]);
+	});
+
+	it("splits this Ardent's weapons into weapons/extraWeapons by the extra flag, alongside featureWeapons", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", parts: [] }],
+					equipment: [
+						{ id: "1", kind: "weapon", ardent: "ar1", name: "Spear", description: "", tags: [], spent: [] },
+						{ id: "2", kind: "weapon", ardent: "ar1", extra: true, name: "Spare Spear", description: "", tags: [], spent: [] }
+					]
+				}
+			}
+		};
+
+		const [ardent] = sheet.getData().ardents;
+
+		expect(ardent.weapons.map((w) => w.id)).toEqual(["1"]);
+		expect(ardent.extraWeapons.map((w) => w.id)).toEqual(["2"]);
+	});
+
+	it("never counts an Extra Part/Weapon toward loadoutFull", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", parts: [], extraParts: [WARDING.key, ARTIFACT.key] }],
+					equipment: [
+						{ id: "1", kind: "weapon", ardent: "ar1", extra: true },
+						{ id: "2", kind: "weapon", ardent: "ar1", extra: true }
+					]
+				}
+			}
+		};
+
+		expect(sheet.getData().ardents[0].loadoutFull).toBe(false);
+	});
+});

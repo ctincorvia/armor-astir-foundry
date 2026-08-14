@@ -26,6 +26,12 @@ export const AstirSheetMixin = {
 	_astir() {
 		return this.actor.system.attributes?.astir ?? null;
 	},
+	// Every currently-installed part key — the regular loadout plus the Sortie-scoped Extra Parts
+	// pool (see docs/domains/frames.md's Ardents section) — for every consumer that means "what's
+	// installed" rather than "the regular-only list for editing/removal".
+	_astirPartKeys(astir = this._astir()) {
+		return [...(astir?.parts ?? []), ...(astir?.extraParts ?? [])];
+	},
 	// getData's Astir tab shape. Gated on CHANNEL exactly like the old overheating/power meters
 	// were (missing stats.channel reads as enabled, not disabled) — but unlike those, "unavailable"
 	// still renders a nav item and a locked note (see the template) rather than disappearing, so a
@@ -73,10 +79,14 @@ export const AstirSheetMixin = {
 				// or weapon changes. negative flags Weapon Drain having outstripped max Power (see
 				// docs/domains/frames.md's Piloted note) so the template can call it out visually, not just via
 				// the one-time warning toast the mutation handlers raise.
-				power: { value: astir.power ?? 0, max: astirMaxPower(astir.parts ?? [], equipment), negative: (astir.power ?? 0) < 0 },
+				power: {
+					value: astir.power ?? 0,
+					max: astirMaxPower(this._astirPartKeys(astir), equipment),
+					negative: (astir.power ?? 0) < 0
+				},
 				// A second, Weapon-Conduit-only Power pool — 0/0 (and hidden by the template) for
 				// every Astir that doesn't have it.
-				weaponPower: { value: astir.weaponPower ?? 0, max: astirMaxWeaponPower(astir.parts ?? [], equipment) },
+				weaponPower: { value: astir.weaponPower ?? 0, max: astirMaxWeaponPower(this._astirPartKeys(astir), equipment) },
 				// Only appears once a part actually grants it — an object (even one holding 0)
 				// rather than a bare number, so the template's {{#if}} doesn't mistake a legitimate
 				// 0 count for "not present". Standardised Parts' own Repair Tokens grant is now a
@@ -91,8 +101,18 @@ export const AstirSheetMixin = {
 					: null,
 				// tier is derived from the Astir's own Tier, not stored on the part — every part
 				// installed here is installed on this Astir specifically (see docs/domains/frames.md's Astir
-				// section), so there's only ever one frame's Tier for it to reflect.
-				parts: astirParts.map((part) => ({
+				// section), so there's only ever one frame's Tier for it to reflect. Resolved separately
+				// from astirParts (the regular+Extra union used for the Potions gate above) so the
+				// regular loadout and the Sortie-scoped Extra Parts pool render as two distinct lists.
+				parts: resolveAstirParts(astir.parts ?? []).map((part) => ({
+					key: part.key,
+					name: part.name,
+					powerCost: part.powerCost,
+					partType: part.partType,
+					tier: astir.tier ?? ASTIR_TIER_MIN,
+					disabled: this._isPartDisabled(part.key)
+				})),
+				extraParts: resolveAstirParts(astir.extraParts ?? []).map((part) => ({
 					key: part.key,
 					name: part.name,
 					powerCost: part.powerCost,
@@ -101,7 +121,8 @@ export const AstirSheetMixin = {
 					disabled: this._isPartDisabled(part.key)
 				})),
 				move: astirMove ? { key: astirMove.key, name: astirMove.name } : null,
-				weapons: astirWeapons
+				weapons: astirWeapons.filter((w) => !w.extra),
+				extraWeapons: astirWeapons.filter((w) => w.extra)
 			})
 		};
 	},
@@ -111,7 +132,7 @@ export const AstirSheetMixin = {
 	// _mountedParts() themselves rather than this returning [] when unpiloted, since the Parts
 	// list itself still needs to show installed-but-inactive parts.
 	_astirParts() {
-		return resolveAstirParts(this._astir()?.parts ?? []);
+		return resolveAstirParts(this._astirPartKeys());
 	},
 	// The Astir/Ardent Parts equivalent of _equipmentSpends above — every part installed on the
 	// currently mounted frame with a `spend.effect` or `spend.advantage` (Artifact — see astir.js)
@@ -144,7 +165,7 @@ export const AstirSheetMixin = {
 	// _onAstirPilotedToggle's own guard against manually re-checking it in that state). Returns the
 	// patch to spread into whatever update call triggered the recompute (a part or Astir weapon
 	// add/edit/remove).
-	_astirPowerUpdates(astir, { parts = astir.parts ?? [], equipment = this._equipment() } = {}) {
+	_astirPowerUpdates(astir, { parts = this._astirPartKeys(astir), equipment = this._equipment() } = {}) {
 		const power = Math.min(astir.power ?? 0, astirMaxPower(parts, equipment));
 		const weaponPower = Math.min(astir.weaponPower ?? 0, astirMaxWeaponPower(parts, equipment));
 		const updates = {
@@ -177,7 +198,7 @@ export const AstirSheetMixin = {
 	async _regainAstirPower(amount) {
 		const astir = this._astir();
 		if (!astir) return;
-		const max = astirMaxPower(astir.parts ?? []);
+		const max = astirMaxPower(this._astirPartKeys(astir));
 		const current = astir.power ?? 0;
 		const next = Math.min(max, current + amount);
 		if (next === current) return;
@@ -208,6 +229,7 @@ export const AstirSheetMixin = {
 				// weapon benefit is inert until this is checked (see docs/domains/frames.md's Piloted note).
 				piloted: false,
 				parts: [],
+				extraParts: [],
 				move: requiredAstirMoveKey(this.actor.system.playbook?.name) ?? null
 			}
 		});
@@ -253,7 +275,7 @@ export const AstirSheetMixin = {
 		if (!astir) return;
 		const { delta } = event.currentTarget.dataset;
 		const current = astir.power ?? 0;
-		const max = astirMaxPower(astir.parts ?? [], this._equipment());
+		const max = astirMaxPower(this._astirPartKeys(astir), this._equipment());
 		const next = Math.min(max, Math.max(ASTIR_POWER_MIN, current + Number(delta)));
 		if (next === current) return;
 		this.actor.update({ "system.attributes.astir.power": next });
@@ -265,7 +287,7 @@ export const AstirSheetMixin = {
 		if (!astir) return;
 		const { delta } = event.currentTarget.dataset;
 		const current = astir.weaponPower ?? 0;
-		const max = astirMaxWeaponPower(astir.parts ?? [], this._equipment());
+		const max = astirMaxWeaponPower(this._astirPartKeys(astir), this._equipment());
 		const next = Math.min(max, Math.max(ASTIR_POWER_MIN, current + Number(delta)));
 		if (next === current) return;
 		this.actor.update({ "system.attributes.astir.weaponPower": next });
@@ -308,6 +330,33 @@ export const AstirSheetMixin = {
 		this.actor.update({
 			"system.attributes.astir.parts": parts,
 			...this._astirPowerUpdates(astir, { parts })
+		});
+	},
+	// The Sortie-scoped Extra Part pool (see docs/domains/frames.md's Ardents section) — otherwise
+	// identical to _onAstirPartAdd, including Power recompute, but excludes the regular parts too
+	// (a key already installed either way isn't offered again) and writes extraParts instead.
+	async _onAstirExtraPartAdd() {
+		const astir = this._astir();
+		if (!astir) return;
+		const current = astir.extraParts ?? [];
+		const key = await chooseAstirPart([...(astir.parts ?? []), ...current]);
+		if (!key || current.includes(key)) return;
+		const extraParts = [...current, key];
+		this.actor.update({
+			"system.attributes.astir.extraParts": extraParts,
+			...this._astirPowerUpdates(astir, { parts: [...(astir.parts ?? []), ...extraParts] })
+		});
+	},
+	_onAstirExtraPartRemove(event) {
+		const astir = this._astir();
+		if (!astir) return;
+		const { part: key } = event.currentTarget.dataset;
+		const current = astir.extraParts ?? [];
+		if (!current.includes(key)) return;
+		const extraParts = current.filter((k) => k !== key);
+		this.actor.update({
+			"system.attributes.astir.extraParts": extraParts,
+			...this._astirPowerUpdates(astir, { parts: [...(astir.parts ?? []), ...extraParts] })
 		});
 	},
 	// The Astir's one unique move, picked from the character's own playbook pool, Cantrips, or the
@@ -360,6 +409,34 @@ export const AstirSheetMixin = {
 			// does — configureEquipment has no concept of either flag, only of hiding fields for
 			// astirWeapon, so both are added here from the picked template rather than `result`.
 			{ id: foundry.utils.randomID(), spent: [], astir: true, ...(template.familiar && { familiar: true }), ...result }
+		];
+		this.actor.update({
+			"system.attributes.equipment": equipment,
+			...this._astirPowerUpdates(astir, { equipment })
+		});
+	},
+	// The Sortie-scoped Extra Weapon pool's own catalog picker — otherwise identical to
+	// _onAstirWeaponAdd, but the saved entry additionally carries extra: true so getData/
+	// _onRefreshSortie can tell it apart from a regular Astir weapon.
+	async _onAstirExtraWeaponAdd() {
+		const astir = this._astir();
+		if (!astir) return;
+		const template = await chooseAstirWeapon(undefined, this._astirParts().map((part) => part.key));
+		if (!template) return;
+
+		const result = await configureEquipment(template, undefined, { astirWeapon: true });
+		if (!result) return;
+
+		const equipment = [
+			...this._equipment(),
+			{
+				id: foundry.utils.randomID(),
+				spent: [],
+				astir: true,
+				extra: true,
+				...(template.familiar && { familiar: true }),
+				...result
+			}
 		];
 		this.actor.update({
 			"system.attributes.equipment": equipment,

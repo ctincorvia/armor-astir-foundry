@@ -171,10 +171,16 @@ export function isAceFeaturePart(key, catalog = ARDENT_FEATURE_PARTS) {
 // ardentFeatureLoadoutCount/ardentFeatureMax below). The two pools are counted independently, so
 // this excludes anything classified as a Commander Feature rather than reusing the old
 // ardentLoadoutCount, which counted everything combined — for every other playbook (which never has
-// a Commander-Feature-flagged item at all) the two functions return identical counts.
+// a Commander-Feature-flagged item at all) the two functions return identical counts. Also excludes
+// Extra Weapons (extra: true — see docs/domains/frames.md's Ardents section): Extra Parts never
+// touch this count at all, since they live on their own ardent.extraParts field rather than
+// ardent.parts, but an Extra Weapon shares the same equipment array as a regular one, so it needs
+// the same explicit exclusion Commander Feature weapons already get.
 export function ardentBaselineLoadoutCount(ardent, equipment = []) {
 	const parts = (ardent?.parts ?? []).filter((key) => !isAceFeaturePart(key)).length;
-	const weapons = equipment.filter((item) => item.kind === "weapon" && item.ardent === ardent?.id && !item.commanderFeature).length;
+	const weapons = equipment.filter((item) => (
+		item.kind === "weapon" && item.ardent === ardent?.id && !item.commanderFeature && !item.extra
+	)).length;
 	return parts + weapons;
 }
 

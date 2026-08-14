@@ -28,6 +28,13 @@ export const ArdentSheetMixin = {
 	_ardents() {
 		return this.actor.system.attributes?.ardents ?? [];
 	},
+	// The Ardent counterpart to astir-mixin.js's _astirPartKeys — every currently-installed part
+	// key on this Ardent, regular loadout plus its own Extra Parts pool, for every consumer that
+	// means "what's installed" (_ardentsData's own baseline/Feature/Extra display split is the one
+	// deliberate exception, see that method's own comment).
+	_ardentPartKeys(ardent) {
+		return [...(ardent?.parts ?? []), ...(ardent?.extraParts ?? [])];
+	},
 	// getData's per-Ardent shape (see docs/domains/frames.md's Ardents section) — never gated on CHANNEL, and
 	// there can be several. Each one's approachOptions is the full APPROACHES list (not narrowed by
 	// a Core — Ardents have none), its parts read the same way the Astir's own do (drawn from the
@@ -52,9 +59,24 @@ export const ArdentSheetMixin = {
 			const allParts = resolveAstirParts(ardent.parts ?? [], ARDENT_PART_CATALOG);
 			const parts = allParts.filter((part) => !isAceFeaturePart(part.key));
 			const featureParts = allParts.filter((part) => isAceFeaturePart(part.key));
+			// The uncapped, Sortie-scoped Extra Parts pool (see docs/domains/frames.md's Ardents
+			// section) — resolved separately from allParts/parts/featureParts above, never counting
+			// against loadoutFull/featureLoadoutFull. Resolved against ARDENT_PART_CATALOG for
+			// robustness, though _onArdentExtraPartAdd only ever offers the generic ardentParts()
+			// catalog — Extra never draws from Commander's exclusive Feature catalog.
+			const extraParts = resolveAstirParts(ardent.extraParts ?? [], ARDENT_PART_CATALOG);
 			const allWeapons = ardentWeaponEntriesById.get(ardent.id);
-			const weapons = allWeapons.filter((weapon) => !weapon.commanderFeature);
+			const baseline = allWeapons.filter((weapon) => !weapon.commanderFeature);
+			const weapons = baseline.filter((weapon) => !weapon.extra);
+			const extraWeapons = baseline.filter((weapon) => weapon.extra);
 			const featureWeapons = allWeapons.filter((weapon) => weapon.commanderFeature);
+			const mapPart = (part) => ({
+				key: part.key,
+				name: part.name,
+				partType: part.partType,
+				tier: ardent.tier ?? ARDENT_TIER_DEFAULT,
+				disabled: this._isPartDisabled(part.key)
+			});
 			return {
 				id: ardent.id,
 				name: ardent.name || ARDENT_DEFAULT_NAME,
@@ -64,22 +86,12 @@ export const ArdentSheetMixin = {
 				piloted: Boolean(ardent.piloted),
 				// tier is derived from this Ardent's own Tier, not stored on the part — same
 				// reasoning as the Astir's own parts mapping gives its own, just per-Ardent instead.
-				parts: parts.map((part) => ({
-					key: part.key,
-					name: part.name,
-					partType: part.partType,
-					tier: ardent.tier ?? ARDENT_TIER_DEFAULT,
-					disabled: this._isPartDisabled(part.key)
-				})),
+				parts: parts.map(mapPart),
 				weapons,
 				loadoutFull: ardentBaselineLoadoutCount(ardent, equipment) >= ARDENT_MAX_LOADOUT,
-				featureParts: featureParts.map((part) => ({
-					key: part.key,
-					name: part.name,
-					partType: part.partType,
-					tier: ardent.tier ?? ARDENT_TIER_DEFAULT,
-					disabled: this._isPartDisabled(part.key)
-				})),
+				extraParts: extraParts.map(mapPart),
+				extraWeapons,
+				featureParts: featureParts.map(mapPart),
 				featureWeapons,
 				featureMax: ardentFeatureCap,
 				featureLoadoutFull: ardentFeatureLoadoutCount(ardent, equipment) >= ardentFeatureCap
@@ -174,6 +186,37 @@ export const ArdentSheetMixin = {
 			))
 		});
 	},
+	// The uncapped, Sortie-scoped Extra Parts pool's own "+" (see docs/domains/frames.md's Ardents
+	// section) — otherwise identical to _onArdentPartAdd, but against extraParts, with no
+	// ardentBaselineLoadoutCount check, and excluding the regular parts too (a key already
+	// installed either way isn't offered again).
+	async _onArdentExtraPartAdd(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		const current = this._ardents();
+		const ardent = current.find((a) => a.id === ardentId);
+		if (!ardent) return;
+		const picked = ardent.extraParts ?? [];
+		const key = await chooseAstirPart([...(ardent.parts ?? []), ...picked], ardentParts(), { title: "Add an Ardent Part" });
+		if (!key || picked.includes(key)) return;
+		this.actor.update({
+			"system.attributes.ardents": current.map((a) => (
+				a.id === ardentId ? { ...a, extraParts: [...picked, key] } : a
+			))
+		});
+	},
+	_onArdentExtraPartRemove(event) {
+		const { ardentId, part: key } = event.currentTarget.dataset;
+		const current = this._ardents();
+		const ardent = current.find((a) => a.id === ardentId);
+		if (!ardent) return;
+		const picked = ardent.extraParts ?? [];
+		if (!picked.includes(key)) return;
+		this.actor.update({
+			"system.attributes.ardents": current.map((a) => (
+				a.id === ardentId ? { ...a, extraParts: picked.filter((k) => k !== key) } : a
+			))
+		});
+	},
 	// The "O" catalog picker for an Ardent weapon (see ardent.js's ardentWeapons: no Drain-tagged
 	// entries — an Ardent has no Power for Drain to reduce), then the same editor _onAstirWeaponAdd
 	// uses, with the ardentWeapon option suppressing the fields an Ardent weapon doesn't need — see
@@ -202,6 +245,27 @@ export const ArdentSheetMixin = {
 			"system.attributes.equipment": [
 				...this._equipment(),
 				{ id: foundry.utils.randomID(), spent: [], ardent: ardentId, ...result }
+			]
+		});
+	},
+	// The uncapped, Sortie-scoped Extra Weapons pool's own "O" — otherwise identical to
+	// _onArdentWeaponAdd, but with no ardentBaselineLoadoutCount check, and the saved entry
+	// additionally carries extra: true so getData/_onRefreshSortie can tell it apart from a
+	// regular Ardent weapon.
+	async _onArdentExtraWeaponAdd(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		const ardent = this._ardents().find((a) => a.id === ardentId);
+		if (!ardent) return;
+		const template = await chooseAstirWeapon(ardentWeapons(), [], { title: "Pick an Ardent Weapon" });
+		if (!template) return;
+
+		const result = await configureEquipment(template, undefined, { ardentWeapon: true });
+		if (!result) return;
+
+		this.actor.update({
+			"system.attributes.equipment": [
+				...this._equipment(),
+				{ id: foundry.utils.randomID(), spent: [], ardent: ardentId, extra: true, ...result }
 			]
 		});
 	},

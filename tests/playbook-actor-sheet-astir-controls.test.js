@@ -31,6 +31,7 @@ describe("PlaybookActorSheet#_onAstirCreate", () => {
 				overheating: false,
 				piloted: false,
 				parts: [],
+				extraParts: [],
 				move: null
 			}
 		});
@@ -62,6 +63,7 @@ describe("PlaybookActorSheet#_onAstirCreate", () => {
 				overheating: false,
 				piloted: false,
 				parts: [],
+				extraParts: [],
 				move: "the-summoner:eidolon-drive"
 			}
 		});

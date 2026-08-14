@@ -209,7 +209,7 @@ export const ProgressionSheetMixin = {
 		const all = [
 			...resolvePlaybookMoves(this._playbookMoves()),
 			...this._astirParts(),
-			...this._ardents().flatMap((ardent) => resolveAstirParts(ardent.parts ?? [], ARDENT_PART_CATALOG)),
+			...this._ardents().flatMap((ardent) => resolveAstirParts(this._ardentPartKeys(ardent), ARDENT_PART_CATALOG)),
 			...(this._quartersExtraTokenSource() ? [this._quartersExtraTokenSource()] : [])
 		];
 		return [...new Map(all.map((entry) => [entry.key, entry])).values()];
