@@ -523,7 +523,7 @@ describe("PlaybookActorSheet#_onArdentPartRemove", () => {
 });
 
 describe("PlaybookActorSheet#_onArdentWeaponAdd", () => {
-	it("chains the catalog picker into configureEquipment with ardentWeapon, then saves flagged for this Ardent", async () => {
+	it("chains the catalog picker into configureEquipment with ardentWeapon and lockTags, then saves flagged for this Ardent with catalogSource: true", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }], equipment: [] } }, update: vi.fn() };
 		const template = { key: "placeholder-astir-weapon", name: "Placeholder Astir Weapon", description: "", tags: ["melee"] };
@@ -533,10 +533,13 @@ describe("PlaybookActorSheet#_onArdentWeaponAdd", () => {
 		await sheet._onArdentWeaponAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
 
 		expect(chooseAstirWeapon).toHaveBeenCalledWith(ardentWeapons(), [], { title: "Pick an Ardent Weapon" });
-		expect(configureEquipment).toHaveBeenCalledWith(template, undefined, { ardentWeapon: true });
+		expect(configureEquipment).toHaveBeenCalledWith(template, undefined, { ardentWeapon: true, lockTags: true });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
-				{ id: "test-id", spent: [], ardent: "ar1", name: "Spear", description: "", kind: "weapon", tags: ["melee"] }
+				{
+					id: "test-id", spent: [], ardent: "ar1", catalogSource: true, name: "Spear", description: "",
+					kind: "weapon", tags: ["melee"]
+				}
 			]
 		});
 	});
@@ -593,6 +596,66 @@ describe("PlaybookActorSheet#_onArdentWeaponAdd", () => {
 	});
 });
 
+describe("PlaybookActorSheet#_onArdentWeaponCustomAdd", () => {
+	it("skips the catalog step, opening configureEquipment directly with ardentWeapon and maxTagValue: 0, saving catalogSource: false", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }], equipment: [] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Custom Spear", description: "", kind: "weapon", tags: ["melee"] });
+
+		await sheet._onArdentWeaponCustomAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(chooseAstirWeapon).not.toHaveBeenCalled();
+		expect(configureEquipment).toHaveBeenCalledWith({ kind: "weapon" }, undefined, { ardentWeapon: true, maxTagValue: 0 });
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{
+					id: "test-id", spent: [], ardent: "ar1", catalogSource: false, name: "Custom Spear", description: "",
+					kind: "weapon", tags: ["melee"]
+				}
+			]
+		});
+	});
+
+	it("refuses once the combined loadout is already at ARDENT_MAX_LOADOUT", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", parts: [WARDING.key] }],
+					equipment: [{ id: "1", kind: "weapon", ardent: "ar1" }]
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._onArdentWeaponCustomAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(configureEquipment).not.toHaveBeenCalled();
+		expect(ui.notifications.warn).toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the editor is dismissed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", parts: [] }], equipment: [] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onArdentWeaponCustomAdd({ currentTarget: { dataset: { ardentId: "ar1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for an unknown Ardent id", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { ardents: [] } }, update: vi.fn() };
+
+		await sheet._onArdentWeaponCustomAdd({ currentTarget: { dataset: { ardentId: "nope" } } });
+
+		expect(configureEquipment).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
 describe("PlaybookActorSheet#_onEquipmentEdit - Ardent weapons", () => {
 	it("reopens an Ardent weapon with the ardentWeapon option and carries the ardent flag forward", async () => {
 		const sheet = new PlaybookActorSheet();
@@ -602,7 +665,10 @@ describe("PlaybookActorSheet#_onEquipmentEdit - Ardent weapons", () => {
 
 		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
 
-		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { ardentWeapon: true });
+		// No catalogSource on this pre-existing Ardent weapon — defaults to locked, same reasoning as
+		// an Astir weapon's own missing-catalogSource default (see docs/domains/equipment.md's
+		// "Equipment" notes).
+		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { ardentWeapon: true, lockTags: true, maxTagValue: null });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
 				{ id: "1", spent: [], disabled: false, name: "Spear II", description: "", kind: "weapon", tags: ["melee"], ardent: "ar1" }

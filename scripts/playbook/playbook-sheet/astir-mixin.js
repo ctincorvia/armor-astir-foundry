@@ -391,14 +391,16 @@ export const AstirSheetMixin = {
 	},
 	// The "O" catalog picker for an Astir weapon (see astir.js#chooseAstirWeapon), then the same
 	// editor _onEquipmentCatalogAdd uses, with the astirWeapon option suppressing the fields an
-	// Astir weapon doesn't need — see configureEquipment.
+	// Astir weapon doesn't need — see configureEquipment. lockTags fixes its Kind/Tier/Range/Tags
+	// permanently (see docs/domains/equipment.md's "Equipment" notes); the saved entry is stamped
+	// catalogSource: true so a later _onEquipmentEdit reopens it locked too.
 	async _onAstirWeaponAdd() {
 		const astir = this._astir();
 		if (!astir) return;
 		const template = await chooseAstirWeapon(undefined, this._astirParts().map((part) => part.key));
 		if (!template) return;
 
-		const result = await configureEquipment(template, undefined, { astirWeapon: true });
+		const result = await configureEquipment(template, undefined, { astirWeapon: true, lockTags: true });
 		if (!result) return;
 
 		// A new Astir weapon can carry Drain, which lowers max Power (see astir.js's
@@ -408,7 +410,34 @@ export const AstirSheetMixin = {
 			// familiar: true (see astir.js's ASTIR_WEAPON_CATALOG) carries the same way astir: true
 			// does — configureEquipment has no concept of either flag, only of hiding fields for
 			// astirWeapon, so both are added here from the picked template rather than `result`.
-			{ id: foundry.utils.randomID(), spent: [], astir: true, ...(template.familiar && { familiar: true }), ...result }
+			{
+				id: foundry.utils.randomID(),
+				spent: [],
+				astir: true,
+				catalogSource: true,
+				...(template.familiar && { familiar: true }),
+				...result
+			}
+		];
+		this.actor.update({
+			"system.attributes.equipment": equipment,
+			...this._astirPowerUpdates(astir, { equipment })
+		});
+	},
+	// The custom-creation counterpart to _onAstirWeaponAdd — no catalog step, and subject to the new
+	// "tags sum to 0 or less" budget rule (maxTagValue: 0) instead of being tag-locked. Saves with
+	// catalogSource: false explicitly (not just omitted) so a later _onEquipmentEdit can tell this
+	// apart from a pre-existing catalog-sourced Astir weapon that never got the flag stamped at all
+	// (see docs/domains/equipment.md's "Equipment" notes).
+	async _onAstirWeaponCustomAdd() {
+		const astir = this._astir();
+		if (!astir) return;
+		const result = await configureEquipment({ kind: "weapon" }, undefined, { astirWeapon: true, maxTagValue: 0 });
+		if (!result) return;
+
+		const equipment = [
+			...this._equipment(),
+			{ id: foundry.utils.randomID(), spent: [], astir: true, catalogSource: false, ...result }
 		];
 		this.actor.update({
 			"system.attributes.equipment": equipment,

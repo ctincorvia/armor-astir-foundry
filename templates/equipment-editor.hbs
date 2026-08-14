@@ -11,7 +11,7 @@
 			{{#unless hideKind}}
 			<div class="form-group">
 				<label>Kind</label>
-				<select name="kind">
+				<select name="kind" {{#if lockTags}}disabled{{/if}}>
 					<option value="weapon" {{#if isWeapon}}selected{{/if}}>Weapon</option>
 					<option value="gear" {{#unless isWeapon}}selected{{/unless}}>Gear</option>
 				</select>
@@ -20,7 +20,7 @@
 			{{#unless hideTier}}
 			<div class="form-group equipment-editor-weapon-fields">
 				<label>Tier</label>
-				<input type="number" name="tier" value="{{tier}}" min="{{tierMin}}" max="{{tierMax}}" {{#if carrierWeapon}}disabled{{/if}}/>
+				<input type="number" name="tier" value="{{tier}}" min="{{tierMin}}" max="{{tierMax}}" {{#if carrierWeapon}}disabled{{/if}} {{#if lockTags}}disabled{{/if}}/>
 			</div>
 			{{/unless}}
 		</div>
@@ -38,7 +38,7 @@
 					{{#each weaponRangeOptions}}
 					<div class="equipment-editor-weapon-range-item">
 						<label class="equipment-editor-weapon-range-option">
-							<input type="radio" name="weapon-range" value="{{key}}" {{#if checked}}checked{{/if}}/>
+							<input type="radio" name="weapon-range" value="{{key}}" {{#if checked}}checked{{/if}} {{#if ../lockTags}}disabled{{/if}}/>
 							<span class="equipment-editor-weapon-range-label">{{label}}</span>
 						</label>
 						{{#if description}}<div class="equipment-editor-weapon-range-description">{{description}}</div>{{/if}}
@@ -58,7 +58,7 @@
 						{{#each tags}}
 						<div class="equipment-editor-tag" {{#if gearOnly}}data-gear-only="true"{{/if}}>
 							<label class="equipment-editor-tag-option">
-								<input type="checkbox" name="tag" value="{{key}}" {{#if checked}}checked{{/if}}/>
+								<input type="checkbox" name="tag" value="{{key}}" {{#if checked}}checked{{/if}} {{#if ../../lockTags}}disabled{{/if}}/>
 								<span class="equipment-editor-tag-label">{{label}} ({{value}})</span>
 							</label>
 							{{#if description}}<div class="equipment-editor-tag-description">{{description}}</div>{{/if}}

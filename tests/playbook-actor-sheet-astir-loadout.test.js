@@ -317,7 +317,7 @@ describe("PlaybookActorSheet#_onAstirMoveRemove", () => {
 });
 
 describe("PlaybookActorSheet#_onAstirWeaponAdd", () => {
-	it("chains the catalog picker into configureEquipment with astirWeapon, then saves the result flagged astir: true", async () => {
+	it("chains the catalog picker into configureEquipment with astirWeapon and lockTags, then saves the result flagged astir: true, catalogSource: true", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { astir: { id: "a1" }, equipment: [] } }, update: vi.fn() };
 		const template = { key: "placeholder-astir-weapon", name: "Placeholder Astir Weapon", description: "", tags: ["melee"] };
@@ -326,10 +326,13 @@ describe("PlaybookActorSheet#_onAstirWeaponAdd", () => {
 
 		await sheet._onAstirWeaponAdd();
 
-		expect(configureEquipment).toHaveBeenCalledWith(template, undefined, { astirWeapon: true });
+		expect(configureEquipment).toHaveBeenCalledWith(template, undefined, { astirWeapon: true, lockTags: true });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
-				{ id: "test-id", spent: [], astir: true, name: "Lance", description: "", kind: "weapon", tags: ["melee"] }
+				{
+					id: "test-id", spent: [], astir: true, catalogSource: true, name: "Lance", description: "", kind: "weapon",
+					tags: ["melee"]
+				}
 			],
 			"system.attributes.astir.power": 0,
 			"system.attributes.astir.weaponPower": 0
@@ -354,7 +357,10 @@ describe("PlaybookActorSheet#_onAstirWeaponAdd", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
 				existing,
-				{ id: "test-id", spent: [], astir: true, name: "Lance", description: "", kind: "weapon", tags: ["drain-2"] }
+				{
+					id: "test-id", spent: [], astir: true, catalogSource: true, name: "Lance", description: "", kind: "weapon",
+					tags: ["drain-2"]
+				}
 			],
 			"system.attributes.astir.power": -1,
 			"system.attributes.astir.weaponPower": 0,
@@ -378,6 +384,7 @@ describe("PlaybookActorSheet#_onAstirWeaponAdd", () => {
 					id: "test-id",
 					spent: [],
 					astir: true,
+					catalogSource: true,
 					familiar: true,
 					name: "Wisp Familiar",
 					description: "",
@@ -401,7 +408,10 @@ describe("PlaybookActorSheet#_onAstirWeaponAdd", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
-				{ id: "test-id", spent: [], astir: true, name: "Astir Fists", description: "", kind: "weapon", tags: ["melee"] }
+				{
+					id: "test-id", spent: [], astir: true, catalogSource: true, name: "Astir Fists", description: "",
+					kind: "weapon", tags: ["melee"]
+				}
 			],
 			"system.attributes.astir.power": 0,
 			"system.attributes.astir.weaponPower": 0
@@ -437,6 +447,75 @@ describe("PlaybookActorSheet#_onAstirWeaponAdd", () => {
 		await sheet._onAstirWeaponAdd();
 
 		expect(chooseAstirWeapon).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onAstirWeaponCustomAdd", () => {
+	it("skips the catalog step, opening configureEquipment directly with astirWeapon and maxTagValue: 0, saving catalogSource: false", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1" }, equipment: [] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Custom Lance", description: "", kind: "weapon", tags: ["melee"] });
+
+		await sheet._onAstirWeaponCustomAdd();
+
+		expect(chooseAstirWeapon).not.toHaveBeenCalled();
+		expect(configureEquipment).toHaveBeenCalledWith({ kind: "weapon" }, undefined, { astirWeapon: true, maxTagValue: 0 });
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				{
+					id: "test-id", spent: [], astir: true, catalogSource: false, name: "Custom Lance", description: "",
+					kind: "weapon", tags: ["melee"]
+				}
+			],
+			"system.attributes.astir.power": 0,
+			"system.attributes.astir.weaponPower": 0
+		});
+	});
+
+	it("lowers Power when the custom weapon carries Drain, and un-pilots with a warning if it goes negative", async () => {
+		const sheet = new PlaybookActorSheet();
+		const existing = { id: "e1", kind: "weapon", astir: true, tags: ["drain-3"] };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 1, piloted: true, parts: [] }, equipment: [existing] } },
+			update: vi.fn()
+		};
+		configureEquipment.mockResolvedValue({ name: "Custom Lance", description: "", kind: "weapon", tags: ["drain-2"] });
+
+		await sheet._onAstirWeaponCustomAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [
+				existing,
+				{
+					id: "test-id", spent: [], astir: true, catalogSource: false, name: "Custom Lance", description: "",
+					kind: "weapon", tags: ["drain-2"]
+				}
+			],
+			"system.attributes.astir.power": -1,
+			"system.attributes.astir.weaponPower": 0,
+			"system.attributes.astir.piloted": false
+		});
+		expect(ui.notifications.warn).toHaveBeenCalled();
+	});
+
+	it("does nothing when the editor is dismissed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1" }, equipment: [] } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue(null);
+
+		await sheet._onAstirWeaponCustomAdd();
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when there is no Astir", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		await sheet._onAstirWeaponCustomAdd();
+
+		expect(configureEquipment).not.toHaveBeenCalled();
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 });

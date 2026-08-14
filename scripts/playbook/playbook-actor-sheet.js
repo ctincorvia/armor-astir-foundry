@@ -322,6 +322,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".astir-move-add").on("click", this._onAstirMoveAdd.bind(this));
 		html.find(".astir-move-remove").on("click", this._onAstirMoveRemove.bind(this));
 		html.find(".astir-weapon-catalog-add").on("click", this._onAstirWeaponAdd.bind(this));
+		html.find(".astir-weapon-add").on("click", this._onAstirWeaponCustomAdd.bind(this));
 		html.find(".astir-extra-weapon-catalog-add").on("click", this._onAstirExtraWeaponAdd.bind(this));
 		html.find(".ardent-create").on("click", this._onArdentCreate.bind(this));
 		html.find(".ardent-delete").on("click", this._onArdentDelete.bind(this));
@@ -334,6 +335,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".ardent-extra-part-add").on("click", this._onArdentExtraPartAdd.bind(this));
 		html.find(".ardent-extra-part-remove").on("click", this._onArdentExtraPartRemove.bind(this));
 		html.find(".ardent-weapon-catalog-add").on("click", this._onArdentWeaponAdd.bind(this));
+		html.find(".ardent-weapon-add").on("click", this._onArdentWeaponCustomAdd.bind(this));
 		html.find(".ardent-extra-weapon-catalog-add").on("click", this._onArdentExtraWeaponAdd.bind(this));
 		html.find(".ardent-feature-part-add").on("click", this._onArdentFeaturePartAdd.bind(this));
 		html.find(".ardent-feature-weapon-add").on("click", this._onArdentFeatureWeaponAdd.bind(this));

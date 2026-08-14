@@ -230,7 +230,11 @@ export const EquipmentSheetMixin = {
 			// Artificers (The Attendant) — a Bonus Downtime Tokens grant carried through the
 			// snapshot the same way any other starting-gear-picked field is (see docs/domains/equipment.md,
 			// "Equipment").
-			...(item.bonusDowntimeTokens && { bonusDowntimeTokens: item.bonusDowntimeTokens })
+			...(item.bonusDowntimeTokens && { bonusDowntimeTokens: item.bonusDowntimeTokens }),
+			// Marks this entry permanently exempt from the new budget rule and never tag-locked (see
+			// docs/domains/equipment.md's "Equipment" notes) — starting equipment doesn't need to
+			// follow either rule, with no time-boxing.
+			startingGear: true
 		};
 	},
 	// Shared tail of _onEquipmentAdd and _onEquipmentCatalogAdd: appends a resolved
@@ -302,29 +306,30 @@ export const EquipmentSheetMixin = {
 	// Gear section — see the template) — still changeable in the dialog itself, since the Kind
 	// select there is the actual source of truth at submit time. Equipment is custom-made every
 	// time (see claude.md, "Domain conventions"), so there's no catalog entry to append, only a
-	// freshly authored one.
+	// freshly authored one. maxTagValue: 0 (see docs/domains/equipment.md's "Equipment" notes) is
+	// the new "tags must sum to 0 or less" budget rule — no provenance flag is saved alongside it,
+	// since a brand-new custom entry has nothing to distinguish it from.
 	async _onEquipmentAdd(event) {
 		const { kind } = event.currentTarget.dataset;
-		const result = await configureEquipment({ kind });
+		const result = await configureEquipment({ kind }, undefined, { maxTagValue: 0 });
 		if (!result) return;
 
 		await this._saveNewEquipment(result);
 	},
 	// The "+ Pick ... from Catalog" button. Chains two dialogs: chooseEquipmentCatalogItem picks
 	// which template to start from, then the exact same editor _onEquipmentAdd uses opens
-	// pre-filled with it — the player can still rename it, add/drop tags, or adjust tier before
-	// saving, same as any custom entry. A catalog pick is a snapshot, not a reference (see
-	// docs/domains/equipment.md, "Equipment"): nothing about the saved entry records which catalog item it came
-	// from, so it's indistinguishable from hand-authored equipment from this point on.
+	// pre-filled with it, with its Kind/Tier/Range/Tags locked (see docs/domains/equipment.md's
+	// "Equipment" notes) — only Name and Description stay editable, before or after saving. The
+	// saved entry is stamped catalogSource: true so a later _onEquipmentEdit reopens it locked too.
 	async _onEquipmentCatalogAdd(event) {
 		const { kind } = event.currentTarget.dataset;
 		const template = await chooseEquipmentCatalogItem(kind);
 		if (!template) return;
 
-		const result = await configureEquipment(template);
+		const result = await configureEquipment(template, undefined, { lockTags: true });
 		if (!result) return;
 
-		await this._saveNewEquipment(result);
+		await this._saveNewEquipment({ ...result, catalogSource: true });
 	},
 	// The "+ Choose Starting Gear" button (see getData's startingGear.available). Chains two
 	// independent dialogs the same way _onEquipmentCatalogAdd and _onMoveRoll already chain
@@ -366,7 +371,7 @@ export const EquipmentSheetMixin = {
 				excludedTagKeys: CUSTOM_WEAPON_EXCLUDED_TAG_KEYS,
 				maxTagValue: pool.customWeaponMaxValue ?? DEFAULT_CUSTOM_WEAPON_MAX_VALUE
 			});
-			if (weapon) newEntries.push({ id: foundry.utils.randomID(), spent: [], ...weapon });
+			if (weapon) newEntries.push({ id: foundry.utils.randomID(), spent: [], ...weapon, startingGear: true });
 		}
 
 		// Nothing was granted and every dialog was cancelled — leave the actor untouched so the
@@ -374,30 +379,54 @@ export const EquipmentSheetMixin = {
 		if (!newEntries.length) return;
 		await this.actor.update({ "system.attributes.equipment": [...this._equipment(), ...newEntries] });
 	},
+	// Provenance resolution (see docs/domains/equipment.md's "Equipment" notes): a catalog-sourced
+	// entry (catalogSource: true) stays permanently tag-locked; a starting-gear entry
+	// (startingGear: true) stays permanently exempt from the "tags sum to 0 or less" budget rule and
+	// is never locked; everything else is subject to that budget rule. Pre-existing entries (from
+	// before this change) carry neither flag, so the default has to differ by domain: an
+	// Astir/Ardent weapon's *only* prior path was a catalog pick, so a missing catalogSource there
+	// defaults to locked (a new custom Astir/Ardent weapon persists catalogSource: false explicitly
+	// to opt out); plain equipment/gear could always have been either catalog-picked or
+	// hand-authored, genuinely indistinguishable after the fact, so a missing catalogSource there
+	// defaults to unlocked instead, preserving pre-change behavior for old data (at the accepted
+	// cost that an old plain custom weapon becomes newly budget-capped on its next edit — there's no
+	// way to tell it apart from a catalog pick).
+	_equipmentEditLockState(entry) {
+		if (entry.astir || entry.ardent) {
+			const lockTags = entry.catalogSource !== false;
+			return { lockTags, maxTagValue: lockTags ? null : 0 };
+		}
+		if (entry.startingGear) return { lockTags: false, maxTagValue: null };
+		const lockTags = Boolean(entry.catalogSource);
+		return { lockTags, maxTagValue: lockTags ? null : 0 };
+	},
 	async _onEquipmentEdit(event) {
 		const { equipmentId } = event.currentTarget.dataset;
 		const current = this._equipment();
 		const entry = current.find((item) => item.id === equipmentId);
 		if (!entry) return;
 
+		const { lockTags, maxTagValue } = this._equipmentEditLockState(entry);
 		// An Astir or Ardent weapon reopens with the matching option that hid its Kind/Scale/Tier
 		// fields when it was first added (see _onAstirWeaponAdd/_onArdentWeaponAdd/
 		// configureEquipment) — it's never possible to edit one into a mundane weapon or into Gear,
 		// or from one frame's ownership into another's. Every other entry's call is left byte-for-
-		// byte as it was before this option existed.
+		// byte as it was before this option existed, aside from the new lockTags/maxTagValue.
 		const result = entry.astir
-			? await configureEquipment(entry, undefined, { astirWeapon: true })
+			? await configureEquipment(entry, undefined, { astirWeapon: true, lockTags, maxTagValue })
 			: entry.ardent
-				? await configureEquipment(entry, undefined, { ardentWeapon: true })
-				: await configureEquipment(entry);
+				? await configureEquipment(entry, undefined, { ardentWeapon: true, lockTags, maxTagValue })
+				: await configureEquipment(entry, undefined, { lockTags, maxTagValue });
 		if (!result) return;
 
-		// Replaces the entry wholesale (keeping only id/spent/astir/ardent/familiar/
-		// bonusDowntimeTokens) rather than merging onto the old one — editing a weapon down to Gear
-		// should drop its stale scale/tier, not leave them dangling unrendered. astir/ardent/
-		// familiar/bonusDowntimeTokens are carried forward explicitly, last, since result never
-		// includes any of them (configureEquipment has no concept of them, only of hiding fields for
-		// astirWeapon/ardentWeapon).
+		// Replaces the entry wholesale (keeping only id/spent/astir/ardent/familiar/catalogSource/
+		// startingGear/bonusDowntimeTokens) rather than merging onto the old one — editing a weapon
+		// down to Gear should drop its stale scale/tier, not leave them dangling unrendered. All of
+		// these are carried forward explicitly, last, since result never includes any of them
+		// (configureEquipment has no concept of them, only of hiding/locking fields). catalogSource
+		// is carried by presence, not truthiness — a custom Astir/Ardent weapon's explicit
+		// catalogSource: false (see _onAstirWeaponCustomAdd/_onArdentWeaponCustomAdd) must survive an
+		// edit too, not just catalogSource: true.
 		const equipment = current.map((item) => (
 			item.id === equipmentId
 				? {
@@ -408,6 +437,8 @@ export const EquipmentSheetMixin = {
 					...(item.astir && { astir: true }),
 					...(item.ardent && { ardent: item.ardent }),
 					...(item.familiar && { familiar: true }),
+					...(item.catalogSource !== undefined && { catalogSource: item.catalogSource }),
+					...(item.startingGear && { startingGear: true }),
 					...(item.bonusDowntimeTokens && {
 						bonusDowntimeTokens: item.bonusDowntimeTokens,
 						...(item.bonusDowntimeTokensValue !== undefined && { bonusDowntimeTokensValue: item.bonusDowntimeTokensValue })

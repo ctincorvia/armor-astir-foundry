@@ -220,9 +220,12 @@ export const ArdentSheetMixin = {
 	// The "O" catalog picker for an Ardent weapon (see ardent.js's ardentWeapons: no Drain-tagged
 	// entries — an Ardent has no Power for Drain to reduce), then the same editor _onAstirWeaponAdd
 	// uses, with the ardentWeapon option suppressing the fields an Ardent weapon doesn't need — see
-	// configureEquipment. Refuses once this Ardent's baseline loadout is already at
-	// ARDENT_MAX_LOADOUT, same guard _onArdentPartAdd applies to its own half of the same cap (see
-	// its own comment on why this reads ardentBaselineLoadoutCount rather than ardentLoadoutCount).
+	// configureEquipment. lockTags fixes its Kind/Tier/Range/Tags permanently (see
+	// docs/domains/equipment.md's "Equipment" notes); the saved entry is stamped catalogSource: true
+	// so a later _onEquipmentEdit reopens it locked too. Refuses once this Ardent's baseline loadout
+	// is already at ARDENT_MAX_LOADOUT, same guard _onArdentPartAdd applies to its own half of the
+	// same cap (see its own comment on why this reads ardentBaselineLoadoutCount rather than
+	// ardentLoadoutCount).
 	async _onArdentWeaponAdd(event) {
 		const { ardentId } = event.currentTarget.dataset;
 		const ardent = this._ardents().find((a) => a.id === ardentId);
@@ -238,13 +241,37 @@ export const ArdentSheetMixin = {
 		const template = await chooseAstirWeapon(ardentWeapons(), [], { title: "Pick an Ardent Weapon" });
 		if (!template) return;
 
-		const result = await configureEquipment(template, undefined, { ardentWeapon: true });
+		const result = await configureEquipment(template, undefined, { ardentWeapon: true, lockTags: true });
 		if (!result) return;
 
 		this.actor.update({
 			"system.attributes.equipment": [
 				...this._equipment(),
-				{ id: foundry.utils.randomID(), spent: [], ardent: ardentId, ...result }
+				{ id: foundry.utils.randomID(), spent: [], ardent: ardentId, catalogSource: true, ...result }
+			]
+		});
+	},
+	// The custom-creation counterpart to _onArdentWeaponAdd — same ardentId lookup and
+	// ARDENT_MAX_LOADOUT guard, but no catalog step, and subject to the new "tags sum to 0 or less"
+	// budget rule (maxTagValue: 0) instead of being tag-locked. Saves with catalogSource: false
+	// explicitly (not just omitted) so a later _onEquipmentEdit can tell this apart from a
+	// pre-existing catalog-sourced Ardent weapon that never got the flag stamped at all (see
+	// docs/domains/equipment.md's "Equipment" notes).
+	async _onArdentWeaponCustomAdd(event) {
+		const { ardentId } = event.currentTarget.dataset;
+		const ardent = this._ardents().find((a) => a.id === ardentId);
+		if (!ardent) return;
+		if (ardentBaselineLoadoutCount(ardent, this._equipment()) >= ARDENT_MAX_LOADOUT) {
+			ui.notifications.warn(`An Ardent can carry at most ${ARDENT_MAX_LOADOUT} parts and weapons combined.`);
+			return;
+		}
+		const result = await configureEquipment({ kind: "weapon" }, undefined, { ardentWeapon: true, maxTagValue: 0 });
+		if (!result) return;
+
+		this.actor.update({
+			"system.attributes.equipment": [
+				...this._equipment(),
+				{ id: foundry.utils.randomID(), spent: [], ardent: ardentId, catalogSource: false, ...result }
 			]
 		});
 	},
@@ -298,7 +325,10 @@ export const ArdentSheetMixin = {
 	// Commander-exclusive counterpart to _onArdentWeaponAdd — same chain (catalog picker into
 	// configureEquipment's ardentWeapon flow), against ARDENT_FEATURE_WEAPONS instead of
 	// ardentWeapons(), capped against the same Ardent Feature pool _onArdentFeaturePartAdd checks.
-	// The saved entry carries commanderFeature: true — set here and never player-editable — since a
+	// lockTags fixes its Kind/Tier/Range/Tags permanently, same as the baseline catalog flow (see
+	// docs/domains/equipment.md's "Equipment" notes) — no custom-creation counterpart for this one,
+	// since it draws from a small, curated, separately-capped pool by design (see that doc). The
+	// saved entry carries commanderFeature: true — set here and never player-editable — since a
 	// saved equipment entry is a freely-editable snapshot with no link back to its source catalog
 	// (see docs/domains/equipment.md's Equipment notes), so this flag is the only way to tell it apart from a
 	// baseline Ardent weapon after the fact (see ardent.js's ardentFeatureLoadoutCount).
@@ -316,13 +346,20 @@ export const ArdentSheetMixin = {
 		const template = await chooseAstirWeapon(ARDENT_FEATURE_WEAPONS, [], { title: "Pick an Ardent Feature Weapon" });
 		if (!template) return;
 
-		const result = await configureEquipment(template, undefined, { ardentWeapon: true });
+		const result = await configureEquipment(template, undefined, { ardentWeapon: true, lockTags: true });
 		if (!result) return;
 
 		this.actor.update({
 			"system.attributes.equipment": [
 				...this._equipment(),
-				{ id: foundry.utils.randomID(), spent: [], ardent: ardentId, commanderFeature: true, ...result }
+				{
+					id: foundry.utils.randomID(),
+					spent: [],
+					ardent: ardentId,
+					commanderFeature: true,
+					catalogSource: true,
+					...result
+				}
 			]
 		});
 	}

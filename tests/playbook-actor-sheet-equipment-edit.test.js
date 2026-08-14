@@ -27,7 +27,10 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 
 		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
 
-		expect(configureEquipment).toHaveBeenCalledWith(entry);
+		// No astir/ardent/startingGear/catalogSource flag on this entry — a plain entry with no
+		// provenance flag defaults to unlocked but now budget-capped (see docs/domains/equipment.md's
+		// "Equipment" notes).
+		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { lockTags: false, maxTagValue: 0 });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
 				{ id: "1", spent: ["blitz"], disabled: false, name: "Rations", description: "", kind: "gear", tags: [] },
@@ -44,7 +47,9 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 
 		await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
 
-		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { astirWeapon: true });
+		// No catalogSource on this pre-existing Astir weapon — defaults to locked (its only prior
+		// path was a catalog pick — see docs/domains/equipment.md's "Equipment" notes).
+		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { astirWeapon: true, lockTags: true, maxTagValue: null });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
 				{ id: "1", spent: [], disabled: false, name: "Lance II", description: "", kind: "weapon", tags: ["melee"], astir: true }
@@ -241,6 +246,101 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 			"system.attributes.equipment": [
 				{ id: "1", spent: [], disabled: false, name: "Sword+1", description: "", kind: "weapon", tags: ["drain-2"], scale: "foot", tier: 1 }
 			]
+		});
+	});
+
+	describe("provenance resolution (lockTags/maxTagValue/catalogSource/startingGear)", () => {
+		it("locks a plain entry with catalogSource: true, and carries catalogSource forward", async () => {
+			const sheet = new PlaybookActorSheet();
+			const entry = {
+				id: "1", kind: "gear", name: "Rope", description: "", tags: [], spent: [], catalogSource: true
+			};
+			sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+			configureEquipment.mockResolvedValue({ name: "Rope", description: "", kind: "gear", tags: [] });
+
+			await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { lockTags: true, maxTagValue: null });
+			expect(sheet.actor.update).toHaveBeenCalledWith({
+				"system.attributes.equipment": [
+					{ id: "1", spent: [], disabled: false, name: "Rope", description: "", kind: "gear", tags: [], catalogSource: true }
+				]
+			});
+		});
+
+		it("budget-caps a plain entry with catalogSource: false", async () => {
+			const sheet = new PlaybookActorSheet();
+			const entry = {
+				id: "1", kind: "gear", name: "Custom Rope", description: "", tags: [], spent: [], catalogSource: false
+			};
+			sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+			configureEquipment.mockResolvedValue({ name: "Custom Rope", description: "", kind: "gear", tags: [] });
+
+			await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { lockTags: false, maxTagValue: 0 });
+			expect(sheet.actor.update).toHaveBeenCalledWith({
+				"system.attributes.equipment": [
+					{
+						id: "1", spent: [], disabled: false, name: "Custom Rope", description: "", kind: "gear", tags: [],
+						catalogSource: false
+					}
+				]
+			});
+		});
+
+		it("exempts a startingGear entry from both rules regardless of catalogSource, and carries startingGear forward", async () => {
+			const sheet = new PlaybookActorSheet();
+			const entry = {
+				id: "1", kind: "gear", name: "Rations", description: "", tags: [], spent: [], startingGear: true
+			};
+			sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+			configureEquipment.mockResolvedValue({ name: "Rations", description: "", kind: "gear", tags: [] });
+
+			await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { lockTags: false, maxTagValue: null });
+			expect(sheet.actor.update).toHaveBeenCalledWith({
+				"system.attributes.equipment": [
+					{
+						id: "1", spent: [], disabled: false, name: "Rations", description: "", kind: "gear", tags: [],
+						startingGear: true
+					}
+				]
+			});
+		});
+
+		it("budget-caps (rather than locks) a custom Astir weapon stamped catalogSource: false", async () => {
+			const sheet = new PlaybookActorSheet();
+			const entry = {
+				id: "1", kind: "weapon", astir: true, catalogSource: false, name: "Custom Lance", description: "",
+				tags: ["melee"], spent: []
+			};
+			sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+			configureEquipment.mockResolvedValue({ name: "Custom Lance", description: "", kind: "weapon", tags: ["melee"] });
+
+			await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { astirWeapon: true, lockTags: false, maxTagValue: 0 });
+			expect(sheet.actor.update).toHaveBeenCalledWith({
+				"system.attributes.equipment": [
+					{
+						id: "1", spent: [], disabled: false, name: "Custom Lance", description: "", kind: "weapon",
+						tags: ["melee"], astir: true, catalogSource: false
+					}
+				]
+			});
+		});
+
+		it("locks a pre-existing Ardent weapon with no catalogSource flag at all", async () => {
+			const sheet = new PlaybookActorSheet();
+			const entry = { id: "1", kind: "weapon", ardent: "ar1", name: "Spear", description: "", tags: ["melee"], spent: [] };
+			sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+			configureEquipment.mockResolvedValue({ name: "Spear", description: "", kind: "weapon", tags: ["melee"] });
+
+			await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { ardentWeapon: true, lockTags: true, maxTagValue: null });
 		});
 	});
 });

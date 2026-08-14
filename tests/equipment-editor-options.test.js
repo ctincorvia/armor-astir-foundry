@@ -221,6 +221,68 @@ describe("configureEquipment - starting gear budget options", () => {
 	});
 });
 
+describe("configureEquipment - lockTags option", () => {
+	it("defaults to false, unaffected for every existing caller", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			lockTags: false
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("passes lockTags: true through to the template alongside astirWeapon", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true, lockTags: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			astirWeapon: true,
+			lockTags: true
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("passes lockTags: true through to the template alongside ardentWeapon", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { ardentWeapon: true, lockTags: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// ardentWeapon itself isn't a template field (only hideKind/hideTier/isWeapon derive from
+		// it, same as the existing ardentWeapon-option describe block above) — lockTags is.
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			hideKind: true,
+			hideTier: true,
+			lockTags: true
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves null and warns with the blank-name reason on Save when locked and unnamed", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { lockTags: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "   ",
+			"[name='kind']": "weapon",
+			"[name='description']": ""
+		}));
+
+		expect(await promise).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalledWith("Equipment needs a name.");
+	});
+});
+
 describe("configureEquipment - carrierWeapon option", () => {
 	it("passes carrierWeapon through to the template, hiding Kind and pre-filling TIER_MAX", async () => {
 		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true });

@@ -63,6 +63,7 @@ function fakeEquipmentRenderHtml({ name = "", kind = "gear", weaponRange } = {})
 		kind,
 		weaponRange,
 		saveDisabled: undefined,
+		saveTitle: undefined,
 		gearOnlyHidden: undefined,
 		gearOnlyUnchecked: false
 	};
@@ -92,10 +93,13 @@ function fakeEquipmentRenderHtml({ name = "", kind = "gear", weaponRange } = {})
 			if (selector === "[name='weapon-range']") {
 				return { on: (event, handler) => { state.weaponRangeHandlers = { ...state.weaponRangeHandlers, [event]: handler }; } };
 			}
-			// Captures Save's live disabled/enabled state, mirroring the exclusiveGroup uncheck capture
-			// just below for the same `.prop(name, value)` shape.
+			// Captures Save's live disabled/enabled state and its title tooltip, mirroring the
+			// exclusiveGroup uncheck capture just below for the same `.prop(name, value)` shape.
 			if (selector === "[data-button='save']") {
-				return { prop: (prop, value) => { if (prop === "disabled") state.saveDisabled = value; } };
+				return {
+					prop: (prop, value) => { if (prop === "disabled") state.saveDisabled = value; },
+					attr: (attr, value) => { if (attr === "title") state.saveTitle = value; }
+				};
 			}
 			const tagCheckboxMatch = selector.match(/^\[name='tag'\]\[value='(.+)'\]$/);
 			if (tagCheckboxMatch) {
@@ -685,6 +689,173 @@ describe("configureEquipment", () => {
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
+	});
+
+	it("sets the Save button's title to the disabled reason, and clears it once valid", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.saveTitle).toBe("Equipment needs a name.");
+
+		state.name = "Rations";
+		state.nameHandlers.input();
+
+		expect(state.saveTitle).toBe("");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("sets the Save button's title to the MAX_TAGS-exceeded reason", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Rations" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedTags = [
+			"blitz", "concealable", "impact", "infinite", "mounted", "decisive", "defensive", "distinct", "fragile"
+		];
+		state.handlers.change({ target: { value: "fragile", checked: true } });
+
+		expect(state.saveTitle).toBe(`Equipment can have at most ${MAX_TAGS} tags, not counting Melee/Ranged/Sniper.`);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("sets the Save button's title to the maxTagValue-exceeded reason", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS, { maxTagValue: 1 });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Rations" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedTags = ["fixture-positive"];
+		state.handlers.change({ target: { value: "fixture-positive", checked: true } });
+
+		expect(state.saveTitle).toBe("This equipment's tags can total at most 1.");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("sets the Save button's title to the missing-weapon-range reason", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Lance" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.saveTitle).toBe("A weapon needs one of the Melee, Ranged or Sniper tags.");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("sets the Save button's title to the gearOnly-on-a-weapon reason", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Rations", kind: "weapon", weaponRange: "melee" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedTags = ["ward"];
+		state.handlers.change({ target: { value: "ward", checked: true } });
+
+		expect(state.saveTitle).toBe("Ward can only be added to Gear, not Weapons.");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("re-derives the disabled reason directly at Save time (Enter-to-submit), independent of the DOM's live disabled state", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "   ",
+			"[name='kind']": "gear",
+			"[name='description']": ""
+		}));
+
+		expect(await promise).toBeNull();
+	});
+
+	describe("lockTags option", () => {
+		it("renders every field disabled while still allowing Kind/Tier/Range/Tags to be passed through unlocked-looking template data", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { lockTags: true });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+				lockTags: true
+			}));
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("enables Save with just a name, ignoring tag/kind/range validity entirely", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { lockTags: true });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			// No weapon-range checked and Kind is "weapon" — normally invalid — but lockTags
+			// short-circuits invalidReason to just the blank-name check.
+			const state = fakeEquipmentRenderHtml({ name: "Halberd", kind: "weapon" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+
+			expect(state.saveDisabled).toBe(false);
+			expect(state.saveTitle).toBe("");
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("still disables Save (with the blank-name reason) when the name is empty", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { lockTags: true });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml({ name: "", kind: "weapon" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+
+			expect(state.saveDisabled).toBe(true);
+			expect(state.saveTitle).toBe("Equipment needs a name.");
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("resolves the (unchanged) picked template's fields on Save, once a name is present", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true, lockTags: true });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const dialogOptions = Dialog.mock.calls.at(-1)[0];
+			dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+				"[name='name']": "Lance",
+				"[name='description']": "A long spear."
+			}, ["drain-1"], "melee"));
+
+			expect(await promise).toEqual({
+				name: "Lance",
+				description: "A long spear.",
+				kind: "weapon",
+				tags: ["melee", "drain-1"]
+			});
+		});
 	});
 
 	it("doesn't wire a Kind change listener for an astirWeapon flow (no Kind select is rendered), and forces kind to weapon so the Range radio still gates Save", async () => {

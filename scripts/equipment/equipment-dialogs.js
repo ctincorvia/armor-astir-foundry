@@ -184,6 +184,13 @@ export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
 // starting-gear.js excludes them as free padding a player could otherwise stack for nothing.
 // `maxTagValue` (default `null`, meaning "no cap") is enforced at Save the same way MAX_TAGS is:
 // over the cap warns and resolves null rather than saving.
+//
+// `lockTags` (default `false`, see docs/domains/equipment.md's "Equipment" notes) permanently fixes
+// Kind/Tier/Range/Tags the moment an entry was picked from any catalog — the template renders all
+// four disabled rather than omitting them, so a locked entry's design stays visible but unclickable
+// through every future edit too, while Name and Description stay live. `invalidReason` below
+// short-circuits to only the blank-name check when true, since nothing else can be invalid if
+// nothing else is editable.
 export async function configureEquipment(
 	initial = null,
 	tags = EQUIPMENT_TAGS,
@@ -194,7 +201,8 @@ export async function configureEquipment(
 		carrierWeaponTier = TIER_MAX,
 		ardentWeapon = false,
 		excludedTagKeys = [],
-		maxTagValue = null
+		maxTagValue = null,
+		lockTags = false
 	} = {}
 ) {
 	// Drain only means anything on an Astir weapon (see DRAIN_GROUP's doc comment) — every other
@@ -219,6 +227,7 @@ export async function configureEquipment(
 		note,
 		astirWeapon,
 		carrierWeapon,
+		lockTags,
 		// Kind is hidden for every caller that forces Scale/Tier — see the doc comment above.
 		hideKind: astirWeapon || carrierWeapon || ardentWeapon,
 		// Tier is hidden (rather than shown-disabled like carrierWeapon's) for every weapon that
@@ -263,6 +272,32 @@ export async function configureEquipment(
 		}))
 	});
 
+	// The single source of truth for "why can't this be saved right now," shared by the render
+	// callback's live Save-button state (mouse-click case) and the Save button's own callback
+	// (the authoritative gate — see its own comment on why it can't just trust the DOM's disabled
+	// attribute). Returns a human-readable string to show as both a ui.notifications.warn message
+	// and the Save button's title tooltip, or null when the current form state is valid. Takes
+	// `html` as a parameter rather than closing over it, since render and the Save callback each
+	// receive their own `html` argument from Foundry's Dialog.
+	//
+	// lockTags (see the doc comment above) short-circuits to just the blank-name check — nothing
+	// else is editable on a locked entry, so nothing else can be invalid.
+	const invalidReason = (html) => {
+		const name = html.find("[name='name']").val().trim();
+		if (!name) return "Equipment needs a name.";
+		if (lockTags) return null;
+		const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
+		if (checkedKeys.length > MAX_TAGS) return `Equipment can have at most ${MAX_TAGS} tags, not counting Melee/Ranged/Sniper.`;
+		if (maxTagValue !== null && equipmentValue(checkedKeys, tags) > maxTagValue) return `This equipment's tags can total at most ${maxTagValue}.`;
+		const kind = (astirWeapon || carrierWeapon || ardentWeapon) ? "weapon" : html.find("[name='kind']").val();
+		if (kind === "weapon" && !html.find("[name='weapon-range']:checked").val()) return "A weapon needs one of the Melee, Ranged or Sniper tags.";
+		if (kind === "weapon") {
+			const gearOnlyTag = checkedKeys.map((key) => findEquipmentTag(key, tags)).find((tag) => tag?.gearOnly);
+			if (gearOnlyTag) return `${gearOnlyTag.label} can only be added to Gear, not Weapons.`;
+		}
+		return null;
+	};
+
 	return new Promise((resolve) => {
 		new Dialog({
 			title: initial?.id ? "Edit Equipment" : "Add Equipment",
@@ -291,26 +326,18 @@ export async function configureEquipment(
 						gearOnlyRows.show();
 					}
 				};
-				// Mirrors buttons.save.callback's own step-by-step validation as booleans, so Save can
-				// be disabled live while the dialog is open. Kept as a separate boolean predicate,
-				// deliberately not sharing code with the callback below -- Enter-to-submit invokes that
+				// Calls the shared invalidReason (see above) with this render's own `html`, so Save can
+				// be disabled live while the dialog is open -- Enter-to-submit invokes the Save button's
 				// callback directly (Foundry's Dialog calls the default button's callback, not a
-				// simulated click), which can bypass a disabled attribute, so the callback's own
-				// per-failure ui.notifications.warn checks stay in place unchanged as the real
-				// last-line defense. This predicate only ever improves the common (mouse-click) case.
-				const isValid = () => {
-					const name = html.find("[name='name']").val().trim();
-					if (!name) return false;
-					const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
-					if (checkedKeys.length > MAX_TAGS) return false;
-					if (maxTagValue !== null && equipmentValue(checkedKeys, tags) > maxTagValue) return false;
-					const kind = (astirWeapon || carrierWeapon || ardentWeapon) ? "weapon" : html.find("[name='kind']").val();
-					if (kind === "weapon" && !html.find("[name='weapon-range']:checked").val()) return false;
-					if (kind === "weapon" && checkedKeys.some((key) => findEquipmentTag(key, tags)?.gearOnly)) return false;
-					return true;
-				};
+				// simulated click), which can bypass a disabled attribute, so that callback calls
+				// invalidReason again itself as the real last-line defense. This live check only ever
+				// improves the common (mouse-click) case. Also sets the button's title to the reason
+				// text, so hovering a disabled Save explains why.
 				const updateSaveState = () => {
-					html.find("[data-button='save']").prop("disabled", !isValid());
+					const reason = invalidReason(html);
+					const saveButton = html.find("[data-button='save']");
+					saveButton.prop("disabled", Boolean(reason));
+					saveButton.attr("title", reason ?? "");
 				};
 				// input, not change, so Save reacts while typing rather than only on blur.
 				html.find("[name='name']").on("input", updateSaveState);
@@ -355,59 +382,21 @@ export async function configureEquipment(
 				save: {
 					label: "Save",
 					callback: (html) => {
-						const name = html.find("[name='name']").val().trim();
-						if (!name) {
+						// The authoritative gate — see invalidReason's own doc comment on why this can't
+						// just trust the DOM's live disabled attribute (Enter-to-submit bypasses it).
+						const reason = invalidReason(html);
+						if (reason) {
+							ui.notifications.warn(reason);
 							resolve(null);
 							return;
 						}
+						const name = html.find("[name='name']").val().trim();
 						// None of the Astir/Carrier/Ardent weapon dialogs render the Kind select at all
 						// (see the template) — all three are always weapons, so there's nothing to read
 						// from the DOM here for any of them.
 						const kind = (astirWeapon || carrierWeapon || ardentWeapon) ? "weapon" : html.find("[name='kind']").val();
 						const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
 						const weaponRangeKey = html.find("[name='weapon-range']:checked").val();
-						// Every checked key is a real regular tag — WEAPON_RANGE_GROUP keys can no longer
-						// appear here at all, since they're never rendered as checkboxes (see
-						// weaponRangeTags above) — so, unlike before, nothing needs filtering out of this
-						// count. DRAIN_GROUP tags still count, since Drain carries a real value.
-						const regularTagCount = checkedKeys.length;
-						// Applies to weapons and gear alike. Feedback rather than a silent no-op, same
-						// reasoning as the weapon-range check below.
-						if (regularTagCount > MAX_TAGS) {
-							ui.notifications.warn(`Equipment can have at most ${MAX_TAGS} tags, not counting Melee/Ranged/Sniper.`);
-							resolve(null);
-							return;
-						}
-						// maxTagValue (see the doc comment above configureEquipment) is a second, opt-in
-						// budget cap enforced the same way as MAX_TAGS above — null (the default) means no
-						// cap, so every existing caller is unaffected. Only checked regular tags count —
-						// the range radio's value is always 0 and was never in checkedKeys to begin with.
-						if (maxTagValue !== null && equipmentValue(checkedKeys, tags) > maxTagValue) {
-							ui.notifications.warn(`This equipment's tags can total at most ${maxTagValue}.`);
-							resolve(null);
-							return;
-						}
-						// Weapons specifically must carry one of WEAPON_RANGE_GROUP's tags (Melee/Ranged/
-						// Sniper) — see the exclusiveGroup doc comment above. In practice this is a
-						// defensive fallback rather than the primary safeguard now: the radio group
-						// always renders with a default checked (see weaponRangeOptions above), so a
-						// player can no longer reach Save with none selected through normal use.
-						if (kind === "weapon" && !weaponRangeKey) {
-							ui.notifications.warn("A weapon needs one of the Melee, Ranged or Sniper tags.");
-							resolve(null);
-							return;
-						}
-						// gearOnly tags (see equipment-tags.js) can still reach here for the generic/mundane
-						// flow, where Kind is a live <select> rather than forced weapon — pickableTags above
-						// already keeps them off the astirWeapon/carrierWeapon/ardentWeapon checkbox lists.
-						if (kind === "weapon") {
-							const gearOnlyTag = checkedKeys.map((key) => findEquipmentTag(key, tags)).find((tag) => tag?.gearOnly);
-							if (gearOnlyTag) {
-								ui.notifications.warn(`${gearOnlyTag.label} can only be added to Gear, not Weapons.`);
-								resolve(null);
-								return;
-							}
-						}
 						resolve({
 							name,
 							description: html.find("[name='description']").val().trim(),

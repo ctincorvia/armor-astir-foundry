@@ -49,7 +49,7 @@ describe("PlaybookActorSheet#_onEquipmentAdd", () => {
 
 		await sheet._onEquipmentAdd({ currentTarget: { dataset: { kind: "weapon" } } });
 
-		expect(configureEquipment).toHaveBeenCalledWith({ kind: "weapon" });
+		expect(configureEquipment).toHaveBeenCalledWith({ kind: "weapon" }, undefined, { maxTagValue: 0 });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
 				{ id: "test-id", spent: [], name: "Halberd", description: "", kind: "weapon", tags: [], scale: "foot", tier: 1 }
@@ -96,9 +96,11 @@ describe("PlaybookActorSheet#_onEquipmentCatalogAdd", () => {
 		await sheet._onEquipmentCatalogAdd({ currentTarget: { dataset: { kind: "weapon" } } });
 
 		expect(chooseEquipmentCatalogItem).toHaveBeenCalledWith("weapon");
-		expect(configureEquipment).toHaveBeenCalledWith(template);
+		expect(configureEquipment).toHaveBeenCalledWith(template, undefined, { lockTags: true });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.equipment": [{ id: "test-id", spent: [], ...template, name: "Halberd (renamed)" }]
+			"system.attributes.equipment": [
+				{ id: "test-id", spent: [], ...template, name: "Halberd (renamed)", catalogSource: true }
+			]
 		});
 	});
 
@@ -112,7 +114,7 @@ describe("PlaybookActorSheet#_onEquipmentCatalogAdd", () => {
 		await sheet._onEquipmentCatalogAdd({ currentTarget: { dataset: { kind: "weapon" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.equipment": [existing, { id: "test-id", spent: [], ...template }]
+			"system.attributes.equipment": [existing, { id: "test-id", spent: [], ...template, catalogSource: true }]
 		});
 	});
 
@@ -213,8 +215,14 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
-				{ id: "test-id", spent: [], kind: "gear", name: firstItem.name, description: firstItem.description, tags: [] },
-				{ id: "test-id", spent: [], kind: "gear", name: secondItem.name, description: secondItem.description, tags: [] }
+				{
+					id: "test-id", spent: [], kind: "gear", name: firstItem.name, description: firstItem.description, tags: [],
+					startingGear: true
+				},
+				{
+					id: "test-id", spent: [], kind: "gear", name: secondItem.name, description: secondItem.description, tags: [],
+					startingGear: true
+				}
 			]
 		});
 	});
@@ -236,7 +244,8 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 					kind: "gear",
 					name: bladesAndBracers.name,
 					description: bladesAndBracers.description,
-					tags: ["ward"]
+					tags: ["ward"],
+					startingGear: true
 				}
 			]
 		});
@@ -251,7 +260,7 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		await sheet._onStartingGearAdd();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.equipment": [{ id: "test-id", spent: [], ...weaponResult }]
+			"system.attributes.equipment": [{ id: "test-id", spent: [], ...weaponResult, startingGear: true }]
 		});
 	});
 
@@ -266,8 +275,11 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		expect(sheet.actor.update).toHaveBeenCalledTimes(1);
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
-				{ id: "test-id", spent: [], kind: "gear", name: firstItem.name, description: firstItem.description, tags: [] },
-				{ id: "test-id", spent: [], ...weaponResult }
+				{
+					id: "test-id", spent: [], kind: "gear", name: firstItem.name, description: firstItem.description, tags: [],
+					startingGear: true
+				},
+				{ id: "test-id", spent: [], ...weaponResult, startingGear: true }
 			]
 		});
 	});
@@ -284,7 +296,10 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
 				existing,
-				{ id: "test-id", spent: [], kind: "gear", name: firstItem.name, description: firstItem.description, tags: [] }
+				{
+					id: "test-id", spent: [], kind: "gear", name: firstItem.name, description: firstItem.description, tags: [],
+					startingGear: true
+				}
 			]
 		});
 	});
@@ -323,7 +338,8 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 					name: augmentsI.name,
 					description: augmentsI.description,
 					tags: augmentsI.tags,
-					scale: "foot"
+					scale: "foot",
+					startingGear: true
 				}]
 			});
 		});
@@ -355,7 +371,8 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 				name: powerFocusI.name,
 				description: powerFocusI.description,
 				tags: powerFocusI.tags,
-				scale: "foot"
+				scale: "foot",
+				startingGear: true
 			});
 		});
 
@@ -373,7 +390,8 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 				kind: "gear",
 				name: shieldBroachI.name,
 				description: shieldBroachI.description,
-				tags: shieldBroachI.tags
+				tags: shieldBroachI.tags,
+				startingGear: true
 			});
 		});
 	});
@@ -395,7 +413,8 @@ describe("PlaybookActorSheet#_onStartingGearAdd", () => {
 			name: artificers.name,
 			description: artificers.description,
 			tags: [],
-			bonusDowntimeTokens: artificers.bonusDowntimeTokens
+			bonusDowntimeTokens: artificers.bonusDowntimeTokens,
+			startingGear: true
 		});
 	});
 });
