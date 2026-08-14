@@ -179,15 +179,6 @@ export const EQUIPMENT_CATALOG = [
 		tags: ["ruin", "one-use"]
 	},
 	{
-		key: "saber-sidearm-i",
-		name: "Saber & Sidearm",
-		kind: "weapon",
-		description: "The standard-issue pairing carried by Ardent crews: a reliable sidearm backed up by a " +
-			"blade for when the fight closes in.",
-		tags: ["ranged", "versatile"],
-		scale: "foot"
-	},
-	{
 		key: "clothes-i",
 		name: "Clothes",
 		kind: "gear",
