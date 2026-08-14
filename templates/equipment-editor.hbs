@@ -2,63 +2,73 @@
 	{{#if note}}
 	<p class="equipment-editor-note">{{note}}</p>
 	{{/if}}
-	<div class="form-group">
-		<label>Name</label>
-		<input type="text" name="name" value="{{name}}"/>
-	</div>
-	{{#unless hideKind}}
-	<div class="form-group">
-		<label>Kind</label>
-		<select name="kind">
-			<option value="weapon" {{#if isWeapon}}selected{{/if}}>Weapon</option>
-			<option value="gear" {{#unless isWeapon}}selected{{/unless}}>Gear</option>
-		</select>
-	</div>
-	{{/unless}}
-	{{#unless hideTier}}
-	<div class="form-group equipment-editor-weapon-fields">
-		<label>Tier</label>
-		<input type="number" name="tier" value="{{tier}}" min="{{tierMin}}" max="{{tierMax}}" {{#if carrierWeapon}}disabled{{/if}}/>
-	</div>
-	{{/unless}}
-	{{#if weaponRangeOptions.length}}
-	<div class="form-group equipment-editor-weapon-range-field">
-		<label>Range</label>
-		<div class="equipment-editor-weapon-range-list">
-			{{#each weaponRangeOptions}}
-			<div class="equipment-editor-weapon-range-item">
-				<label class="equipment-editor-weapon-range-option">
-					<input type="radio" name="weapon-range" value="{{key}}" {{#if checked}}checked{{/if}}/>
-					<span class="equipment-editor-weapon-range-label">{{label}}</span>
-				</label>
-				{{#if description}}<div class="equipment-editor-weapon-range-description">{{description}}</div>{{/if}}
+	<div class="equipment-editor-columns">
+		<div class="equipment-editor-cell-identity">
+			<div class="form-group">
+				<label>Name</label>
+				<input type="text" name="name" value="{{name}}"/>
 			</div>
-			{{/each}}
+			{{#unless hideKind}}
+			<div class="form-group">
+				<label>Kind</label>
+				<select name="kind">
+					<option value="weapon" {{#if isWeapon}}selected{{/if}}>Weapon</option>
+					<option value="gear" {{#unless isWeapon}}selected{{/unless}}>Gear</option>
+				</select>
+			</div>
+			{{/unless}}
+			{{#unless hideTier}}
+			<div class="form-group equipment-editor-weapon-fields">
+				<label>Tier</label>
+				<input type="number" name="tier" value="{{tier}}" min="{{tierMin}}" max="{{tierMax}}" {{#if carrierWeapon}}disabled{{/if}}/>
+			</div>
+			{{/unless}}
 		</div>
-	</div>
-	{{/if}}
-	<div class="form-group">
-		<label>Description</label>
-		<textarea name="description">{{description}}</textarea>
-	</div>
-	<div class="form-group equipment-editor-tags">
-		<label>Tags</label>
-		<p class="equipment-editor-tag-total">Total: <span class="equipment-editor-tag-total-value">{{tagTotal}}</span>{{#if hasTagValueCap}} (max {{maxTagValue}}){{/if}}</p>
-		{{#each tagGroups}}
-		<details class="equipment-editor-tag-group" {{#if open}}open{{/if}}>
-			<summary class="equipment-editor-tag-group-label">{{label}}</summary>
-			<div class="equipment-editor-tag-list">
-				{{#each tags}}
-				<div class="equipment-editor-tag" {{#if gearOnly}}data-gear-only="true"{{/if}}>
-					<label class="equipment-editor-tag-option">
-						<input type="checkbox" name="tag" value="{{key}}" {{#if checked}}checked{{/if}}/>
-						<span class="equipment-editor-tag-label">{{label}} ({{value}})</span>
-					</label>
-					{{#if description}}<div class="equipment-editor-tag-description">{{description}}</div>{{/if}}
-				</div>
-				{{/each}}
+		<div class="equipment-editor-cell-description">
+			<div class="form-group">
+				<label>Description</label>
+				<textarea name="description">{{description}}</textarea>
 			</div>
-		</details>
-		{{/each}}
+		</div>
+		{{#if weaponRangeOptions.length}}
+		<div class="equipment-editor-cell-range">
+			<div class="form-group equipment-editor-weapon-range-field">
+				<label>Range</label>
+				<div class="equipment-editor-weapon-range-list">
+					{{#each weaponRangeOptions}}
+					<div class="equipment-editor-weapon-range-item">
+						<label class="equipment-editor-weapon-range-option">
+							<input type="radio" name="weapon-range" value="{{key}}" {{#if checked}}checked{{/if}}/>
+							<span class="equipment-editor-weapon-range-label">{{label}}</span>
+						</label>
+						{{#if description}}<div class="equipment-editor-weapon-range-description">{{description}}</div>{{/if}}
+					</div>
+					{{/each}}
+				</div>
+			</div>
+		</div>
+		{{/if}}
+		<div class="equipment-editor-cell-tags">
+			<div class="form-group equipment-editor-tags">
+				<label>Tags</label>
+				{{#each tagGroups}}
+				<details class="equipment-editor-tag-group" {{#if open}}open{{/if}}>
+					<summary class="equipment-editor-tag-group-label">{{label}}</summary>
+					<div class="equipment-editor-tag-list">
+						{{#each tags}}
+						<div class="equipment-editor-tag" {{#if gearOnly}}data-gear-only="true"{{/if}}>
+							<label class="equipment-editor-tag-option">
+								<input type="checkbox" name="tag" value="{{key}}" {{#if checked}}checked{{/if}}/>
+								<span class="equipment-editor-tag-label">{{label}} ({{value}})</span>
+							</label>
+							{{#if description}}<div class="equipment-editor-tag-description">{{description}}</div>{{/if}}
+						</div>
+						{{/each}}
+					</div>
+				</details>
+				{{/each}}
+				<p class="equipment-editor-tag-total">Total: <span class="equipment-editor-tag-total-value">{{tagTotal}}</span>{{#if hasTagValueCap}} (max {{maxTagValue}}){{/if}}</p>
+			</div>
+		</div>
 	</div>
 </form>

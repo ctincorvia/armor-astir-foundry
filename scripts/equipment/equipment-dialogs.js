@@ -441,6 +441,6 @@ export async function configureEquipment(
 			},
 			default: "save",
 			close: () => resolve(null)
-		}, { classes: ["armor-astir", "equipment-editor"] }).render(true);
+		}, { classes: ["armor-astir", "equipment-editor"], width: 720, height: 650, resizable: true }).render(true);
 	});
 }

@@ -91,7 +91,7 @@
 }
 
 .armor-astir.move-roll-dialog .move-roll-equipment-description {
-	margin-left: 22px;
+	margin-left: 26px;
 	font-size: 11px;
 	opacity: 0.8;
 }
@@ -102,6 +102,54 @@
 	align-items: stretch;
 	gap: 2px;
 	margin-bottom: var(--aa-space-2);
+}
+
+/* Name/Kind/Tier/Range/Description/Tags read as bold and primary-colored, the same treatment the
+   sheet header already gives its own field labels (see sheet-chrome.css) rather than sitting as
+   plain unstyled text next to the rest of this dialog's styled rows. line-height:1 overrides the
+   same Foundry core `form .form-group label { line-height: var(--form-field-height) }` quirk the
+   sheet-header comment documents — without it these labels sit inside a tall line box and read
+   with extra space above the text. Scoped to a direct .form-group child so it only catches these
+   six field labels, not the per-option labels nested deeper (.equipment-editor-tag-option,
+   .equipment-editor-weapon-range-option), which already carry their own distinct styling. */
+.armor-astir.equipment-editor .form-group > label {
+	line-height: 1;
+	font-weight: 700;
+	color: var(--aa-primary-dark);
+}
+
+/* A 2x2 grid — Name/Kind/Tier top-left, Description top-right, Range bottom-left, Tags
+   bottom-right — rather than two uneven-height columns, so the whole form is scannable in one
+   view instead of one long single-column stack — see the Add Equipment dialog's own width/height
+   (equipment-dialogs.js). Named areas (rather than relying on source order + column/row spans)
+   so the Range cell can simply be omitted by the template when a caller has no weaponRangeOptions
+   (Gear) without leaving a gap or needing the Tags cell to fill in for it. */
+.armor-astir.equipment-editor .equipment-editor-columns {
+	display: grid;
+	grid-template-columns: 220px 1fr;
+	grid-template-areas:
+		"identity description"
+		"range tags";
+	align-items: start;
+	gap: var(--aa-space-3);
+}
+
+.armor-astir.equipment-editor .equipment-editor-cell-identity {
+	grid-area: identity;
+}
+
+.armor-astir.equipment-editor .equipment-editor-cell-description {
+	grid-area: description;
+	min-width: 0;
+}
+
+.armor-astir.equipment-editor .equipment-editor-cell-range {
+	grid-area: range;
+}
+
+.armor-astir.equipment-editor .equipment-editor-cell-tags {
+	grid-area: tags;
+	min-width: 0;
 }
 
 .armor-astir.equipment-editor .equipment-editor-tag-list {
@@ -124,7 +172,6 @@
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: var(--aa-space-2);
 	cursor: pointer;
 	font-size: 12px;
 }
@@ -135,7 +182,7 @@
 }
 
 .armor-astir.equipment-editor .equipment-editor-tag-description {
-	margin-left: 22px;
+	margin-left: 26px;
 	font-size: 11px;
 	opacity: 0.8;
 }
@@ -153,7 +200,6 @@
 	display: flex;
 	flex-direction: row;
 	align-items: center;
-	gap: var(--aa-space-2);
 	cursor: pointer;
 	font-size: 12px;
 }
@@ -163,8 +209,12 @@
 	color: var(--aa-secondary-dark);
 }
 
+/* 28px, not the 26px every other *-description rule in this file uses: this row's own gap was
+   dropped (see .equipment-editor-weapon-range-option above) and its radio keeps pbta's 5px+5px
+   side margins (see the equipment-editor-scoped radio-margin rule above), so the label text here
+   actually starts at 5+18+5=28px from the row's left edge, not 18px(box)+gap like a checkbox row. */
 .armor-astir.equipment-editor .equipment-editor-weapon-range-description {
-	margin-left: 22px;
+	margin-left: 28px;
 	font-size: 11px;
 	opacity: 0.8;
 }
@@ -186,11 +236,8 @@
 	cursor: pointer;
 }
 
-/* Pinned above the (possibly collapsed) groups, rather than after the list, so it stays visible
-   without needing every group expanded — the one number a player designing to a budget actually
-   watches. */
 .armor-astir.equipment-editor .equipment-editor-tag-total {
-	margin: 0 0 var(--aa-space-2);
+	margin: var(--aa-space-2) 0 0;
 	font-weight: bold;
 }
 
@@ -272,6 +319,19 @@
 	transform: translateY(-1px);
 }
 
+/* The half-pixel nudge above isn't enough for the equipment editor's Range radios specifically —
+   confirmed by testing directly in a live client. `.vtt .window-app input[type=radio]` (pbta) is
+   (0,3,1) specificity; a plain `.armor-astir` override is only (0,2,1) and loses outright, the
+   same problem the `.dialog-button` fix above already hit and solved — match pbta's own selector
+   shape plus `.armor-astir` so ours actually wins instead of silently losing to pbta's `margin`
+   shorthand. Scoped to `.equipment-editor` rather than promoted to every armor-astir radio list:
+   the other pickers (playbook-move, weapon, equipment-catalog, starting-move) weren't reported as
+   broken and haven't been checked live against this specific fix, so widening it risks an
+   unverified regression there for no confirmed gain. */
+.vtt .window-app.armor-astir.equipment-editor input[type="radio"] {
+	margin: 0 5px 3px;
+}
+
 /* The picker's accordion is plain <details>/<summary> — the open/closed state is native browser
    behaviour, so no dialog-side JS is involved in expanding a section. */
 .armor-astir.playbook-move-picker .move-picker-section {
@@ -340,7 +400,7 @@
 /* Indented to line up under the radio's label text rather than the radio itself, so the
    description reads as belonging to the move above it. */
 .armor-astir.playbook-move-picker .move-picker-description {
-	margin-left: 22px;
+	margin-left: 26px;
 	font-size: 12px;
 }
 
@@ -394,7 +454,7 @@
 /* Indented to line up under the option's label text rather than the checkbox/radio itself, same
    as .move-picker-description above. */
 .armor-astir.starting-move-picker .starting-move-picker-description {
-	margin-left: 22px;
+	margin-left: 26px;
 	font-size: 12px;
 }
 
@@ -441,7 +501,7 @@
 /* Indented to line up under the checkbox's label text rather than the checkbox itself, same as
    .starting-move-picker-description. */
 .armor-astir.witch-boons-picker .witch-boons-picker-description {
-	margin-left: 22px;
+	margin-left: 26px;
 	font-size: 12px;
 }
 
@@ -468,7 +528,7 @@
 }
 
 .armor-astir.equipment-catalog-picker .equipment-catalog-picker-description {
-	margin-left: 22px;
+	margin-left: 26px;
 	font-size: 12px;
 }
 
@@ -508,7 +568,7 @@
 }
 
 .armor-astir.starting-gear-picker .starting-gear-picker-description {
-	margin-left: 22px;
+	margin-left: 26px;
 	font-size: 12px;
 }
 
@@ -556,7 +616,7 @@
 	flex-direction: row;
 	flex-wrap: wrap;
 	gap: var(--aa-space-1);
-	margin-left: 22px;
+	margin-left: 26px;
 }
 
 .armor-astir.equipment-catalog-picker .equipment-catalog-picker-tags {
@@ -564,7 +624,7 @@
 	flex-direction: row;
 	flex-wrap: wrap;
 	gap: var(--aa-space-1);
-	margin-left: 22px;
+	margin-left: 26px;
 }
 
 .armor-astir.starting-gear-picker .starting-gear-picker-tags {
@@ -572,7 +632,7 @@
 	flex-direction: row;
 	flex-wrap: wrap;
 	gap: var(--aa-space-1);
-	margin-left: 22px;
+	margin-left: 26px;
 }
 
 /* Shared "tabs inside a Dialog" chrome — weapon-picker.hbs, equipment-catalog-picker.hbs and
