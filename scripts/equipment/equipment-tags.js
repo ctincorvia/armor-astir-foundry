@@ -120,8 +120,7 @@ export const EQUIPMENT_TAGS = [
 		key: "treasure",
 		label: "Treasure",
 		value: -2,
-		description: "Highly valuable—and a gold, glittering target on your back. Said to increase an item's " +
-			"appraised value by 4, though this module has no separate economy to reflect that in."
+		description: "Highly valuable—and a gold, glittering target on your back."
 	},
 	// -1: almost entirely negative tags.
 	{
@@ -224,8 +223,7 @@ export const EQUIPMENT_TAGS = [
 		key: "valuable",
 		label: "Valuable",
 		value: -1,
-		description: "Expensive to acquire, and fairly sought-after. Said to increase an item's appraised " +
-			"value by 2, though this module has no separate economy to reflect that in."
+		description: "Expensive to acquire, and fairly sought-after."
 	},
 	// 0: purely descriptive weapon-range classification, mutually exclusive with one another and
 	// required on every weapon (see WEAPON_RANGE_GROUP and the exclusiveGroup doc above).

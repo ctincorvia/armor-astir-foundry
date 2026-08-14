@@ -116,6 +116,7 @@
 	line-height: 1;
 	font-weight: 700;
 	color: var(--aa-primary-dark);
+	padding-bottom: var(--aa-space-1);
 }
 
 /* A 2x2 grid — Name/Kind/Tier top-left, Description top-right, Range bottom-left, Tags
@@ -141,6 +142,21 @@
 .armor-astir.equipment-editor .equipment-editor-cell-description {
 	grid-area: description;
 	min-width: 0;
+}
+
+/* The browser default lets a textarea's drag handle resize both axes, which for this one let a
+   player shrink/widen it independently of the grid column — a width the handle set stayed fixed
+   even if the Dialog itself (resizable: true, equipment-dialogs.js) was later resized. Restricting
+   to vertical-only means width always tracks the "description" grid track's own 1fr sizing.
+
+   flex-shrink: 0 is load-bearing, not decoration: the textarea is a flex item of .form-group
+   (flex-direction: column, so height is the main axis), and the default flex-shrink: 1 means the
+   flex algorithm treats a manually-dragged height as just another candidate size and immediately
+   shrinks it back on the next layout pass — the drag cursor shows and the drag registers, but the
+   box snaps back, which is exactly the "resize handle does nothing" symptom this fixes. */
+.armor-astir.equipment-editor .equipment-editor-cell-description textarea {
+	resize: vertical;
+	flex-shrink: 0;
 }
 
 .armor-astir.equipment-editor .equipment-editor-cell-range {
