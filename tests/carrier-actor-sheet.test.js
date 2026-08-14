@@ -15,10 +15,12 @@ vi.mock("../scripts/equipment/equipment.js", async (importOriginal) => ({
 
 import { BASIC_MOVES, configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { TIER_MAX, configureEquipment } from "../scripts/equipment/equipment.js";
+import { QUARTERS_BENEFITS } from "../scripts/playbook/quarters.js";
 import {
 	CarrierActorSheet,
 	CARRIER_SHEET_TEMPLATE,
 	findCarrierActors,
+	findAssignedPlaybookActors,
 	chooseCarrier,
 	registerCarrierActorSheet
 } from "../scripts/world-actors/carrier-actor-sheet.js";
@@ -499,6 +501,168 @@ describe("findCarrierActors", () => {
 		game.actors.filter.mockImplementation((fn) => [carrier, { id: "other", type: "armor-astir.cause" }].filter(fn));
 
 		expect(findCarrierActors()).toEqual([carrier]);
+	});
+});
+
+describe("CarrierActorSheet#_quartersEntry", () => {
+	it("falls back to empty name/description and an empty benefit list when Quarters is entirely unset", () => {
+		const sheet = new CarrierActorSheet();
+		const actor = { name: "Reyes", system: { attributes: {} } };
+
+		expect(sheet._quartersEntry(actor)).toEqual({
+			actorName: "Reyes",
+			name: "",
+			description: "",
+			benefitLabels: []
+		});
+	});
+
+	it("falls back to empty name/description when Quarters is stored with only a benefits field", () => {
+		const sheet = new CarrierActorSheet();
+		const actor = { name: "Reyes", system: { attributes: { quarters: { benefits: ["extra-token"] } } } };
+
+		const entry = sheet._quartersEntry(actor);
+
+		expect(entry.name).toBe("");
+		expect(entry.description).toBe("");
+		expect(entry.benefitLabels).toEqual([QUARTERS_BENEFITS[0].label]);
+	});
+
+	it("defaults benefitLabels to empty when Quarters is stored with only a name field", () => {
+		const sheet = new CarrierActorSheet();
+		const actor = { name: "Reyes", system: { attributes: { quarters: { name: "The Nook" } } } };
+
+		expect(sheet._quartersEntry(actor).benefitLabels).toEqual([]);
+	});
+});
+
+describe("findAssignedPlaybookActors", () => {
+	const supportA = {
+		id: "a1",
+		type: "character",
+		system: { playbook: { slug: "the-icon" }, attributes: { quarters: { name: "Nook" }, carrierId: "c1" } }
+	};
+	const supportB = {
+		id: "a2",
+		type: "character",
+		system: { playbook: { slug: "the-scout" }, attributes: { quarters: { description: "desc" }, carrierId: "c2" } }
+	};
+	const nonSupport = {
+		id: "a3",
+		type: "character",
+		system: { playbook: { slug: "the-witch" }, attributes: { quarters: { name: "x" } } }
+	};
+	const emptyQuarters = {
+		id: "a4",
+		type: "character",
+		system: { playbook: { slug: "the-icon" }, attributes: {} }
+	};
+	const benefitsOnly = {
+		id: "a5",
+		type: "character",
+		system: { playbook: { slug: "the-icon" }, attributes: { quarters: { benefits: ["extra-token"] } } }
+	};
+	const noPlaybook = { id: "a6", type: "character", system: { attributes: {} } };
+	const carrier1 = { id: "c1", type: "armor-astir.carrier" };
+	const carrier2 = { id: "c2", type: "armor-astir.carrier" };
+
+	it("returns every Support actor with non-empty Quarters regardless of carrierId, with 0 Carriers in the world", () => {
+		game.actors.filter.mockImplementation((fn) => [supportA, supportB, nonSupport, emptyQuarters].filter(fn));
+
+		expect(findAssignedPlaybookActors("anything").map((a) => a.id)).toEqual(["a1", "a2"]);
+	});
+
+	it("returns every Support actor with non-empty Quarters regardless of carrierId, with exactly 1 Carrier", () => {
+		game.actors.filter.mockImplementation((fn) => [carrier1, supportA, supportB, nonSupport, emptyQuarters].filter(fn));
+
+		expect(findAssignedPlaybookActors("c1").map((a) => a.id)).toEqual(["a1", "a2"]);
+	});
+
+	it("filters strictly by carrierId match once there are 2+ Carriers", () => {
+		game.actors.filter.mockImplementation((fn) => [carrier1, carrier2, supportA, supportB].filter(fn));
+
+		expect(findAssignedPlaybookActors("c1").map((a) => a.id)).toEqual(["a1"]);
+		expect(findAssignedPlaybookActors("c2").map((a) => a.id)).toEqual(["a2"]);
+	});
+
+	it("excludes non-Support playbook actors even with 2+ Carriers", () => {
+		game.actors.filter.mockImplementation((fn) => [carrier1, carrier2, nonSupport].filter(fn));
+
+		expect(findAssignedPlaybookActors("c1")).toEqual([]);
+	});
+
+	it("excludes Support actors with empty Quarters, both below and at/above 2 Carriers", () => {
+		game.actors.filter.mockImplementation((fn) => [emptyQuarters].filter(fn));
+		expect(findAssignedPlaybookActors("anything")).toEqual([]);
+
+		game.actors.filter.mockImplementation((fn) => [carrier1, carrier2, emptyQuarters].filter(fn));
+		expect(findAssignedPlaybookActors("c1")).toEqual([]);
+	});
+
+	it("includes a Support actor whose Quarters carries only benefits (no name/description)", () => {
+		game.actors.filter.mockImplementation((fn) => [benefitsOnly].filter(fn));
+
+		expect(findAssignedPlaybookActors("anything").map((a) => a.id)).toEqual(["a5"]);
+	});
+
+	it("excludes a character actor with no playbook set at all, without throwing", () => {
+		game.actors.filter.mockImplementation((fn) => [noPlaybook].filter(fn));
+
+		expect(findAssignedPlaybookActors("anything")).toEqual([]);
+	});
+});
+
+describe("CarrierActorSheet#getData - Quarters", () => {
+	it("maps each assigned Support actor's Quarters to actorName/name/description/benefitLabels", () => {
+		const supportActor = {
+			id: "a1",
+			name: "Reyes",
+			type: "character",
+			system: {
+				playbook: { slug: "the-icon" },
+				attributes: {
+					quarters: { name: "The Nook", description: "A quiet corner.", benefits: ["extra-token"] }
+				}
+			}
+		};
+		game.actors.filter.mockImplementation((fn) => [supportActor].filter(fn));
+		const sheet = new CarrierActorSheet();
+		sheet.actor = { id: "c1", system: {} };
+
+		const data = sheet.getData({});
+
+		expect(data.quarters).toEqual([
+			{
+				actorName: "Reyes",
+				name: "The Nook",
+				description: "A quiet corner.",
+				benefitLabels: [QUARTERS_BENEFITS[0].label]
+			}
+		]);
+	});
+
+	it("defaults to an empty list when no Support actor is assigned", () => {
+		game.actors.filter.mockImplementation(() => []);
+		const sheet = new CarrierActorSheet();
+		sheet.actor = { id: "c1", system: {} };
+
+		expect(sheet.getData({}).quarters).toEqual([]);
+	});
+
+	it("falls back to an empty benefit list for an assigned actor whose Quarters carries no benefits field", () => {
+		const supportActor = {
+			id: "a1",
+			name: "Reyes",
+			type: "character",
+			system: { playbook: { slug: "the-icon" }, attributes: { quarters: { name: "The Nook" } } }
+		};
+		game.actors.filter.mockImplementation((fn) => [supportActor].filter(fn));
+		const sheet = new CarrierActorSheet();
+		sheet.actor = { id: "c1", system: {} };
+
+		expect(sheet.getData({}).quarters).toEqual([
+			{ actorName: "Reyes", name: "The Nook", description: "", benefitLabels: [] }
+		]);
 	});
 });
 

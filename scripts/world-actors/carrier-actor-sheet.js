@@ -1,6 +1,7 @@
 import { WorldActorSheet } from "./world-actor-sheet.js";
 import { BASIC_MOVES, configureMoveRoll, rollMove } from "../moves/moves.js";
 import { TIER_MAX, configureEquipment, equipmentValue, resolveEquipmentTags, WEAPON_SCALES } from "../equipment/equipment.js";
+import { SUPPORT_PLAYBOOK_SLUGS, resolveQuartersBenefits } from "../playbook/quarters.js";
 
 export const CARRIER_SHEET_TEMPLATE = "modules/armor-astir/templates/carrier-actor-sheet.hbs";
 export const CARRIER_ACTOR_TYPE = "armor-astir.carrier";
@@ -89,6 +90,19 @@ export class CarrierActorSheet extends WorldActorSheet {
 		};
 	}
 
+	// One row per assigned Support actor's Quarters (Quarters section, read-only — see
+	// findAssignedPlaybookActors and claude.md's Quarters notes). Editing only ever happens on the
+	// owning playbook actor's own sheet.
+	_quartersEntry(actor) {
+		const quarters = actor.system.attributes?.quarters ?? {};
+		return {
+			actorName: actor.name,
+			name: quarters.name || "",
+			description: quarters.description || "",
+			benefitLabels: resolveQuartersBenefits(quarters.benefits ?? []).map((b) => b.label)
+		};
+	}
+
 	getData(options) {
 		const data = super.getData(options);
 		data.crew = this.actor.system.stats?.crew?.value ?? 0;
@@ -99,6 +113,7 @@ export class CarrierActorSheet extends WorldActorSheet {
 			const entry = weapons[slot.key] ?? null;
 			return { key: slot.key, label: slot.label, entry: entry ? this._weaponEntry(slot, entry) : null };
 		});
+		data.quarters = findAssignedPlaybookActors(this.actor.id).map((actor) => this._quartersEntry(actor));
 		return data;
 	}
 
@@ -193,6 +208,25 @@ export class CarrierActorSheet extends WorldActorSheet {
 // placeholder it used to be stuck with.
 export function findCarrierActors() {
 	return game.actors.filter((actor) => actor.type === CARRIER_ACTOR_TYPE);
+}
+
+// Whether a Support actor has actually filled in any part of its Quarters — an untouched Quarters
+// section (never named, described, or given a benefit) shouldn't clutter every Carrier's roster.
+function hasQuarters(actor) {
+	const quarters = actor.system.attributes?.quarters;
+	return Boolean(quarters?.name || quarters?.description || quarters?.benefits?.length);
+}
+
+// Every Support-playbook actor whose Quarters is assigned to this Carrier (see quarters.js's
+// Carrier-assignment dropdown) — feeds CarrierActorSheet#getData's read-only Quarters section.
+// With 0 or 1 Carrier in the world there's nothing to choose between, so every Support actor with
+// non-empty Quarters is shown regardless of its own carrierId (mirroring how PlaybookActorSheet's
+// own +CREW roll only prompts chooseCarrier once findCarrierActors().length > 1).
+export function findAssignedPlaybookActors(carrierId) {
+	const supportActors = game.actors.filter((actor) =>
+		actor.type === "character" && SUPPORT_PLAYBOOK_SLUGS.includes(actor.system.playbook?.slug) && hasQuarters(actor));
+	if (findCarrierActors().length <= 1) return supportActors;
+	return supportActors.filter((actor) => actor.system.attributes?.carrierId === carrierId);
 }
 
 // Prompts which Carrier's Crew to roll with when more than one exists — mirrors

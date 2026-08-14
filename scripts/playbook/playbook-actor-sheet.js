@@ -4,6 +4,7 @@ import { gravityTriggerForPlaybook } from "./gravity-triggers.js";
 import { defaultConsiderText, defaultLookText } from "./playbook-flavor.js";
 import { TRAITS } from "../core/traits.js";
 import { mergeSpentTags } from "../equipment/equipment.js";
+import { SUPPORT_PLAYBOOK_SLUGS } from "./quarters.js";
 import { findStartingGearPool } from "../equipment/starting-gear.js";
 import { findStartingMovePool } from "../moves/starting-moves.js";
 import { findAstirMove } from "../frames/astir.js";
@@ -23,6 +24,7 @@ import { MoveRollSheetMixin } from "./playbook-sheet/move-roll-mixin.js";
 import { PatronSheetMixin } from "./playbook-sheet/patron-mixin.js";
 import { HomeSheetMixin } from "./playbook-sheet/home-mixin.js";
 import { SummonerSheetMixin } from "./playbook-sheet/summoner-mixin.js";
+import { QuartersSheetMixin } from "./playbook-sheet/quarters-mixin.js";
 
 export const PLAYBOOK_SHEET_TEMPLATE = "modules/armor-astir/templates/playbook-actor-sheet.hbs";
 
@@ -103,6 +105,11 @@ export class PlaybookActorSheet extends ActorSheet {
 		// tracking-mixin.js's _dangerMax/_onAtHelmToggle and playbook-moves.js's In Command). Same
 		// "no Handlebars equality helper" reason isCommander/isWitch/isParadigm are computed here.
 		data.isCaptain = playbookSlug === "the-captain";
+		// Gates the Quarters section (Equipment tab) — the 7 Support playbooks only (see
+		// quarters.js's SUPPORT_PLAYBOOK_SLUGS). Same "no Handlebars equality helper, compute
+		// regardless, gate the render" pattern as isCommander/isWitch/isParadigm/isCaptain above.
+		data.isSupport = SUPPORT_PLAYBOOK_SLUGS.includes(playbookSlug);
+		data.quarters = this._quartersData();
 		// The checkbox's own bound value — computed regardless of isCaptain, same "compute
 		// regardless, gate the render" pattern data.aceCrew/data.witch already establish.
 		data.atHelm = Boolean(this.actor.system.attributes?.atHelm);
@@ -294,6 +301,10 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".equipment-disabled-checkbox").on("change", this._onEquipmentDisabledToggle.bind(this));
 		html.find(".part-disabled-checkbox").on("change", this._onPartDisabledToggle.bind(this));
 		html.find(".weapon-move-roll").on("click", this._onWeaponMoveRoll.bind(this));
+		html.find(".quarters-name-input").on("change", this._onQuartersNameChange.bind(this));
+		html.find(".quarters-description-input").on("change", this._onQuartersDescriptionChange.bind(this));
+		html.find(".quarters-benefit-checkbox").on("change", this._onQuartersBenefitToggle.bind(this));
+		html.find(".quarters-carrier-select").on("change", this._onQuartersCarrierChange.bind(this));
 		html.find(".astir-create").on("click", this._onAstirCreate.bind(this));
 		html.find(".astir-delete").on("click", this._onAstirDelete.bind(this));
 		html.find(".astir-core-select").on("change", this._onAstirCoreChange.bind(this));
@@ -337,7 +348,7 @@ Object.assign(
 	TrackingSheetMixin, ProgressionSheetMixin, ArdentSheetMixin, FramesSheetMixin,
 	AstirSheetMixin, EquipmentSheetMixin, MovesSheetMixin, MoveTraitsSheetMixin, MoveGrantsSheetMixin,
 	MoveTrackingSheetMixin, MoveRollSheetMixin, PatronSheetMixin, HomeSheetMixin,
-	SummonerSheetMixin
+	SummonerSheetMixin, QuartersSheetMixin
 );
 
 export function registerPlaybookActorSheet() {

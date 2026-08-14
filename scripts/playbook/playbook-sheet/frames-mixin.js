@@ -300,6 +300,13 @@ export const FramesSheetMixin = {
 		if (nextEquipment.some((item, i) => item !== equipmentSource[i])) {
 			updates["system.attributes.equipment"] = nextEquipment;
 		}
+		// Quarters' own Bonus Downtime Tokens pool (extra-token benefit — see quarters.js) isn't a
+		// catalog entry ALL_MOVES walks above, so it gets this same standalone reset the equipment
+		// pass above gets, for the same reason.
+		const quartersExtraToken = this._quartersExtraTokenSource();
+		if (quartersExtraToken) {
+			updates[`system.attributes.bonusDowntimeTokens.${quartersExtraToken.key}.value`] = quartersExtraToken.bonusDowntimeTokens.max;
+		}
 		// Eidolon Drive's active summon (see summoner-mixin.js) is primarily cleared by Refresh
 		// Scene above, the actual rules boundary ("for the rest of the Scene"). This is a defensive
 		// superset of that: ending a Sortie always also ends its current (last) Scene, so a player

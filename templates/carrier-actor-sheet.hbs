@@ -66,6 +66,24 @@
 			{{/each}}
 		</ol>
 	</section>
+	{{#if quarters.length}}
+	<section class="quarters">
+		<div class="section-header"><h3>Quarters</h3></div>
+		<ol class="entry-list quarters-list">
+			{{#each quarters}}
+			<li class="entry-list-item">
+				<h4>{{name}} <span class="quarters-owner">({{actorName}})</span></h4>
+				{{#if description}}<p class="quarters-description">{{description}}</p>{{/if}}
+				{{#if benefitLabels.length}}
+				<ul class="quarters-benefit-list">
+					{{#each benefitLabels}}<li>{{this}}</li>{{/each}}
+				</ul>
+				{{/if}}
+			</li>
+			{{/each}}
+		</ol>
+	</section>
+	{{/if}}
 	<section class="crew-members">
 		<div class="section-header">
 			<h3>Crew Members ({{crewMembers.length}})</h3>

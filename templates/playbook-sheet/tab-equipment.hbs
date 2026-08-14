@@ -217,5 +217,30 @@
 							</li>
 							{{/each}}
 						</ol>
+						{{#if isSupport}}
+						<div class="section-header"><h3>Quarters</h3></div>
+						<div class="quarters">
+							<input type="text" class="quarters-name-input" value="{{quarters.name}}" placeholder="Quarters name"/>
+							<textarea class="quarters-description-input" placeholder="Describe your Quarters, where they are on the ship, and what they provide...">{{quarters.description}}</textarea>
+							<ol class="quarters-benefit-list">
+								{{#each quarters.benefits}}
+								<li class="quarters-benefit-item">
+									<label>
+										<input type="checkbox" class="quarters-benefit-checkbox" data-benefit="{{key}}" {{#if checked}}checked{{/if}} {{#if disabled}}disabled{{/if}}/>
+										{{label}}
+									</label>
+								</li>
+								{{/each}}
+							</ol>
+							{{#if quarters.showCarrierSelect}}
+							<div class="quarters-carrier-control">
+								<label>Assigned Carrier</label>
+								<select class="quarters-carrier-select">
+									{{selectOptions quarters.carrierOptions selected=quarters.carrierId valueAttr="id" labelAttr="name" blank="— Unassigned —"}}
+								</select>
+							</div>
+							{{/if}}
+						</div>
+						{{/if}}
 					</section>
 				</div>

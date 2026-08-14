@@ -1087,4 +1087,33 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			expect.objectContaining({ "system.attributes.approachOverride": null })
 		);
 	});
+
+	it("resets a stepped-down Quarters extra-token pool back to its max, when the benefit is picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					quarters: { benefits: ["extra-token"] },
+					bonusDowntimeTokens: { "quarters:extra-token": { value: 0 } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.bonusDowntimeTokens.quarters:extra-token.value": 1 })
+		);
+	});
+
+	it("writes no Quarters extra-token key when the benefit isn't picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { quarters: { benefits: [] } } }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		const updates = sheet.actor.update.mock.calls.at(-1)[0];
+		expect(Object.keys(updates).some((key) => key.includes("quarters:extra-token"))).toBe(false);
+	});
 });

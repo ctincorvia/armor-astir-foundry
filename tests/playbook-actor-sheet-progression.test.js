@@ -923,6 +923,60 @@ describe("PlaybookActorSheet#_onBonusDowntimeTokenStep - equipmentId", () => {
 	});
 });
 
+describe("PlaybookActorSheet#_bonusDowntimeTokensData - Quarters extra-token benefit", () => {
+	it("appends a keyed entry named after the Quarters when extra-token is picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { quarters: { name: "The Nook", benefits: ["extra-token"] } } }
+		};
+
+		const data = sheet._bonusDowntimeTokensData();
+
+		expect(data).toContainEqual({
+			moveKey: "quarters:extra-token",
+			name: "The Nook",
+			description: "Quarters: an extra token when you enter Downtime.",
+			value: 1,
+			max: 1
+		});
+	});
+
+	it("falls back to Quarters as the name when the Quarters itself is unnamed", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { quarters: { benefits: ["extra-token"] } } } };
+
+		expect(sheet._bonusDowntimeTokensData()[0].name).toBe("Quarters");
+	});
+
+	it("adds no entry when extra-token isn't picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { quarters: { benefits: [] } } } };
+
+		expect(sheet._bonusDowntimeTokensData()).toEqual([]);
+	});
+});
+
+describe("PlaybookActorSheet#_onBonusDowntimeTokenStep - Quarters extra-token benefit", () => {
+	it("steps the Quarters-sourced pool via moveKey quarters:extra-token", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					quarters: { benefits: ["extra-token"] },
+					bonusDowntimeTokens: { "quarters:extra-token": { value: 0 } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onBonusDowntimeTokenStep({ currentTarget: { dataset: { moveKey: "quarters:extra-token", delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.bonusDowntimeTokens.quarters:extra-token.value": 1
+		});
+	});
+});
+
 describe("PlaybookActorSheet#activateListeners - trait steps", () => {
 	it("binds a click handler to the trait step buttons", () => {
 		const sheet = new PlaybookActorSheet();
