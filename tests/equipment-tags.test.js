@@ -90,6 +90,10 @@ describe("EQUIPMENT_TAGS", () => {
 		});
 	});
 
+	it("flags Ward as gearOnly", () => {
+		expect(EQUIPMENT_TAGS.find((tag) => tag.key === "ward").gearOnly).toBe(true);
+	});
+
 	it("gives Melee, Ranged and Sniper a value of 0 and WEAPON_RANGE_GROUP as their exclusiveGroup", () => {
 		expect(EQUIPMENT_TAGS.filter((tag) => tag.exclusiveGroup === WEAPON_RANGE_GROUP).map((tag) => tag.key))
 			.toEqual(["melee", "ranged", "sniper"]);

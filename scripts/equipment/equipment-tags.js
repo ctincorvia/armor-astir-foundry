@@ -362,13 +362,16 @@ export const EQUIPMENT_TAGS = [
 			"a peril).",
 		spend: { period: "Scene" }
 	},
+	// gearOnly: not pickable on a Weapon through the equipment editor; the-icon:bodyguards-i
+	// (starting-gear-pools.js) is a grandfathered weapon exception granted directly through data.
 	{
 		key: "ward",
 		label: "Ward",
 		value: 1,
 		description: "You may use this tag once per Sortie to reduce an incoming source of harm from a peril " +
 			"to a risk, or from a risk to nothing.",
-		spend: { period: "Sortie" }
+		spend: { period: "Sortie" },
+		gearOnly: true
 	},
 	// +2: uncommon, strong effects.
 	{

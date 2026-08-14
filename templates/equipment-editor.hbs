@@ -49,7 +49,7 @@
 			<summary class="equipment-editor-tag-group-label">{{label}}</summary>
 			<div class="equipment-editor-tag-list">
 				{{#each tags}}
-				<div class="equipment-editor-tag">
+				<div class="equipment-editor-tag" {{#if gearOnly}}data-gear-only="true"{{/if}}>
 					<label class="equipment-editor-tag-option">
 						<input type="checkbox" name="tag" value="{{key}}" {{#if checked}}checked{{/if}}/>
 						<span class="equipment-editor-tag-label">{{label}} ({{value}})</span>

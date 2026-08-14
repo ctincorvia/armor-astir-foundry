@@ -205,7 +205,8 @@ export async function configureEquipment(
 	// starting-gear.js's custom-weapon flow excluding Valuable/Treasure.
 	const pickableTags = tags.filter((tag) =>
 		tag.exclusiveGroup !== WEAPON_RANGE_GROUP && (astirWeapon || tag.exclusiveGroup !== DRAIN_GROUP) &&
-		!excludedTagKeys.includes(tag.key));
+		!excludedTagKeys.includes(tag.key) &&
+		(!tag.gearOnly || !(astirWeapon || carrierWeapon || ardentWeapon)));
 	// Melee/Ranged/Sniper render as their own native radio group (see equipment-editor.hbs) rather
 	// than as checkboxes in the tag list — a radio group can always have a default, which a
 	// checkbox trio validated only at Save time couldn't. Editing an entry pre-selects whichever
@@ -248,7 +249,8 @@ export async function configureEquipment(
 			label: tag.label,
 			value: tag.value,
 			description: tag.description,
-			checked: Boolean(initial?.tags?.includes(tag.key))
+			checked: Boolean(initial?.tags?.includes(tag.key)),
+			...(tag.gearOnly && { gearOnly: true })
 		}))).map((group) => ({ ...group, open: group.tags.some((tag) => tag.checked) })),
 		// Always rendered, not gated by Kind — same "kept intentionally narrow rather than extended
 		// to every field" non-reactivity Tier already has above. Empty when the injected `tags`
@@ -275,6 +277,20 @@ export async function configureEquipment(
 					const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
 					html.find(".equipment-editor-tag-total-value").text(equipmentValue(checkedKeys, tags));
 				};
+				// gearOnly tags (Ward) are already excluded from pickableTags entirely for the three
+				// forced-weapon flows above. This flow's Kind is a live <select> instead, so a gearOnly
+				// row has to be hidden/unchecked reactively as Kind changes rather than left checkable
+				// and then rejected at Save.
+				const gearOnlyRows = html.find(".equipment-editor-tag[data-gear-only='true']");
+				const updateGearOnlyVisibility = () => {
+					const kind = (astirWeapon || carrierWeapon || ardentWeapon) ? "weapon" : html.find("[name='kind']").val();
+					if (kind === "weapon") {
+						gearOnlyRows.find("[name='tag']").prop("checked", false);
+						gearOnlyRows.hide();
+					} else {
+						gearOnlyRows.show();
+					}
+				};
 				// Mirrors buttons.save.callback's own step-by-step validation as booleans, so Save can
 				// be disabled live while the dialog is open. Kept as a separate boolean predicate,
 				// deliberately not sharing code with the callback below -- Enter-to-submit invokes that
@@ -290,6 +306,7 @@ export async function configureEquipment(
 					if (maxTagValue !== null && equipmentValue(checkedKeys, tags) > maxTagValue) return false;
 					const kind = (astirWeapon || carrierWeapon || ardentWeapon) ? "weapon" : html.find("[name='kind']").val();
 					if (kind === "weapon" && !html.find("[name='weapon-range']:checked").val()) return false;
+					if (kind === "weapon" && checkedKeys.some((key) => findEquipmentTag(key, tags)?.gearOnly)) return false;
 					return true;
 				};
 				const updateSaveState = () => {
@@ -315,13 +332,21 @@ export async function configureEquipment(
 				// Kind is only rendered for the one caller that doesn't force it (see hideKind above) --
 				// astirWeapon/carrierWeapon/ardentWeapon never render a Kind select to wire a listener to.
 				if (!(astirWeapon || carrierWeapon || ardentWeapon)) {
-					html.find("[name='kind']").on("change", updateSaveState);
+					html.find("[name='kind']").on("change", () => {
+						updateGearOnlyVisibility();
+						updateTotal();
+						updateSaveState();
+					});
 				}
 				// weaponRangeTags (see above) is empty for an injected tags catalog with no range tags
 				// (e.g. a fixture catalog in tests) -- nothing rendered to wire a listener to either.
 				if (weaponRangeTags.length) {
 					html.find("[name='weapon-range']").on("change", updateSaveState);
 				}
+				// Runs once on open so a dialog that already starts at Kind = Weapon (e.g. "Add Weapon",
+				// or editing an existing weapon) hides/unchecks Ward immediately rather than only after
+				// the user first touches the Kind select.
+				updateGearOnlyVisibility();
 				// Sets Save's initial disabled/enabled state on open -- a blank Add dialog opens
 				// disabled, an Edit dialog pre-filled with a valid name opens enabled.
 				updateSaveState();
@@ -371,6 +396,17 @@ export async function configureEquipment(
 							ui.notifications.warn("A weapon needs one of the Melee, Ranged or Sniper tags.");
 							resolve(null);
 							return;
+						}
+						// gearOnly tags (see equipment-tags.js) can still reach here for the generic/mundane
+						// flow, where Kind is a live <select> rather than forced weapon — pickableTags above
+						// already keeps them off the astirWeapon/carrierWeapon/ardentWeapon checkbox lists.
+						if (kind === "weapon") {
+							const gearOnlyTag = checkedKeys.map((key) => findEquipmentTag(key, tags)).find((tag) => tag?.gearOnly);
+							if (gearOnlyTag) {
+								ui.notifications.warn(`${gearOnlyTag.label} can only be added to Gear, not Weapons.`);
+								resolve(null);
+								return;
+							}
 						}
 						resolve({
 							name,

@@ -62,7 +62,9 @@ function fakeEquipmentRenderHtml({ name = "", kind = "gear", weaponRange } = {})
 		name,
 		kind,
 		weaponRange,
-		saveDisabled: undefined
+		saveDisabled: undefined,
+		gearOnlyHidden: undefined,
+		gearOnlyUnchecked: false
 	};
 	state.html = {
 		find: (selector) => {
@@ -99,6 +101,18 @@ function fakeEquipmentRenderHtml({ name = "", kind = "gear", weaponRange } = {})
 			if (tagCheckboxMatch) {
 				const key = tagCheckboxMatch[1];
 				return { prop: (name, value) => { if (name === "checked" && value === false) state.uncheckedKeys.push(key); } };
+			}
+			if (selector === ".equipment-editor-tag[data-gear-only='true']") {
+				return {
+					hide: () => { state.gearOnlyHidden = true; },
+					show: () => { state.gearOnlyHidden = false; },
+					find: (innerSelector) => {
+						if (innerSelector === "[name='tag']") {
+							return { prop: (name, value) => { if (name === "checked" && value === false) state.gearOnlyUnchecked = true; } };
+						}
+						return {};
+					}
+				};
 			}
 			return {};
 		}
@@ -574,6 +588,90 @@ describe("configureEquipment", () => {
 		await promise;
 	});
 
+	it("re-disables Save when Ward is checked while Kind is weapon (a gearOnly tag)", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Rations", kind: "weapon", weaponRange: "melee" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		expect(state.saveDisabled).toBe(false);
+
+		state.checkedTags = ["ward"];
+		state.handlers.change({ target: { value: "ward", checked: true } });
+
+		expect(state.saveDisabled).toBe(true);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("hides and unchecks Ward immediately when a dialog opens already at Kind = weapon", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Halberd", kind: "weapon", weaponRange: "melee" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.gearOnlyHidden).toBe(true);
+		expect(state.gearOnlyUnchecked).toBe(true);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("leaves Ward visible when a dialog opens at Kind = gear", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Ward Charm", kind: "gear" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.gearOnlyHidden).toBe(false);
+		expect(state.gearOnlyUnchecked).toBe(false);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("hides Ward reactively when Kind is switched from gear to weapon", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Ward Charm", kind: "gear" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		expect(state.gearOnlyHidden).toBe(false);
+
+		state.kind = "weapon";
+		state.kindHandlers.change();
+
+		expect(state.gearOnlyHidden).toBe(true);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("shows Ward again reactively when Kind is switched from weapon back to gear", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml({ name: "Halberd", kind: "weapon", weaponRange: "melee" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		expect(state.gearOnlyHidden).toBe(true);
+
+		state.kind = "gear";
+		state.kindHandlers.change();
+
+		expect(state.gearOnlyHidden).toBe(false);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
 	it("starts Save enabled when opening an Edit dialog with a valid pre-filled name", async () => {
 		const entry = { id: "abc", name: "Halberd", tags: [] };
 		const promise = configureEquipment(entry, FIXTURE_TAGS);
@@ -721,5 +819,36 @@ describe("configureEquipment", () => {
 
 		expect(await promise).toBeNull();
 		expect(ui.notifications.warn).toHaveBeenCalled();
+	});
+
+	it("resolves null and warns when Ward is checked and Kind is weapon", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Cannon",
+			"[name='kind']": "weapon",
+			"[name='description']": ""
+		}, ["ward"], "melee"));
+
+		expect(await promise).toBeNull();
+		expect(ui.notifications.warn).toHaveBeenCalledWith(expect.stringContaining("Ward"));
+	});
+
+	it("saves Ward on Gear without triggering the weapon-only restriction", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+			"[name='name']": "Ward Charm",
+			"[name='kind']": "gear",
+			"[name='description']": ""
+		}, ["ward"]));
+
+		expect(await promise).toEqual(expect.objectContaining({ tags: ["ward"] }));
 	});
 });

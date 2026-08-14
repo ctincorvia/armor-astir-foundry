@@ -130,6 +130,19 @@ describe("configureEquipment - astirWeapon option", () => {
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
 	});
+
+	it("omits Ward from the tag checkboxes — gearOnly tags can't reach a weapon this way", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { tagGroups } = renderTemplate.mock.calls.at(-1)[1];
+		const renderedKeys = tagGroups.flatMap((group) => group.tags.map((tag) => tag.key));
+		expect(renderedKeys).not.toContain("ward");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
 });
 
 describe("configureEquipment - starting gear budget options", () => {
@@ -290,6 +303,19 @@ describe("configureEquipment - carrierWeapon option", () => {
 		await promise;
 	});
 
+	it("omits Ward from the tag checkboxes — gearOnly tags can't reach a weapon this way", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { tagGroups } = renderTemplate.mock.calls.at(-1)[1];
+		const renderedKeys = tagGroups.flatMap((group) => group.tags.map((tag) => tag.key));
+		expect(renderedKeys).not.toContain("ward");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
 	it("defaults carrierWeaponTier to TIER_MAX, unaffected for every existing caller", async () => {
 		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true });
 		await Promise.resolve();
@@ -399,6 +425,19 @@ describe("configureEquipment - ardentWeapon option", () => {
 		const { tagGroups } = renderTemplate.mock.calls.at(-1)[1];
 		const renderedKeys = tagGroups.flatMap((group) => group.tags.map((tag) => tag.key));
 		expect(renderedKeys).not.toEqual(expect.arrayContaining(["drain-1", "drain-2", "drain-3"]));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("omits Ward from the tag checkboxes — gearOnly tags can't reach a weapon this way", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { ardentWeapon: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { tagGroups } = renderTemplate.mock.calls.at(-1)[1];
+		const renderedKeys = tagGroups.flatMap((group) => group.tags.map((tag) => tag.key));
+		expect(renderedKeys).not.toContain("ward");
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
