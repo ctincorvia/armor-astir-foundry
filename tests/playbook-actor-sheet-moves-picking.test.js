@@ -458,6 +458,49 @@ describe("PlaybookActorSheet#_onPlaybookMoveAdd", () => {
 
 		expect(choosePlaybookMove).toHaveBeenCalledWith(undefined, []);
 	});
+
+	// Classical Spellcasting's own grantsEquipment (see _grantedMoveEquipmentUpdate's own tests for
+	// the granted entry's exact shape) — folded into this same update rather than a second
+	// actor.update call, so picking the move and receiving its weapon land as one undo step.
+	it("also grants Classical Spellcasting's Hand-casting weapon in the same update", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { playbook: { name: "The Scout" }, attributes: { playbookMoves: [BULLHEADED.key] } },
+			update: vi.fn()
+		};
+		choosePlaybookMove.mockResolvedValue(CLASSICAL_SPELLCASTING.key);
+
+		await sheet._onPlaybookMoveAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.playbookMoves": [BULLHEADED.key, CLASSICAL_SPELLCASTING.key],
+			"system.attributes.equipment": [{
+				id: "test-id",
+				spent: [],
+				kind: "weapon",
+				name: "Hand-casting",
+				tags: ["ranged", "area"],
+				scale: "foot",
+				startingGear: true
+			}]
+		});
+	});
+
+	it("does not grant equipment a second time when the actor already has a same-named entry", async () => {
+		const sheet = new PlaybookActorSheet();
+		const existing = { id: "eq1", kind: "weapon", name: "Hand-casting", tags: [], spent: [] };
+		sheet.actor = {
+			system: { playbook: { name: "The Scout" }, attributes: { equipment: [existing] } },
+			update: vi.fn()
+		};
+		choosePlaybookMove.mockResolvedValue(CLASSICAL_SPELLCASTING.key);
+
+		await sheet._onPlaybookMoveAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.playbookMoves": [CLASSICAL_SPELLCASTING.key]
+		});
+	});
 });
 
 describe("PlaybookActorSheet#_onPlaybookMoveRemove", () => {

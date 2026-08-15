@@ -522,6 +522,17 @@ describe("MOVE_POOLS - cantrips", () => {
 			requiresUnmounted: true
 		});
 	});
+
+	it("gives Classical Spellcasting a Hand-casting grantsEquipment template, with no Tier in the name", () => {
+		const classicalSpellcasting = findPlaybookMove("cantrips:classical-spellcasting");
+
+		expect(classicalSpellcasting.grantsEquipment).toEqual({
+			kind: "weapon",
+			name: "Hand-casting",
+			tags: ["ranged", "area"],
+			scale: "foot"
+		});
+	});
 });
 
 describe("addsCriticalReminderToMove (12+ hook)", () => {

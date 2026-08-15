@@ -9,11 +9,23 @@ export const CANTRIPS_POOL = {
 			// addsTraitToMove.chooseMove offers +CHANNEL as an extra option on whichever Basic Move the
 			// player picks (dropdown on this move's own row), additive not replacing — same shape The Old
 			// Blood's requiresUnmounted uses, just with the target move chosen per-actor instead of fixed
-			// in the catalog (mirrors trait-bonuses.js's own chooseTrait). The violent-use profile
-			// ("Hand-casting II") still references weapon profiles/tags, which don't exist yet — see
-			// Advanced Evocation below.
+			// in the catalog (mirrors trait-bonuses.js's own chooseTrait).
+			//
+			// grantsEquipment snapshots the rulebook's own violent-use profile onto the actor the moment
+			// this move is newly picked (see move-tracking-mixin.js's _onPlaybookMoveAdd/
+			// _grantedMoveEquipmentUpdate) — the same _startingGearEntry treatment a starting-gear grant
+			// already gets (equipment-mixin.js), just triggered by picking this move instead of character
+			// creation. Named "Hand-casting" without the "II" — no equipment stores its own Tier in this
+			// module (see docs/domains/equipment.md's Tier note); it's derived from the wielder like
+			// every other mundane weapon. Advanced Evocation's own tag choice below is still unbuilt.
 			traits: [],
 			addsTraitToMove: { chooseMove: true, trait: "channel", requiresUnmounted: true },
+			grantsEquipment: {
+				kind: "weapon",
+				name: "Hand-casting",
+				tags: ["ranged", "area"],
+				scale: "foot"
+			},
 			description:
 				"<p>Choose a Basic Move: while out of your Astir, you may roll it with +CHANNEL instead of " +
 				"the usual Trait. If things go wrong, your magic backfires. Using magic to exploit people's " +
@@ -26,9 +38,10 @@ export const CANTRIPS_POOL = {
 			name: "Advanced Evocation",
 			// "Requires: Classical Spellcasting" is enforced via requiresMoves (see docs/domains/moves.md's
 			// "Adding move content") — disabled in the picker until Classical Spellcasting is
-			// picked, and re-gated live on the sheet if it's ever removed afterward. The tag choice
-			// itself is still blocked on the same not-yet-built weapon profiles/tags system as
-			// Classical Spellcasting's own profile.
+			// picked, and re-gated live on the sheet if it's ever removed afterward. Classical
+			// Spellcasting's own Hand-casting profile is now a real granted weapon (see its own
+			// grantsEquipment comment above), but this move's own "add a tag when used violently" isn't
+			// — there's no reactive per-use tag-add mechanism in this module to hook it into yet.
 			requiresMoves: ["cantrips:classical-spellcasting"],
 			traits: [],
 			description:

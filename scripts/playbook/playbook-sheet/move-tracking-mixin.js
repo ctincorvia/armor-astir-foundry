@@ -1,4 +1,4 @@
-import { choosePlaybookMove } from "../../moves/playbook-moves.js";
+import { choosePlaybookMove, resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { HOLD_MAX, HOLD_MIN } from "../../moves/moves.js";
 import { chooseStartingMoves, findStartingMovePool } from "../../moves/starting-moves.js";
 
@@ -52,6 +52,23 @@ export const MoveTrackingSheetMixin = {
 		const { move: moveKey } = event.currentTarget.dataset;
 		this.actor.update({ [`system.attributes.addsTraitToMoveChoices.${moveKey}`]: event.currentTarget.value });
 	},
+	// Classical Spellcasting's own grantsEquipment (cantrips.js) — a fixed equipment template
+	// snapshotted onto the actor the moment a move carrying it is newly picked, via
+	// equipment-mixin.js's _startingGearEntry (the same treatment a starting-gear grant already
+	// gets, just triggered by a move pick instead of character creation). Matched by name rather
+	// than a stored link back to the granting move: removing then re-adding the move grants it
+	// back exactly once rather than leaving stale provenance to track, and equipment is never
+	// auto-removed when its granting move is (see docs/domains/equipment.md — equipment is the
+	// character's, not tied to what's currently picked). Returns an empty patch (safe to spread
+	// into any actor.update) when the move grants nothing or the actor already has a same-named
+	// entry — e.g. from renaming a duplicate back, or picking the move a second time after removal.
+	_grantedMoveEquipmentUpdate(moveKey) {
+		const grant = resolvePlaybookMoves([moveKey])[0]?.grantsEquipment;
+		if (!grant) return {};
+		const current = this._equipment();
+		if (current.some((item) => item.name === grant.name)) return {};
+		return { "system.attributes.equipment": [...current, this._startingGearEntry(grant)] };
+	},
 	// The "+" on the Playbook Moves section. The picker is passed the actor's playbook name (so it
 	// knows which pool is "yours") and its current picks (so an already-taken move isn't offered
 	// again) — see playbookMoveSections. It resolves null on cancel, on close, and when the dialog
@@ -61,7 +78,10 @@ export const MoveTrackingSheetMixin = {
 		const key = await choosePlaybookMove(this.actor.system.playbook?.name, current);
 		if (!key || current.includes(key)) return;
 
-		await this.actor.update({ "system.attributes.playbookMoves": [...current, key] });
+		await this.actor.update({
+			"system.attributes.playbookMoves": [...current, key],
+			...this._grantedMoveEquipmentUpdate(key)
+		});
 	},
 	_onPlaybookMoveRemove(event) {
 		const { move: key } = event.currentTarget.dataset;

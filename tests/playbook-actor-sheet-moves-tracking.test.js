@@ -7,6 +7,7 @@ import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js"
 const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
 const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
 const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:bullheaded");
+const CLASSICAL_SPELLCASTING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:classical-spellcasting");
 
 describe("PlaybookActorSheet#getData - move uses", () => {
 	function playbookGroup(data) {
@@ -182,6 +183,51 @@ describe("PlaybookActorSheet#_onAddsTraitToMoveChoiceChange", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.addsTraitToMoveChoices.cantrips:classical-spellcasting": ""
 		});
+	});
+});
+
+describe("PlaybookActorSheet#_grantedMoveEquipmentUpdate", () => {
+	it("returns an empty patch for a move with no grantsEquipment", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._grantedMoveEquipmentUpdate(BULLHEADED.key)).toEqual({});
+	});
+
+	it("snapshots Classical Spellcasting's Hand-casting weapon onto the actor's equipment", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._grantedMoveEquipmentUpdate(CLASSICAL_SPELLCASTING.key)).toEqual({
+			"system.attributes.equipment": [{
+				id: "test-id",
+				spent: [],
+				kind: "weapon",
+				name: "Hand-casting",
+				tags: ["ranged", "area"],
+				scale: "foot",
+				startingGear: true
+			}]
+		});
+	});
+
+	it("appends to the actor's existing equipment rather than replacing it", () => {
+		const sheet = new PlaybookActorSheet();
+		const existing = { id: "eq1", kind: "gear", name: "Rope", tags: [], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [existing] } } };
+
+		const update = sheet._grantedMoveEquipmentUpdate(CLASSICAL_SPELLCASTING.key);
+
+		expect(update["system.attributes.equipment"][0]).toBe(existing);
+		expect(update["system.attributes.equipment"]).toHaveLength(2);
+	});
+
+	it("returns an empty patch when the actor already has a same-named entry", () => {
+		const sheet = new PlaybookActorSheet();
+		const existing = { id: "eq1", kind: "weapon", name: "Hand-casting", tags: [], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [existing] } } };
+
+		expect(sheet._grantedMoveEquipmentUpdate(CLASSICAL_SPELLCASTING.key)).toEqual({});
 	});
 });
 
