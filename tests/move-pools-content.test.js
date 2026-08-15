@@ -533,6 +533,16 @@ describe("MOVE_POOLS - cantrips", () => {
 			scale: "foot"
 		});
 	});
+
+	it("gives Advanced Evocation a grantsWeaponTagChoice targeting Hand-casting, gated on Classical Spellcasting", () => {
+		const advancedEvocation = findPlaybookMove("cantrips:advanced-evocation");
+
+		expect(advancedEvocation.requiresMoves).toEqual(["cantrips:classical-spellcasting"]);
+		expect(advancedEvocation.grantsWeaponTagChoice).toEqual({
+			targetEquipmentName: "Hand-casting",
+			options: ["defensive", "decisive", "restraining", "impact"]
+		});
+	});
 });
 
 describe("addsCriticalReminderToMove (12+ hook)", () => {

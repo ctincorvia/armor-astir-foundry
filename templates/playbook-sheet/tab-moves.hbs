@@ -69,6 +69,13 @@
 										</select>
 									</div>
 									{{/if}}
+									{{#if weaponTagChoiceChoosable}}
+									<div class="move-weapon-tag-choice-control">
+										<select class="weapon-tag-choice-select" data-move="{{key}}">
+											{{selectOptions weaponTagChoiceOptions selected=weaponTagChoiceChoice valueAttr="key" labelAttr="label" blank="—"}}
+										</select>
+									</div>
+									{{/if}}
 									<div class="move-controls">
 										{{#if rollable}}
 										<button type="button" class="move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{#if gatedTooltip}} data-gate-tooltip="{{gatedTooltip}}"{{/if}}{{/if}}>Roll</button>

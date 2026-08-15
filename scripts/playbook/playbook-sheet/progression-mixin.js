@@ -248,11 +248,15 @@ export const ProgressionSheetMixin = {
 	// ability, via its own declarative downtimeAbility flag (a plain description string, e.g. Help
 	// or Hinder, B-Plot, Eidolon Drive). Basic and Special moves are unioned in alongside picked
 	// playbook moves since they're not opt-in — every actor has them — the same combining pattern
-	// moves-mixin.js's _movesData already establishes for those three sources.
+	// moves-mixin.js's _movesData already establishes for those three sources. A move that's
+	// currently channel-gated (b-plot, via requiresChannelDisabled — see moves-mixin.js's
+	// _channelDisabled/channelGated) is excluded outright rather than shown greyed out, since this
+	// list is a plain reference list with no gated/disabled rendering of its own.
 	_downtimeAbilitiesData() {
+		const channelDisabled = this._channelDisabled();
 		const moves = [...BASIC_MOVES, ...SPECIAL_MOVES, ...resolvePlaybookMoves(this._playbookMoves())];
 		return moves
-			.filter((move) => move.downtimeAbility)
+			.filter((move) => move.downtimeAbility && !(move.requiresChannelDisabled && !channelDisabled))
 			.map((move) => ({ key: move.key, name: move.name, description: move.downtimeAbility }));
 	},
 	// The bottom four Advancement options unlock once at least ADVANCEMENT_UNLOCK_THRESHOLD of the

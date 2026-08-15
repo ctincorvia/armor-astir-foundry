@@ -100,6 +100,19 @@ describe("PlaybookActorSheet#activateListeners - move uses", () => {
 		expect(html.find).toHaveBeenCalledWith(".adds-trait-move-select");
 		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
 	});
+
+	it("binds a change handler to the weapon tag choice select", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {} };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".weapon-tag-choice-select");
+		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
+	});
 });
 
 describe("PlaybookActorSheet#_onMoveUseToggle", () => {
@@ -182,6 +195,34 @@ describe("PlaybookActorSheet#_onAddsTraitToMoveChoiceChange", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.addsTraitToMoveChoices.cantrips:classical-spellcasting": ""
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onWeaponTagChoiceChange", () => {
+	it("writes the selected tag key to the actor, keyed by the granting move", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		sheet._onWeaponTagChoiceChange({
+			currentTarget: { dataset: { move: "cantrips:advanced-evocation" }, value: "impact" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.weaponTagChoices.cantrips:advanced-evocation": "impact"
+		});
+	});
+
+	it("writes an empty string back when the blank option is chosen", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		sheet._onWeaponTagChoiceChange({
+			currentTarget: { dataset: { move: "cantrips:advanced-evocation" }, value: "" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.weaponTagChoices.cantrips:advanced-evocation": ""
 		});
 	});
 });

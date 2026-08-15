@@ -52,6 +52,13 @@ export const MoveTrackingSheetMixin = {
 		const { move: moveKey } = event.currentTarget.dataset;
 		this.actor.update({ [`system.attributes.addsTraitToMoveChoices.${moveKey}`]: event.currentTarget.value });
 	},
+	// Advanced Evocation's own per-actor tag pick (see moves-mixin.js's weaponTagChoiceChoosable/
+	// weaponTagChoiceOptions and equipment-mixin.js's _grantedWeaponTagChoiceKeys) — mirrors
+	// _onAddsTraitToMoveChoiceChange's shape exactly, just keyed into weaponTagChoices instead.
+	_onWeaponTagChoiceChange(event) {
+		const { move: moveKey } = event.currentTarget.dataset;
+		this.actor.update({ [`system.attributes.weaponTagChoices.${moveKey}`]: event.currentTarget.value });
+	},
 	// Classical Spellcasting's own grantsEquipment (cantrips.js) — a fixed equipment template
 	// snapshotted onto the actor the moment a move carrying it is newly picked, via
 	// equipment-mixin.js's _startingGearEntry (the same treatment a starting-gear grant already

@@ -1,4 +1,5 @@
 import { moveRequirementTooltip, resolvePlaybookMoves, unmetMoveRequirements } from "../../moves/playbook-moves.js";
+import { findEquipmentTag } from "../../equipment/equipment.js";
 import { patronChannelBonus, traitBonusesFor } from "../../moves/trait-bonuses.js";
 import { TRAITS } from "../../core/traits.js";
 import { APPROACHES } from "../../core/approaches.js";
@@ -163,13 +164,19 @@ export const MovesSheetMixin = {
 	_basicMoveOptions() {
 		return BASIC_MOVES.map(({ key, name }) => ({ key, name }));
 	},
-	_moveGroupMoves(moves) {
-		// Adrift's own playbook substitutes +HOME for CHANNEL entirely (see playbook-moves.js's love,
-		// love, love and playbookGrantsHomeInsteadOfChannel's own comment) — b-plot's own text is for
-		// characters with no Channel-equivalent at all, so Adrift must read as Channel-enabled here
-		// too, or b-plot would wrongly stay available to a playbook that's meant to lose access to it.
-		const channelDisabled = Boolean(this.actor.system.stats?.channel?.disabled)
+	// Adrift's own playbook substitutes +HOME for CHANNEL entirely (see playbook-moves.js's love,
+	// love, love and playbookGrantsHomeInsteadOfChannel's own comment) — b-plot's own text is for
+	// characters with no Channel-equivalent at all, so Adrift must read as Channel-enabled here
+	// too, or b-plot would wrongly stay available to a playbook that's meant to lose access to it.
+	// Shared with progression-mixin.js's _downtimeAbilitiesData, which needs the same
+	// requiresChannelDisabled gating _moveGroupMoves' own channelGated already applies below, so a
+	// character-disabled move (b-plot) can't leak into either place independently of the other.
+	_channelDisabled() {
+		return Boolean(this.actor.system.stats?.channel?.disabled)
 			&& !playbookGrantsHomeInsteadOfChannel(this.actor.system.playbook?.name);
+	},
+	_moveGroupMoves(moves) {
+		const channelDisabled = this._channelDisabled();
 		// Never Quite Free (see playbook-moves.js's disablesMove) — the inverse of
 		// grantsUnpilotedAstirMove: a picked move can explicitly gate a different move rather
 		// than ungate one. Resolved once here, same shape channelDisabled already establishes,
@@ -369,6 +376,20 @@ export const MovesSheetMixin = {
 				...(move.addsTraitToMove?.chooseMove && {
 					addsTraitToMoveChoosable: true,
 					addsTraitToMoveChoice: this.actor.system.attributes?.addsTraitToMoveChoices?.[move.key] ?? ""
+				}),
+				// Advanced Evocation's own per-actor tag pick (see cantrips.js's grantsWeaponTagChoice and
+				// equipment-mixin.js's _grantedWeaponTagChoiceKeys) — same conditional-spread, omit-when-
+				// unused treatment as addsTraitToMoveChoosable above. Options resolve off this one move's
+				// own declared key list (unlike guidedMoveOptions/basicMoveOptions, which are actor-wide
+				// lists reused by whatever move needs them) since no other move shares this grant's option
+				// set; a key that no longer resolves in EQUIPMENT_TAGS is dropped rather than rendered blank.
+				...(move.grantsWeaponTagChoice && {
+					weaponTagChoiceChoosable: true,
+					weaponTagChoiceOptions: move.grantsWeaponTagChoice.options
+						.map((key) => findEquipmentTag(key))
+						.filter(Boolean)
+						.map((tag) => ({ key: tag.key, label: tag.label })),
+					weaponTagChoiceChoice: this.actor.system.attributes?.weaponTagChoices?.[move.key] ?? ""
 				}),
 				// Generic, per-move clamped numeric counters (e.g. Transmute Self's two alternate-set
 				// trackers — see playbook-moves.js). Mirrors `uses`' per-move-key storage shape, but as a

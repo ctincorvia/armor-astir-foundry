@@ -316,17 +316,24 @@
 	width: 4em;
 }
 
-/* Bonus Downtime Tokens (Master & Servant, Information Network — see progression-mixin.js's
-   _bonusDowntimeTokensData) — one .power-control row per granting move, so the shared
-   .power-control/.power-label/.power-step/.power-value rules above already cover the counter
-   itself; only the two-line label column (name + restriction text) below is genuinely new. */
-.armor-astir.sheet .bonus-downtime-tokens-list {
+/* Downtime Tokens section (main Total counter, plus one .power-control row per Bonus Downtime
+   Tokens-granting move — Master & Servant, Information Network, see progression-mixin.js's
+   _bonusDowntimeTokensData) — the shared .power-control/.power-label/.power-step/.power-value
+   rules above already cover every row; only the two-line label column a bonus row's name +
+   restriction text needs is genuinely new. Rows are <li>s, so the list's own gap is the sole
+   spacing between them — .power-control's margin-top (meant for stacking bare divs as siblings
+   elsewhere) is zeroed below to avoid doubling up with it. */
+.armor-astir.sheet .downtime-tokens-list {
 	display: flex;
 	flex-direction: column;
 	gap: var(--aa-space-2);
-	margin: var(--aa-space-2) 0 0;
+	margin: 0;
 	padding: 0;
 	list-style: none;
+}
+
+.armor-astir.sheet .downtime-tokens-list .power-control {
+	margin-top: 0;
 }
 
 /* Unlike the single-line main counter, this row's label column wraps a name and a description

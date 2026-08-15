@@ -725,15 +725,26 @@ describe("PlaybookActorSheet#_bonusDowntimeTokensData", () => {
 });
 
 describe("PlaybookActorSheet#_downtimeAbilitiesData", () => {
-	it("returns only the flagged Basic/Special moves when no playbook moves are picked", () => {
+	it("returns only the flagged Basic/Special moves when no playbook moves are picked and Channel is disabled", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
+		sheet.actor = { system: { attributes: { playbookMoves: [] }, stats: { channel: { disabled: true } } } };
 
 		expect(sheet._downtimeAbilitiesData()).toEqual([
 			{ key: HELP_OR_HINDER.key, name: HELP_OR_HINDER.name, description: HELP_OR_HINDER.downtimeAbility },
 			{ key: B_PLOT.key, name: B_PLOT.name, description: B_PLOT.downtimeAbility },
 			{ key: PLAN_AND_PREPARE.key, name: PLAN_AND_PREPARE.name, description: PLAN_AND_PREPARE.downtimeAbility }
 		]);
+	});
+
+	it("excludes B-Plot (requiresChannelDisabled) while Channel is enabled for this character", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] }, stats: { channel: { disabled: false } } } };
+
+		const data = sheet._downtimeAbilitiesData();
+
+		expect(data.some((entry) => entry.key === B_PLOT.key)).toBe(false);
+		expect(data.some((entry) => entry.key === HELP_OR_HINDER.key)).toBe(true);
+		expect(data.some((entry) => entry.key === PLAN_AND_PREPARE.key)).toBe(true);
 	});
 
 	it("includes a flagged playbook move once its key is picked", () => {

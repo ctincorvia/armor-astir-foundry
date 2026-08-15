@@ -26,6 +26,7 @@ const TRANSMUTE_SELF = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:tr
 const PRE_ORDAINED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:pre-ordained");
 const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
 const CLASSICAL_SPELLCASTING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:classical-spellcasting");
+const ADVANCED_EVOCATION = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:advanced-evocation");
 
 beforeEach(() => {
 	choosePlaybookMove.mockClear();
@@ -320,6 +321,45 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 		};
 
 		expect(playbookGroup(sheet.getData()).moves[0].addsTraitToMoveChoice).toBe("read-the-room");
+	});
+
+	it("marks a grantsWeaponTagChoice move (Advanced Evocation) as weaponTagChoiceChoosable, with its four options and a blank default", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [CLASSICAL_SPELLCASTING.key, ADVANCED_EVOCATION.key] } }
+		};
+
+		const move = playbookGroup(sheet.getData()).moves[1];
+
+		expect(move.weaponTagChoiceChoosable).toBe(true);
+		expect(move.weaponTagChoiceOptions).toEqual([
+			{ key: "defensive", label: "Defensive" },
+			{ key: "decisive", label: "Decisive" },
+			{ key: "restraining", label: "Restraining" },
+			{ key: "impact", label: "Impact" }
+		]);
+		expect(move.weaponTagChoiceChoice).toBe("");
+	});
+
+	it("reflects a stored weaponTagChoice for Advanced Evocation", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [CLASSICAL_SPELLCASTING.key, ADVANCED_EVOCATION.key],
+					weaponTagChoices: { [ADVANCED_EVOCATION.key]: "impact" }
+				}
+			}
+		};
+
+		expect(playbookGroup(sheet.getData()).moves[1].weaponTagChoiceChoice).toBe("impact");
+	});
+
+	it("omits weaponTagChoiceChoosable for a move with no grantsWeaponTagChoice", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [BULLHEADED.key] } } };
+
+		expect(playbookGroup(sheet.getData()).moves[0]).not.toHaveProperty("weaponTagChoiceChoosable");
 	});
 
 	it("shows no Roll button for a picked move that rolls nothing", () => {

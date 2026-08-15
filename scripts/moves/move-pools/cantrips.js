@@ -17,7 +17,8 @@ export const CANTRIPS_POOL = {
 			// already gets (equipment-mixin.js), just triggered by picking this move instead of character
 			// creation. Named "Hand-casting" without the "II" — no equipment stores its own Tier in this
 			// module (see docs/domains/equipment.md's Tier note); it's derived from the wielder like
-			// every other mundane weapon. Advanced Evocation's own tag choice below is still unbuilt.
+			// every other mundane weapon. Advanced Evocation's own tag choice below extends this same
+			// Hand-casting profile once picked.
 			traits: [],
 			addsTraitToMove: { chooseMove: true, trait: "channel", requiresUnmounted: true },
 			grantsEquipment: {
@@ -38,12 +39,23 @@ export const CANTRIPS_POOL = {
 			name: "Advanced Evocation",
 			// "Requires: Classical Spellcasting" is enforced via requiresMoves (see docs/domains/moves.md's
 			// "Adding move content") — disabled in the picker until Classical Spellcasting is
-			// picked, and re-gated live on the sheet if it's ever removed afterward. Classical
-			// Spellcasting's own Hand-casting profile is now a real granted weapon (see its own
-			// grantsEquipment comment above), but this move's own "add a tag when used violently" isn't
-			// — there's no reactive per-use tag-add mechanism in this module to hook it into yet.
+			// picked, and re-gated live on the sheet if it's ever removed afterward.
+			//
+			// grantsWeaponTagChoice mirrors grantsWeaponTags (Signed & Sealed, equipment-mixin.js) but
+			// scoped to one specific granted weapon by name, rather than every weapon uniformly, and with
+			// a per-actor *chosen* tag rather than a fixed set — the same chooseMove/chooseTrait shape
+			// this pool's own Classical Spellcasting and trait-bonuses.js already use for "the rulebook
+			// picks the mechanism, the player picks the value." Resolved by equipment-mixin.js's
+			// _weaponTagKeys, never persisted onto Hand-casting's own stored tags — dropped instantly if
+			// Advanced Evocation is ever removed. The list is only the four named tags; "or create a new
+			// one entirely" is Director's-discretion prose, deliberately left unbuilt (same call already
+			// made for Complex Spellwork's variable Power cost — see astir-parts.js).
 			requiresMoves: ["cantrips:classical-spellcasting"],
 			traits: [],
+			grantsWeaponTagChoice: {
+				targetEquipmentName: "Hand-casting",
+				options: ["defensive", "decisive", "restraining", "impact"]
+			},
 			description:
 				"<p><em>Requires: Classical Spellcasting.</em></p>" +
 				"<p>Choose one of the following tags (defensive, decisive, restraining, impact); when you " +

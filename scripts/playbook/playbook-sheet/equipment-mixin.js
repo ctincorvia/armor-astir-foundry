@@ -35,11 +35,29 @@ export const EquipmentSheetMixin = {
 		const picked = resolvePlaybookMoves(this._playbookMoves());
 		return [...new Set(picked.flatMap((move) => move.grantsWeaponTags ?? []))];
 	},
-	// A weapon entry's effective tag-key list: its own stored tags plus any move-granted ones,
-	// deduped. Gear is untouched — grantsWeaponTags only ever applies to weapons.
+	// Advanced Evocation (Cantrips): grantsWeaponTagChoice's own per-actor pick — unlike
+	// grantsWeaponTags above, which applies to every weapon uniformly, this only ever applies to
+	// the one specific weapon it names (matched by `name`, the same link grantsEquipment's own
+	// dedupe already relies on — see docs/domains/equipment.md/moves.md), and the tag itself is
+	// player-chosen rather than fixed in the catalog. No stored choice yet, or a choice naming a
+	// tag key that's no longer real, both resolve to nothing rather than throwing.
+	_grantedWeaponTagChoiceKeys(entry) {
+		const picked = resolvePlaybookMoves(this._playbookMoves());
+		const choices = this.actor.system.attributes?.weaponTagChoices ?? {};
+		return picked
+			.filter((move) => move.grantsWeaponTagChoice?.targetEquipmentName === entry.name)
+			.map((move) => choices[move.key])
+			.filter(Boolean);
+	},
+	// A weapon entry's effective tag-key list: its own stored tags plus any move-granted ones
+	// (fixed or chosen), deduped. Gear is untouched — neither grant ever applies to it.
 	_weaponTagKeys(entry) {
 		if (entry.kind !== "weapon") return entry.tags ?? [];
-		return [...new Set([...(entry.tags ?? []), ...this._grantedWeaponTagKeys()])];
+		return [...new Set([
+			...(entry.tags ?? []),
+			...this._grantedWeaponTagKeys(),
+			...this._grantedWeaponTagChoiceKeys(entry)
+		])];
 	},
 	// getData's Equipment tab shape. weaponMoves/astirWeapons/ardentWeaponEntriesById are all
 	// computed once in getData (shared with the Astir/Ardent data methods, which render the same

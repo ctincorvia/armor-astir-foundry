@@ -1,26 +1,29 @@
 				<div class="tab" data-group="primary" data-tab="downtime">
 					<section class="downtime">
-						<div class="power-control downtime-tokens-control">
-							<label class="power-label">Downtime Tokens</label>
-							<button type="button" class="power-step downtime-tokens-step downtime-tokens-decrement" data-delta="-1">-</button>
-							<span class="power-value">{{downtimeTokens.value}} / {{downtimeTokens.max}}</span>
-							<button type="button" class="power-step downtime-tokens-step downtime-tokens-increment" data-delta="1">+</button>
-						</div>
-						{{#if bonusDowntimeTokens.length}}
-						<ol class="bonus-downtime-tokens-list">
-							{{#each bonusDowntimeTokens}}
-							<li class="power-control bonus-downtime-tokens-control">
-								<div class="bonus-downtime-tokens-label-column">
-									<label class="power-label">{{name}}</label>
-									<p class="bonus-downtime-tokens-description">{{description}}</p>
-								</div>
-								<button type="button" class="power-step bonus-downtime-tokens-step bonus-downtime-tokens-decrement" data-move-key="{{moveKey}}" data-equipment-id="{{equipmentId}}" data-delta="-1">-</button>
-								<span class="power-value">{{value}} / {{max}}</span>
-								<button type="button" class="power-step bonus-downtime-tokens-step bonus-downtime-tokens-increment" data-move-key="{{moveKey}}" data-equipment-id="{{equipmentId}}" data-delta="1">+</button>
-							</li>
-							{{/each}}
-						</ol>
-						{{/if}}
+						<section class="downtime-tokens">
+							<div class="section-header">
+								<h3>Downtime Tokens</h3>
+							</div>
+							<ol class="downtime-tokens-list">
+								<li class="power-control downtime-tokens-control">
+									<label class="power-label">Total</label>
+									<button type="button" class="power-step downtime-tokens-step downtime-tokens-decrement" data-delta="-1">-</button>
+									<span class="power-value">{{downtimeTokens.value}} / {{downtimeTokens.max}}</span>
+									<button type="button" class="power-step downtime-tokens-step downtime-tokens-increment" data-delta="1">+</button>
+								</li>
+								{{#each bonusDowntimeTokens}}
+								<li class="power-control bonus-downtime-tokens-control">
+									<div class="bonus-downtime-tokens-label-column">
+										<label class="power-label">{{name}}</label>
+										<p class="bonus-downtime-tokens-description">{{description}}</p>
+									</div>
+									<button type="button" class="power-step bonus-downtime-tokens-step bonus-downtime-tokens-decrement" data-move-key="{{moveKey}}" data-equipment-id="{{equipmentId}}" data-delta="-1">-</button>
+									<span class="power-value">{{value}} / {{max}}</span>
+									<button type="button" class="power-step bonus-downtime-tokens-step bonus-downtime-tokens-increment" data-move-key="{{moveKey}}" data-equipment-id="{{equipmentId}}" data-delta="1">+</button>
+								</li>
+								{{/each}}
+							</ol>
+						</section>
 						{{#if downtimeAlly}}
 						<div class="power-control downtime-ally-control">
 							<label class="power-label">Downtime Ally</label>

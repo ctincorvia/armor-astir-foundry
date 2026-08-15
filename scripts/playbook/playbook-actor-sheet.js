@@ -298,6 +298,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".move-use-checkbox").on("change", this._onMoveUseToggle.bind(this));
 		html.find(".trait-bonus-select").on("change", this._onTraitBonusChoiceChange.bind(this));
 		html.find(".adds-trait-move-select").on("change", this._onAddsTraitToMoveChoiceChange.bind(this));
+		html.find(".weapon-tag-choice-select").on("change", this._onWeaponTagChoiceChange.bind(this));
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
 		html.find(".move-activate").on("click", this._onMoveActivate.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));

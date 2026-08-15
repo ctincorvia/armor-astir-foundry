@@ -27,6 +27,8 @@ import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js"
 const SIGNED_SEALED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-attendant:signed-sealed");
 const MASTER_SERVANT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-attendant:master-servant");
 const STRIKE_DECISIVELY = BASIC_MOVES.find((m) => m.key === "strike-decisively");
+const CLASSICAL_SPELLCASTING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:classical-spellcasting");
+const ADVANCED_EVOCATION = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:advanced-evocation");
 
 // Signed & Sealed (The Attendant) — a picked-move approach override and a picked-move weapon-tag
 // grant, both resolved generically off ALL_PLAYBOOK_MOVES' own grantsApproachOverride/
@@ -143,6 +145,63 @@ describe("PlaybookActorSheet#_weaponTagKeys / _equipmentEntry - Signed & Sealed"
 		};
 
 		expect(sheet._weaponTagKeys(gear)).toEqual([]);
+	});
+});
+
+// Cantrips' Advanced Evocation — the same _weaponTagKeys mechanism above, but exercising
+// grantsWeaponTagChoice (equipment-mixin.js's _grantedWeaponTagChoiceKeys) rather than
+// Signed & Sealed's unscoped grantsWeaponTags: a per-actor chosen tag applied only to the one
+// weapon it names by match, not every weapon on the sheet.
+describe("PlaybookActorSheet#_weaponTagKeys - Advanced Evocation's chosen tag", () => {
+	it("applies the chosen tag only to the named target weapon (Hand-casting), not other weapons", () => {
+		const sheet = new PlaybookActorSheet();
+		const handCasting = { id: "w1", kind: "weapon", name: "Hand-casting", tags: ["ranged", "area"] };
+		const other = { id: "w2", kind: "weapon", name: "Sword Cane I", tags: ["melee"] };
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [CLASSICAL_SPELLCASTING.key, ADVANCED_EVOCATION.key],
+					weaponTagChoices: { [ADVANCED_EVOCATION.key]: "impact" },
+					equipment: [handCasting, other]
+				}
+			}
+		};
+
+		expect(sheet._weaponTagKeys(handCasting)).toEqual(
+			expect.arrayContaining(["ranged", "area", "impact"])
+		);
+		expect(sheet._weaponTagKeys(other)).toEqual(["melee"]);
+	});
+
+	it("applies no extra tag with Advanced Evocation picked but no choice made yet", () => {
+		const sheet = new PlaybookActorSheet();
+		const handCasting = { id: "w1", kind: "weapon", name: "Hand-casting", tags: ["ranged", "area"] };
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [CLASSICAL_SPELLCASTING.key, ADVANCED_EVOCATION.key],
+					equipment: [handCasting]
+				}
+			}
+		};
+
+		expect(sheet._weaponTagKeys(handCasting)).toEqual(["ranged", "area"]);
+	});
+
+	it("applies nothing at all without Advanced Evocation picked", () => {
+		const sheet = new PlaybookActorSheet();
+		const handCasting = { id: "w1", kind: "weapon", name: "Hand-casting", tags: ["ranged", "area"] };
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [CLASSICAL_SPELLCASTING.key],
+					weaponTagChoices: { [ADVANCED_EVOCATION.key]: "impact" },
+					equipment: [handCasting]
+				}
+			}
+		};
+
+		expect(sheet._weaponTagKeys(handCasting)).toEqual(["ranged", "area"]);
 	});
 });
 
