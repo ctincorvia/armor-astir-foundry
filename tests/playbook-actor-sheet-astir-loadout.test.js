@@ -26,7 +26,7 @@ import {
 	chooseAstirWeapon
 } from "../scripts/frames/astir.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
-import { ALCHEMICAL_SUITE } from "./helpers/move-fixtures.js";
+import { ALCHEMICAL_SUITE, SPELL_ROUTINES } from "./helpers/move-fixtures.js";
 
 beforeEach(() => {
 	chooseAstirPart.mockClear();
@@ -916,11 +916,35 @@ describe("PlaybookActorSheet#getData - astir extraParts/extraWeapons", () => {
 		const data = sheet.getData();
 
 		expect(data.astir.parts).toEqual([
-			{ key: partA.key, name: partA.name, powerCost: partA.powerCost, partType: partA.partType, tier: 3, disabled: false }
+			{
+				key: partA.key, name: partA.name, powerCost: partA.powerCost, partType: partA.partType, tier: 3, disabled: false,
+				guidedMoveChoosable: false, guidedMoveChoice: ""
+			}
 		]);
 		expect(data.astir.extraParts).toEqual([
-			{ key: partB.key, name: partB.name, powerCost: partB.powerCost, partType: partB.partType, tier: 3, disabled: false }
+			{
+				key: partB.key, name: partB.name, powerCost: partB.powerCost, partType: partB.partType, tier: 3, disabled: false,
+				guidedMoveChoosable: false, guidedMoveChoice: ""
+			}
 		]);
+	});
+
+	it("reflects a stored guided move choice for a Spell Routines installed via extraParts", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", tier: 3, power: 4, parts: [], extraParts: [SPELL_ROUTINES.key], move: null },
+					guidedMoveChoices: { [SPELL_ROUTINES.key]: "dispel-uncertainties" }
+				}
+			}
+		};
+
+		const [part] = sheet.getData().astir.extraParts;
+
+		expect(part.guidedMoveChoosable).toBe(true);
+		expect(part.guidedMoveChoice).toBe("dispel-uncertainties");
 	});
 
 	it("flags partsFull once the regular Parts pool reaches ASTIR_MAX_PARTS, ignoring extraParts", () => {

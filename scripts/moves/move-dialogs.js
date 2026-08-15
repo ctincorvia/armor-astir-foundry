@@ -46,14 +46,17 @@ export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates
 // whatever the Dice select reports, the same way a spent effect already wins over the Effect
 // select.
 //
-// guided (see PlaybookActorSheet#_weaponIsGuided) adds a third "Take 7-9 (Guided)" button
-// alongside Roll/Cancel — Guided's "take a 7-9 rather than rolling, if you wish" is the player's
-// choice at the moment of rolling, not a pre-filtered option, so every field above stays exactly
-// as offered; picking it just resolves without ever reading any of them.
+// guided (see PlaybookActorSheet#_rollMove) is the *source's* own label — "Guided" for the weapon
+// tag, or the granting Astir Part's name (e.g. "Spell Routines") — rather than a bare boolean.
+// The template's own move-roll-guided-note already names the source ("Spell Routines: use the
+// 'Take 7-9' button below..."), so the button itself just says "Take 7-9" rather than repeating
+// it. Guided's "take a 7-9 rather than rolling, if you wish" is the player's choice at the moment
+// of rolling, not a pre-filtered option, so every field above stays exactly as offered; picking
+// it just resolves without ever reading any of them.
 export async function configureMoveRoll(
 	move,
 	traits,
-	{ lockedEffect = null, lockedAdvantage = null, lockedTrait = null, equipmentSpends = [], astirPartSpends = [], guided = false } = {}
+	{ lockedEffect = null, lockedAdvantage = null, lockedTrait = null, equipmentSpends = [], astirPartSpends = [], guided = null } = {}
 ) {
 	const content = await renderTemplate(MOVE_ROLL_DIALOG_TEMPLATE, {
 		traits,
@@ -142,7 +145,7 @@ export async function configureMoveRoll(
 				},
 				...(guided && {
 					takeSeven: {
-						label: "Take 7-9 (Guided)",
+						label: "Take 7-9",
 						callback: () => resolve({ takeSeven: true })
 					}
 				}),

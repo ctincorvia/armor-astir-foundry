@@ -536,26 +536,26 @@ describe("configureMoveRoll - astir part spends", () => {
 describe("configureMoveRoll - guided", () => {
 	const clash = CLASH_TRAIT;
 
-	it("passes guided through to the dialog template", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { guided: true });
+	it("passes guided's own source label through to the dialog template", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { guided: "Guided" });
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
-			guided: true
+			guided: "Guided"
 		}));
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
 	});
 
-	it("defaults guided to false", async () => {
+	it("defaults guided to null", async () => {
 		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
-			guided: false
+			guided: null
 		}));
 
 		Dialog.mock.calls.at(-1)[0].close();
@@ -563,14 +563,29 @@ describe("configureMoveRoll - guided", () => {
 	});
 
 	it("adds a Take 7-9 button that resolves { takeSeven: true } when guided", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { guided: true });
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { guided: "Guided" });
 		await Promise.resolve();
 		await Promise.resolve();
 
 		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+
+		expect(dialogOptions.buttons.takeSeven.label).toBe("Take 7-9");
 		dialogOptions.buttons.takeSeven.callback();
 
 		expect(await promise).toEqual({ takeSeven: true });
+	});
+
+	// The template's own move-roll-guided-note (move-roll-dialog.hbs) already names the source —
+	// the button label stays plain regardless of which source granted it, rather than repeating it.
+	it("keeps the Take 7-9 button label plain regardless of the guided source's own name", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { guided: "Spell Routines" });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[0].buttons.takeSeven.label).toBe("Take 7-9");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
 	});
 
 	it("omits the Take 7-9 button when not guided", async () => {

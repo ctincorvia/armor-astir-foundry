@@ -167,16 +167,25 @@ export const MoveRollSheetMixin = {
 		const lockedAdvantage = this._grantedAdvantageForMove(move) ?? this._coldCompanyAdvantage() ?? this._targetTierAdvantage(move);
 		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
 		const astirPartSpends = fromCarrier ? [] : this._astirPartSpends(lockedEffect);
-		// Omitted entirely rather than passed as `false` when not guided — configureMoveRoll
-		// already defaults it to false itself, and this keeps every non-Guided call's options
-		// shape exactly as it was before Guided existed, same treatment `reroll` gets below. Spell
-		// Routines (see astir.js) grants the same "Take 7-9" option for any move, not just a
-		// weapon carrying the Guided tag — but only while installed on the currently mounted frame
-		// (see docs/domains/frames.md's Piloted note). Spell Routines carries a powerCost, so it can only ever
-		// be installed on the Astir, never an Ardent (see ardent.js's ardentParts) — but this reads
-		// generically off _mountedParts() rather than special-casing the Astir, the same convention
-		// every other reactive part effect in this file follows.
-		const guided = (!fromCarrier && this._weaponIsGuided(weapon)) || this._mountedParts().some((part) => part.grantsGuided);
+		// Omitted entirely rather than passed as `null` when not guided — configureMoveRoll
+		// already defaults it to null itself, and this keeps every non-Guided call's options
+		// shape exactly as it was before Guided existed, same treatment `reroll` gets below. Holds
+		// the *source's* own label ("Guided" for the weapon tag, a part's name for Spell Routines)
+		// rather than a bare boolean, so the dialog's "Take 7-9" button and the resulting chat
+		// message can both name which grant actually offered it instead of always saying "Guided"
+		// — see move-dialogs.js's configureMoveRoll and move-roll.js's postGuidedResult. Spell
+		// Routines (see astir.js) grants the same "Take 7-9" option, but only for the one move the
+		// player picked on the Astir tab (system.attributes.guidedMoveChoices, keyed by the part's
+		// own key — see astir-mixin.js's _onGuidedMoveChoiceChange/_guidedMoveOptions), and only
+		// while installed on the currently mounted frame (see docs/domains/frames.md's Piloted
+		// note). Spell Routines carries a powerCost, so it can only ever be installed on the Astir,
+		// never an Ardent (see ardent.js's ardentParts) — but this reads generically off
+		// _mountedParts() rather than special-casing the Astir, the same convention every other
+		// reactive part effect in this file follows.
+		const guided = (!fromCarrier && this._weaponIsGuided(weapon) && "Guided")
+			|| this._mountedParts().find((part) =>
+				part.grantsGuided && this.actor.system.attributes?.guidedMoveChoices?.[part.key] === move.key)?.name
+			|| null;
 		const config = await configureMoveRoll(move, traits, {
 			lockedEffect,
 			lockedAdvantage,
@@ -194,7 +203,8 @@ export const MoveRollSheetMixin = {
 		if (config.takeSeven) {
 			await postGuidedResult(this.actor, move, {
 				weaponLabel: weapon ? weapon.name : "Unarmed",
-				weaponTags: this._weaponTagLabels(weapon)
+				weaponTags: this._weaponTagLabels(weapon),
+				guidedSource: guided
 			});
 			await this._onMoveResolved(move, null, "mixed");
 			return;

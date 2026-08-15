@@ -159,6 +159,34 @@ describe("PlaybookActorSheet#_onAstirApproachChange", () => {
 	});
 });
 
+describe("PlaybookActorSheet#_onGuidedMoveChoiceChange", () => {
+	it("writes the chosen move key to the actor, keyed by the granting part", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		sheet._onGuidedMoveChoiceChange({
+			currentTarget: { dataset: { part: "astir-part:spell-routines" }, value: "dispel-uncertainties" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.guidedMoveChoices.astir-part:spell-routines": "dispel-uncertainties"
+		});
+	});
+
+	it("writes an empty string back when the blank option is chosen", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		sheet._onGuidedMoveChoiceChange({
+			currentTarget: { dataset: { part: "astir-part:spell-routines" }, value: "" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.guidedMoveChoices.astir-part:spell-routines": ""
+		});
+	});
+});
+
 describe("PlaybookActorSheet#_onAstirTierStep", () => {
 	it("increments the tier", () => {
 		const sheet = new PlaybookActorSheet();

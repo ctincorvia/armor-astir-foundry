@@ -9,6 +9,7 @@ const FACILITATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:facil
 const TURN_UNEARTHLY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-paradigm:turn-unearthly");
 const ARCANE_GENERATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-artificer:arcane-generator");
 const COUNTERSPELL = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-artificer:counterspell");
+const CLASSICAL_SPELLCASTING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:classical-spellcasting");
 
 describe("PlaybookActorSheet#_moveTraits", () => {
 	it("leaves a non-crew fixedTrait untouched", () => {
@@ -244,6 +245,73 @@ describe("PlaybookActorSheet#_moveTraits", () => {
 			system: {
 				stats: { sense: { value: 1 }, know: { value: 2 } },
 				attributes: { playbookMoves: [COUNTERSPELL.key] }
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "read-the-room", traits: ["sense"] })).toEqual([
+			{ key: "sense", label: "SENSE", value: 1 }
+		]);
+	});
+
+	it("offers +CHANNEL on the chosen Basic Move when Classical Spellcasting is picked and unmounted (addsTraitToMove.chooseMove)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { sense: { value: 1 }, channel: { value: 2 } },
+				attributes: {
+					playbookMoves: [CLASSICAL_SPELLCASTING.key],
+					addsTraitToMoveChoices: { [CLASSICAL_SPELLCASTING.key]: "read-the-room" }
+				}
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "read-the-room", traits: ["sense"] })).toEqual([
+			{ key: "sense", label: "SENSE", value: 1 },
+			{ key: "channel", label: "CHANNEL", value: 2 }
+		]);
+	});
+
+	it("does not add +CHANNEL to a Basic Move that isn't the one chosen", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { sense: { value: 1 }, channel: { value: 2 } },
+				attributes: {
+					playbookMoves: [CLASSICAL_SPELLCASTING.key],
+					addsTraitToMoveChoices: { [CLASSICAL_SPELLCASTING.key]: "weather-the-storm" }
+				}
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "read-the-room", traits: ["sense"] })).toEqual([
+			{ key: "sense", label: "SENSE", value: 1 }
+		]);
+	});
+
+	it("does not offer +CHANNEL from Classical Spellcasting's chooseMove while a frame is mounted, even with a valid choice", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { sense: { value: 1 }, channel: { value: 2 } },
+				attributes: {
+					playbookMoves: [CLASSICAL_SPELLCASTING.key],
+					addsTraitToMoveChoices: { [CLASSICAL_SPELLCASTING.key]: "read-the-room" },
+					astir: { id: "a1", parts: [], piloted: true }
+				}
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "read-the-room", traits: ["sense"] })).toEqual([
+			{ key: "sense", label: "SENSE", value: 1 }
+		]);
+	});
+
+	it("does not offer +CHANNEL from Classical Spellcasting's chooseMove with no stored choice yet", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { sense: { value: 1 }, channel: { value: 2 } },
+				attributes: { playbookMoves: [CLASSICAL_SPELLCASTING.key] }
 			}
 		};
 

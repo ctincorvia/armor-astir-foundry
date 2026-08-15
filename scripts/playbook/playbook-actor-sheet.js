@@ -134,6 +134,14 @@ export class PlaybookActorSheet extends ActorSheet {
 		const mountedFrame = frames.find((frame) => frame.piloted) ?? null;
 		const ardents = this._ardents();
 		data.moveGroups = this._movesData(astir, astirParts, astirMove, mountedFrame, ardents, startingMovePool);
+		// Spell Routines' dropdown options (Astir tab) — every move currently rendered anywhere in
+		// moveGroups, deduped by key (see astir-mixin.js's _guidedMoveOptions). Classical
+		// Spellcasting's own narrower dropdown (Moves tab) uses data.basicMoveOptions instead, set
+		// alongside data.equipment below.
+		data.guidedMoveOptions = this._guidedMoveOptions(data.moveGroups);
+		// Classical Spellcasting's dropdown options (Moves tab) — every Basic Move, per its own
+		// "Choose a Basic Move" rules text (see moves-mixin.js's _basicMoveOptions).
+		data.basicMoveOptions = this._basicMoveOptions();
 		// Custom-made equipment (see claude.md, "Domain conventions") — never picked from a list,
 		// so unlike moves there's no shared catalog of equipment itself, only of the Tags that can
 		// be attached to it (see equipment.js). One array partitioned by `kind` (and, for weapons,
@@ -289,6 +297,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".playbook-move-remove").on("click", this._onPlaybookMoveRemove.bind(this));
 		html.find(".move-use-checkbox").on("change", this._onMoveUseToggle.bind(this));
 		html.find(".trait-bonus-select").on("change", this._onTraitBonusChoiceChange.bind(this));
+		html.find(".adds-trait-move-select").on("change", this._onAddsTraitToMoveChoiceChange.bind(this));
 		html.find(".move-roll").on("click", this._onMoveRoll.bind(this));
 		html.find(".move-activate").on("click", this._onMoveActivate.bind(this));
 		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
@@ -310,6 +319,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".astir-delete").on("click", this._onAstirDelete.bind(this));
 		html.find(".astir-core-select").on("change", this._onAstirCoreChange.bind(this));
 		html.find(".astir-approach-select").on("change", this._onAstirApproachChange.bind(this));
+		html.find(".guided-move-select").on("change", this._onGuidedMoveChoiceChange.bind(this));
 		html.find(".astir-tier-step").on("click", this._onAstirTierStep.bind(this));
 		html.find(".astir-power-step").on("click", this._onAstirPowerStep.bind(this));
 		html.find(".astir-weapon-power-step").on("click", this._onAstirWeaponPowerStep.bind(this));

@@ -87,8 +87,10 @@ export const ASTIR_PART_CATALOG = [
 		partType: "Passive",
 		traits: [],
 		powerCost: 1,
-		// Reuses the existing Guided mechanism (moves.js#postGuidedResult) for any move, not just
-		// a usesWeapon move carrying the Guided equipment tag — see PlaybookActorSheet#_rollMove.
+		// Reuses the existing Guided mechanism (moves.js#postGuidedResult), scoped to exactly one
+		// move the player picks on the Astir tab (system.attributes.guidedMoveChoices, keyed by
+		// this part's own key) rather than every move — see PlaybookActorSheet#_rollMove/
+		// _guidedMoveOptions.
 		grantsGuided: true,
 		description:
 			"<p>The battlefield is a busy place, full of countless distractions. It can be helpful to " +

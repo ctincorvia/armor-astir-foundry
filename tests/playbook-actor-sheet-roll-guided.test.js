@@ -24,7 +24,7 @@ beforeEach(() => {
 });
 
 describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
-	it("passes guided: true to configureMoveRoll when the weapon has a live Guided tag", async () => {
+	it("passes the weapon tag's own label as guided to configureMoveRoll when the weapon has a live Guided tag", async () => {
 		const sheet = new PlaybookActorSheet();
 		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["guided"], spent: [], scale: "foot", tier: 1 };
 		sheet.actor = {
@@ -38,7 +38,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [], equipmentSpends: [],
-			guided: true
+			guided: "Guided"
 		});
 	});
 
@@ -94,7 +94,9 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, { weaponLabel: "Rifle", weaponTags: "Guided" });
+		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, {
+			weaponLabel: "Rifle", weaponTags: "Guided", guidedSource: "Guided"
+		});
 		expect(rollMove).not.toHaveBeenCalled();
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
@@ -109,17 +111,22 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, { weaponLabel: "Unarmed", weaponTags: null });
+		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, {
+			weaponLabel: "Unarmed", weaponTags: null, guidedSource: null
+		});
 	});
 });
 
-describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on any move)", () => {
-	it("is Guided for a non-weapon move when piloted with Spell Routines installed", async () => {
+describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen move)", () => {
+	it("passes Spell Routines' own name as guided for the chosen move when piloted", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				stats: { know: { value: 1 } },
-				attributes: { astir: { id: "a1", parts: [SPELL_ROUTINES.key], piloted: true } }
+				attributes: {
+					astir: { id: "a1", parts: [SPELL_ROUTINES.key], piloted: true },
+					guidedMoveChoices: { [SPELL_ROUTINES.key]: "dispel-uncertainties" }
+				}
 			},
 			update: vi.fn()
 		};
@@ -131,16 +138,62 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on any move)", (
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [],
 			equipmentSpends: [],
-			guided: true
+			guided: SPELL_ROUTINES.name
 		});
 	});
 
-	it("is not Guided when not piloted, even with Spell Routines installed", async () => {
+	it("is not Guided when not piloted, even with Spell Routines installed and the move chosen", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				stats: { know: { value: 1 } },
-				attributes: { astir: { id: "a1", parts: [SPELL_ROUTINES.key], piloted: false } }
+				attributes: {
+					astir: { id: "a1", parts: [SPELL_ROUTINES.key], piloted: false },
+					guidedMoveChoices: { [SPELL_ROUTINES.key]: "dispel-uncertainties" }
+				}
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
+			astirPartSpends: [],
+			equipmentSpends: []
+		});
+	});
+
+	it("is not Guided when a different move is rolled than the one chosen", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: {
+					astir: { id: "a1", parts: [SPELL_ROUTINES.key], piloted: true },
+					guidedMoveChoices: { [SPELL_ROUTINES.key]: "read-the-room" }
+				}
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
+			astirPartSpends: [],
+			equipmentSpends: []
+		});
+	});
+
+	it("is not Guided when no choice has been made yet", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { astir: { id: "a1", parts: [SPELL_ROUTINES.key], piloted: true } }
 			},
 			update: vi.fn()
 		};

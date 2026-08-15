@@ -99,6 +99,14 @@
 									</label>
 									<button type="button" class="astir-part-remove" data-part="{{key}}" aria-label="Remove Astir part">✕</button>
 								</div>
+								{{#if guidedMoveChoosable}}
+								<div class="astir-part-guided-move-control">
+									<label class="astir-part-guided-move-label">Guided move</label>
+									<select class="guided-move-select" data-part="{{key}}">
+										{{selectOptions @root.guidedMoveOptions selected=guidedMoveChoice valueAttr="key" labelAttr="name" blank="—"}}
+									</select>
+								</div>
+								{{/if}}
 							</li>
 							{{/each}}
 						</ol>
@@ -123,6 +131,14 @@
 									</label>
 									<button type="button" class="astir-extra-part-remove" data-part="{{key}}" aria-label="Remove Extra Astir part">✕</button>
 								</div>
+								{{#if guidedMoveChoosable}}
+								<div class="astir-part-guided-move-control">
+									<label class="astir-part-guided-move-label">Guided move</label>
+									<select class="guided-move-select" data-part="{{key}}">
+										{{selectOptions @root.guidedMoveOptions selected=guidedMoveChoice valueAttr="key" labelAttr="name" blank="—"}}
+									</select>
+								</div>
+								{{/if}}
 							</li>
 							{{/each}}
 						</ol>

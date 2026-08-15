@@ -87,12 +87,19 @@ export const MoveTraitsSheetMixin = {
 		// shape has no such restriction in its text, so it omits the flag and is unaffected.
 		// `requiresAstirMounted` (Walk-on Part In The War — "while piloting your Astir") is the
 		// opposite polarity, and specifically the Astir: an Ardent mounted instead doesn't count.
+		// `chooseMove` (Classical Spellcasting — "choose a Basic Move") is a third target form
+		// alongside `moveKey`/`moveKeys`, matching against a per-actor stored choice
+		// (system.attributes.addsTraitToMoveChoices.<grantingMoveKey>, written by
+		// _onAddsTraitToMoveChoiceChange — move-tracking-mixin.js) instead of a static catalog key,
+		// the same "declare a choosable field, resolve generically" shape trait-bonuses.js's own
+		// chooseTrait already uses for traitBonus.
 		const addedTraitKey = resolvePlaybookMoves(this._playbookMoves())
 			.find((m) => {
 				const grant = m.addsTraitToMove;
 				if (!grant) return false;
 				if (grant.requiresUnmounted && this._mountedFrame()) return false;
 				if (grant.requiresAstirMounted && this._mountedFrame()?.kind !== "astir") return false;
+				if (grant.chooseMove) return this.actor.system.attributes?.addsTraitToMoveChoices?.[m.key] === move.key;
 				return grant.moveKey === move.key || grant.moveKeys?.includes(move.key);
 			})?.addsTraitToMove.trait ?? null;
 		if (addedTraitKey && !actorTraits.some((trait) => trait.key === addedTraitKey)) {

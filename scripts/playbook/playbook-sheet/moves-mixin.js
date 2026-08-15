@@ -158,6 +158,11 @@ export const MovesSheetMixin = {
 		if (patronBonus) bonuses.channel = (bonuses.channel ?? 0) + patronBonus;
 		return bonuses;
 	},
+	// Classical Spellcasting's own dropdown options — "Choose a Basic Move" per its rules text, so
+	// intentionally narrower than _guidedMoveOptions' "any move" (Spell Routines).
+	_basicMoveOptions() {
+		return BASIC_MOVES.map(({ key, name }) => ({ key, name }));
+	},
 	_moveGroupMoves(moves) {
 		// Adrift's own playbook substitutes +HOME for CHANNEL entirely (see playbook-moves.js's love,
 		// love, love and playbookGrantsHomeInsteadOfChannel's own comment) — b-plot's own text is for
@@ -357,6 +362,14 @@ export const MovesSheetMixin = {
 				// other — a different kind of per-move state.
 				traitBonusChoosable: Boolean(move.traitBonus?.chooseTrait),
 				traitBonusChoice: this.actor.system.attributes?.traitBonusChoices?.[move.key] ?? "",
+				// Classical Spellcasting's own per-actor Basic Move pick (see trait-bonuses.js's
+				// chooseTrait and move-traits-mixin.js's addsTraitToMove chooseMove resolution) — same
+				// conditional-spread, omit-when-unused treatment as summonedAllyInfo/variableDiceRoll
+				// above, so no other move's entry in the moveGroups toEqual snapshot needs to change.
+				...(move.addsTraitToMove?.chooseMove && {
+					addsTraitToMoveChoosable: true,
+					addsTraitToMoveChoice: this.actor.system.attributes?.addsTraitToMoveChoices?.[move.key] ?? ""
+				}),
 				// Generic, per-move clamped numeric counters (e.g. Transmute Self's two alternate-set
 				// trackers — see playbook-moves.js). Mirrors `uses`' per-move-key storage shape, but as a
 				// bounded number rather than a boolean, at system.attributes.moveTrackers.<moveKey>.<trackerKey>.

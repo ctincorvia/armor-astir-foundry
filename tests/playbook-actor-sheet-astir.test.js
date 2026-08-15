@@ -13,7 +13,7 @@ import {
 	astirMaxWeaponPower
 } from "../scripts/frames/astir.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
-import { ALCHEMICAL_SUITE, WEAPON_CONDUIT } from "./helpers/move-fixtures.js";
+import { ALCHEMICAL_SUITE, SPELL_ROUTINES, WEAPON_CONDUIT } from "./helpers/move-fixtures.js";
 
 describe("PlaybookActorSheet#getData - astir", () => {
 	it("is available when channel is missing from stats (reads as enabled)", () => {
@@ -159,8 +159,61 @@ describe("PlaybookActorSheet#getData - astir", () => {
 		};
 
 		expect(sheet.getData().astir.parts).toEqual([
-			{ key: part.key, name: part.name, powerCost: part.powerCost, partType: part.partType, tier: 3, disabled: false }
+			{
+				key: part.key, name: part.name, powerCost: part.powerCost, partType: part.partType, tier: 3, disabled: false,
+				guidedMoveChoosable: false, guidedMoveChoice: ""
+			}
 		]);
+	});
+
+	it("marks Spell Routines guidedMoveChoosable, defaulting the choice to blank", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, overheating: false, parts: [SPELL_ROUTINES.key], move: null }
+				}
+			}
+		};
+
+		const [part] = sheet.getData().astir.parts;
+
+		expect(part.guidedMoveChoosable).toBe(true);
+		expect(part.guidedMoveChoice).toBe("");
+	});
+
+	it("reflects a stored guided move choice for Spell Routines", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, overheating: false, parts: [SPELL_ROUTINES.key], move: null },
+					guidedMoveChoices: { [SPELL_ROUTINES.key]: "dispel-uncertainties" }
+				}
+			}
+		};
+
+		expect(sheet.getData().astir.parts[0].guidedMoveChoice).toBe("dispel-uncertainties");
+	});
+
+	it("offers only rollable moves as guidedMoveOptions, excluding Subsystems/Heat Up", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, overheating: false, parts: [SPELL_ROUTINES.key], move: null }
+				}
+			}
+		};
+
+		const options = sheet.getData().guidedMoveOptions;
+
+		expect(options.map((o) => o.key)).toContain("exchange-blows");
+		expect(options.map((o) => o.key)).not.toContain("subsystems");
+		expect(options.map((o) => o.key)).not.toContain("heat-up");
 	});
 
 	it("falls back to ASTIR_TIER_MIN for a part's tier when the Astir has no tier stored", () => {
@@ -490,6 +543,7 @@ describe("PlaybookActorSheet#activateListeners - astir", () => {
 			[".astir-delete", "click"],
 			[".astir-core-select", "change"],
 			[".astir-approach-select", "change"],
+			[".guided-move-select", "change"],
 			[".astir-tier-step", "click"],
 			[".astir-power-step", "click"],
 			[".astir-weapon-power-step", "click"],

@@ -44,6 +44,14 @@ export const MoveTrackingSheetMixin = {
 		const { move: moveKey } = event.currentTarget.dataset;
 		this.actor.update({ [`system.attributes.traitBonusChoices.${moveKey}`]: event.currentTarget.value });
 	},
+	// Classical Spellcasting's own per-actor Basic Move pick (see moves-mixin.js's
+	// addsTraitToMoveChoosable/addsTraitToMoveChoice and move-traits-mixin.js's addsTraitToMove
+	// chooseMove resolution) — mirrors _onTraitBonusChoiceChange's shape exactly, just keyed by
+	// the granting move instead of the trait-bonus move.
+	_onAddsTraitToMoveChoiceChange(event) {
+		const { move: moveKey } = event.currentTarget.dataset;
+		this.actor.update({ [`system.attributes.addsTraitToMoveChoices.${moveKey}`]: event.currentTarget.value });
+	},
 	// The "+" on the Playbook Moves section. The picker is passed the actor's playbook name (so it
 	// knows which pool is "yours") and its current picks (so an already-taken move isn't offered
 	// again) — see playbookMoveSections. It resolves null on cancel, on close, and when the dialog

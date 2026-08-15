@@ -6,13 +6,14 @@ export const CANTRIPS_POOL = {
 		{
 			key: "cantrips:classical-spellcasting",
 			name: "Classical Spellcasting",
-			// No roll of its own — it's a standing permission to reroll a Basic Move with
-			// +CHANNEL instead of its usual Trait, which would mean offering CHANNEL as an
-			// extra option on every Basic Move's own roll dialog. That cross-cutting change
-			// isn't built; a player with this Cantrip applies it themselves when picking a
-			// trait to roll. The move's own violent-use profile ("Hand-casting II") references
-			// weapon profiles/tags, which also don't exist yet — see Advanced Evocation below.
+			// addsTraitToMove.chooseMove offers +CHANNEL as an extra option on whichever Basic Move the
+			// player picks (dropdown on this move's own row), additive not replacing — same shape The Old
+			// Blood's requiresUnmounted uses, just with the target move chosen per-actor instead of fixed
+			// in the catalog (mirrors trait-bonuses.js's own chooseTrait). The violent-use profile
+			// ("Hand-casting II") still references weapon profiles/tags, which don't exist yet — see
+			// Advanced Evocation below.
 			traits: [],
+			addsTraitToMove: { chooseMove: true, trait: "channel", requiresUnmounted: true },
 			description:
 				"<p>Choose a Basic Move: while out of your Astir, you may roll it with +CHANNEL instead of " +
 				"the usual Trait. If things go wrong, your magic backfires. Using magic to exploit people's " +

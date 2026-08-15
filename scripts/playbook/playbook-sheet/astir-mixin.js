@@ -111,16 +111,26 @@ export const AstirSheetMixin = {
 					powerCost: part.powerCost,
 					partType: part.partType,
 					tier: astir.tier ?? ASTIR_TIER_MIN,
-					disabled: this._isPartDisabled(part.key)
+					disabled: this._isPartDisabled(part.key),
+					// Spell Routines' own dropdown (see astir-parts.js's grantsGuided comment and
+					// _guidedMoveOptions below) — every other part renders this as false/blank, since
+					// only grantsGuided carries a choosable target move at all.
+					guidedMoveChoosable: Boolean(part.grantsGuided),
+					guidedMoveChoice: this.actor.system.attributes?.guidedMoveChoices?.[part.key] ?? ""
 				})),
 				partsFull: (astir.parts ?? []).length >= ASTIR_MAX_PARTS,
+				// A part key is unique across the regular and Extra pools, so Spell Routines can land
+				// in either one — this mapping carries the same guidedMoveChoosable/guidedMoveChoice
+				// fields as the regular parts mapping above for that reason.
 				extraParts: resolveAstirParts(astir.extraParts ?? []).map((part) => ({
 					key: part.key,
 					name: part.name,
 					powerCost: part.powerCost,
 					partType: part.partType,
 					tier: astir.tier ?? ASTIR_TIER_MIN,
-					disabled: this._isPartDisabled(part.key)
+					disabled: this._isPartDisabled(part.key),
+					guidedMoveChoosable: Boolean(part.grantsGuided),
+					guidedMoveChoice: this.actor.system.attributes?.guidedMoveChoices?.[part.key] ?? ""
 				})),
 				move: astirMove ? { key: astirMove.key, name: astirMove.name } : null,
 				weapons: astirWeapons.filter((w) => !w.extra),
@@ -260,6 +270,31 @@ export const AstirSheetMixin = {
 	_onAstirApproachChange(event) {
 		if (!this._astir()) return;
 		this.actor.update({ "system.attributes.astir.approach": event.currentTarget.value });
+	},
+	// Spell Routines' own dropdown (see getData's parts/extraParts mapping) — writes the chosen
+	// move's key keyed by the granting part's own key, the same per-source keying
+	// bonusDowntimeTokens/moveHold already use, so two different Guided-granting parts (should one
+	// ever exist) can't collide. No `_astir()` guard, mirroring _onTraitBonusChoiceChange's own
+	// unguarded write for the analogous move-side control.
+	_onGuidedMoveChoiceChange(event) {
+		const { part: partKey } = event.currentTarget.dataset;
+		this.actor.update({ [`system.attributes.guidedMoveChoices.${partKey}`]: event.currentTarget.value });
+	},
+	// Spell Routines' dropdown options — every rollable move rendered anywhere in moveGroups
+	// (Basic, Playbook, Astir, each Ardent's, Special alike), deduped by key. Guided only ever
+	// takes effect inside _rollMove (move-roll-mixin.js), so an activatable/summonable move
+	// (flatHold, showsReadTheRoomQuestions, Eidolon Drive's Summon, ...) or Plan & Prepare's
+	// variableDiceRoll — none of which ever reach _rollMove/configureMoveRoll — would be a choice
+	// that silently never fires; only rollable: true moves are offered.
+	_guidedMoveOptions(moveGroups) {
+		const options = new Map();
+		for (const group of moveGroups) {
+			for (const move of group.moves) {
+				if (!move.rollable) continue;
+				options.set(move.key, { key: move.key, name: move.name });
+			}
+		}
+		return [...options.values()];
 	},
 	_onAstirTierStep(event) {
 		const astir = this._astir();

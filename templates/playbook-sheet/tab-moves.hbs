@@ -62,6 +62,13 @@
 										</select>
 									</div>
 									{{/if}}
+									{{#if addsTraitToMoveChoosable}}
+									<div class="move-adds-trait-move-control">
+										<select class="adds-trait-move-select" data-move="{{key}}">
+											{{selectOptions @root.basicMoveOptions selected=addsTraitToMoveChoice valueAttr="key" labelAttr="name" blank="—"}}
+										</select>
+									</div>
+									{{/if}}
 									<div class="move-controls">
 										{{#if rollable}}
 										<button type="button" class="move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{#if gatedTooltip}} data-gate-tooltip="{{gatedTooltip}}"{{/if}}{{/if}}>Roll</button>

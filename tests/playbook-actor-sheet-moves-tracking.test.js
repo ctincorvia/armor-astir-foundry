@@ -86,6 +86,19 @@ describe("PlaybookActorSheet#activateListeners - move uses", () => {
 		expect(html.find).toHaveBeenCalledWith(".trait-bonus-select");
 		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
 	});
+
+	it("binds a change handler to the adds-trait-move select", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: {} };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".adds-trait-move-select");
+		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
+	});
 });
 
 describe("PlaybookActorSheet#_onMoveUseToggle", () => {
@@ -140,6 +153,34 @@ describe("PlaybookActorSheet#_onTraitBonusChoiceChange", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.traitBonusChoices.the-impostor:let-loose": ""
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_onAddsTraitToMoveChoiceChange", () => {
+	it("writes the selected move key to the actor, keyed by the granting move", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		sheet._onAddsTraitToMoveChoiceChange({
+			currentTarget: { dataset: { move: "cantrips:classical-spellcasting" }, value: "read-the-room" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.addsTraitToMoveChoices.cantrips:classical-spellcasting": "read-the-room"
+		});
+	});
+
+	it("writes an empty string back when the blank option is chosen", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		sheet._onAddsTraitToMoveChoiceChange({
+			currentTarget: { dataset: { move: "cantrips:classical-spellcasting" }, value: "" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.addsTraitToMoveChoices.cantrips:classical-spellcasting": ""
 		});
 	});
 });

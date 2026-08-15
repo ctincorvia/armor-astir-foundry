@@ -380,7 +380,10 @@ export async function rollMove(actor, move, trait, options = {}) {
 // comment) — posts the same mixed-success chat shape rollMove would, minus every dice-specific
 // field (no Roll term ever gets created), when the player picks configureMoveRoll's "Take 7-9"
 // button instead of rolling. Hold still gets granted exactly as rollMove would on a real 7-9 —
-// Guided skips the dice, not the move's own consequences.
+// Guided skips the dice, not the move's own consequences. options.guidedSource (the same label
+// configureMoveRoll's button used — "Guided" for a weapon tag, an Astir Part's name for Spell
+// Routines) names the actual source on the condition badge, falling back to "Guided" since it's
+// only ever missing for a caller that predates this option.
 export async function postGuidedResult(actor, move, options = {}) {
 	const tier = "mixed";
 	const hold = move.hold ? move.hold[tier] : null;
@@ -402,7 +405,7 @@ export async function postGuidedResult(actor, move, options = {}) {
 		tierLabel: MOVE_RESULT_LABELS[tier],
 		resultText: move.results[tier],
 		reminders: null,
-		conditions: [{ key: "guided", label: "Guided" }],
+		conditions: [{ key: "guided", label: options.guidedSource ?? "Guided" }],
 		dice: null,
 		hold,
 		questionPrompt: move.questionPrompts?.[tier] ?? null,

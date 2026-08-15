@@ -25,6 +25,7 @@ const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loo
 const TRANSMUTE_SELF = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:transmute-self");
 const PRE_ORDAINED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:pre-ordained");
 const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
+const CLASSICAL_SPELLCASTING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:classical-spellcasting");
 
 beforeEach(() => {
 	choosePlaybookMove.mockClear();
@@ -295,6 +296,30 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 		};
 
 		expect(playbookGroup(sheet.getData()).moves[0].traitBonusChoice).toBe("sense");
+	});
+
+	it("marks a chooseMove addsTraitToMove move (Classical Spellcasting) as addsTraitToMoveChoosable, defaulting choice to blank", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [CLASSICAL_SPELLCASTING.key] } } };
+
+		const move = playbookGroup(sheet.getData()).moves[0];
+
+		expect(move.addsTraitToMoveChoosable).toBe(true);
+		expect(move.addsTraitToMoveChoice).toBe("");
+	});
+
+	it("reflects a stored addsTraitToMove choice for that move", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [CLASSICAL_SPELLCASTING.key],
+					addsTraitToMoveChoices: { [CLASSICAL_SPELLCASTING.key]: "read-the-room" }
+				}
+			}
+		};
+
+		expect(playbookGroup(sheet.getData()).moves[0].addsTraitToMoveChoice).toBe("read-the-room");
 	});
 
 	it("shows no Roll button for a picked move that rolls nothing", () => {

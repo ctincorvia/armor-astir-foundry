@@ -54,6 +54,18 @@ describe("postGuidedResult", () => {
 		});
 	});
 
+	it("labels the condition badge with the given guidedSource instead of the generic 'Guided'", async () => {
+		const actor = { system: {} };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		renderTemplate.mockResolvedValue("<div>guided</div>");
+
+		await postGuidedResult(actor, EXCHANGE_BLOWS, { weaponLabel: "Unarmed", guidedSource: "Spell Routines" });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			conditions: [{ key: "guided", label: "Spell Routines" }]
+		}));
+	});
+
 	it("defaults weaponLabel to null when no options are given", async () => {
 		const actor = { system: {} };
 		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });

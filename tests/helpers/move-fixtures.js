@@ -26,6 +26,7 @@ export const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie"
 
 // ALL_PLAYBOOK_MOVES
 export const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
+export const CLASSICAL_SPELLCASTING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:classical-spellcasting");
 export const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
 export const ARCANE_AUGMENTS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:arcane-augments");
 export const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loose");

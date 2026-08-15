@@ -511,6 +511,19 @@ describe("MOVE_POOLS - the-artificer", () => {
 	});
 });
 
+describe("MOVE_POOLS - cantrips", () => {
+	it("gives Classical Spellcasting a chooseMove +CHANNEL addsTraitToMove grant, gated on being unmounted", () => {
+		const classicalSpellcasting = findPlaybookMove("cantrips:classical-spellcasting");
+
+		expect(classicalSpellcasting.traits).toEqual([]);
+		expect(classicalSpellcasting.addsTraitToMove).toEqual({
+			chooseMove: true,
+			trait: "channel",
+			requiresUnmounted: true
+		});
+	});
+});
+
 describe("addsCriticalReminderToMove (12+ hook)", () => {
 	it("gives Indomitable a universal grant, with no moveKeys restriction", () => {
 		const indomitable = findPlaybookMove("soldier:indomitable");
