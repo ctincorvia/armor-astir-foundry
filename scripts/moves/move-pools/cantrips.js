@@ -72,12 +72,12 @@ export const CANTRIPS_POOL = {
 			description:
 				"<p>When you use magic to temporarily restrict the actions of another, roll +CHANNEL.</p>" +
 				"<p>On a 10+, you prevent them from taking a single action or move.</p>" +
-				"<p>On a 7-9, you still prevent them, but only because you or someone else rushes to act " +
-				"against them — whoever does, acts in desperation.</p>",
+				"<p>On a 7-9, you prevent them from taking a single action or move. You or someone else " +
+				"immediately moves to act against them in desperation.</p>",
 			results: {
 				success: "You prevent them from taking a single action or move.",
-				mixed: "You still prevent them, but only because you or someone else rushes to act " +
-					"against them — whoever does, acts in desperation.",
+				mixed: "You prevent them from taking a single action or move. You or someone else " +
+					"immediately moves to act against them in desperation.",
 				failure: null
 			}
 		},
