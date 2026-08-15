@@ -132,12 +132,7 @@ export const CANTRIPS_POOL = {
 			key: "cantrips:personal-familiar",
 			name: "Personal Familiar",
 			traits: [],
-			uses: [
-				{ key: "sortie", label: "Ignored a disadvantage this Sortie", period: "Sortie" },
-				// No period — Downtime isn't a resettable button in this module (see
-				// PlaybookActorSheet#_refreshPeriod), so this stays purely manual.
-				{ key: "downtime", label: "Reported back this Downtime" }
-			],
+			uses: [{ key: "sortie", label: "Ignored a disadvantage this Sortie", period: "Sortie" }],
 			downtimeAbility: "Once per Downtime, your familiar reports back on a Scene you weren't present for.",
 			description:
 				"<p>You have a small familiar that aids you, like an animal companion or spirit or summoned " +

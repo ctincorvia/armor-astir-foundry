@@ -17,7 +17,6 @@ import { WEAPON_CONDUIT } from "./helpers/move-fixtures.js";
 const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:alchemical-suite");
 const DIVINATION_CODEX = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:divination-codex");
 const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
-const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
 const TACTICAL_GENIUS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:tactical-genius");
 const FORCE_MULTIPLIER = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:force-multiplier");
 const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loose");
@@ -721,40 +720,6 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [{ ...entry, spent: ["blitz"] }],
-			"system.attributes.moveHold.b-plot.value": 0,
-			"system.attributes.moveHold.the-scout:improvisation.value": 0,
-			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
-			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
-			"system.attributes.bonusDowntimeTokens.astir-part:standardised-parts.value": 1,
-			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
-			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
-			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
-			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
-			"system.attributes.approachOverride": null,
-			"system.attributes.downtimeTokens.value": 2,
-			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
-			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
-		});
-	});
-
-	it("clears a Sortie-scoped moveUses flag (Seek Allies) but leaves Personal Familiar's Downtime use", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				attributes: {
-					moveUses: {
-						[SEEK_ALLIES.key]: { sortie: true },
-						[PERSONAL_FAMILIAR.key]: { downtime: true }
-					}
-				}
-			},
-			update: vi.fn()
-		};
-
-		sheet._onRefreshSortie();
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.moveUses.${SEEK_ALLIES.key}.sortie`]: false,
 			"system.attributes.moveHold.b-plot.value": 0,
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,

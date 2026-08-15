@@ -41,8 +41,7 @@ describe("PlaybookActorSheet#getData - move uses", () => {
 		};
 
 		expect(playbookGroup(sheet.getData()).moves[0].uses).toEqual([
-			{ key: "sortie", label: "Ignored a disadvantage this Sortie", checked: true },
-			{ key: "downtime", label: "Reported back this Downtime", checked: false }
+			{ key: "sortie", label: "Ignored a disadvantage this Sortie", checked: true }
 		]);
 	});
 
@@ -108,11 +107,11 @@ describe("PlaybookActorSheet#_onMoveUseToggle", () => {
 		sheet.actor = { update: vi.fn() };
 
 		sheet._onMoveUseToggle({
-			currentTarget: { dataset: { move: PERSONAL_FAMILIAR.key, use: "downtime" }, checked: false }
+			currentTarget: { dataset: { move: PERSONAL_FAMILIAR.key, use: "sortie" }, checked: false }
 		});
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.moveUses.${PERSONAL_FAMILIAR.key}.downtime`]: false
+			[`system.attributes.moveUses.${PERSONAL_FAMILIAR.key}.sortie`]: false
 		});
 	});
 });

@@ -67,7 +67,7 @@ describe("MOVE_POOLS", () => {
 		const personalFamiliar = findPlaybookMove("cantrips:personal-familiar");
 
 		expect(seekAllies.uses.map((use) => use.key)).toEqual(["sortie"]);
-		expect(personalFamiliar.uses.map((use) => use.key)).toEqual(["sortie", "downtime"]);
+		expect(personalFamiliar.uses.map((use) => use.key)).toEqual(["sortie"]);
 	});
 
 	// PlaybookActorSheet#_onRefreshSortie reads this field to know which uses entries and flat
@@ -83,7 +83,6 @@ describe("MOVE_POOLS", () => {
 		expect(seekAllies.uses.find((use) => use.key === "sortie").period).toBe("Sortie");
 		expect(arityMethod.uses.find((use) => use.key === "sortie").period).toBe("Sortie");
 		expect(personalFamiliar.uses.find((use) => use.key === "sortie").period).toBe("Sortie");
-		expect(personalFamiliar.uses.find((use) => use.key === "downtime").period).toBeUndefined();
 		expect(getOutOfMyWay.period).toBe("Sortie");
 		expect(onceTheWarsOver.period).toBe("Sortie");
 	});
