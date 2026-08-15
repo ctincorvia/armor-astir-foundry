@@ -316,7 +316,7 @@
 	width: 4em;
 }
 
-/* Downtime Tokens section (main Total counter, plus one .power-control row per Bonus Downtime
+/* Downtime Tokens section (main Baseline counter, plus one .power-control row per Bonus Downtime
    Tokens-granting move — Master & Servant, Information Network, see progression-mixin.js's
    _bonusDowntimeTokensData) — the shared .power-control/.power-label/.power-step/.power-value
    rules above already cover every row; only the two-line label column a bonus row's name +
@@ -327,7 +327,7 @@
 	display: flex;
 	flex-direction: column;
 	gap: var(--aa-space-2);
-	margin: 0;
+	margin-bottom: var(--aa-space-3);
 	padding: 0;
 	list-style: none;
 }
