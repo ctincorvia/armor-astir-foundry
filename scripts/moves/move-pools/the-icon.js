@@ -86,6 +86,7 @@ export const THE_ICON_POOL = {
 			// on the sheet if Touchstone is ever removed afterward.
 			requiresMoves: ["the-icon:touchstone"],
 			traits: [],
+			grantsRollModifier: [{ effect: "confidence" }],
 			description:
 				"<p>Requires: Touchstone</p>" +
 				"<p>When you talk, people listen. Unless someone already intends to harm you (or you're " +

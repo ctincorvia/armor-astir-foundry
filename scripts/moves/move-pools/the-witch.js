@@ -68,13 +68,19 @@ export const THE_WITCH_POOL = {
 		{
 			key: "the-witch:embrace-chaos",
 			name: "Embrace Chaos",
-			// Retroactively converting an already-rolled 10+ into a banked 7-9, later spent to upgrade a
-			// *different* move's result tier (or flip a disadvantage to an advantage), isn't modeled
-			// anywhere in this module — the closest existing shape, a move's own tiered `hold`, only ever
-			// grants hold as a consequence of the tier actually rolled, it can't rewrite that tier after
-			// the fact or bank a choice to spend later against an unrelated roll. Prose only, per
-			// docs/domains/moves.md's "systems that do not exist yet".
+			// "Take a partial success as if you had rolled a 7-9" is retroactive on an already-posted
+			// roll -- the same mechanism Once the War's Over already proves out verbatim: a
+			// grantsAutomaticSuccess entry is a chat-card offer, not a pre-roll dialog choice, so it
+			// upgrades a *different*, later 7-9 roll to a 10+ rather than needing to rewrite this roll's
+			// own tier after the fact. The "hold 1" itself is this move's own flatHold pool (driving the
+			// existing generic hold stepper), spent 1-for-1 on either listed option: upgrading a 7-9
+			// (grantsAutomaticSuccess.cost) or converting a disadvantage into an advantage on the
+			// currently open roll (grantsRollModifier.costsHold, not deferred -- the rules text reads as
+			// an in-the-moment choice, not a bank-for-later one).
 			traits: [],
+			flatHold: 1,
+			grantsAutomaticSuccess: { cost: 1 },
+			grantsRollModifier: [{ advantage: "advantage", costsHold: { amount: 1 } }],
 			description:
 				"<p>Whenever you roll a 10+, you may opt to instead take a partial success as if you had " +
 				"rolled a 7-9. If you do so, hold 1, which you may spend at any point before the end of " +

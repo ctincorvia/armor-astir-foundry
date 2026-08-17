@@ -130,7 +130,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: []
+			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null
 		});
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
@@ -152,7 +152,8 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: armed.id, tagKey: "blitz" })]
+			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: armed.id, tagKey: "blitz" })],
+			rollModifiers: [], rollStack: null
 		});
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz", heatUp: NO_HEAT_UP }
@@ -211,7 +212,8 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 		expect(chooseWeapon).not.toHaveBeenCalled();
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })]
+			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })],
+			rollModifiers: [], rollStack: null
 		});
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz", heatUp: NO_HEAT_UP }

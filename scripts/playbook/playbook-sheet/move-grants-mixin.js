@@ -4,6 +4,8 @@ import { getTargetedNpc } from "../../moves/target-tier.js";
 import { TIER_MIN } from "../../equipment/equipment.js";
 import { approachMatchupStack } from "../../moves/approach-matchup.js";
 import { ALL_MOVES } from "../../moves/all-moves.js";
+import { HOLD_MIN } from "../../moves/moves.js";
+import { SPOTLIGHT_MIN } from "./progression-mixin.js";
 
 // Standing, actor-wide roll effects (Number Of The Beast, Cold Company) and every "does a picked
 // move grant something to a different move" resolver — see moves-mixin.js's file comment for how
@@ -283,5 +285,179 @@ export const MoveGrantsSheetMixin = {
 		if (!astir) return false;
 		if (this._mountedFrame()?.id !== "astir") return false;
 		return !astir.overheating;
+	},
+	// The Roll Modifiers mechanism (see astir-moves.js's §1 grantsRollModifier doc comment) — every
+	// move source that can carry a spec, unioned across the two shapes that can grant one: the
+	// actor's picked playbook moves / mounted Astir Move (_grantingMoves, already the shared
+	// resolver every other single-target-move grant above uses) and every part installed on the
+	// currently mounted frame (_mountedParts) — needed on top of _grantingMoves since Alchemical
+	// Suite is a Part, not a move, and _grantingMoves never resolves those.
+	_rollModifierSources() {
+		return [...this._grantingMoves(), ...this._mountedParts()];
+	},
+	// Read the Room's shared hold pool vs a per-move flatHold/separateHold pool — replicates
+	// moves-mixin.js:202-204's existing `(move.flatHold || move.separateHold) ? moveHold[key] :
+	// resources.hold` branch (confirmed verbatim against source) so a grantsRollModifier's costsHold
+	// can read/write either kind through one call. Needed for Identify's cross-move spend on Read
+	// the Room's own hold — costsHold.moveKey there names a *different* move than the one carrying
+	// the grant, so this can't just reuse a move's own already-resolved `hold` field from
+	// _moveGroupMoves.
+	_moveHoldValue(moveKey) {
+		const move = ALL_MOVES.find((m) => m.key === moveKey);
+		if (move?.flatHold || move?.separateHold) {
+			return this.actor.system.attributes?.moveHold?.[moveKey]?.value ?? 0;
+		}
+		return this.actor.system.resources?.hold?.value ?? 0;
+	},
+	_moveHoldUpdatePath(moveKey) {
+		const move = ALL_MOVES.find((m) => m.key === moveKey);
+		if (move?.flatHold || move?.separateHold) {
+			return `system.attributes.moveHold.${moveKey}.value`;
+		}
+		return "system.resources.hold.value";
+	},
+	// The resource-kind dispatcher for a single grantsRollModifier spec (see astir-moves.js's §1 doc
+	// comment for the full field list) — one branch per gate kind, mirroring
+	// _availableAutomaticSuccess's own cost/useKey/costsPeril dispatch above. Returns
+	// {available, reason} rather than a plain boolean, so a disabled row in the dialog can show why
+	// (see _rollModifiersForMove/move-roll-dialog.hbs's disabledReason).
+	_rollModifierAvailability(spec, source) {
+		if (spec.requiresOverheating || spec.costsOverheating) {
+			const available = Boolean(this._astir()?.overheating);
+			return { available, reason: available ? null : "Not overheating" };
+		}
+		if (spec.costsSpotlight) {
+			const value = this.actor.system.attributes?.spotlight?.value ?? 0;
+			const available = value >= spec.costsSpotlight;
+			return { available, reason: available ? null : `Needs ${spec.costsSpotlight} Spotlight` };
+		}
+		if (spec.costsHold) {
+			const moveKey = spec.costsHold.moveKey ?? source.key;
+			const available = this._moveHoldValue(moveKey) >= spec.costsHold.amount;
+			return { available, reason: available ? null : `Needs ${spec.costsHold.amount} hold` };
+		}
+		if (spec.costsPotion) {
+			const available = (this._astir()?.potions?.[spec.costsPotion] ?? 0) > 0;
+			return { available, reason: available ? null : `No ${spec.costsPotion} Potion left` };
+		}
+		if (spec.costsUse) {
+			const available = !this.actor.system.attributes?.moveUses?.[source.key]?.[spec.costsUse];
+			return { available, reason: available ? null : "Already used" };
+		}
+		return { available: true, reason: null };
+	},
+	// The move-roll dialog's own Roll Modifiers section (see move-dialogs.js's configureMoveRoll) —
+	// mirrors _astirPartSpends' shape: every entry whose moveKeys is absent or matches the move about
+	// to be rolled is always included, never hidden, only ever `disabled` — when its own gate fails,
+	// or (for an effect-setting spec specifically, mirroring _astirPartSpends' own
+	// `Boolean(lockedEffect && part.spend.effect)`) this roll's Effect is already locked elsewhere.
+	// Dark Guarantees' reminderOnly entry (the-wither.js) is never gated or disabled — it renders as
+	// description text only, with no checkbox at all (see the template).
+	_rollModifiersForMove(move, lockedEffect) {
+		const entries = [];
+		for (const source of this._rollModifierSources()) {
+			for (const spec of source.grantsRollModifier ?? []) {
+				if (spec.moveKeys && !spec.moveKeys.includes(move.key)) continue;
+				const key = spec.key ?? source.key;
+				const label = spec.label ?? source.name;
+				const description = spec.description ?? source.description;
+				if (spec.reminderOnly) {
+					entries.push({
+						key,
+						label,
+						description,
+						advantage: null,
+						effect: null,
+						reminderOnly: true,
+						deferred: false,
+						disabled: false,
+						disabledReason: null
+					});
+					continue;
+				}
+				const { available, reason } = this._rollModifierAvailability(spec, source);
+				const effectLocked = Boolean(spec.effect) && Boolean(lockedEffect);
+				const disabled = !available || effectLocked;
+				entries.push({
+					key,
+					label,
+					description,
+					advantage: spec.advantage ?? null,
+					effect: spec.effect ?? null,
+					reminderOnly: false,
+					deferred: Boolean(spec.deferred),
+					disabled,
+					disabledReason: disabled ? (available ? "Effect already set" : reason) : null
+				});
+			}
+		}
+		return entries;
+	},
+	// All In's own single grantsRollStack entry (cantrips.js), if picked — the same {key, name,
+	// ...grant} mapping shape _availableAutomaticSuccess's own map() uses above, just resolved once
+	// (this dialog offers at most one grantsRollStack source, unlike automatic success's
+	// every-qualifying-source list).
+	_rollStackModifier() {
+		const source = resolvePlaybookMoves(this._playbookMoves()).find((m) => m.grantsRollStack);
+		if (!source) return null;
+		return { key: source.key, label: source.name, ...source.grantsRollStack };
+	},
+	// The write side of the Roll Modifiers section — mirrors _spendAstirParts/_spendEquipmentTags/
+	// handleAutomaticSuccess's own per-kind write branches, one actor.update batch for every checked
+	// entry regardless of source. A deferred entry (Snakes in the Grass, Bonded in Blood, Alchemical
+	// Suite's two Potions) additionally writes a pendingRollModifiers marker instead of applying to
+	// this roll — see _pendingRollModifierGrant/_clearPendingRollModifier below for the read/clear
+	// side.
+	async _spendRollModifiers(keys) {
+		if (!keys?.length) return;
+		const updates = {};
+		for (const source of this._rollModifierSources()) {
+			for (const spec of source.grantsRollModifier ?? []) {
+				const key = spec.key ?? source.key;
+				if (!keys.includes(key)) continue;
+				if (spec.costsOverheating) {
+					updates["system.attributes.astir.overheating"] = false;
+				} else if (spec.costsSpotlight) {
+					const current = this.actor.system.attributes?.spotlight?.value ?? 0;
+					updates["system.attributes.spotlight.value"] = Math.max(SPOTLIGHT_MIN, current - spec.costsSpotlight);
+				} else if (spec.costsHold) {
+					const moveKey = spec.costsHold.moveKey ?? source.key;
+					updates[this._moveHoldUpdatePath(moveKey)] =
+						Math.max(HOLD_MIN, this._moveHoldValue(moveKey) - spec.costsHold.amount);
+				} else if (spec.costsPotion) {
+					const current = this._astir()?.potions?.[spec.costsPotion] ?? 0;
+					updates[`system.attributes.astir.potions.${spec.costsPotion}`] = Math.max(0, current - 1);
+				} else if (spec.costsUse) {
+					updates[`system.attributes.moveUses.${source.key}.${spec.costsUse}`] = true;
+				}
+				if (spec.deferred) {
+					updates[`system.attributes.pendingRollModifiers.${source.key}.${spec.key ?? "default"}`] = true;
+				}
+			}
+		}
+		if (Object.keys(updates).length) await this.actor.update(updates);
+	},
+	// The read half of the one-shot deferred mechanism (see move-roll-mixin.js's _rollMove) — the
+	// first still-pending deferred grant (across every roll-modifier source) whose moveKeys is absent
+	// or matches the move about to be rolled. Re-resolves advantage/effect fresh from the catalog
+	// every read, per claude.md's "catalog in code, keys on the actor" convention — only the boolean
+	// marker itself is persisted.
+	_pendingRollModifierGrant(move) {
+		for (const source of this._rollModifierSources()) {
+			for (const spec of source.grantsRollModifier ?? []) {
+				if (!spec.deferred) continue;
+				if (spec.moveKeys && !spec.moveKeys.includes(move.key)) continue;
+				const specKey = spec.key ?? "default";
+				const pending = Boolean(this.actor.system.attributes?.pendingRollModifiers?.[source.key]?.[specKey]);
+				if (!pending) continue;
+				return { advantage: spec.advantage ?? null, effect: spec.effect ?? null, sourceKey: source.key, specKey };
+			}
+		}
+		return null;
+	},
+	// Clears a pending grant once _rollMove has applied it to a roll — the one-shot half of the
+	// mechanism, so the same grant can't silently re-apply to a later roll too.
+	async _clearPendingRollModifier(sourceKey, specKey) {
+		await this.actor.update({ [`system.attributes.pendingRollModifiers.${sourceKey}.${specKey}`]: false });
 	}
 };

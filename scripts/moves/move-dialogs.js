@@ -46,6 +46,13 @@ export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates
 // whatever the Dice select reports, the same way a spent effect already wins over the Effect
 // select.
 //
+// rollModifiers (see PlaybookActorSheet#_rollModifiersForMove) is the Roll Modifiers section —
+// every grantsRollModifier entry offered for this specific move (Category B/C entries), each
+// carrying its own resolved advantage/effect/deferred/disabled shape. rollStack (see
+// PlaybookActorSheet#_rollStackModifier) is the separate, single Category D entry (All In) —
+// a live Dice-select-reactive stack rather than a gated actor-state spend, so it's wired through
+// the Dialog's own `render` callback below instead of a checked-box lookup at Roll time alone.
+//
 // guided (see PlaybookActorSheet#_rollMove) is the *source's* own label — "Guided" for the weapon
 // tag, or the granting Astir Part's name (e.g. "Spell Routines") — rather than a bare boolean.
 // The template's own move-roll-guided-note already names the source ("Spell Routines: use the
@@ -56,7 +63,16 @@ export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates
 export async function configureMoveRoll(
 	move,
 	traits,
-	{ lockedEffect = null, lockedAdvantage = null, lockedTrait = null, equipmentSpends = [], astirPartSpends = [], guided = null } = {}
+	{
+		lockedEffect = null,
+		lockedAdvantage = null,
+		lockedTrait = null,
+		equipmentSpends = [],
+		astirPartSpends = [],
+		rollModifiers = [],
+		rollStack = null,
+		guided = null
+	} = {}
 ) {
 	const content = await renderTemplate(MOVE_ROLL_DIALOG_TEMPLATE, {
 		traits,
@@ -83,6 +99,8 @@ export async function configureMoveRoll(
 		lockedTrait,
 		equipmentSpends,
 		astirPartSpends,
+		rollModifiers,
+		rollStack,
 		guided
 	});
 
@@ -90,6 +108,22 @@ export async function configureMoveRoll(
 		new Dialog({
 			title: `Roll ${move.name}`,
 			content,
+			// All In's own live-reactive checkbox (Category D — see cantrips.js's grantsRollStack):
+			// enabled only while Advantage is currently selected, and unchecked the moment Advantage
+			// is changed away from it. Must be a field on this Dialog's first argument (DialogData),
+			// not the options object below — Foundry's Dialog only ever invokes `this.data.render`,
+			// not `options.render` (see client/ui/dialog.js; confirmed against the existing precedent
+			// at equipment-dialogs.js's chooseEquipmentCatalogItem/chooseWeapon, whose own `render`
+			// field sits in this same spot for the same reason).
+			render: (html) => {
+				if (!rollStack) return;
+				const updateRollStackState = () => {
+					const enabled = html.find("[name='advantage']").val() === "advantage";
+					html.find("[name='roll-stack']").prop("disabled", !enabled).prop("checked", (i, v) => enabled && v);
+				};
+				html.find("[name='advantage']").on("change", updateRollStackState);
+				updateRollStackState();
+			},
 			buttons: {
 				roll: {
 					label: "Roll",
@@ -127,11 +161,47 @@ export async function configureMoveRoll(
 							.at(-1)?.effect;
 						const spentPartEffect = spentPartSpends.filter((spend) => spend.effect).at(-1)?.effect;
 						const spentPartAdvantage = spentPartSpends.filter((spend) => spend.advantage).at(-1)?.advantage;
+						// Roll Modifiers (see PlaybookActorSheet#_rollModifiersForMove) split into two
+						// checkbox names by the template: non-deferred [name='roll-modifier'] entries
+						// apply to THIS roll (folded into rollModifierAdvantage/rollModifierEffect
+						// below, same "checked IS the choice"/.at(-1) collision rule as the equipment/
+						// Astir Part spends above); deferred [name='pending-roll-modifier'] entries
+						// never touch this roll's own Advantage/Effect, only its resource cost — both
+						// lists feed spentRollModifiers below, for
+						// PlaybookActorSheet#_spendRollModifiers to actually consume.
+						const checkedRollModifierKeys = rollModifiers.length
+							? html.find("[name='roll-modifier']:checked").map((_, el) => el.value).get()
+							: [];
+						const checkedPendingRollModifierKeys = rollModifiers.length
+							? html.find("[name='pending-roll-modifier']:checked").map((_, el) => el.value).get()
+							: [];
+						const checkedRollModifierEntries = checkedRollModifierKeys
+							.map((key) => rollModifiers.find((entry) => entry.key === key))
+							.filter(Boolean);
+						const rollModifierAdvantage = checkedRollModifierEntries.filter((entry) => entry.advantage).at(-1)?.advantage;
+						const rollModifierEffect = checkedRollModifierEntries.filter((entry) => entry.effect).at(-1)?.effect;
+						const spentRollModifiers = [...checkedRollModifierKeys, ...checkedPendingRollModifierKeys];
+						// All In (see cantrips.js's grantsRollStack) — a live Dice-select-reactive
+						// stack rather than a gated actor-state spend, so it's read directly off the
+						// checkbox rather than through _rollModifierAvailability/_spendRollModifiers.
+						// Only ever meaningfully checked while the render callback above has already
+						// enabled it (Advantage selected), so no separate "is Advantage selected"
+						// re-check is needed here.
+						const allInChecked = Boolean(rollStack) && Boolean(html.find("[name='roll-stack']").prop("checked"));
 
 						resolve({
 							trait: lockedTrait ?? traits.find((t) => t.key === html.find("[name='trait']").val()),
-							advantage: spentPartAdvantage ?? lockedAdvantage ?? html.find("[name='advantage']").val(),
-							effect: lockedEffect ?? spentEffect ?? spentPartEffect ?? html.find("[name='effect']").val(),
+							advantage: (allInChecked ? rollStack.setAdvantage : null)
+								?? spentPartAdvantage
+								?? rollModifierAdvantage
+								?? lockedAdvantage
+								?? html.find("[name='advantage']").val(),
+							effect: (allInChecked ? rollStack.setEffect : null)
+								?? lockedEffect
+								?? spentEffect
+								?? spentPartEffect
+								?? rollModifierEffect
+								?? html.find("[name='effect']").val(),
 							...(move.intents && {
 								intent: move.intents.find((i) => i.key === html.find("[name='intent']").val())
 							}),
@@ -139,7 +209,8 @@ export async function configureMoveRoll(
 								conditions: html.find("[name='condition']:checked").map((_, el) => el.value).get()
 							}),
 							...(equipmentSpends.length && { spentTags }),
-							...(astirPartSpends.length && { spentParts })
+							...(astirPartSpends.length && { spentParts }),
+							...(rollModifiers.length && { spentRollModifiers })
 						});
 					}
 				},
@@ -161,8 +232,11 @@ export async function configureMoveRoll(
 			// Dialog's own default (400px) crowded the Equipment section's tag name + description
 			// onto too narrow a column once the checkbox got its own row back (see
 			// move-roll-equipment-spend-option in styles/playbook-actor-sheet.css) — a little extra
-			// width gives that text room without needing to shrink or truncate it.
-			width: 480
+			// width gives that text room without needing to shrink or truncate it. Bumped again, from
+			// 480 to 560, once Roll Modifiers joined the dialog — several unscoped entries (Manawheels,
+			// Sharper Knives, Field Testing, You Should See Me In A Crown, ...) show up in nearly every
+			// dialog, and 480 was already sized tightly for two sections.
+			width: 560
 		}).render(true);
 	});
 }

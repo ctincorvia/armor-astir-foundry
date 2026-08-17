@@ -20,6 +20,8 @@ export const READ_THE_ROOM = BASIC_MOVES.find((m) => m.key === "read-the-room");
 export const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertainties");
 export const BITE_THE_DUST = BASIC_MOVES.find((m) => m.key === "bite-the-dust");
 export const WEAVE_MAGIC = BASIC_MOVES.find((m) => m.key === "weave-magic");
+export const HELP_OR_HINDER = BASIC_MOVES.find((m) => m.key === "help-or-hinder");
+export const COOL_OFF = BASIC_MOVES.find((m) => m.key === "cool-off");
 
 // SPECIAL_MOVES
 export const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
@@ -43,6 +45,27 @@ export const HELPING_HANDS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summo
 export const LIVING_DRIVE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:living-drive");
 export const ENDURING_SUPPORT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:enduring-support");
 
+// grantsRollModifier/grantsRollStack sources (Roll Modifiers section — see
+// tests/playbook-actor-sheet-roll-modifiers.test.js and the-*.js/cantrips.js catalog entries).
+export const WATCH_THIS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-commander:watch-this");
+export const SHARPER_KNIVES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:sharper-knives");
+export const IDENTIFY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:identify");
+export const NEW_PERSPECTIVE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:new-perspective");
+export const FIELD_TESTING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-artificer:field-testing");
+export const MASTER_SERVANT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-attendant:master-servant");
+export const THE_UTMOST_CARE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-attendant:the-utmost-care");
+export const YOU_SHOULD_SEE_ME_IN_A_CROWN =
+	ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-icon:you-should-see-me-in-a-crown");
+export const DARK_GUARANTEES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-wither:dark-guarantees");
+export const SNAKES_IN_THE_GRASS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-adrift:snakes-in-the-grass");
+export const RAVENOUS_SPECTRE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:ravenous-spectre");
+export const BONDED_IN_BLOOD = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:bonded-in-blood");
+export const EMBRACE_CHAOS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:embrace-chaos");
+export const ALL_IN = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:all-in");
+// separateHold (not flatHold) — the-arcanist:reshape, the one exercised _moveHoldValue/
+// _moveHoldUpdatePath's "flatHold falsy, separateHold truthy" branch needs.
+export const RESHAPE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:reshape");
+
 // ASTIR_PART_CATALOG
 export const WEAPON_CONDUIT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:weapon-conduit");
 export const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:alchemical-suite");
@@ -61,3 +84,6 @@ export const MANA_DEVOURER = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:man
 export const PETRIFIER_CORE = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:petrifier-core");
 export const INERTIA_DRIVE = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:inertia-drive");
 export const FUTURE_SIGHT = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:future-sight");
+export const MANAWHEELS = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:manawheels");
+export const BRANDED_BLADES = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:branded-blades");
+export const GOLIATH_SHIELD = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:goliath-shield");

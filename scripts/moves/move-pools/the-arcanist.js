@@ -116,13 +116,13 @@ export const THE_ARCANIST_POOL = {
 		{
 			key: "the-arcanist:identify",
 			name: "Identify",
-			// References spending 1 hold from read-the-room (a basic move's own shared hold pool,
-			// already spendable via the existing hold stepper) to grant Advantage on a specific future
-			// task — cross-move hold consumption for a purpose like this isn't generalized anywhere in
-			// this module (contrast grantsAutomaticSuccess, which is specifically an auto-succeed
-			// offer). The player spends Read the Room's hold and applies Advantage manually via the
-			// roll dialog's own Dice select, same as New Perspective's identical non-enforcement.
+			// Spends 1 hold from Read the Room's own shared pool (grantsRollModifier's costsHold, with
+			// an explicit moveKey since this spends a *different* move's hold than the one this grant
+			// itself lives on) to take Advantage on a future task -- unscoped, since which task
+			// "recreating elements of an identified Astir" covers is still the player's own fictional
+			// judgment call; only the resource spend and Advantage grant are mechanized.
 			traits: [],
+			grantsRollModifier: [{ advantage: "advantage", costsHold: { moveKey: "read-the-room", amount: 1 } }],
 			description:
 				"<p>You may spend 1 hold from read the room to identify an Astir, learning its approach, " +
 				"source and general capabilities. When attempting to recreate elements of an identified " +
@@ -185,10 +185,10 @@ export const THE_ARCANIST_POOL = {
 		{
 			key: "the-arcanist:new-perspective",
 			name: "New Perspective",
-			// "Read the room with confidence & advantage" needs no new plumbing — the player sets those
-			// two states themselves in the roll dialog before rolling Read the Room, same as any other
-			// move referencing a specific Effect/Advantage combination elsewhere in this module.
+			// "Read the room with confidence & advantage" -- a no-gate grantsRollModifier scoped to
+			// Read the Room, setting both axes at once via the roll dialog's own Roll Modifiers section.
 			traits: [],
+			grantsRollModifier: [{ moveKeys: ["read-the-room"], advantage: "advantage", effect: "confidence" }],
 			description:
 				"<p>When you are put in peril, you may read the room with confidence & advantage in " +
 				"response.</p>"

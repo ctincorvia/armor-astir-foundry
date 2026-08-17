@@ -84,6 +84,7 @@ export const THE_COMMANDER_POOL = {
 			key: "the-commander:watch-this",
 			name: "Watch This",
 			traits: [],
+			grantsRollModifier: [{ moveKeys: ["weather-the-storm"], advantage: "advantage", costsSpotlight: 3 }],
 			description:
 				"<p>You may spend 3 Spotlight to quickly manoeuvre your crew or an Ardent they " +
 				"are crewing to any location within sight, even if the path there would be " +

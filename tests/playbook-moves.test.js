@@ -10,6 +10,7 @@ import {
 	resolvePlaybookMoves,
 	unmetMoveRequirements
 } from "../scripts/moves/playbook-moves.js";
+import { ALL_MOVES } from "../scripts/moves/all-moves.js";
 
 const BULLHEADED = "the-impostor:bullheaded";
 // Deny is the one real Cantrip with traits/results — plays the same functional role the old
@@ -442,5 +443,35 @@ describe("choosePlaybookMove", () => {
 		const { sections } = renderTemplate.mock.calls.at(-1)[1];
 
 		expect(sections.flatMap((section) => section.moves ?? [])).toEqual([]);
+	});
+});
+
+// grantsRollModifier lives on playbook moves, Astir Moves and Astir Parts alike (see
+// astir-moves.js's own §1 doc comment) — scanned across ALL_MOVES, not just ALL_PLAYBOOK_MOVES, so
+// this also catches Manawheels/Branded Blades/Goliath Shield (astir-moves.js) and Alchemical Suite
+// (astir-parts.js). Mirrors equipment-tags.test.js's own "every reroll.moves key resolves to a
+// real move" assertion for the identical reason: PlaybookActorSheet#_rollModifiersForMove trusts
+// every moveKeys entry to resolve via ALL_MOVES with no stale-key fallback.
+describe("grantsRollModifier", () => {
+	it("resolves every moveKeys entry, across every catalog, to a real ALL_MOVES key", () => {
+		const sources = ALL_MOVES.filter((move) => move.grantsRollModifier);
+		expect(sources.length).toBeGreaterThan(0);
+
+		for (const source of sources) {
+			for (const spec of source.grantsRollModifier) {
+				if (!spec.moveKeys) continue;
+				for (const moveKey of spec.moveKeys) {
+					expect(ALL_MOVES.some((move) => move.key === moveKey)).toBe(true);
+				}
+			}
+		}
+	});
+
+	it("gives Alchemical Suite's two grantsRollModifier specs their own unique, truthy keys", () => {
+		const alchemicalSuite = ALL_MOVES.find((move) => move.key === "astir-part:alchemical-suite");
+		const keys = alchemicalSuite.grantsRollModifier.map((spec) => spec.key);
+
+		expect(keys.every(Boolean)).toBe(true);
+		expect(new Set(keys).size).toBe(keys.length);
 	});
 });

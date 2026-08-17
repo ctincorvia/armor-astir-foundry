@@ -122,11 +122,12 @@ export const CANTRIPS_POOL = {
 		{
 			key: "cantrips:all-in",
 			name: "All In",
-			// The extra-Advantage-for-Desperation trade would mean stacking a second Advantage
-			// state on top of whatever a roll already has, which roll-effects.js's
-			// ADVANTAGE_STATES/EFFECT_STATES don't model (each roll picks exactly one of
-			// each) — not built; applied by hand at the table for now.
+			// The extra-Advantage-for-Desperation trade is a live, dialog-reactive stack on top of
+			// whatever Advantage the player already picked, not a gated actor-state spend -- see
+			// grantsRollStack's own shape (distinct from grantsRollModifier) in move-dialogs.js's
+			// configureMoveRoll, wired to the roll dialog's own Dice select via a live render callback.
 			traits: [],
+			grantsRollStack: { requiresAdvantageSelected: true, setAdvantage: "advantage2", setEffect: "desperation" },
 			description:
 				"<p>When you have advantage on a move, you may take an additional advantage at the cost of " +
 				"also acting in desperation.</p>"

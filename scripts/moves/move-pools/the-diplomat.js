@@ -58,12 +58,10 @@ export const THE_DIPLOMAT_POOL = {
 		{
 			key: "the-diplomat:sharper-knives",
 			name: "Sharper Knives",
-			// Two things this needs don't exist: opt-in fictional advantage tied to a specific
-			// fictional condition ("while attempting to remain undetected or unseen" — advantage
-			// today is only ever a Dice-select choice offered uniformly on every roll, see
-			// roll-effects.js) and a notion of a risk "counting as two" (risks are freeform
-			// Danger-panel entries with no weighting). Prose only.
 			traits: [],
+			// The risk-counts-as-two half of this move's text has no weighting system to hook (risks
+			// are freeform Danger-panel entries) and stays prose only.
+			grantsRollModifier: [{ advantage: "advantage" }],
 			description:
 				"<p>You're trained in the arts of assassination and stealth. Take advantage while " +
 				"attempting to remain undetected or unseen, and being unaware of your presence " +

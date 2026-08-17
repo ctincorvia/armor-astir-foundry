@@ -139,10 +139,18 @@ export const MoveRollSheetMixin = {
 		// same treatment rather than risking a write onto an object this actor doesn't own.
 		const fromCarrier = Boolean(weapon?.fromCarrier);
 		const forced = fromCarrier ? null : this._forcedWeaponEffect(weapon);
+		// The one-shot deferred grant (Snakes in the Grass, Bonded in Blood, Alchemical Suite's two
+		// Potions -- see move-grants-mixin.js's _pendingRollModifierGrant) is read once here, ahead of
+		// both locked-axis chains below, so it can slot into each at the same rank: below the standing
+		// grants (_grantedEffectForMove/_grantedAdvantageForMove/_coldCompanyAdvantage) but above the
+		// passive target-matchup reads, matching this chain's existing "more specific/deliberate lock
+		// wins" ordering.
+		const pendingGrant = this._pendingRollModifierGrant(move);
 		const lockedEffect = (move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null)
 			?? (move.forcesDesperationOnShakenTenet && this._hasShakenTenet() ? "desperation" : null)
 			?? forced?.effect
 			?? this._grantedEffectForMove(move)
+			?? pendingGrant?.effect
 			?? this._targetMatchupEffect(move)
 			?? null;
 		// Don't Follow Me's own pair — see _grantedTraitForMove/_grantedAdvantageForMove. The
@@ -156,18 +164,21 @@ export const MoveRollSheetMixin = {
 		const grantedTraitKey = quickRoll.trait ?? this._grantedTraitForMove(move);
 		const lockedTrait = grantedTraitKey ? traits.find((t) => t.key === grantedTraitKey) ?? null : null;
 		// Don't Follow Me's single-target-move grant wins if it and Cold Company's standing haunted-
-		// state lock somehow both apply — in practice these two moves live on mutually exclusive
+		// state lock somehow both apply -- in practice these two moves live on mutually exclusive
 		// playbooks (Impostor / Wither), so this ordering is a defensive tie-break, not an expected
-		// real-world collision. The target-matchup Tier signal (_targetTierAdvantage — its Approach
-		// sibling, _targetMatchupEffect, feeds lockedEffect above instead, independently, since the two
-		// axes no longer sum into one combined stack) sits lowest in this chain — it only ever fires
-		// when nothing else has already forced the Advantage axis. An Astir Part's own reactive
-		// spend.advantage (Artifact) still wins over all three, per configureMoveRoll's own precedence —
-		// untouched by this change.
-		const lockedAdvantage = this._grantedAdvantageForMove(move) ?? this._coldCompanyAdvantage() ?? this._targetTierAdvantage(move);
+		// real-world collision. pendingGrant's own Advantage half (see above) slots in below
+		// Cold Company but above the passive target-matchup Tier signal (_targetTierAdvantage -- its
+		// Approach sibling, _targetMatchupEffect, feeds lockedEffect above instead, independently,
+		// since the two axes no longer sum into one combined stack), matching the same "more specific/
+		// deliberate lock wins" ordering pendingGrant's Effect half already follows above. An Astir
+		// Part's own reactive spend.advantage (Artifact) still wins over all of this, per
+		// configureMoveRoll's own precedence -- untouched by this change.
+		const lockedAdvantage = this._grantedAdvantageForMove(move)
+			?? this._coldCompanyAdvantage()
+			?? pendingGrant?.advantage
+			?? this._targetTierAdvantage(move);
 		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
 		const astirPartSpends = fromCarrier ? [] : this._astirPartSpends(lockedEffect);
-		// Omitted entirely rather than passed as `null` when not guided — configureMoveRoll
 		// already defaults it to null itself, and this keeps every non-Guided call's options
 		// shape exactly as it was before Guided existed, same treatment `reroll` gets below. Holds
 		// the *source's* own label ("Guided" for the weapon tag, a part's name for Spell Routines)
@@ -186,15 +197,31 @@ export const MoveRollSheetMixin = {
 			|| this._mountedParts().find((part) =>
 				part.grantsGuided && this.actor.system.attributes?.guidedMoveChoices?.[part.key] === move.key)?.name
 			|| null;
+		// The Roll Modifiers section (see move-grants-mixin.js's _rollModifiersForMove/
+		// _rollStackModifier) -- resolved unconditionally, like automaticSuccess below, rather than
+		// scoped to fromCarrier/usesWeapon: a source's own moveKeys filtering already narrows each
+		// entry to the moves it actually applies to, so there's nothing frame- or weapon-specific to
+		// additionally gate here.
+		const rollModifiers = this._rollModifiersForMove(move, lockedEffect);
+		const rollStack = this._rollStackModifier();
 		const config = await configureMoveRoll(move, traits, {
 			lockedEffect,
 			lockedAdvantage,
 			lockedTrait,
 			equipmentSpends,
 			astirPartSpends,
+			rollModifiers,
+			rollStack,
 			...(guided && { guided })
 		});
 		if (!config) return;
+
+		// The one-shot deferred grant (see pendingGrant above) is cleared the moment this roll's own
+		// config resolves -- read-then-cleared before the roll itself, so checking a deferred entry's
+		// box *inside* this same dialog never grants it to this roll, only the next one (see
+		// move-grants-mixin.js's _pendingRollModifierGrant doc comment for the known UX quirk this
+		// implies).
+		if (pendingGrant) await this._clearPendingRollModifier(pendingGrant.sourceKey, pendingGrant.specKey);
 
 		// Guided's "Take 7-9" button resolves with nothing but this flag — no trait, dice, or
 		// equipment/Astir Part spend was ever read, so there's nothing to mark spent and nothing
@@ -216,6 +243,11 @@ export const MoveRollSheetMixin = {
 		const spends = [...(config.spentTags ?? []), ...(forced ? [{ equipmentId: weapon.id, tagKey: forced.tagKey }] : [])];
 		if (spends.length) await this._spendEquipmentTags(spends);
 		if (config.spentParts?.length) await this._spendAstirParts(config.spentParts);
+		// See configureMoveRoll's own spentRollModifiers doc comment -- covers both immediate
+		// (checked [name='roll-modifier']) and deferred (checked [name='pending-roll-modifier'])
+		// entries alike, since both need their resource cost actually consumed; only the deferred
+		// ones additionally write a pendingRollModifiers marker (see _spendRollModifiers itself).
+		if (config.spentRollModifiers?.length) await this._spendRollModifiers(config.spentRollModifiers);
 
 		// Pre-resolved to a plain {key, label} badge here (rather than passing partKeys into
 		// moves.js) so that module never needs to import astir.js — see moves.js#rollMove.

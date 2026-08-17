@@ -6,6 +6,7 @@ import { CLASH_TRAIT, fakeRollHtml, mockRoll } from "./helpers/move-test-helpers
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 const HELP_OR_HINDER = BASIC_MOVES.find((m) => m.key === "help-or-hinder");
 const BITE_THE_DUST = BASIC_MOVES.find((m) => m.key === "bite-the-dust");
+const READ_THE_ROOM = BASIC_MOVES.find((m) => m.key === "read-the-room");
 const PLAN_AND_PREPARE = SPECIAL_MOVES.find((m) => m.key === "plan-and-prepare");
 
 beforeEach(() => {
@@ -594,6 +595,367 @@ describe("configureMoveRoll - guided", () => {
 		await Promise.resolve();
 
 		expect(Dialog.mock.calls.at(-1)[0].buttons.takeSeven).toBeUndefined();
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+});
+
+describe("configureMoveRoll - roll modifiers", () => {
+	const clash = CLASH_TRAIT;
+	const advantageEntry = {
+		key: "the-diplomat:sharper-knives", label: "Sharper Knives", description: "d",
+		advantage: "advantage", effect: null, reminderOnly: false, deferred: false, disabled: false, disabledReason: null
+	};
+	const effectEntry = {
+		key: "the-icon:you-should-see-me-in-a-crown", label: "You Should See Me In A Crown", description: "d",
+		advantage: null, effect: "confidence", reminderOnly: false, deferred: false, disabled: false, disabledReason: null
+	};
+	const deferredEntry = {
+		key: "the-adrift:snakes-in-the-grass", label: "Snakes In The Grass", description: "d",
+		advantage: "advantage", effect: null, reminderOnly: false, deferred: true, disabled: false, disabledReason: null
+	};
+
+	it("passes the offered roll modifiers to the dialog template", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollModifiers: [advantageEntry] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			rollModifiers: [advantageEntry]
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults rollModifiers to an empty list", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			rollModifiers: []
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("sets the roll's advantage from a checked, non-deferred entry", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollModifiers: [advantageEntry] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], [], [advantageEntry.key]));
+
+		const result = await promise;
+		expect(result.advantage).toBe("advantage");
+		expect(result.spentRollModifiers).toEqual([advantageEntry.key]);
+	});
+
+	it("sets the roll's effect from a checked, non-deferred entry", async () => {
+		const promise = configureMoveRoll(READ_THE_ROOM, [clash], { rollModifiers: [effectEntry] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], [], [effectEntry.key]));
+
+		expect((await promise).effect).toBe("confidence");
+	});
+
+	it("does not let a checked deferred entry touch this roll's advantage or effect, but still spends it", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollModifiers: [deferredEntry] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], [], [], [deferredEntry.key]));
+
+		const result = await promise;
+		expect(result.advantage).toBe("none");
+		expect(result.spentRollModifiers).toEqual([deferredEntry.key]);
+	});
+
+	it("merges checked immediate and deferred entries into spentRollModifiers together", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollModifiers: [advantageEntry, deferredEntry] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], [], [advantageEntry.key], [deferredEntry.key]));
+
+		expect((await promise).spentRollModifiers).toEqual([advantageEntry.key, deferredEntry.key]);
+	});
+
+	it("takes the later checked entry's advantage on a collision", async () => {
+		const otherAdvantage = { ...advantageEntry, key: "astir:manawheels", advantage: "advantage2" };
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollModifiers: [advantageEntry, otherAdvantage] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], [], [advantageEntry.key, otherAdvantage.key]));
+
+		expect((await promise).advantage).toBe("advantage2");
+	});
+
+	it("lets a spent Astir Part's advantage win over a checked roll modifier's advantage", async () => {
+		const spend = {
+			partKey: "astir-part:artifact", partName: "Artifact", description: "d", effect: null, advantage: "advantage2", disabled: false
+		};
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { astirPartSpends: [spend], rollModifiers: [advantageEntry] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], ["astir-part:artifact"], [advantageEntry.key]));
+
+		expect((await promise).advantage).toBe("advantage2");
+	});
+
+	it("lets a checked roll modifier's advantage win over lockedAdvantage", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { lockedAdvantage: "disadvantage", rollModifiers: [advantageEntry] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], [], [advantageEntry.key]));
+
+		expect((await promise).advantage).toBe("advantage");
+	});
+
+	it("resolves an empty spentRollModifiers list, and falls back to the selects, when none were checked", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollModifiers: [advantageEntry] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}));
+
+		const result = await promise;
+		expect(result.advantage).toBe("none");
+		expect(result.spentRollModifiers).toEqual([]);
+	});
+
+	it("does not add a spentRollModifiers key when no roll modifier was offered", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}));
+
+		expect(await promise).toEqual({ trait: clash, advantage: "none", effect: "none" });
+	});
+});
+
+describe("configureMoveRoll - roll stack (All In)", () => {
+	const clash = CLASH_TRAIT;
+	const rollStack = { key: "cantrips:all-in", label: "All In", requiresAdvantageSelected: true, setAdvantage: "advantage2", setEffect: "desperation" };
+
+	it("passes rollStack through to the dialog template", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollStack });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			rollStack
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults rollStack to null", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			rollStack: null
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("leaves advantage/effect untouched when the Stack checkbox isn't checked", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollStack });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "advantage",
+			"[name='effect']": "none"
+		}, [], [], [], [], [], false));
+
+		const result = await promise;
+		expect(result.advantage).toBe("advantage");
+		expect(result.effect).toBe("none");
+	});
+
+	it("sets advantage/effect from rollStack when the Stack checkbox is checked", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollStack });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "advantage",
+			"[name='effect']": "none"
+		}, [], [], [], [], [], true));
+
+		const result = await promise;
+		expect(result.advantage).toBe("advantage2");
+		expect(result.effect).toBe("desperation");
+	});
+
+	it("wins over every other advantage/effect source when checked", async () => {
+		const spend = {
+			partKey: "astir-part:artifact", partName: "Artifact", description: "d", effect: null, advantage: "advantage", disabled: false
+		};
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], {
+			lockedEffect: "confidence", astirPartSpends: [spend], rollStack
+		});
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "advantage",
+			"[name='effect']": "none"
+		}, [], [], ["astir-part:artifact"], [], [], true));
+
+		const result = await promise;
+		expect(result.advantage).toBe("advantage2");
+		expect(result.effect).toBe("desperation");
+	});
+
+	// The live-reactive checkbox itself — invoked directly per the existing
+	// `Dialog.mock.calls.at(-1)[0].render(html)` pattern already used in tests/equipment-editor.test.js.
+	function fakeRollStackRenderHtml({ advantage = "none", checked = false } = {}) {
+		const state = { advantage, rollStackDisabled: undefined, rollStackChecked: checked, advantageHandlers: {} };
+		const rollStackEl = {
+			prop(name, value) {
+				if (name === "disabled") state.rollStackDisabled = value;
+				if (name === "checked") state.rollStackChecked = typeof value === "function" ? value(0, state.rollStackChecked) : value;
+				return rollStackEl;
+			}
+		};
+		const advantageEl = {
+			val: () => state.advantage,
+			on: (event, handler) => { state.advantageHandlers[event] = handler; }
+		};
+		state.html = {
+			find: (selector) => {
+				if (selector === "[name='advantage']") return advantageEl;
+				if (selector === "[name='roll-stack']") return rollStackEl;
+				return {};
+			}
+		};
+		return state;
+	}
+
+	it("does nothing when rollStack wasn't offered", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeRollStackRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.rollStackDisabled).toBeUndefined();
+		expect(Object.keys(state.advantageHandlers)).toEqual([]);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("enables the Stack checkbox on open when Advantage is already selected", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollStack });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeRollStackRenderHtml({ advantage: "advantage" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.rollStackDisabled).toBe(false);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("disables and unchecks the Stack checkbox on open when Advantage isn't selected", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollStack });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeRollStackRenderHtml({ advantage: "none", checked: true });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.rollStackDisabled).toBe(true);
+		expect(state.rollStackChecked).toBe(false);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("re-evaluates live when the Advantage select changes", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollStack });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeRollStackRenderHtml({ advantage: "none" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		expect(state.rollStackDisabled).toBe(true);
+
+		state.advantage = "advantage";
+		state.advantageHandlers.change();
+
+		expect(state.rollStackDisabled).toBe(false);
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;

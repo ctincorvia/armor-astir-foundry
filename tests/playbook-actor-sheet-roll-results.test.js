@@ -43,7 +43,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: []
+			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null
 		});
 	});
 
@@ -60,7 +60,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: []
+			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null
 		});
 	});
 

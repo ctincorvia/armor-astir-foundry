@@ -89,7 +89,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			I_KNOW_YOU,
 			[familiarity],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, I_KNOW_YOU, familiarity, { ...config, heatUp: NO_HEAT_UP });
 	});
@@ -104,7 +104,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			BASIC_MOVES.find((m) => m.key === "help-or-hinder"),
 			[],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 	});
 
@@ -123,7 +123,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "clash", label: "CLASH", value: 1 },
 				{ key: "talk", label: "TALK", value: 0 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 		// exchange-blows is usesWeapon (see moves.js) and the actor has no equipment at all here,
 		// so the weapon-choice step is skipped straight to "Unarmed" — see
@@ -163,7 +163,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 	});
 
@@ -183,7 +183,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 2 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 	});
 
@@ -206,7 +206,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: -1 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 	});
 
@@ -239,7 +239,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 	});
 
@@ -262,7 +262,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 	});
 
@@ -308,7 +308,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null });
 	});
 
 	it("does not lock Desperation when at max Dangers but the types are mixed", async () => {
@@ -329,7 +329,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null });
 	});
 
 	it("does not lock Desperation when below max Dangers, even if all are Perils", async () => {
@@ -349,7 +349,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null });
 	});
 
 	it("never locks Desperation for a move without forcesDesperationAtMaxPerils, even at max Perils", async () => {
@@ -376,7 +376,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 				{ key: "clash", label: "CLASH", value: 0 },
 				{ key: "talk", label: "TALK", value: 0 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 	});
 });
@@ -399,7 +399,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			WEAVE_MAGIC,
 			[{ key: "channel", label: "CHANNEL", value: 0 }],
-			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 	});
 
@@ -420,7 +420,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			WEAVE_MAGIC,
 			[{ key: "channel", label: "CHANNEL", value: 0 }],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 	});
 
@@ -434,7 +434,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			WEAVE_MAGIC,
 			[{ key: "channel", label: "CHANNEL", value: 0 }],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 	});
 
@@ -458,7 +458,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a
 				{ key: "clash", label: "CLASH", value: 0 },
 				{ key: "talk", label: "TALK", value: 0 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 	});
 });
@@ -481,7 +481,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Bureaucrat's quick-roll redirect to E
 				{ key: "clash", label: "CLASH", value: 0 },
 				{ key: "talk", label: "TALK", value: 2 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: talk, astirPartSpends: [], equipmentSpends: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: talk, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null }
 		);
 		// No equipment at all, so the weapon-choice step resolves straight to Unarmed, same as any
 		// other usesWeapon move with no weapons — and Bureaucrat's own reminders ride along

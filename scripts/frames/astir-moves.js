@@ -9,6 +9,7 @@ export const ASTIR_MOVE_CATALOG = [
 		key: "astir:goliath-shield",
 		name: "Goliath Shield",
 		traits: [],
+		grantsRollModifier: [{ moveKeys: ["help-or-hinder"], advantage: "advantage" }],
 		description:
 			"<p>An Astir built to take a hit is an Astir that keeps its allies standing.</p>" +
 			"<p>Take advantage when you help or hinder to protect others.</p>"
@@ -83,6 +84,7 @@ export const ASTIR_MOVE_CATALOG = [
 		key: "astir:manawheels",
 		name: "Manawheels",
 		traits: [],
+		grantsRollModifier: [{ advantage: "advantage", requiresOverheating: true }],
 		description:
 			"<p>Wheels laced with restless motes of speed magic, always straining to be let loose.</p>" +
 			"<p>While overheating, take advantage when making a move that relies on your speed.</p>"
@@ -154,6 +156,7 @@ export const ASTIR_MOVE_CATALOG = [
 		key: "astir:branded-blades",
 		name: "Branded Blades",
 		traits: [],
+		grantsRollModifier: [{ moveKeys: ["exchange-blows", "strike-decisively"], advantage: "advantage", costsOverheating: true }],
 		description:
 			"<p>Sigils burned into an Astir's own weapons flare brighter the hotter its core runs.</p>" +
 			"<p>Untick 'overheating' on your Astir to give your next exchange blows or strike " +
@@ -243,6 +246,7 @@ export const ASTIR_MOVE_CATALOG = [
 		key: "astir:palimpsest-system",
 		name: "Palimpsest System",
 		traits: [],
+		grantsRollModifier: [{ moveKeys: ["weave-magic"], advantage: "advantage" }],
 		description:
 			"<p>Layer upon layer of recorded magic, ready to be traced back over the moment it's " +
 			"needed.</p>" +
@@ -253,6 +257,7 @@ export const ASTIR_MOVE_CATALOG = [
 		key: "astir:never-surrender",
 		name: "Never Surrender",
 		traits: [],
+		grantsRollModifier: [{ moveKeys: ["weather-the-storm"], advantage: "advantage" }],
 		description:
 			"<p>Some Astirs are built to keep fighting long after the numbers say they should have " +
 			"gone down.</p>" +
@@ -262,6 +267,7 @@ export const ASTIR_MOVE_CATALOG = [
 		key: "astir:run-them-down",
 		name: "Run Them Down!",
 		traits: [],
+		grantsRollModifier: [{ moveKeys: ["strike-decisively"], advantage: "advantage" }],
 		description:
 			"<p>An Astir built to close distance fast hits twice as hard once it arrives.</p>" +
 			"<p>Strike decisively with advantage when striking from a running start.</p>"

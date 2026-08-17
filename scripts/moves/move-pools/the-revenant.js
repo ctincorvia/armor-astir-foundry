@@ -116,11 +116,13 @@ export const THE_REVENANT_POOL = {
 			key: "the-revenant:ravenous-spectre",
 			name: "Ravenous Spectre",
 			traits: [],
-			// A deferred, one-shot Advantage grant consumed by a future cool-off roll has no
-			// precedent (the existing grantsAdvantageOnMove family is a standing/permanent lock, not
-			// single-use), and "causing a living being to be in peril" isn't tracked actor state
-			// anywhere. Left descriptive per docs/domains/moves.md's "systems that do not exist yet"; apply
-			// Advantage by hand via the roll dialog's own Dice select when it comes up.
+			// A manual `uses` checkbox stands in for "caused a living being to be in peril" as the
+			// trigger -- nothing in this module tracks that condition automatically -- and checking it
+			// off is what the deferred grantsRollModifier entry below reads as its costsUse gate,
+			// granting Advantage to the actor's next Cool Off once spent (see
+			// move-grants-mixin.js's _pendingRollModifierGrant).
+			uses: [{ key: "triggered", label: "Caused a living being to be in peril" }],
+			grantsRollModifier: [{ moveKeys: ["cool-off"], advantage: "advantage", costsUse: "triggered", deferred: true }],
 			description:
 				"<p>When you cause a living being to be in peril, take advantage when you next cool " +
 				"off as you draw momentum or vigour from them.</p>"

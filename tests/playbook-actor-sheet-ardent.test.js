@@ -801,7 +801,8 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends from a mounted Arde
 				partKey: ARTIFACT.key, partName: "Artifact", description: ARTIFACT.spend.description,
 				effect: null, advantage: "advantage", disabled: false
 			}],
-			equipmentSpends: []
+			equipmentSpends: [],
+			rollModifiers: [], rollStack: null
 		});
 	});
 });

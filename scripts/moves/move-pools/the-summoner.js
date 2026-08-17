@@ -78,14 +78,17 @@ export const THE_SUMMONER_POOL = {
 			key: "the-summoner:bonded-in-blood",
 			name: "Bonded In Blood",
 			// Taking a peril is already the existing Danger "Add" controls
-			// (system.attributes.dangers), same reasoning as Cantrips' Fire-Eater/Selfless. "Act
-			// with advantage on your next roll" is the grant-Advantage-to-literally-the-next-roll
-			// pattern repeatedly left unmechanized elsewhere (Dark Guarantees, If I Go There Will
-			// Be Trouble — both cite docs/domains/moves.md's "systems that do not exist yet"); applied by hand
-			// at the table via the roll dialog's own Dice select. Allies "won't (or can't) abandon
-			// your service" is pure fiction with no tracked state to hook — Release already
-			// requires an explicit player click regardless of how an ally was bound.
+			// (system.attributes.dangers), same reasoning as Cantrips' Fire-Eater/Selfless. "Act with
+			// advantage on your next roll" is now a real, deferred, unscoped grantsRollModifier entry --
+			// a manual `uses` checkbox stands in for "voluntarily took a peril binding this ally" as the
+			// trigger (nothing in this module tracks that condition automatically), and checking it off
+			// spends the use and flags the grant pending for the actor's next roll (see
+			// move-grants-mixin.js's _pendingRollModifierGrant). Allies "won't (or can't) abandon your
+			// service" is pure fiction with no tracked state to hook -- Release already requires an
+			// explicit player click regardless of how an ally was bound.
 			traits: [],
+			uses: [{ key: "took-peril", label: "Took a peril binding this ally" }],
+			grantsRollModifier: [{ advantage: "advantage", costsUse: "took-peril", deferred: true }],
 			description:
 				"<p>You may voluntarily take a peril as part of binding an ally: this counts as an " +
 				"extra 1 Power's worth of binding, on top of any you choose to give. If you do so, " +

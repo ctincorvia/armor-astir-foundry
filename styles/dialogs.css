@@ -96,6 +96,25 @@
 	opacity: 0.8;
 }
 
+/* Snakes in the Grass/Bonded in Blood/Alchemical Suite's own deferred entries — same indent as
+   move-roll-equipment-description above, italic/muted since it's a note about *when* the grant
+   applies rather than what it does. */
+.armor-astir.move-roll-dialog .move-roll-modifier-deferred-note {
+	margin-left: var(--aa-space-1);
+	font-size: 11px;
+	font-style: italic;
+	opacity: 0.7;
+}
+
+/* A disabled Roll Modifiers row's own "why" (see PlaybookActorSheet#_rollModifierAvailability) —
+   same indent/size as move-roll-equipment-description, but colored to read as a blocker rather
+   than flavor text. */
+.armor-astir.move-roll-dialog .move-roll-modifier-reason {
+	margin-left: 26px;
+	font-size: 11px;
+	color: var(--aa-danger);
+}
+
 .armor-astir.equipment-editor .form-group {
 	display: flex;
 	flex-direction: column;

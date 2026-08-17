@@ -145,6 +145,13 @@ export const ASTIR_PART_CATALOG = [
 		// leads a Sortie"), but an actor sheet only ever sees its own rolls, so this is scoped to
 		// this Astir's own pilot leading the Sortie.
 		grantsPotionsOnLeadASortie: true,
+		grantsRollModifier: [
+			{ key: "blue", moveKeys: ["weave-magic"], advantage: "advantage", costsPotion: "blue", deferred: true,
+				label: "Blue Potion", description: "Take advantage when you next weave magic." },
+			{ key: "yellow", moveKeys: ["exchange-blows", "strike-decisively"], effect: "confidence",
+				costsPotion: "yellow", deferred: true,
+				label: "Yellow Potion", description: "Act with confidence when you next exchange blows or strike decisively." }
+		],
 		description:
 			"<p>A selection of alchemical equipment, capable of storing and mixing useful potions " +
 			"before venting them into the cockpit as a vapour to save time.</p>" +

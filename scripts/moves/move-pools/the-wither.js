@@ -120,11 +120,13 @@ export const THE_WITHER_POOL = {
 			name: "Dark Guarantees",
 			// "Act with confidence and advantage on that move" has no roll to hook into: both born-to-die
 			// (this same pool, above) and the subsystems move it triggers are traits: [] with no results
-			// or flatHold — neither is ever rollable, so there is no move-roll for roll-effects.js to lock
-			// Confidence/Advantage onto. "Take a peril instead of a risk" needs no code either — Dangers
-			// are already manually typed risk/peril by the player (tracking-mixin.js). Stays descriptive,
-			// see docs/domains/moves.md's "systems that do not exist yet".
+			// or flatHold -- neither is ever rollable, so there is no move-roll dialog to attach a real
+			// grantsRollModifier entry to. Per the project owner: shown in every OTHER move's Roll
+			// Modifiers section as a reminder-only entry instead (reminderOnly: true) -- description text,
+			// no Activate control, no state mutation. "Take a peril instead of a risk" needs no code
+			// either -- Dangers are already manually typed risk/peril by the player (tracking-mixin.js).
 			traits: [],
+			grantsRollModifier: [{ reminderOnly: true }],
 			description:
 				"<p>When you use born to die, you may take a peril instead of a risk. If you do, act with " +
 				"confidence and advantage on that move.</p>"

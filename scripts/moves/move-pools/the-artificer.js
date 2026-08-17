@@ -24,6 +24,7 @@ export const THE_ARTIFICER_POOL = {
 			key: "the-artificer:field-testing",
 			name: "Field Testing",
 			traits: [],
+			grantsRollModifier: [{ advantage: "advantage" }],
 			description:
 				"<p>You're used to testing out new equipment, and can easily get to grips with new " +
 				"tech. You have advantage when trying to use, analyse, or figure out something about " +

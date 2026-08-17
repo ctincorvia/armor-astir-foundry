@@ -80,6 +80,39 @@
 			{{selectOptions effectStates selected=lockedEffect valueAttr="key" labelAttr="label"}}
 		</select>
 	</div>
+	{{#if rollModifiers.length}}
+	<div class="form-group move-roll-equipment move-roll-modifiers">
+		<label>Roll Modifiers</label>
+		<div class="move-roll-equipment-list">
+			{{#each rollModifiers}}
+			<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
+				<label class="move-roll-equipment-spend-option">
+					{{#unless reminderOnly}}
+					<input type="checkbox" name="{{#if deferred}}pending-roll-modifier{{else}}roll-modifier{{/if}}"
+					       value="{{key}}" {{#if disabled}}disabled{{/if}}/>
+					{{/unless}}
+					<span class="move-roll-equipment-name">{{label}}</span>
+					{{#if deferred}}<span class="move-roll-modifier-deferred-note">(applies to your next qualifying roll)</span>{{/if}}
+				</label>
+				<div class="move-roll-equipment-description">{{description}}</div>
+				{{#if disabledReason}}<div class="move-roll-modifier-reason">{{disabledReason}}</div>{{/if}}
+			</div>
+			{{/each}}
+		</div>
+	</div>
+	{{/if}}
+	{{#if rollStack}}
+	<div class="form-group move-roll-equipment move-roll-modifiers">
+		<label>Stack</label>
+		<div class="move-roll-equipment-spend">
+			<label class="move-roll-equipment-spend-option">
+				<input type="checkbox" name="roll-stack" disabled/>
+				<span class="move-roll-equipment-name">{{rollStack.label}}</span>
+			</label>
+			<div class="move-roll-equipment-description">Take an additional Advantage at the cost of Desperation.</div>
+		</div>
+	</div>
+	{{/if}}
 	{{#if lockedTrait}}
 	<p class="move-roll-locked-note">Locked: {{lockedTrait.label}}</p>
 	{{/if}}

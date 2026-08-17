@@ -7,6 +7,7 @@ export const THE_ATTENDANT_POOL = {
 			key: "the-attendant:master-servant",
 			name: "Master & Servant",
 			traits: [],
+			grantsRollModifier: [{ moveKeys: ["help-or-hinder", "cool-off"], advantage: "advantage" }],
 			bonusDowntimeTokens: { max: 1, description: "Must be spent on your Employer's needs and whims." },
 			description:
 				"<p>You are the head butler and servant to someone of prestige, possibly another member of " +
@@ -95,6 +96,7 @@ export const THE_ATTENDANT_POOL = {
 			key: "the-attendant:the-utmost-care",
 			name: "The Utmost Care",
 			traits: [],
+			grantsRollModifier: [{ moveKeys: ["dispel-uncertainties", "read-the-room"], advantage: "advantage" }],
 			description:
 				"<p>The Carrier and anywhere your Employer and their guests spend the night are completely " +
 				"under your scrutiny. You dispel uncertainties and read the room with advantage when " +
