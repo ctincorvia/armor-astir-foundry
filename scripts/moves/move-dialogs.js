@@ -63,8 +63,12 @@ export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates
 // entry per candidate weapon (plus a leading null entry for Unarmed), each carrying its own
 // Trait/weapon-card/Equipment/Roll-Modifiers/lockedEffect/guided — everything downstream of
 // *which* weapon is selected. When present, the template renders a weapon <select> plus one
-// hidden/shown panel per bundle (see move-roll-dialog.hbs's own {{#if weaponBundles}} split) and
-// this function's own render/Roll-button wiring below reads every weapon-dependent field (Trait,
+// hidden/shown panel *pair* per bundle, split across both grid columns (Trait in Column 1
+// alongside the select; weapon card/Equipment/Roll Modifiers in Column 2 — see move-roll-dialog.hbs's
+// own {{#if weaponBundles}} split and its move-roll-weapon-panel comment in dialogs.css). Both
+// halves of a pair share the same data-weapon-panel key, so the render callback below can toggle
+// .active on every matching element in one query without needing to know which column it's in.
+// This function's own render/Roll-button wiring below reads every weapon-dependent field (Trait,
 // Equipment, Roll Modifiers) from the *active* panel instead of the dialog's single top-level
 // copy — Dice/Effect/Stack/Convert/lockedAdvantage stay top-level and unscoped either way, since
 // none of those vary by weapon (see _rollMoveWithWeaponChoice's own weapon-independent/-dependent
@@ -314,12 +318,22 @@ export async function configureMoveRoll(
 			classes: ["armor-astir", "move-roll-dialog"],
 			// Dialog's own default (400px) crowded the Equipment section's tag name + description
 			// onto too narrow a column once the checkbox got its own row back (see
-			// move-roll-equipment-spend-option in styles/playbook-actor-sheet.css) — a little extra
-			// width gives that text room without needing to shrink or truncate it. Bumped again, from
-			// 480 to 560, once Roll Modifiers joined the dialog — several unscoped entries (Manawheels,
-			// Sharper Knives, Field Testing, You Should See Me In A Crown, ...) show up in nearly every
-			// dialog, and 480 was already sized tightly for two sections.
-			width: 560
+			// move-roll-equipment-spend-option in styles/dialogs.css) — a little extra width gives
+			// that text room without needing to shrink or truncate it. Bumped again, from 480 to 560,
+			// once Roll Modifiers joined the dialog, then 560 to 640 once weaponBundles' own 2-column
+			// grid (.move-roll-grid) went asymmetric — column 2 (weapon select, weapon card, Equipment,
+			// Roll Modifiers) needs roughly twice column 1's width, and 560 total left column 1 too
+			// narrow for its own selects.
+			width: 640,
+			// height/resizable follow the same precedent as playbook-moves.js's choosePlaybookMove and
+			// equipment-dialogs.js's chooseEquipmentCatalogItem/configureEquipment: resizable needs a
+			// numeric height, not "auto" (Foundry only renders the drag handle and tracks a height to
+			// resize from when one's given). A weaponBundles roll (a heavily-tagged weapon plus several
+			// active Roll Modifiers) can run taller than a plain single-column roll — a fixed default
+			// covers the common case, and resizable:true lets the player grow it for the heavy case
+			// instead of being stuck scrolling a small fixed box.
+			height: 560,
+			resizable: true
 		}).render(true);
 	});
 }

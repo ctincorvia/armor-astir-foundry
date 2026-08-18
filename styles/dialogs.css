@@ -18,6 +18,45 @@
 	margin-bottom: var(--aa-space-2);
 }
 
+/* Weapon/Trait/Dice/Effect (Column 1 of the weaponBundles grid — see .move-roll-grid below) are all
+   plain "one label, one dropdown" rows, unlike the other .form-group variants elsewhere in this file
+   (Stack/Convert stay row-shaped; Equipment/Roll Modifiers become header-shaped — see
+   .move-roll-list-section below), so a fixed label column lets their labels and selects both line up
+   into two even columns rather than each select starting wherever its own label's text happens to
+   end — the flex+space-between layout .form-group uses elsewhere. Equal specificity to the
+   .form-group rule above (three classes each) so source order, not specificity, is what makes this
+   win; keep it declared after that rule. See docs/domains/styling.md's grid-vs-flex convention for
+   rows pairing a variable-length label with a fixed control. */
+.armor-astir.move-roll-dialog .move-roll-select-group {
+	display: grid;
+	grid-template-columns: 70px 1fr;
+}
+
+.armor-astir.move-roll-dialog .move-roll-select-group select {
+	width: 100%;
+}
+
+/* Equipment and Roll Modifiers both read as a section header above their own .move-roll-equipment-
+   list, not a row label to the left of it — either list can hold several entries (a weapon's Blitz/
+   Guided/etc. tags; Manawheels, Sharper Knives, ...), unlike the single fixed item Stack/Convert
+   each pair with a label to the left of, which stay row-shaped. Mirrors the equipment-editor's own
+   form-group > label treatment above (stacked layout, bold primary-colored label, line-height:1 to
+   undo Foundry core's `form .form-group label { line-height: var(--form-field-height) }` quirk
+   documented there) rather than inventing a second header style. Equal specificity to .form-group,
+   same source-order reasoning as .move-roll-select-group above. */
+.armor-astir.move-roll-dialog .move-roll-list-section {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+}
+
+.armor-astir.move-roll-dialog .move-roll-list-section > label {
+	line-height: 1;
+	font-weight: 700;
+	color: var(--aa-primary-dark);
+	padding-bottom: var(--aa-space-1);
+}
+
 .armor-astir.move-roll-dialog .move-roll-conditions {
 	align-items: flex-start;
 }
@@ -116,28 +155,42 @@
 }
 
 /* The merged weapon-choice + move-roll dialog's own 2-column layout (see docs/domains/moves.md and
-   move-dialogs.js's weaponBundles) — Column 1 holds the weapon-independent Dice/Effect/Stack/
-   Convert controls plus the locked-Advantage note, all rendered once regardless of which weapon
-   panel is active; Column 2 holds the weapon select and its own per-weapon panels (Trait, the
-   read-only weapon card, Equipment, Roll Modifiers, and that weapon's own locked-Trait/-Effect/
-   Guided notes). Only rendered when a usesWeapon move offers weaponBundles — every other move
-   keeps the original single-column .form-group stack untouched (see the template's own
+   move-dialogs.js's weaponBundles) — Column 1 holds the weapon select, each weapon's own Trait
+   control (+ locked-Trait note), and the weapon-independent Dice/Effect/Stack/Convert controls plus
+   the locked-Advantage note; Column 2 holds the rest of each weapon's own per-panel content (the
+   read-only weapon card, Equipment, Roll Modifiers, and that weapon's own locked-Effect/Guided
+   notes). Only rendered when a usesWeapon move offers weaponBundles — every other move keeps the
+   original single-column .form-group stack untouched (see the template's own
    {{#if weaponBundles}}/{{else}} split), so none of the rules below ever apply to it. */
 .armor-astir.move-roll-dialog .move-roll-grid {
 	display: grid;
-	grid-template-columns: 1fr 1fr;
+	grid-template-columns: minmax(160px, 1fr) minmax(280px, 2fr);
 	gap: var(--aa-space-3);
+}
+
+/* min-width: 0 on both columns keeps their own content (Column 1's weapon-select options are
+   free-text equipment names with no length cap; Column 2's equipment tag list and Roll Modifiers
+   rows can run just as long) from forcing its grid track wider than its minmax ceiling and
+   overflowing instead of wrapping — same fix as .equipment-editor-cell-description/-cell-tags
+   below. */
+.armor-astir.move-roll-dialog .move-roll-column-1 {
+	min-width: 0;
 }
 
 .armor-astir.move-roll-dialog .move-roll-column-2 {
 	display: flex;
 	flex-direction: column;
 	gap: var(--aa-space-2);
+	min-width: 0;
 }
 
-/* One panel per weaponBundles entry — hidden by default, toggled by the weapon-select's own
-   change handler (see configureMoveRoll's render callback), mirroring .picker-tab-panel/.active's
-   existing show-one-hide-rest convention (this file's own picker chrome further below). */
+/* Each weaponBundles entry renders as a *pair* of these panels sharing one data-weapon-panel key —
+   one in Column 1 (Trait) and one in Column 2 (weapon card/Equipment/Roll Modifiers) — kept in sync
+   by the same weapon-select change handler (configureMoveRoll's render callback), since it toggles
+   .active on every [data-weapon-panel="<key>"] element in the dialog regardless of which column it
+   lives in, not just the ones inside one container. Hidden by default, mirroring
+   .picker-tab-panel/.active's existing show-one-hide-rest convention (this file's own picker chrome
+   further below). */
 .armor-astir.move-roll-dialog .move-roll-weapon-panel {
 	display: none;
 }

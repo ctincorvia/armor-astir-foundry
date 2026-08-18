@@ -2,7 +2,37 @@
 {{#if weaponBundles}}
 	<div class="move-roll-grid">
 		<div class="move-roll-column-1">
-			<div class="form-group">
+			<div class="form-group move-roll-select-group">
+				<label>Weapon</label>
+				<select name="weapon-select">
+					{{#each weaponBundles}}
+					<option value="{{weaponKey}}" {{#if @first}}selected{{/if}}>{{weaponLabel}}</option>
+					{{/each}}
+				</select>
+			</div>
+			{{#each weaponBundles}}
+			<div class="move-roll-weapon-panel{{#if @first}} active{{/if}}" data-weapon-panel="{{weaponKey}}">
+				{{#if traits.length}}
+				<div class="form-group move-roll-select-group">
+					<label>Trait</label>
+					{{#if (gt traits.length 1)}}
+					<select name="trait" {{#if ../lockedTrait}}disabled{{/if}}>
+						{{selectOptions traitOptions selected=../lockedTrait.key valueAttr="key" labelAttr="label"}}
+					</select>
+					{{else}}
+					{{#each traits}}
+					<span class="move-roll-trait-label">{{label}} ({{value}})</span>
+					<input type="hidden" name="trait" value="{{key}}"/>
+					{{/each}}
+					{{/if}}
+				</div>
+				{{/if}}
+				{{#if ../lockedTrait}}
+				<p class="move-roll-locked-note">Locked: {{../lockedTrait.label}}</p>
+				{{/if}}
+			</div>
+			{{/each}}
+			<div class="form-group move-roll-select-group">
 				<label>Dice</label>
 				<select name="advantage" {{#if lockedAdvantage}}disabled{{/if}}>
 					{{selectOptions advantageStates selected=lockedAdvantage valueAttr="key" labelAttr="label"}}
@@ -32,7 +62,7 @@
 				</div>
 			</div>
 			{{/if}}
-			<div class="form-group">
+			<div class="form-group move-roll-select-group">
 				<label>Effect</label>
 				<select name="effect" {{#if lockedEffect}}disabled{{/if}}>
 					{{selectOptions effectStates selected=lockedEffect valueAttr="key" labelAttr="label"}}
@@ -43,31 +73,8 @@
 			{{/if}}
 		</div>
 		<div class="move-roll-column-2">
-			<div class="form-group">
-				<label>Weapon</label>
-				<select name="weapon-select">
-					{{#each weaponBundles}}
-					<option value="{{weaponKey}}" {{#if @first}}selected{{/if}}>{{weaponLabel}}</option>
-					{{/each}}
-				</select>
-			</div>
 			{{#each weaponBundles}}
 			<div class="move-roll-weapon-panel{{#if @first}} active{{/if}}" data-weapon-panel="{{weaponKey}}">
-				{{#if traits.length}}
-				<div class="form-group">
-					<label>Trait</label>
-					{{#if (gt traits.length 1)}}
-					<select name="trait" {{#if ../lockedTrait}}disabled{{/if}}>
-						{{selectOptions traitOptions selected=../lockedTrait.key valueAttr="key" labelAttr="label"}}
-					</select>
-					{{else}}
-					{{#each traits}}
-					<span class="move-roll-trait-label">{{label}} ({{value}})</span>
-					<input type="hidden" name="trait" value="{{key}}"/>
-					{{/each}}
-					{{/if}}
-				</div>
-				{{/if}}
 				{{#if weaponCard}}
 				<div class="equipment-item move-roll-weapon-card">
 					<div class="equipment-header">
@@ -95,7 +102,7 @@
 				<p class="move-roll-weapon-card-unarmed">Unarmed</p>
 				{{/if}}
 				{{#if equipmentSpends.length}}
-				<div class="form-group move-roll-equipment">
+				<div class="form-group move-roll-equipment move-roll-list-section">
 					<label>Equipment</label>
 					<div class="move-roll-equipment-list">
 						{{#each equipmentSpends}}
@@ -111,7 +118,7 @@
 				</div>
 				{{/if}}
 				{{#if rollModifiers.length}}
-				<div class="form-group move-roll-equipment move-roll-modifiers">
+				<div class="form-group move-roll-equipment move-roll-list-section">
 					<label>Roll Modifiers</label>
 					<div class="move-roll-equipment-list">
 						{{#each rollModifiers}}
@@ -130,9 +137,6 @@
 						{{/each}}
 					</div>
 				</div>
-				{{/if}}
-				{{#if ../lockedTrait}}
-				<p class="move-roll-locked-note">Locked: {{../lockedTrait.label}}</p>
 				{{/if}}
 				{{#if lockedEffect}}
 				<p class="move-roll-locked-note">Locked: {{lockedEffectLabel}}</p>
@@ -183,7 +187,7 @@
 	</div>
 	{{/if}}
 	{{#if equipmentSpends.length}}
-	<div class="form-group move-roll-equipment">
+	<div class="form-group move-roll-equipment move-roll-list-section">
 		<label>Equipment</label>
 		<div class="move-roll-equipment-list">
 			{{#each equipmentSpends}}
@@ -211,7 +215,7 @@
 		</select>
 	</div>
 	{{#if rollModifiers.length}}
-	<div class="form-group move-roll-equipment move-roll-modifiers">
+	<div class="form-group move-roll-equipment move-roll-list-section">
 		<label>Roll Modifiers</label>
 		<div class="move-roll-equipment-list">
 			{{#each rollModifiers}}
