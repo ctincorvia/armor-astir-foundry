@@ -1,4 +1,4 @@
-<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}" data-equipment-id="{{id}}">
+<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}{{#if class}} {{class}}{{/if}}" data-equipment-id="{{id}}">
 	<div class="equipment-header">
 		<span class="equipment-name">{{name}}</span>
 		<div class="equipment-meta">
@@ -32,10 +32,12 @@
 				<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
 				{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
 				{{#if spendable}}
+				{{#unless ../readOnly}}
 				<label class="equipment-tag-spent">
 					<input type="checkbox" class="equipment-tag-spent-checkbox" data-equipment-id="{{../id}}" data-tag="{{key}}" {{#if spent}}checked{{/if}}/>
 					Spent
 				</label>
+				{{/unless}}
 				{{/if}}
 			</li>
 			{{/each}}

@@ -76,28 +76,7 @@
 			{{#each weaponBundles}}
 			<div class="move-roll-weapon-panel{{#if @first}} active{{/if}}" data-weapon-panel="{{weaponKey}}">
 				{{#if weaponCard}}
-				<div class="equipment-item move-roll-weapon-card">
-					<div class="equipment-header">
-						<span class="equipment-name">{{weaponCard.name}}</span>
-						<div class="equipment-meta">
-							<span class="equipment-value">Value {{weaponCard.value}}</span>
-							<span class="equipment-tier-value">Tier {{weaponCard.tier}}</span>
-							<span class="equipment-scale">{{weaponCard.scaleLabel}}</span>
-						</div>
-					</div>
-					{{#if weaponCard.tags.length}}
-					<div class="equipment-tags-block">
-						<ul class="equipment-tag-list">
-							{{#each weaponCard.tags}}
-							<li class="equipment-tag">
-								<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
-								{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
-							</li>
-							{{/each}}
-						</ul>
-					</div>
-					{{/if}}
-				</div>
+				{{#with weaponCard}}{{> "modules/armor-astir/templates/shared/equipment-card.hbs" class="move-roll-weapon-card" readOnly=true}}{{/with}}
 				{{else}}
 				<p class="move-roll-weapon-card-unarmed">Unarmed</p>
 				{{/if}}

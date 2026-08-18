@@ -208,6 +208,7 @@
 .armor-astir.move-roll-dialog .move-roll-weapon-card {
 	padding: 0;
 	border-bottom: none;
+	list-style: none;
 }
 
 .armor-astir.move-roll-dialog .move-roll-weapon-card-unarmed {
