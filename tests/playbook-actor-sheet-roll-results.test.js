@@ -6,14 +6,7 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	rollMove: vi.fn()
 }));
 
-// Only the weapon-choice dialog is mocked — the tag catalog and resolve helpers stay real.
-vi.mock("../scripts/equipment/equipment.js", async (importOriginal) => ({
-	...(await importOriginal()),
-	chooseWeapon: vi.fn()
-}));
-
 import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
-import { UNARMED, chooseWeapon } from "../scripts/equipment/equipment.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
 	EXCHANGE_BLOWS, STRIKE_DECISIVELY, DISPEL_UNCERTAINTIES, WEAVE_MAGIC, READ_THE_ROOM,
@@ -26,7 +19,6 @@ beforeEach(() => {
 	// rollMove resolves { message, dice } (see moves.js) — a bare default so every existing test
 	// that doesn't care about the roll's dice (most of them) doesn't have to configure this itself.
 	rollMove.mockResolvedValue({ message: undefined, dice: null });
-	chooseWeapon.mockClear();
 });
 
 describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", () => {
@@ -140,13 +132,16 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [] } },
 			update: vi.fn()
 		};
-		chooseWeapon.mockResolvedValue(UNARMED);
 		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
+		// With no weapons, the merged dialog offers exactly one weaponBundles entry (Unarmed) — its
+		// own lockedEffect (not a top-level option any more — see
+		// PlaybookActorSheet#_rollMoveWithWeaponChoice/_weaponRollBundle) is null.
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null
+			lockedAdvantage: null, lockedTrait: null,
+			weaponBundles: [expect.objectContaining({ lockedEffect: null })]
 		}));
 	});
 });

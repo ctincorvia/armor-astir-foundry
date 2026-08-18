@@ -7,6 +7,7 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 }));
 
 import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
+import { UNARMED } from "../scripts/equipment/equipment.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import { EXCHANGE_BLOWS, STRIKE_DECISIVELY, DISPEL_UNCERTAINTIES } from "./helpers/move-fixtures.js";
 
@@ -17,6 +18,22 @@ beforeEach(() => {
 	// that doesn't care about the roll's dice (most of them) doesn't have to configure this itself.
 	rollMove.mockResolvedValue({ message: undefined, dice: null });
 });
+
+// A usesWeapon move (Exchange Blows/Strike Decisively) with no weapons on the actor still offers
+// exactly one weaponBundles entry — Unarmed (see PlaybookActorSheet#_rollMoveWithWeaponChoice) —
+// so lockedEffect now lives on that bundle rather than at the top level, while
+// lockedAdvantage/lockedTrait/rollStack/disadvantageConversion stay weapon-independent and
+// top-level. objectContaining keeps this test file focused on the Tier/Approach signals it's
+// actually about, rather than every derived display field the bundle also carries.
+function weaponRollConfig({ lockedAdvantage = null, lockedEffect = null } = {}) {
+	return {
+		lockedAdvantage,
+		lockedTrait: null,
+		rollStack: null,
+		disadvantageConversion: null,
+		weaponBundles: [expect.objectContaining({ weaponKey: UNARMED, weaponLabel: "Unarmed", lockedEffect })]
+	};
+}
 
 // Tier Advantage on Exchange Blows/Strike Decisively (see moves-mixin.js's _targetTierAdvantage):
 // +1 higher / -1 lower / 0 equal, resolved straight to Advantage/Disadvantage. This axis is now
@@ -46,7 +63,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: "advantage", lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			weaponRollConfig({ lockedAdvantage: "advantage" })
 		);
 	});
 
@@ -61,7 +78,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: "advantage", lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			weaponRollConfig({ lockedAdvantage: "advantage" })
 		);
 	});
 
@@ -76,7 +93,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			weaponRollConfig()
 		);
 	});
 
@@ -91,7 +108,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			STRIKE_DECISIVELY,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: "disadvantage", lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			weaponRollConfig({ lockedAdvantage: "disadvantage" })
 		);
 	});
 
@@ -135,7 +152,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: "disadvantage", lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			weaponRollConfig({ lockedAdvantage: "disadvantage" })
 		);
 	});
 });
@@ -166,7 +183,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: "confidence", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			weaponRollConfig({ lockedEffect: "confidence" })
 		);
 	});
 
@@ -181,7 +198,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			weaponRollConfig({ lockedEffect: "desperation" })
 		);
 	});
 
@@ -196,7 +213,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			weaponRollConfig()
 		);
 	});
 
@@ -227,7 +244,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: "confidence", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			weaponRollConfig({ lockedEffect: "confidence" })
 		);
 	});
 
@@ -283,7 +300,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier and Approach lock independently"
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: "desperation", lockedAdvantage: "advantage", lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			weaponRollConfig({ lockedAdvantage: "advantage", lockedEffect: "desperation" })
 		);
 	});
 });

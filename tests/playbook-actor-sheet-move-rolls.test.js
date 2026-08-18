@@ -15,6 +15,7 @@ vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal)
 }));
 
 import { BASIC_MOVES, configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
+import { UNARMED } from "../scripts/equipment/equipment.js";
 import { findCarrierActors, chooseCarrier } from "../scripts/world-actors/carrier-actor-sheet.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import { EXCHANGE_BLOWS, BITE_THE_DUST, WEAVE_MAGIC, LEAD_A_SORTIE, DENY, I_KNOW_YOU, BUREAUCRAT } from "./helpers/move-fixtures.js";
@@ -23,6 +24,22 @@ import { EXCHANGE_BLOWS, BITE_THE_DUST, WEAVE_MAGIC, LEAD_A_SORTIE, DENY, I_KNOW
 // every fixture in this file lacks one unless a test says otherwise, so _rollMove's baseOptions
 // always threads this same false through to rollMove.
 const NO_HEAT_UP = false;
+
+// A usesWeapon move (Exchange Blows) with no weapons on the actor still offers exactly one
+// weaponBundles entry — Unarmed — so per-weapon fields (lockedEffect here) live on that bundle
+// instead of the top level; lockedAdvantage/lockedTrait/rollStack/disadvantageConversion stay
+// weapon-independent and top-level (see PlaybookActorSheet#_rollMoveWithWeaponChoice/
+// _weaponRollBundle). objectContaining keeps this helper from having to also spell out every
+// other derived display field (traits/traitOptions/weaponCard/...) the bundle carries.
+function unarmedWeaponRollConfig({ lockedAdvantage = null, lockedTrait = null, lockedEffect = null } = {}) {
+	return {
+		lockedAdvantage,
+		lockedTrait,
+		rollStack: null,
+		disadvantageConversion: null,
+		weaponBundles: [expect.objectContaining({ weaponKey: UNARMED, weaponLabel: "Unarmed", lockedEffect })]
+	};
+}
 
 beforeEach(() => {
 	configureMoveRoll.mockClear();
@@ -123,11 +140,12 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "clash", label: "CLASH", value: 1 },
 				{ key: "talk", label: "TALK", value: 0 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			unarmedWeaponRollConfig()
 		);
 		// exchange-blows is usesWeapon (see moves.js) and the actor has no equipment at all here,
-		// so the weapon-choice step is skipped straight to "Unarmed" — see
-		// "PlaybookActorSheet#_onMoveRoll - weapon choice" for the chooseWeapon-driven paths.
+		// so the merged dialog offers only "Unarmed" — see
+		// "PlaybookActorSheet#_onMoveRoll - weapon choice" (playbook-actor-sheet-weapon-rolls.test.js)
+		// for the weaponBundles-driven multi-candidate paths.
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor, EXCHANGE_BLOWS, talk, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
 		);
@@ -376,7 +394,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 				{ key: "clash", label: "CLASH", value: 0 },
 				{ key: "talk", label: "TALK", value: 0 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			unarmedWeaponRollConfig()
 		);
 	});
 });
@@ -458,7 +476,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a
 				{ key: "clash", label: "CLASH", value: 0 },
 				{ key: "talk", label: "TALK", value: 0 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			unarmedWeaponRollConfig()
 		);
 	});
 });
@@ -481,10 +499,10 @@ describe("PlaybookActorSheet#_onMoveRoll - Bureaucrat's quick-roll redirect to E
 				{ key: "clash", label: "CLASH", value: 0 },
 				{ key: "talk", label: "TALK", value: 2 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: talk, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			unarmedWeaponRollConfig({ lockedTrait: talk })
 		);
-		// No equipment at all, so the weapon-choice step resolves straight to Unarmed, same as any
-		// other usesWeapon move with no weapons — and Bureaucrat's own reminders ride along
+		// No equipment at all, so the merged dialog offers only Unarmed, same as any other
+		// usesWeapon move with no weapons — and Bureaucrat's own reminders ride along
 		// unconditionally via extraReminders.
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor,

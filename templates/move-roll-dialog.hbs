@@ -1,4 +1,150 @@
 <form class="armor-astir-move-roll-dialog">
+{{#if weaponBundles}}
+	<div class="move-roll-grid">
+		<div class="move-roll-column-1">
+			<div class="form-group">
+				<label>Dice</label>
+				<select name="advantage" {{#if lockedAdvantage}}disabled{{/if}}>
+					{{selectOptions advantageStates selected=lockedAdvantage valueAttr="key" labelAttr="label"}}
+				</select>
+			</div>
+			{{#if rollStack}}
+			<div class="form-group move-roll-equipment move-roll-modifiers">
+				<label>Stack</label>
+				<div class="move-roll-equipment-spend">
+					<label class="move-roll-equipment-spend-option">
+						<input type="checkbox" name="roll-stack" disabled/>
+						<span class="move-roll-equipment-name">{{rollStack.label}}</span>
+					</label>
+					<div class="move-roll-equipment-description">Take an additional Advantage at the cost of Desperation.</div>
+				</div>
+			</div>
+			{{/if}}
+			{{#if disadvantageConversion}}
+			<div class="form-group move-roll-equipment move-roll-modifiers">
+				<label>Convert</label>
+				<div class="move-roll-equipment-spend">
+					<label class="move-roll-equipment-spend-option">
+						<input type="checkbox" name="disadvantage-conversion" disabled/>
+						<span class="move-roll-equipment-name">{{disadvantageConversion.label}}</span>
+					</label>
+					<div class="move-roll-equipment-description">Spend 1 hold to convert your current Disadvantage into Advantage (or, at Disadvantage x2, into a flat roll).</div>
+				</div>
+			</div>
+			{{/if}}
+			<div class="form-group">
+				<label>Effect</label>
+				<select name="effect" {{#if lockedEffect}}disabled{{/if}}>
+					{{selectOptions effectStates selected=lockedEffect valueAttr="key" labelAttr="label"}}
+				</select>
+			</div>
+			{{#if lockedAdvantage}}
+			<p class="move-roll-locked-note">Locked: {{lockedAdvantageLabel}}</p>
+			{{/if}}
+		</div>
+		<div class="move-roll-column-2">
+			<div class="form-group">
+				<label>Weapon</label>
+				<select name="weapon-select">
+					{{#each weaponBundles}}
+					<option value="{{weaponKey}}" {{#if @first}}selected{{/if}}>{{weaponLabel}}</option>
+					{{/each}}
+				</select>
+			</div>
+			{{#each weaponBundles}}
+			<div class="move-roll-weapon-panel{{#if @first}} active{{/if}}" data-weapon-panel="{{weaponKey}}">
+				{{#if traits.length}}
+				<div class="form-group">
+					<label>Trait</label>
+					{{#if (gt traits.length 1)}}
+					<select name="trait" {{#if ../lockedTrait}}disabled{{/if}}>
+						{{selectOptions traitOptions selected=../lockedTrait.key valueAttr="key" labelAttr="label"}}
+					</select>
+					{{else}}
+					{{#each traits}}
+					<span class="move-roll-trait-label">{{label}} ({{value}})</span>
+					<input type="hidden" name="trait" value="{{key}}"/>
+					{{/each}}
+					{{/if}}
+				</div>
+				{{/if}}
+				{{#if weaponCard}}
+				<div class="equipment-item move-roll-weapon-card">
+					<div class="equipment-header">
+						<span class="equipment-name">{{weaponCard.name}}</span>
+						<div class="equipment-meta">
+							<span class="equipment-value">Value {{weaponCard.value}}</span>
+							<span class="equipment-tier-value">Tier {{weaponCard.tier}}</span>
+							<span class="equipment-scale">{{weaponCard.scaleLabel}}</span>
+						</div>
+					</div>
+					{{#if weaponCard.tags.length}}
+					<div class="equipment-tags-block">
+						<ul class="equipment-tag-list">
+							{{#each weaponCard.tags}}
+							<li class="equipment-tag">
+								<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
+								{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
+							</li>
+							{{/each}}
+						</ul>
+					</div>
+					{{/if}}
+				</div>
+				{{else}}
+				<p class="move-roll-weapon-card-unarmed">Unarmed</p>
+				{{/if}}
+				{{#if equipmentSpends.length}}
+				<div class="form-group move-roll-equipment">
+					<label>Equipment</label>
+					<div class="move-roll-equipment-list">
+						{{#each equipmentSpends}}
+						<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
+							<label class="move-roll-equipment-spend-option">
+								<input type="checkbox" name="equipment-tag" value="{{equipmentId}}::{{tagKey}}" {{#if disabled}}disabled{{/if}}/>
+								<span class="move-roll-equipment-name">{{equipmentName}} — {{tagLabel}}</span>
+							</label>
+							<div class="move-roll-equipment-description">{{description}}</div>
+						</div>
+						{{/each}}
+					</div>
+				</div>
+				{{/if}}
+				{{#if rollModifiers.length}}
+				<div class="form-group move-roll-equipment move-roll-modifiers">
+					<label>Roll Modifiers</label>
+					<div class="move-roll-equipment-list">
+						{{#each rollModifiers}}
+						<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
+							<label class="move-roll-equipment-spend-option">
+								{{#unless reminderOnly}}
+								<input type="checkbox" name="{{#if deferred}}pending-roll-modifier{{else}}roll-modifier{{/if}}"
+								       value="{{key}}" {{#if disabled}}disabled{{/if}}/>
+								{{/unless}}
+								<span class="move-roll-equipment-name">{{label}}</span>
+								{{#if deferred}}<span class="move-roll-modifier-deferred-note">(applies to your next qualifying roll)</span>{{/if}}
+							</label>
+							<div class="move-roll-equipment-description">{{{description}}}</div>
+							{{#if disabledReason}}<div class="move-roll-modifier-reason">{{disabledReason}}</div>{{/if}}
+						</div>
+						{{/each}}
+					</div>
+				</div>
+				{{/if}}
+				{{#if ../lockedTrait}}
+				<p class="move-roll-locked-note">Locked: {{../lockedTrait.label}}</p>
+				{{/if}}
+				{{#if lockedEffect}}
+				<p class="move-roll-locked-note">Locked: {{lockedEffectLabel}}</p>
+				{{/if}}
+				{{#if guided}}
+				<p class="move-roll-guided-note">{{guided}}: use the "Take 7-9" button below to skip rolling.</p>
+				{{/if}}
+			</div>
+			{{/each}}
+		</div>
+	</div>
+{{else}}
 	{{#if traits.length}}
 	<div class="form-group">
 		<label>Trait</label>
@@ -121,4 +267,5 @@
 	{{#if guided}}
 	<p class="move-roll-guided-note">{{guided}}: use the "Take 7-9" button below to skip rolling.</p>
 	{{/if}}
+{{/if}}
 </form>

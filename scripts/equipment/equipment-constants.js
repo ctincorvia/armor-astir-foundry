@@ -42,12 +42,13 @@ export const TIER_MAX = 5;
 
 export const EQUIPMENT_EDITOR_TEMPLATE = "modules/armor-astir/templates/equipment-editor.hbs";
 export const EQUIPMENT_CATALOG_PICKER_TEMPLATE = "modules/armor-astir/templates/equipment-catalog-picker.hbs";
-export const WEAPON_PICKER_TEMPLATE = "modules/armor-astir/templates/weapon-picker.hbs";
 
-// Sentinel for "fighting unarmed" — a real, always-offered choice (see chooseWeapon below),
-// distinct from the dialog being dismissed (which resolves null, same as every other picker in
-// this module). The value here must match the hardcoded radio value in weapon-picker.hbs — a
-// template can't reference this constant directly.
+// Sentinel for "fighting unarmed" — a real, always-offered choice in the merged move-roll
+// dialog's own weapon-select (see move-dialogs.js's configureMoveRoll and
+// PlaybookActorSheet#_weaponRollBundle), distinct from the dialog being dismissed entirely (which
+// resolves null, same as every other picker in this module). The value here must match the
+// hardcoded option value move-roll-dialog.hbs's `{{#each weaponBundles}}` block renders for the
+// null (Unarmed) bundle entry — a template can't reference this constant directly.
 export const UNARMED = "unarmed";
 
 // Weapons are either sized for an Astir or for the person wielding one — purely descriptive

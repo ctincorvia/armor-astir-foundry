@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, configureVariableDiceRoll } from "../scripts/moves/moves.js";
+import { UNARMED } from "../scripts/equipment/equipment.js";
 import { CLASH_TRAIT, fakeRollHtml, mockRoll } from "./helpers/move-test-helpers.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
@@ -984,6 +985,228 @@ describe("configureMoveRoll - disadvantage conversion (Embrace Chaos)", () => {
 		state.advantageHandlers.change();
 
 		expect(state.disadvantageConversionDisabled).toBe(false);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+});
+
+// The merged weapon-choice + move-roll dialog (see PlaybookActorSheet#_rollMoveWithWeaponChoice/
+// _weaponRollBundle and this module's own weaponBundles doc comment on configureMoveRoll). Every
+// describe block above this one passes no weaponBundles at all, proving the non-weapon/single-
+// weapon path renders and resolves byte-for-byte as it did before this option existed — these
+// tests cover the weaponBundles-only additions specifically: the template data shape (each
+// bundle's own lockedEffectLabel), the weapon-select's panel-toggle wiring, and the Roll/Take 7-9
+// buttons' rescoped reads.
+describe("configureMoveRoll - weaponBundles", () => {
+	const clash = CLASH_TRAIT;
+	const channelTrait = { key: "channel", label: "CHANNEL", value: 2 };
+
+	const unarmedBundle = {
+		weaponKey: UNARMED,
+		weaponLabel: "Unarmed",
+		weaponCard: null,
+		traits: [clash],
+		traitOptions: [{ key: "clash", label: "CLASH (1)" }],
+		lockedEffect: null,
+		equipmentSpends: [],
+		guided: null,
+		rollModifiers: []
+	};
+	const blitzSpend = {
+		equipmentId: "eq1",
+		equipmentName: "Halberd",
+		tagKey: "blitz",
+		tagLabel: "Blitz",
+		description: "You may spend this tag once per Scene to make a move with confidence.",
+		effect: "confidence",
+		disabled: false
+	};
+	const modifierEntry = {
+		key: "the-diplomat:sharper-knives", label: "Sharper Knives", description: "d",
+		advantage: "advantage", effect: null, reminderOnly: false, deferred: false, disabled: false, disabledReason: null
+	};
+	const halberdBundle = {
+		weaponKey: "eq1",
+		weaponLabel: "Halberd",
+		weaponCard: { name: "Halberd", value: 1, tier: 1, scale: "foot", scaleLabel: "Foot Scale", tags: [] },
+		traits: [clash],
+		traitOptions: [{ key: "clash", label: "CLASH (1)" }],
+		lockedEffect: "desperation",
+		equipmentSpends: [blitzSpend],
+		guided: "Guided",
+		rollModifiers: [modifierEntry]
+	};
+	// A Familiar weapon's own traits differ from every other bundle's (CHANNEL instead of CLASH) —
+	// used to prove the Roll callback resolves `trait` from the *active* bundle's own traits list,
+	// not the dialog's top-level `traits` argument (see PlaybookActorSheet#_weaponRollBundle).
+	const familiarBundle = {
+		weaponKey: "eq2",
+		weaponLabel: "Astir Lance",
+		weaponCard: { name: "Astir Lance", value: 0, tier: 3, scale: "astir", scaleLabel: "Astir Scale", tags: [] },
+		traits: [channelTrait],
+		traitOptions: [{ key: "channel", label: "CHANNEL (2)" }],
+		lockedEffect: null,
+		equipmentSpends: [],
+		guided: null,
+		rollModifiers: []
+	};
+
+	// Fakes the weapon-select's own render-time wiring (see configureMoveRoll's render callback) —
+	// captures the change handler and every [data-weapon-panel] removeClass/addClass call, mirroring
+	// fakePickerTabsHtml's shape in tests/equipment-catalog.test.js for the same
+	// "no TabsV2 controller inside a bare Foundry Dialog" reason.
+	function fakeWeaponPanelRenderHtml() {
+		const state = { handler: null, removeClassCalls: [], addClassCalls: [] };
+		state.html = {
+			find: (selector) => ({
+				on: (event, handler) => { state.handler = handler; },
+				removeClass: (cls) => { state.removeClassCalls.push([selector, cls]); },
+				addClass: (cls) => { state.addClassCalls.push([selector, cls]); }
+			})
+		};
+		return state;
+	}
+
+	it("passes weaponBundles to the dialog template, resolving each bundle's own lockedEffectLabel", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { weaponBundles: [unarmedBundle, halberdBundle] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			weaponBundles: [
+				{ ...unarmedBundle, lockedEffectLabel: null },
+				{ ...halberdBundle, lockedEffectLabel: "Desperation" }
+			]
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults weaponBundles to null", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			weaponBundles: null
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("wires the weapon-select to toggle the active weaponBundles panel", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { weaponBundles: [unarmedBundle, halberdBundle] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeWeaponPanelRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		state.handler({ target: { value: "eq1" } });
+
+		expect(state.removeClassCalls).toContainEqual(["[data-weapon-panel]", "active"]);
+		expect(state.addClassCalls).toContainEqual(["[data-weapon-panel=\"eq1\"]", "active"]);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves the trait from the active panel's own traits, not the top-level traits list", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { weaponBundles: [unarmedBundle, familiarBundle] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='weapon-select']": familiarBundle.weaponKey,
+			"[data-weapon-panel].active [name='trait']": "channel",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}));
+
+		const result = await promise;
+		expect(result.trait).toEqual(channelTrait);
+		expect(result.weaponId).toBe(familiarBundle.weaponKey);
+	});
+
+	it("resolves spentTags and the spend's own effect from the active panel's own equipmentSpends", async () => {
+		// lockedEffect: null here (unlike halberdBundle's own "desperation") so this test isolates
+		// spentEffect's own resolution — activeLockedEffect still outranks a spend in the same
+		// precedence chain the top-level (non-weaponBundles) "lets lockedEffect win over a checked
+		// spend" test above already covers.
+		const unlockedHalberdBundle = { ...halberdBundle, lockedEffect: null };
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { weaponBundles: [unarmedBundle, unlockedHalberdBundle] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='weapon-select']": unlockedHalberdBundle.weaponKey,
+			"[data-weapon-panel].active [name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], ["eq1::blitz"], [], [], [], false, false, true));
+
+		const result = await promise;
+		expect(result.spentTags).toEqual([{ equipmentId: "eq1", tagKey: "blitz" }]);
+		expect(result.effect).toBe("confidence");
+	});
+
+	it("resolves spentRollModifiers and the entry's own advantage from the active panel's own rollModifiers", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { weaponBundles: [unarmedBundle, halberdBundle] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='weapon-select']": halberdBundle.weaponKey,
+			"[data-weapon-panel].active [name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], [], [modifierEntry.key], [], false, false, true));
+
+		const result = await promise;
+		expect(result.advantage).toBe("advantage");
+		expect(result.spentRollModifiers).toEqual([modifierEntry.key]);
+	});
+
+	it("omits spentTags/spentRollModifiers and resolves lockedEffect null when the active panel offers neither", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { weaponBundles: [unarmedBundle, halberdBundle] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='weapon-select']": unarmedBundle.weaponKey,
+			"[data-weapon-panel].active [name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}));
+
+		const result = await promise;
+		expect(result).toEqual({ trait: clash, advantage: "none", effect: "none", weaponId: UNARMED });
+	});
+
+	it("offers Take 7-9 when any weaponBundles entry is guided, and resolves weaponId from the weapon-select", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { weaponBundles: [unarmedBundle, halberdBundle] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		expect(dialogOptions.buttons.takeSeven).toBeDefined();
+		dialogOptions.buttons.takeSeven.callback(fakeRollHtml({ "[name='weapon-select']": halberdBundle.weaponKey }));
+
+		expect(await promise).toEqual({ takeSeven: true, weaponId: halberdBundle.weaponKey });
+	});
+
+	it("omits Take 7-9 when no weaponBundles entry is guided", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { weaponBundles: [unarmedBundle, familiarBundle] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[0].buttons.takeSeven).toBeUndefined();
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;

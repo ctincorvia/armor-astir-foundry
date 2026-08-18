@@ -8,12 +8,11 @@ vi.mock("../scripts/frames/astir.js", async (importOriginal) => ({
 	chooseAstirWeapon: vi.fn()
 }));
 
-// Only the editor and weapon-choice dialogs are mocked — the tag catalog and resolve helpers stay
-// real, same reasoning as astir.js above.
+// Only the editor dialog is mocked — the tag catalog and resolve helpers stay real, same
+// reasoning as astir.js above.
 vi.mock("../scripts/equipment/equipment.js", async (importOriginal) => ({
 	...(await importOriginal()),
-	configureEquipment: vi.fn(),
-	chooseWeapon: vi.fn()
+	configureEquipment: vi.fn()
 }));
 
 vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
@@ -23,7 +22,7 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
 import { BASIC_MOVES, configureMoveRoll } from "../scripts/moves/moves.js";
-import { chooseWeapon, configureEquipment } from "../scripts/equipment/equipment.js";
+import { UNARMED, configureEquipment } from "../scripts/equipment/equipment.js";
 import { ASTIR_PART_CATALOG, chooseAstirPart, chooseAstirWeapon } from "../scripts/frames/astir.js";
 import { ARDENT_TIER_MAX, ARDENT_TIER_MIN, ardentParts, ardentWeapons } from "../scripts/frames/ardent.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
@@ -38,7 +37,6 @@ beforeEach(() => {
 	chooseAstirPart.mockClear();
 	chooseAstirWeapon.mockClear();
 	configureEquipment.mockClear();
-	chooseWeapon.mockClear();
 	configureMoveRoll.mockClear();
 	ui.notifications.warn.mockClear();
 });
@@ -709,11 +707,12 @@ describe("PlaybookActorSheet#_onMoveRoll - Ardent weapon choice", () => {
 				}
 			}
 		};
-		chooseWeapon.mockResolvedValue(null);
+		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(chooseWeapon).toHaveBeenCalledWith([mine]);
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED, "eq1"]);
 	});
 });
 

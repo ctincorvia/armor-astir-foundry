@@ -321,12 +321,17 @@
 	list-style: none;
 }
 
-.armor-astir.sheet .equipment-item {
+/* Also matches the merged move-roll dialog's own read-only weapon card (see dialogs.css's
+   .move-roll-weapon-card) — a Dialog never carries .sheet, so every equipment-* selector this
+   card reuses needs its own .armor-astir.move-roll-dialog branch alongside .armor-astir.sheet's. */
+.armor-astir.sheet .equipment-item,
+.armor-astir.move-roll-dialog .equipment-item {
 	padding: var(--aa-space-2) var(--aa-space-1);
 	border-bottom: var(--aa-border);
 }
 
-.armor-astir.sheet .equipment-header {
+.armor-astir.sheet .equipment-header,
+.armor-astir.move-roll-dialog .equipment-header {
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
@@ -334,14 +339,16 @@
 	gap: var(--aa-space-2);
 }
 
-.armor-astir.sheet .equipment-name {
+.armor-astir.sheet .equipment-name,
+.armor-astir.move-roll-dialog .equipment-name {
 	font-weight: bold;
 	color: var(--aa-primary-dark);
 }
 
 /* Groups Value/Tier/Scale into one badge cluster, visually distinct from the name and from the
    Disabled/Edit/Remove action cluster on the row's other end. */
-.armor-astir.sheet .equipment-meta {
+.armor-astir.sheet .equipment-meta,
+.armor-astir.move-roll-dialog .equipment-meta {
 	display: flex;
 	flex-direction: row;
 	flex-wrap: wrap;
@@ -355,7 +362,10 @@
    stepper (.equipment-tier-control's -/+ pair). */
 .armor-astir.sheet .equipment-meta .equipment-value,
 .armor-astir.sheet .equipment-meta .equipment-tier-value,
-.armor-astir.sheet .equipment-meta .equipment-scale {
+.armor-astir.sheet .equipment-meta .equipment-scale,
+.armor-astir.move-roll-dialog .equipment-meta .equipment-value,
+.armor-astir.move-roll-dialog .equipment-meta .equipment-tier-value,
+.armor-astir.move-roll-dialog .equipment-meta .equipment-scale {
 	padding: 2px var(--aa-space-1);
 	border-radius: var(--aa-radius);
 	background: var(--aa-secondary-tint);
@@ -407,7 +417,8 @@
 
 /* Separates the tag list (rules text you look up) from the item's own description above it, so
    the card reads as distinct zones instead of one continuous block of prose. */
-.armor-astir.sheet .equipment-tags-block {
+.armor-astir.sheet .equipment-tags-block,
+.armor-astir.move-roll-dialog .equipment-tags-block {
 	margin-top: var(--aa-space-1);
 	padding: var(--aa-space-1) var(--aa-space-2);
 	border: var(--aa-border);
@@ -415,11 +426,13 @@
 	background: var(--aa-secondary-tint);
 }
 
-.armor-astir.sheet .equipment-tags-block .equipment-tag-list {
+.armor-astir.sheet .equipment-tags-block .equipment-tag-list,
+.armor-astir.move-roll-dialog .equipment-tags-block .equipment-tag-list {
 	margin: 0;
 }
 
-.armor-astir.sheet .equipment-tag-list {
+.armor-astir.sheet .equipment-tag-list,
+.armor-astir.move-roll-dialog .equipment-tag-list {
 	margin: var(--aa-space-1) 0 0;
 	padding: 0;
 	list-style: none;
@@ -431,7 +444,8 @@
    label + Spent checkbox on a fixed top row — Spent always lands in the same right-hand column
    regardless of label length — while the description's own `grid-column: 1 / -1` forces it onto
    its own full-width row underneath, so long rules text never fights the label for space. */
-.armor-astir.sheet .equipment-tag {
+.armor-astir.sheet .equipment-tag,
+.armor-astir.move-roll-dialog .equipment-tag {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: baseline;
@@ -441,7 +455,8 @@
 	padding: 2px 0;
 }
 
-.armor-astir.sheet .equipment-tag-label {
+.armor-astir.sheet .equipment-tag-label,
+.armor-astir.move-roll-dialog .equipment-tag-label {
 	order: 1;
 	font-weight: bold;
 	color: var(--aa-secondary-dark);
@@ -467,7 +482,8 @@
 	white-space: nowrap;
 }
 
-.armor-astir.sheet .equipment-tag-description {
+.armor-astir.sheet .equipment-tag-description,
+.armor-astir.move-roll-dialog .equipment-tag-description {
 	order: 3;
 	grid-column: 1 / -1;
 	opacity: 0.8;

@@ -8,6 +8,7 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 }));
 
 import { configureMoveRoll, postGuidedResult, rollMove } from "../scripts/moves/moves.js";
+import { UNARMED } from "../scripts/equipment/equipment.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
 	EXCHANGE_BLOWS, DISPEL_UNCERTAINTIES, FLOURISH_COMPONENT, SPELL_ROUTINES
@@ -81,7 +82,13 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null });
+		// With no weapons, the merged dialog offers exactly one weaponBundles entry (Unarmed) — its
+		// own guided field (not a top-level option any more — see
+		// PlaybookActorSheet#_rollMoveWithWeaponChoice/_weaponRollBundle) is null.
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
+			lockedAdvantage: null, lockedTrait: null, rollStack: null, disadvantageConversion: null,
+			weaponBundles: [expect.objectContaining({ weaponKey: UNARMED, weaponLabel: "Unarmed", guided: null })]
+		});
 	});
 
 	it("posts a guided result and never rolls when Take 7-9 is chosen", async () => {

@@ -921,10 +921,15 @@ describe("PlaybookActorSheet#_rollMove - pending Roll Modifier grant", () => {
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "strike-decisively" } } });
 
+		// strike-decisively is usesWeapon, so lockedEffect now lives on the (only, Unarmed)
+		// weaponBundles entry rather than at the top level — see
+		// PlaybookActorSheet#_rollMoveWithWeaponChoice/_weaponRollBundle.
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			expect.objectContaining({ key: "strike-decisively" }),
 			expect.any(Array),
-			expect.objectContaining({ lockedEffect: "confidence" })
+			expect.objectContaining({
+				weaponBundles: [expect.objectContaining({ lockedEffect: "confidence" })]
+			})
 		);
 	});
 
@@ -966,6 +971,33 @@ describe("PlaybookActorSheet#_rollMove - pending Roll Modifier grant", () => {
 		configureMoveRoll.mockResolvedValue({ trait: undefined, advantage: "advantage", effect: "none" });
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "cool-off" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.pendingRollModifiers.${SNAKES_IN_THE_GRASS.key}.default`]: false
+		});
+	});
+
+	// The array-branch counterpart (_rollMoveWithWeaponChoice) of the single-weapon-path test above
+	// — a usesWeapon move's own copy of the same read-then-clear wiring (see move-roll-mixin.js's
+	// own comment on why the two paths mirror each other field-for-field).
+	it("clears the pending grant through the usesWeapon (array) branch too", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					playbookMoves: [SNAKES_IN_THE_GRASS.key],
+					pendingRollModifiers: { [SNAKES_IN_THE_GRASS.key]: { default: true } },
+					equipment: []
+				}
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({
+			trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "advantage", effect: "none", weaponId: "unarmed"
+		});
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			[`system.attributes.pendingRollModifiers.${SNAKES_IN_THE_GRASS.key}.default`]: false
@@ -1039,24 +1071,29 @@ describe("PlaybookActorSheet#_rollMove - pending Roll Modifier grant", () => {
 // _rollMove's wiring of configureMoveRoll's own spentDisadvantageConversion flag into
 // _spendDisadvantageConversion — mirrors the "spends every checked roll modifier" integration test
 // above, just for Embrace Chaos's own single-source spend instead of the list-shaped Roll Modifiers.
+// Deliberately a non-usesWeapon move (Read the Room, not Exchange Blows/Strike Decisively):
+// grantsDisadvantageConversion is universal, unscoped by move key, and a non-usesWeapon move keeps
+// this test on _rollMove's own single-weapon path (weapon stays undefined) rather than
+// _rollMoveWithWeaponChoice's array branch, which playbook-actor-sheet-roll-modifiers.test.js's own
+// Roll Modifiers integration tests above already cover separately.
 describe("PlaybookActorSheet#_rollMove - disadvantageConversion spend (Embrace Chaos)", () => {
 	it("spends the source's own hold once the roll dialog resolves with spentDisadvantageConversion", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
-				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				stats: { sense: { value: 0 } },
 				attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } } }
 			},
 			update: vi.fn()
 		};
 		configureMoveRoll.mockResolvedValue({
-			trait: { key: "clash", label: "CLASH", value: 0 },
+			trait: { key: "sense", label: "SENSE", value: 0 },
 			advantage: "advantage",
 			effect: "none",
 			spentDisadvantageConversion: true
 		});
 
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			[`system.attributes.moveHold.${EMBRACE_CHAOS.key}.value`]: 0
@@ -1067,17 +1104,47 @@ describe("PlaybookActorSheet#_rollMove - disadvantageConversion spend (Embrace C
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
-				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				stats: { sense: { value: 0 } },
 				attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } } }
 			},
 			update: vi.fn()
 		};
 		configureMoveRoll.mockResolvedValue({
-			trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none"
+			trait: { key: "sense", label: "SENSE", value: 0 }, advantage: "none", effect: "none"
+		});
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	// The array-branch counterpart (_rollMoveWithWeaponChoice) of the single-weapon-path test above
+	// — a usesWeapon move with no weapons at all still resolves through the same
+	// spentDisadvantageConversion wiring, just via its own copy of the read/spend (see
+	// move-roll-mixin.js's own comment on why the two paths mirror each other field-for-field).
+	it("spends the source's own hold through the usesWeapon (array) branch too", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } }, equipment: []
+				}
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({
+			trait: { key: "clash", label: "CLASH", value: 0 },
+			advantage: "advantage",
+			effect: "none",
+			spentDisadvantageConversion: true,
+			weaponId: "unarmed"
 		});
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(sheet.actor.update).not.toHaveBeenCalled();
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveHold.${EMBRACE_CHAOS.key}.value`]: 0
+		});
 	});
 });

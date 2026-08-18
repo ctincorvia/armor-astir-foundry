@@ -57,6 +57,20 @@ export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates
 // it. Guided's "take a 7-9 rather than rolling, if you wish" is the player's choice at the moment
 // of rolling, not a pre-filtered option, so every field above stays exactly as offered; picking
 // it just resolves without ever reading any of them.
+//
+// weaponBundles (see PlaybookActorSheet#_rollMoveWithWeaponChoice/_weaponRollBundle) merges the
+// old separate "which weapon" chooseWeapon prompt into this dialog for a usesWeapon move: one
+// entry per candidate weapon (plus a leading null entry for Unarmed), each carrying its own
+// Trait/weapon-card/Equipment/Roll-Modifiers/lockedEffect/guided — everything downstream of
+// *which* weapon is selected. When present, the template renders a weapon <select> plus one
+// hidden/shown panel per bundle (see move-roll-dialog.hbs's own {{#if weaponBundles}} split) and
+// this function's own render/Roll-button wiring below reads every weapon-dependent field (Trait,
+// Equipment, Roll Modifiers) from the *active* panel instead of the dialog's single top-level
+// copy — Dice/Effect/Stack/Convert/lockedAdvantage stay top-level and unscoped either way, since
+// none of those vary by weapon (see _rollMoveWithWeaponChoice's own weapon-independent/-dependent
+// split). Left null (the default) for every non-usesWeapon move, and for _onWeaponMoveRoll's own
+// quick-roll path (the weapon is already known there, so there's nothing to choose) — both keep
+// rendering and resolving through the exact same single-column path as before this option existed.
 export async function configureMoveRoll(
 	move,
 	traits,
@@ -68,7 +82,8 @@ export async function configureMoveRoll(
 		rollModifiers = [],
 		rollStack = null,
 		disadvantageConversion = null,
-		guided = null
+		guided = null,
+		weaponBundles = null
 	} = {}
 ) {
 	const content = await renderTemplate(MOVE_ROLL_DIALOG_TEMPLATE, {
@@ -98,7 +113,15 @@ export async function configureMoveRoll(
 		rollModifiers,
 		rollStack,
 		disadvantageConversion,
-		guided
+		guided,
+		// Each bundle's own lockedEffectLabel is resolved here, the same effectState lookup as the
+		// top-level lockedEffect above — kept out of PlaybookActorSheet#_weaponRollBundle so that
+		// method (and every test asserting its return shape) doesn't need its own roll-effects.js
+		// import just for display text.
+		weaponBundles: weaponBundles?.map((bundle) => ({
+			...bundle,
+			lockedEffectLabel: bundle.lockedEffect ? effectState(bundle.lockedEffect).label : null
+		})) ?? null
 	});
 
 	return new Promise((resolve) => {
@@ -110,9 +133,21 @@ export async function configureMoveRoll(
 			// is changed away from it. Must be a field on this Dialog's first argument (DialogData),
 			// not the options object below — Foundry's Dialog only ever invokes `this.data.render`,
 			// not `options.render` (see client/ui/dialog.js; confirmed against the existing precedent
-			// at equipment-dialogs.js's chooseEquipmentCatalogItem/chooseWeapon, whose own `render`
-			// field sits in this same spot for the same reason).
+			// at equipment-dialogs.js's chooseEquipmentCatalogItem, whose own `render` field sits in
+			// this same spot for the same reason).
 			render: (html) => {
+				// The weapon <select> that switches which weaponBundles panel is visible (see
+				// move-roll-dialog.hbs's own {{#if weaponBundles}} markup) — a plain synchronous
+				// class toggle, no re-render, mirroring wirePickerTabs' own tab-switch wiring
+				// (equipment-helpers.js) for the same "no TabsV2 controller inside a bare Foundry
+				// Dialog" reason.
+				if (weaponBundles) {
+					html.find("[name='weapon-select']").on("change", (event) => {
+						html.find("[data-weapon-panel]").removeClass("active");
+						html.find(`[data-weapon-panel="${event.target.value}"]`).addClass("active");
+					});
+				}
+
 				if (rollStack) {
 					const updateRollStackState = () => {
 						const enabled = html.find("[name='advantage']").val() === "advantage";
@@ -144,8 +179,35 @@ export async function configureMoveRoll(
 					// Hinder); spentTags is only added when there was equipment to offer in the
 					// first place — every other roll's resolved shape is untouched.
 					callback: (html) => {
-						const spentTags = equipmentSpends.length
-							? html.find("[name='equipment-tag']:checked").map((_, el) => el.value).get()
+						// weaponBundles' own weapon-dependent fields (Trait, Equipment, Roll
+						// Modifiers) are read from the *active* panel instead of this dialog's
+						// single top-level copy — see configureMoveRoll's own weaponBundles doc
+						// comment. Every selector below stays exactly as it was, unscoped, when
+						// weaponBundles wasn't passed (activeBundle stays null, so each `active*`
+						// fallback resolves to the same closure variable the pre-weaponBundles code
+						// already read) — this is the guarantee every non-usesWeapon move's test
+						// coverage relies on to keep passing unmodified.
+						const activeWeaponKey = weaponBundles ? html.find("[name='weapon-select']").val() : null;
+						const activeBundle = weaponBundles
+							? weaponBundles.find((bundle) => bundle.weaponKey === activeWeaponKey)
+							: null;
+						const activeTraits = activeBundle ? activeBundle.traits : traits;
+						const activeLockedEffect = activeBundle ? activeBundle.lockedEffect : lockedEffect;
+						const activeEquipmentSpends = activeBundle ? activeBundle.equipmentSpends : equipmentSpends;
+						const activeRollModifiers = activeBundle ? activeBundle.rollModifiers : rollModifiers;
+						const traitSelector = weaponBundles ? "[data-weapon-panel].active [name='trait']" : "[name='trait']";
+						const equipmentTagSelector = weaponBundles
+							? "[data-weapon-panel].active [name='equipment-tag']:checked"
+							: "[name='equipment-tag']:checked";
+						const rollModifierSelector = weaponBundles
+							? "[data-weapon-panel].active [name='roll-modifier']:checked"
+							: "[name='roll-modifier']:checked";
+						const pendingRollModifierSelector = weaponBundles
+							? "[data-weapon-panel].active [name='pending-roll-modifier']:checked"
+							: "[name='pending-roll-modifier']:checked";
+
+						const spentTags = activeEquipmentSpends.length
+							? html.find(equipmentTagSelector).map((_, el) => el.value).get()
 								.map((value) => {
 									const [equipmentId, tagKey] = value.split("::");
 									return { equipmentId, tagKey };
@@ -160,7 +222,7 @@ export async function configureMoveRoll(
 						// see PlaybookActorSheet#_equipmentSpends). On a spend collision (two
 						// checked tags both setting Effect) the later one wins.
 						const spentEffect = spentTags
-							.map(({ equipmentId, tagKey }) => equipmentSpends.find(
+							.map(({ equipmentId, tagKey }) => activeEquipmentSpends.find(
 								(spend) => spend.equipmentId === equipmentId && spend.tagKey === tagKey
 							))
 							.filter(Boolean)
@@ -173,14 +235,14 @@ export async function configureMoveRoll(
 						// never touch this roll's own Advantage/Effect, only its resource cost — both
 						// lists feed spentRollModifiers below, for
 						// PlaybookActorSheet#_spendRollModifiers to actually consume.
-						const checkedRollModifierKeys = rollModifiers.length
-							? html.find("[name='roll-modifier']:checked").map((_, el) => el.value).get()
+						const checkedRollModifierKeys = activeRollModifiers.length
+							? html.find(rollModifierSelector).map((_, el) => el.value).get()
 							: [];
-						const checkedPendingRollModifierKeys = rollModifiers.length
-							? html.find("[name='pending-roll-modifier']:checked").map((_, el) => el.value).get()
+						const checkedPendingRollModifierKeys = activeRollModifiers.length
+							? html.find(pendingRollModifierSelector).map((_, el) => el.value).get()
 							: [];
 						const checkedRollModifierEntries = checkedRollModifierKeys
-							.map((key) => rollModifiers.find((entry) => entry.key === key))
+							.map((key) => activeRollModifiers.find((entry) => entry.key === key))
 							.filter(Boolean);
 						const rollModifierAdvantage = checkedRollModifierEntries.filter((entry) => entry.advantage).at(-1)?.advantage;
 						const rollModifierEffect = checkedRollModifierEntries.filter((entry) => entry.effect).at(-1)?.effect;
@@ -199,7 +261,7 @@ export async function configureMoveRoll(
 							&& Boolean(html.find("[name='disadvantage-conversion']").prop("checked"));
 
 						resolve({
-							trait: lockedTrait ?? traits.find((t) => t.key === html.find("[name='trait']").val()),
+							trait: lockedTrait ?? activeTraits.find((t) => t.key === html.find(traitSelector).val()),
 							// A resource-spending, in-the-moment click at Roll time (disadvantageConversionChecked)
 							// outranks a standing/passive grant — same precedence a checked Roll
 							// Modifier's own advantage (Artifact included) already takes over
@@ -211,7 +273,7 @@ export async function configureMoveRoll(
 								?? lockedAdvantage
 								?? html.find("[name='advantage']").val(),
 							effect: (allInChecked ? rollStack.setEffect : null)
-								?? lockedEffect
+								?? activeLockedEffect
 								?? spentEffect
 								?? rollModifierEffect
 								?? html.find("[name='effect']").val(),
@@ -221,16 +283,24 @@ export async function configureMoveRoll(
 							...(move.conditions && {
 								conditions: html.find("[name='condition']:checked").map((_, el) => el.value).get()
 							}),
-							...(equipmentSpends.length && { spentTags }),
-							...(rollModifiers.length && { spentRollModifiers }),
-							...(disadvantageConversionChecked && { spentDisadvantageConversion: true })
+							...(activeEquipmentSpends.length && { spentTags }),
+							...(activeRollModifiers.length && { spentRollModifiers }),
+							...(disadvantageConversionChecked && { spentDisadvantageConversion: true }),
+							...(weaponBundles && { weaponId: activeWeaponKey })
 						});
 					}
 				},
-				...(guided && {
+				...((weaponBundles ? weaponBundles.some((bundle) => bundle.guided) : guided) && {
 					takeSeven: {
 						label: "Take 7-9",
-						callback: () => resolve({ takeSeven: true })
+						// weaponId is only meaningful (and only ever read) when weaponBundles was
+						// passed — PlaybookActorSheet#_rollMoveWithWeaponChoice resolves the chosen
+						// weapon's own bundle from it to know which source's name to attribute the
+						// Guided result to, mirroring how the Roll button's own callback resolves it.
+						callback: (html) => resolve({
+							takeSeven: true,
+							...(weaponBundles && { weaponId: html.find("[name='weapon-select']").val() })
+						})
 					}
 				}),
 				cancel: {
@@ -292,7 +362,7 @@ export async function configureVariableDiceRoll(move) {
 
 // The "?" button's private counterpart to postMoveDescription (move-roll.js) — same rules text, shown only
 // to the clicking player via a Dialog rather than posted to chat. Matches this codebase's other
-// Promise-wrapped Dialog helpers (e.g. chooseWeapon/chooseEquipmentCatalogItem in equipment.js).
+// Promise-wrapped Dialog helpers (e.g. chooseEquipmentCatalogItem in equipment.js).
 // Tracks the currently-open instance so a second call (clicking another move's "?" before closing
 // the first) closes the first dialog and resolves its promise, rather than leaving it open forever.
 let openMoveDescriptionDialog = null;

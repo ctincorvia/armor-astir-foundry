@@ -3,11 +3,9 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	EQUIPMENT_CATALOG,
 	EQUIPMENT_TAGS,
-	UNARMED,
 	WEAPON_RANGE_GROUP,
 	WEAPON_SCALES,
 	chooseEquipmentCatalogItem,
-	chooseWeapon,
 	findCatalogEquipment,
 	findEquipmentTag,
 	wirePickerTabs
@@ -15,9 +13,8 @@ import {
 
 const BLITZ = EQUIPMENT_TAGS.find((tag) => tag.key === "blitz");
 
-// A fixture catalog independent of EQUIPMENT_CATALOG's real content, mirroring FIXTURE_TAGS
-// above and the same injectable-argument pattern playbookMoveSections uses in
-// playbook-moves.js.
+// A fixture catalog independent of EQUIPMENT_CATALOG's real content, mirroring the same
+// injectable-argument pattern playbookMoveSections uses in playbook-moves.js.
 const FIXTURE_CATALOG = [
 	{ key: "fixture-sword", name: "Fixture Sword", kind: "weapon", description: "a", tags: [], scale: "foot", tier: 2 },
 	{ key: "fixture-blade", name: "Fixture Blade", kind: "weapon", description: "b", tags: [], scale: "foot", tier: 1 },
@@ -30,15 +27,6 @@ const FIXTURE_CATALOG = [
 function fakeCatalogPickerHtml(checkedValue) {
 	return { find: () => ({ val: () => checkedValue }) };
 }
-
-// A fixture catalog independent of EQUIPMENT_TAGS's real (currently Blitz-only) content, so
-// summation/negative-value/multi-tag behavior stays covered as the shipped catalog grows —
-// mirrors the injectable `pools` argument playbookMoveSections takes in playbook-moves.js.
-const FIXTURE_TAGS = [
-	{ key: "fixture-positive", label: "Fixture Positive", value: 2, description: "a" },
-	{ key: "fixture-negative", label: "Fixture Negative", value: -1, description: "b" },
-	{ key: "fixture-spendable", label: "Fixture Spendable", value: 1, description: "c", spend: { period: "Scene", effect: "confidence" } }
-];
 
 // Fakes the jQuery `.find(selector)` chain wirePickerTabs uses: `[data-picker-tab]` resolves an
 // object exposing `.on("click", handler)` (to capture the handler) and `.removeClass`; any other
@@ -256,150 +244,6 @@ describe("chooseEquipmentCatalogItem", () => {
 
 	it("resolves null when the dialog is closed without a selection", async () => {
 		const promise = chooseEquipmentCatalogItem("weapon", FIXTURE_CATALOG);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		Dialog.mock.calls.at(-1)[0].close();
-
-		expect(await promise).toBeNull();
-	});
-});
-
-// Raw actor equipment entries (the shape system.attributes.equipment stores), independent of
-// FIXTURE_TAGS above so chooseWeapon's own value/tagLabels summarization stays covered.
-const FIXTURE_WEAPONS = [
-	{ id: "w1", kind: "weapon", name: "Halberd", tags: ["fixture-positive", "fixture-spendable"], scale: "foot", tier: 2 },
-	{ id: "w2", kind: "weapon", name: "Sidearm", tags: [], scale: "foot", tier: 1 }
-];
-
-// Fakes the jQuery `.find("[name='weapon']:checked").val()` chain chooseWeapon uses to read the
-// picked radio, mirroring fakeCatalogPickerHtml above.
-function fakeWeaponPickerHtml(checkedValue) {
-	return { find: () => ({ val: () => checkedValue }) };
-}
-
-describe("chooseWeapon", () => {
-	it("summarizes each weapon's value and tag labels for the picker template", async () => {
-		const promise = chooseWeapon(FIXTURE_WEAPONS, FIXTURE_TAGS);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("weapon-picker"), {
-			options: [
-				{ key: "w1", name: "Halberd", value: 3, tagLabels: ["Fixture Positive", "Fixture Spendable"] },
-				{ key: "w2", name: "Sidearm", value: 0, tagLabels: [] }
-			],
-			tagGroups: [
-				{ label: "Strong Benefits (+1)", tags: [FIXTURE_TAGS[2]] },
-				{ label: "Rare Benefits (+2)", tags: [FIXTURE_TAGS[0]] }
-			],
-			hasTags: true
-		});
-
-		Dialog.mock.calls.at(-1)[0].close();
-		await promise;
-	});
-
-	it("opens the dialog sized larger than Dialog's default, resizable, with picker tabs wired", async () => {
-		const promise = chooseWeapon(FIXTURE_WEAPONS, FIXTURE_TAGS);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		expect(Dialog.mock.calls.at(-1)[1]).toEqual({
-			classes: ["armor-astir", "weapon-picker"],
-			width: 560,
-			height: 700,
-			resizable: true
-		});
-		expect(Dialog.mock.calls.at(-1)[0].render).toBe(wirePickerTabs);
-
-		Dialog.mock.calls.at(-1)[0].close();
-		await promise;
-	});
-
-	it("wires picker tab switching via the dialog's render option", async () => {
-		const promise = chooseWeapon(FIXTURE_WEAPONS, FIXTURE_TAGS);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const state = fakePickerTabsHtml();
-		Dialog.mock.calls.at(-1)[0].render(state.html);
-
-		expect(state.handler).toEqual(expect.any(Function));
-
-		Dialog.mock.calls.at(-1)[0].close();
-		await promise;
-	});
-
-	it("titles the dialog Choose a Weapon", async () => {
-		const promise = chooseWeapon(FIXTURE_WEAPONS, FIXTURE_TAGS);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		expect(Dialog.mock.calls.at(-1)[0].title).toBe("Choose a Weapon");
-
-		Dialog.mock.calls.at(-1)[0].close();
-		await promise;
-	});
-
-	it("resolves the checked weapon's id when Choose is clicked", async () => {
-		const promise = chooseWeapon(FIXTURE_WEAPONS, FIXTURE_TAGS);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		Dialog.mock.calls.at(-1)[0].buttons.choose.callback(fakeWeaponPickerHtml("w2"));
-
-		expect(await promise).toBe("w2");
-	});
-
-	it("resolves null when Choose is clicked with nothing checked", async () => {
-		const promise = chooseWeapon(FIXTURE_WEAPONS, FIXTURE_TAGS);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		Dialog.mock.calls.at(-1)[0].buttons.choose.callback(fakeWeaponPickerHtml(undefined));
-
-		expect(await promise).toBeNull();
-	});
-
-	it("treats a weapon with no tags array as having no tags", async () => {
-		const untagged = [{ id: "w3", name: "Fists", scale: "foot", tier: 1 }];
-		const promise = chooseWeapon(untagged, FIXTURE_TAGS);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("weapon-picker"), {
-			options: [{ key: "w3", name: "Fists", value: 0, tagLabels: [] }],
-			tagGroups: [],
-			hasTags: false
-		});
-
-		Dialog.mock.calls.at(-1)[0].close();
-		await promise;
-	});
-
-	it("resolves UNARMED when the (pre-checked) Unarmed option is confirmed", async () => {
-		const promise = chooseWeapon(FIXTURE_WEAPONS, FIXTURE_TAGS);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		Dialog.mock.calls.at(-1)[0].buttons.choose.callback(fakeWeaponPickerHtml(UNARMED));
-
-		expect(await promise).toBe(UNARMED);
-	});
-
-	it("resolves null when Cancel is clicked", async () => {
-		const promise = chooseWeapon(FIXTURE_WEAPONS, FIXTURE_TAGS);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		Dialog.mock.calls.at(-1)[0].buttons.cancel.callback();
-
-		expect(await promise).toBeNull();
-	});
-
-	it("resolves null when the dialog is closed without a selection", async () => {
-		const promise = chooseWeapon(FIXTURE_WEAPONS, FIXTURE_TAGS);
 		await Promise.resolve();
 		await Promise.resolve();
 

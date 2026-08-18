@@ -1,7 +1,7 @@
 import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { chooseApproachOverride } from "../../core/approaches.js";
 import { chooseCarrier, findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
-import { UNARMED, chooseWeapon } from "../../equipment/equipment.js";
+import { UNARMED } from "../../equipment/equipment.js";
 import { rolledDoubles } from "../../moves/roll-effects.js";
 import {
 	BASIC_MOVES,
@@ -34,17 +34,19 @@ export const MoveRollSheetMixin = {
 			: clicked;
 		if (!move) return;
 
-		// usesWeapon (Exchange Blows, Strike Decisively — see moves.js) prompts which weapon (or
-		// Unarmed) before rolling, so _rollMove's equipment spends can be scoped to it. `weapon`
-		// stays undefined for every other move — the same "not applicable" signal
-		// _equipmentSpends already reads. Skipped entirely when the actor has no weapons at all:
-		// there's nothing to choose between, so Unarmed is simply true.
+		// usesWeapon (Exchange Blows, Strike Decisively — see moves.js) offers a choice of weapon
+		// (or Unarmed) from inside the merged move-roll dialog itself (see move-dialogs.js's
+		// weaponBundles) rather than a separate chooseWeapon prompt beforehand. `weapon` stays
+		// undefined for every other move — the same "not applicable" signal _equipmentSpends
+		// already reads. For a usesWeapon move, `weapon` is always an array (possibly empty — with
+		// no weapons at all, "Unarmed" is still offered inside the dialog, there's just nothing
+		// else to choose between) — _rollMove resolves the actual choice once the dialog closes.
 		//
 		// Only weapons belonging to the currently mounted frame are offered (see docs/domains/frames.md's Piloted
 		// note): the Astir's own weapons while it's mounted, one specific Ardent's while that Ardent
 		// is mounted, mundane weapons while nothing is — never more than one of the three. A weapon
-		// on the wrong side can never become `weapon` here, so nothing downstream (including the
-		// Familiar +CHANNEL override below) needs to re-check mounted state itself.
+		// on the wrong side can never become a candidate here, so nothing downstream (including the
+		// Familiar +CHANNEL override) needs to re-check mounted state itself.
 		let weapon;
 		if (move.usesWeapon) {
 			const mountedFrameId = this._mountedFrame()?.id ?? null;
@@ -66,13 +68,7 @@ export const MoveRollSheetMixin = {
 					weapons = [...weapons, ...carrierWeapons];
 				}
 			}
-			if (weapons.length) {
-				const weaponId = await chooseWeapon(weapons);
-				if (weaponId === null) return;
-				weapon = weaponId === UNARMED ? null : weapons.find((w) => w.id === weaponId) ?? null;
-			} else {
-				weapon = null;
-			}
+			weapon = weapons;
 		}
 
 		await this._rollMove(move, weapon, clicked.quickRollsMove);
@@ -88,152 +84,113 @@ export const MoveRollSheetMixin = {
 
 		await this._rollMove(move, weapon);
 	},
-	// Shared by _onMoveRoll (weapon resolved via chooseWeapon, or left undefined for a move that
-	// isn't usesWeapon) and _onWeaponMoveRoll (weapon already known from the clicked button).
-	async _rollMove(move, weapon, quickRoll = {}) {
-		let traits = this._moveTraits(move);
-		// _moveTraits already resolved CREW for the single/zero-Carrier case; with more than one
-		// Carrier in the world that's ambiguous, so ask which one before locking in the value this
-		// roll actually uses. Cancelling aborts the whole roll, same convention chooseWeapon's own
-		// cancel already has.
-		if (move.fixedTraits?.some((trait) => trait.key === "crew")) {
-			const carriers = findCarrierActors();
-			if (carriers.length > 1) {
-				const carrierId = await chooseCarrier(carriers);
-				if (!carrierId) return;
-				const crewValue = carriers.find((c) => c.id === carrierId)?.system.stats?.crew?.value ?? 0;
-				traits = traits.map((trait) => (trait.key === "crew" ? { ...trait, value: crewValue } : trait));
-			}
-		}
-		// A Familiar weapon (astir.js's familiar: true) rolls Exchange Blows/Strike Decisively with
-		// +CHANNEL instead of the move's usual CLASH/TALK choice — replaces (not adds to) `traits`,
-		// matching the rulebook's "instead," and reads CHANNEL's raw value directly rather than
-		// going through availableMoveTraits/_moveTraits, since CHANNEL was never in either move's own
-		// traits list to begin with. Never reached while unpiloted — a Familiar is always an Astir
-		// weapon, and _onMoveRoll/_onWeaponMoveRoll only ever hand this a weapon matching the current
-		// Piloted state (see docs/domains/frames.md's Piloted note) — so there's nothing to re-check here.
+	// Every field below is shared between _rollMove's single-weapon path and
+	// _rollMoveWithWeaponChoice's array path (weaponBundles), extracted so a test reaching either
+	// path exercises the same branches for the other automatically, instead of two independent,
+	// textually-identical copies each needing their own dedicated test coverage. `weapon` is
+	// always a single, already-resolved weapon/null/undefined here — never an array.
+	//
+	// A Familiar weapon (astir.js's familiar: true) rolls Exchange Blows/Strike Decisively with
+	// +CHANNEL instead of the move's usual CLASH/TALK choice — replaces (not adds to) `traits`,
+	// matching the rulebook's "instead," and reads CHANNEL's raw value directly rather than going
+	// through availableMoveTraits/_moveTraits, since CHANNEL was never in either move's own traits
+	// list to begin with. Never reached while unpiloted — a Familiar is always an Astir weapon,
+	// and every caller only ever hands this a weapon matching the current Piloted state (see
+	// docs/domains/frames.md's Piloted note) — so there's nothing to re-check here.
+	_weaponTraitsFor(move, weapon, traits) {
 		if (move.usesWeapon && weapon?.familiar) {
-			traits = [{ key: "channel", label: "CHANNEL", value: this.actor.system.stats?.channel?.value ?? 0 }];
+			return [{ key: "channel", label: "CHANNEL", value: this.actor.system.stats?.channel?.value ?? 0 }];
 		}
-		if (!traits.length && !move.conditions) return;
-
-		// bite-the-dust's forcesDesperationAtMaxPerils and weave-magic's forcesDesperationOnShakenTenet
-		// sit at the same "reactive/emergency lock" tier, ahead of a forced weapon tag — all three only
-		// ever lock to Desperation today, so there's nothing to actually conflict, but the precedence
-		// keeps a future second forcesEffect value from silently overriding either actor-state read.
-		// Field Scout's standing grantsEffectOnMove (see _grantedEffectForMove) sits next: it's a
-		// permanent grant rather than any of the other three's emergency/reactive lock, so anything
-		// already forcing an axis wins over it. The target-matchup Approach signal (_targetMatchupEffect
-		// — see its own comment; Tier's own signal feeds the Advantage axis instead, independently, via
-		// lockedAdvantage below) sits lowest of all: it's a passive read of the current target, so any
-		// of the above five sources — each a more specific or more deliberate lock — wins over it.
-		// A weapon "borrowed" from the world's Carrier (Fire Support — see _onMoveRoll's
-		// grantsCarrierWeaponAccess handling) lives in a different actor's own equipment array, not
-		// this actor's — so none of the spend/tag/reroll/Guided machinery below, which all read or
-		// write this actor's own equipment/Astir Part state, may ever be evaluated against it.
-		// Mirrors CarrierActorSheet#_onWeaponMoveRoll's own scope cut for the Carrier's own weapon
-		// rolls (carrier-actor-sheet.js): that handler never offers equipment spends, Astir Part
-		// spends, reroll or Guided either — a Carrier weapon roll is deliberately just a trait plus
-		// a name on the chat card, nothing more, and a Fire Support roll using one gets exactly the
-		// same treatment rather than risking a write onto an object this actor doesn't own.
-		const fromCarrier = Boolean(weapon?.fromCarrier);
-		const forced = fromCarrier ? null : this._forcedWeaponEffect(weapon);
-		// The one-shot deferred grant (Snakes in the Grass, Bonded in Blood, Alchemical Suite's two
-		// Potions -- see move-grants-mixin.js's _pendingRollModifierGrant) is read once here, ahead of
-		// both locked-axis chains below, so it can slot into each at the same rank: below the standing
-		// grants (_grantedEffectForMove/_grantedAdvantageForMove/_coldCompanyAdvantage) but above the
-		// passive target-matchup reads, matching this chain's existing "more specific/deliberate lock
-		// wins" ordering.
-		const pendingGrant = this._pendingRollModifierGrant(move);
-		const lockedEffect = (move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null)
+		return traits;
+	},
+	// bite-the-dust's forcesDesperationAtMaxPerils and weave-magic's forcesDesperationOnShakenTenet
+	// sit at the same "reactive/emergency lock" tier, ahead of a forced weapon tag — all three only
+	// ever lock to Desperation today, so there's nothing to actually conflict, but the precedence
+	// keeps a future second forcesEffect value from silently overriding either actor-state read.
+	// Field Scout's standing grantsEffectOnMove (see _grantedEffectForMove) sits next: it's a
+	// permanent grant rather than any of the other three's emergency/reactive lock, so anything
+	// already forcing an axis wins over it. The target-matchup Approach signal (_targetMatchupEffect
+	// — see its own comment; Tier's own signal feeds the Advantage axis instead, independently, via
+	// _lockedAdvantageFor below) sits lowest of all: it's a passive read of the current target, so
+	// any of the above five sources — each a more specific or more deliberate lock — wins over it.
+	// A weapon "borrowed" from the world's Carrier (Fire Support — see _onMoveRoll's
+	// grantsCarrierWeaponAccess handling) lives in a different actor's own equipment array, not
+	// this actor's, so its own forcesEffect tag (if any) never applies — mirrors
+	// CarrierActorSheet#_onWeaponMoveRoll's own scope cut for the Carrier's own weapon rolls.
+	_lockedEffectFor(move, weapon, pendingGrant) {
+		const forced = weapon?.fromCarrier ? null : this._forcedWeaponEffect(weapon);
+		return (move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null)
 			?? (move.forcesDesperationOnShakenTenet && this._hasShakenTenet() ? "desperation" : null)
 			?? forced?.effect
 			?? this._grantedEffectForMove(move)
 			?? pendingGrant?.effect
 			?? this._targetMatchupEffect(move)
 			?? null;
-		// Don't Follow Me's own pair — see _grantedTraitForMove/_grantedAdvantageForMove. The
-		// granted trait key is resolved against this roll's own final `traits` list (rather than
-		// TRAITS directly) so the locked option carries the same live, bonus-inclusive value every
-		// other entry in the dialog does; a key that isn't actually offered here (e.g. the trait is
-		// disabled for this actor) resolves to no lock at all.
-		// An explicit forced trait from a quick-roll button (Bureaucrat — see quickRollsMove) wins
-		// over any standing grantsTraitOnMove lock (Don't Follow Me): it's the more specific,
-		// immediate signal from the actual button clicked, not a passive standing grant.
+	},
+	// Don't Follow Me's own pair — see _grantedTraitForMove/_lockedAdvantageFor. The granted trait
+	// key is resolved against this roll's own final `traits` list (rather than TRAITS directly) so
+	// the locked option carries the same live, bonus-inclusive value every other entry in the
+	// dialog does; a key that isn't actually offered here (e.g. the trait is disabled for this
+	// actor) resolves to no lock at all. An explicit forced trait from a quick-roll button
+	// (Bureaucrat — see quickRollsMove) wins over any standing grantsTraitOnMove lock (Don't Follow
+	// Me): it's the more specific, immediate signal from the actual button clicked, not a passive
+	// standing grant.
+	_lockedTraitFor(move, quickRoll, traits) {
 		const grantedTraitKey = quickRoll.trait ?? this._grantedTraitForMove(move);
-		const lockedTrait = grantedTraitKey ? traits.find((t) => t.key === grantedTraitKey) ?? null : null;
-		// Don't Follow Me's single-target-move grant wins if it and Cold Company's standing haunted-
-		// state lock somehow both apply -- in practice these two moves live on mutually exclusive
-		// playbooks (Impostor / Wither), so this ordering is a defensive tie-break, not an expected
-		// real-world collision. pendingGrant's own Advantage half (see above) slots in below
-		// Cold Company but above the passive target-matchup Tier signal (_targetTierAdvantage -- its
-		// Approach sibling, _targetMatchupEffect, feeds lockedEffect above instead, independently,
-		// since the two axes no longer sum into one combined stack), matching the same "more specific/
-		// deliberate lock wins" ordering pendingGrant's Effect half already follows above. A checked
-		// Roll Modifier's own advantage (Artifact included, now an ordinary grantsRollModifier source
-		// rather than a special-cased spend) still wins over all of this, per configureMoveRoll's own
-		// precedence.
-		const lockedAdvantage = this._grantedAdvantageForMove(move)
+		return grantedTraitKey ? traits.find((t) => t.key === grantedTraitKey) ?? null : null;
+	},
+	// Don't Follow Me's single-target-move grant wins if it and Cold Company's standing haunted-
+	// state lock somehow both apply -- in practice these two moves live on mutually exclusive
+	// playbooks (Impostor / Wither), so this ordering is a defensive tie-break, not an expected
+	// real-world collision. pendingGrant's own Advantage half slots in below Cold Company but above
+	// the passive target-matchup Tier signal (_targetTierAdvantage -- its Approach sibling,
+	// _targetMatchupEffect, feeds _lockedEffectFor above instead, independently, since the two axes
+	// no longer sum into one combined stack), matching the same "more specific/deliberate lock
+	// wins" ordering pendingGrant's Effect half already follows above. A checked Roll Modifier's
+	// own advantage (Artifact included, an ordinary grantsRollModifier source) still wins over all
+	// of this, per configureMoveRoll's own precedence.
+	_lockedAdvantageFor(move, pendingGrant) {
+		return this._grantedAdvantageForMove(move)
 			?? this._coldCompanyAdvantage()
 			?? pendingGrant?.advantage
 			?? this._targetTierAdvantage(move);
-		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
-		// already defaults it to null itself, and this keeps every non-Guided call's options
-		// shape exactly as it was before Guided existed, same treatment `reroll` gets below. Holds
-		// the *source's* own label ("Guided" for the weapon tag, a part's name for Spell Routines)
-		// rather than a bare boolean, so the dialog's "Take 7-9" button and the resulting chat
-		// message can both name which grant actually offered it instead of always saying "Guided"
-		// — see move-dialogs.js's configureMoveRoll and move-roll.js's postGuidedResult. Spell
-		// Routines (see astir.js) grants the same "Take 7-9" option, but only for the one move the
-		// player picked on the Astir tab (system.attributes.guidedMoveChoices, keyed by the part's
-		// own key — see astir-mixin.js's _onGuidedMoveChoiceChange/_guidedMoveOptions), and only
-		// while installed on the currently mounted frame (see docs/domains/frames.md's Piloted
-		// note). Spell Routines carries a powerCost, so it can only ever be installed on the Astir,
-		// never an Ardent (see ardent.js's ardentParts) — but this reads generically off
-		// _mountedParts() rather than special-casing the Astir, the same convention every other
-		// reactive part effect in this file follows.
-		const guided = (!fromCarrier && this._weaponIsGuided(weapon) && "Guided")
-			|| this._mountedParts().find((part) =>
-				part.grantsGuided && this.actor.system.attributes?.guidedMoveChoices?.[part.key] === move.key)?.name
-			|| null;
-		// The Roll Modifiers section (see move-grants-mixin.js's _rollModifiersForMove/
-		// _rollStackModifier) -- resolved unconditionally, like automaticSuccess below, rather than
-		// scoped to fromCarrier/usesWeapon: a source's own moveKeys filtering already narrows each
-		// entry to the moves it actually applies to, so there's nothing frame- or weapon-specific to
-		// additionally gate here.
-		const rollModifiers = this._rollModifiersForMove(move, lockedEffect);
-		const rollStack = this._rollStackModifier();
-		// Embrace Chaos's own two hold spends -- disadvantageConversion (see
-		// _disadvantageConversionModifier) is resolved unconditionally, like rollStack above, since
-		// it's a Category D mechanism the dialog itself renders live-reactively; downgrade (see
-		// _availableDowngrade) is resolved unconditionally too, but only ever offered on the chat
-		// card after a 10+ (see moves.js#rollMove), so it's folded into baseOptions below the same
-		// conditional-spread way automaticSuccess already is.
-		const disadvantageConversion = this._disadvantageConversionModifier();
-		const downgrade = this._availableDowngrade(move);
-		const config = await configureMoveRoll(move, traits, {
-			lockedEffect,
-			lockedAdvantage,
-			lockedTrait,
-			equipmentSpends,
-			rollModifiers,
-			rollStack,
-			disadvantageConversion,
-			...(guided && { guided })
-		});
-		if (!config) return;
-
-		// The one-shot deferred grant (see pendingGrant above) is cleared the moment this roll's own
-		// config resolves -- read-then-cleared before the roll itself, so checking a deferred entry's
-		// box *inside* this same dialog never grants it to this roll, only the next one (see
-		// move-grants-mixin.js's _pendingRollModifierGrant doc comment for the known UX quirk this
-		// implies).
-		if (pendingGrant) await this._clearPendingRollModifier(pendingGrant.sourceKey, pendingGrant.specKey);
-
+	},
+	// Spell Routines' own mounted-part grant — the *source's* own label ("Spell Routines"), only
+	// for the one move the player picked on the Astir tab (system.attributes.guidedMoveChoices,
+	// keyed by the part's own key — see astir-mixin.js's _onGuidedMoveChoiceChange/
+	// _guidedMoveOptions), and only while installed on the currently mounted frame (see
+	// docs/domains/frames.md's Piloted note). Spell Routines carries a powerCost, so it can only
+	// ever be installed on the Astir, never an Ardent (see ardent.js's ardentParts) — but this
+	// reads generically off _mountedParts() rather than special-casing the Astir, the same
+	// convention every other reactive part effect in this file follows.
+	_guidedFromPartFor(move) {
+		return this._mountedParts().find((part) =>
+			part.grantsGuided && this.actor.system.attributes?.guidedMoveChoices?.[part.key] === move.key)?.name ?? null;
+	},
+	// Holds the *source's* own label ("Guided" for the weapon tag, a part's name for Spell
+	// Routines) rather than a bare boolean, so the dialog's "Take 7-9" button and the resulting
+	// chat message can both name which grant actually offered it instead of always saying "Guided"
+	// — see move-dialogs.js's configureMoveRoll and move-roll.js's postGuidedResult. A weapon
+	// "borrowed" from the world's Carrier (fromCarrier) never offers its own Guided tag, same scope
+	// cut as _lockedEffectFor's own forced-tag read.
+	_guidedFor(move, weapon) {
+		const fromCarrier = Boolean(weapon?.fromCarrier);
+		return (!fromCarrier && this._weaponIsGuided(weapon) && "Guided") || this._guidedFromPartFor(move) || null;
+	},
+	// Shared tail of both _rollMove's single-weapon path and _rollMoveWithWeaponChoice's array
+	// path, once configureMoveRoll's dialog has resolved — everything from Guided's "Take 7-9"
+	// early return through the final rollMove call and _onMoveResolved. `weapon` is always a
+	// single, already-resolved weapon/null/undefined (never an array) — the single-weapon path
+	// passes its own already-known `weapon` parameter, the array path passes chosenWeapon once the
+	// weapon-select's own choice resolves. `guided`/`disadvantageConversion`/`downgrade` are each
+	// the same weapon-independent (or, for guided, already-resolved-for-the-chosen-weapon) values
+	// the caller already computed before calling configureMoveRoll, threaded through rather than
+	// recomputed here.
+	async _finishMoveRoll(move, weapon, config, { quickRoll = {}, guided = null, disadvantageConversion = null, downgrade = [] } = {}) {
 		// Guided's "Take 7-9" button resolves with nothing but this flag — no trait, dice, or
 		// equipment/Astir Part spend was ever read, so there's nothing to mark spent and nothing
-		// left to roll. _onMoveResolved still runs below (Cold Company, Witch's Patron, ...) — there's
-		// just no dice to check for Flourish Component's regain-on-doubles.
+		// left to roll. _onMoveResolved still runs below (Cold Company, Witch's Patron, ...) —
+		// there's just no dice to check for Flourish Component's regain-on-doubles.
 		if (config.takeSeven) {
 			await postGuidedResult(this.actor, move, {
 				weaponLabel: weapon ? weapon.name : "Unarmed",
@@ -244,9 +201,19 @@ export const MoveRollSheetMixin = {
 			return;
 		}
 
+		// A weapon "borrowed" from the world's Carrier (Fire Support) lives in a different actor's
+		// own equipment array, not this actor's — so none of the spend/tag/reroll machinery below,
+		// which all read or write this actor's own equipment/Astir Part state, may ever be
+		// evaluated against it. Mirrors CarrierActorSheet#_onWeaponMoveRoll's own scope cut for the
+		// Carrier's own weapon rolls: that handler never offers equipment spends, Astir Part
+		// spends, reroll or Guided either — a Carrier weapon roll is deliberately just a trait plus
+		// a name on the chat card, nothing more, and a Fire Support roll using one gets exactly the
+		// same treatment rather than risking a write onto an object this actor doesn't own.
+		const fromCarrier = Boolean(weapon?.fromCarrier);
 		// A forced tag (e.g. Unreliable) is marked spent right alongside whatever the player
 		// checked in the dialog — same single update, same "used this period" checkbox on the
 		// Equipment tab (see _equipmentEntry's spendable) as a player-chosen spend.
+		const forced = fromCarrier ? null : this._forcedWeaponEffect(weapon);
 		const spends = [...(config.spentTags ?? []), ...(forced ? [{ equipmentId: weapon.id, tagKey: forced.tagKey }] : [])];
 		if (spends.length) await this._spendEquipmentTags(spends);
 		// See configureMoveRoll's own spentRollModifiers doc comment -- covers both immediate
@@ -333,6 +300,159 @@ export const MoveRollSheetMixin = {
 		// already true, the same defensive shape _advanceHome's own clamp gives +HOME.
 		if (config.trait?.key === "eidolon-drive-ally") await this._consumeEidolonDriveBonus();
 		await this._onMoveResolved(move, result.dice, result.tier);
+	},
+	// Computes one candidate weapon's (or null, "Unarmed") full contribution to the merged
+	// weapon-choice + move-roll dialog (see move-dialogs.js's weaponBundles) — every field reuses
+	// the same shared precedence-chain helpers _rollMove's single-weapon path calls, just resolved
+	// once per candidate instead of once for an already-chosen weapon. `pendingGrant` is the one
+	// piece _rollMoveWithWeaponChoice below computes once and threads through rather than
+	// recomputing per candidate, since it's a read-then-cleared roll-scoped value, not a
+	// per-weapon one.
+	_weaponRollBundle(move, weapon, { traits, pendingGrant }) {
+		const bundleTraits = this._weaponTraitsFor(move, weapon, traits);
+		const lockedEffect = this._lockedEffectFor(move, weapon, pendingGrant);
+		const fromCarrier = Boolean(weapon?.fromCarrier);
+		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
+		const guided = this._guidedFor(move, weapon);
+		const rollModifiers = this._rollModifiersForMove(move, lockedEffect);
+		return {
+			weaponKey: weapon ? weapon.id : UNARMED,
+			weaponLabel: weapon ? weapon.name : "Unarmed",
+			// Reuses _equipmentEntry's own shape/logic (equipment-mixin.js) so this read-only card
+			// renders identically to the Equipment tab's own weapon card — the mounted frame (if
+			// any) supplies Tier for an Astir/Ardent-owned candidate, ignored for a mundane one
+			// (see _equipmentEntry's own tier branch).
+			weaponCard: weapon ? this._equipmentEntry(weapon, [], this._mountedFrame()) : null,
+			traits: bundleTraits,
+			traitOptions: bundleTraits.map((trait) => ({ key: trait.key, label: `${trait.label} (${trait.value})` })),
+			lockedEffect,
+			equipmentSpends,
+			guided,
+			rollModifiers
+		};
+	},
+	// The array-branch counterpart to the single-weapon _rollMove path below — reached only when
+	// _onMoveRoll resolved `weapon` to an array of candidates (a usesWeapon move, possibly with no
+	// weapons at all — "Unarmed" is still always offered). `traits` here is already the
+	// weapon-independent base list (see _rollMove's own dispatch) — the per-candidate Familiar
+	// +CHANNEL swap happens inside _weaponRollBundle instead, since which candidate is Familiar
+	// varies per bundle.
+	async _rollMoveWithWeaponChoice(move, weapons, traits, quickRoll) {
+		const pendingGrant = this._pendingRollModifierGrant(move);
+		const lockedTrait = this._lockedTraitFor(move, quickRoll, traits);
+		const lockedAdvantage = this._lockedAdvantageFor(move, pendingGrant);
+		const rollStack = this._rollStackModifier();
+		// Embrace Chaos's own two hold spends -- disadvantageConversion (see
+		// _disadvantageConversionModifier) is resolved unconditionally, like rollStack above, since
+		// it's a Category D mechanism the dialog itself renders live-reactively; downgrade (see
+		// _availableDowngrade) is resolved unconditionally too, but only ever offered on the chat
+		// card after a 10+ (see moves.js#rollMove), so it's folded into baseOptions the same
+		// conditional-spread way automaticSuccess already is.
+		const disadvantageConversion = this._disadvantageConversionModifier();
+		const downgrade = this._availableDowngrade(move);
+
+		// "Unarmed" first (see docs/domains/equipment.md's chooseWeapon precedent this replaces).
+		const weaponBundles = [null, ...weapons].map((candidate) =>
+			this._weaponRollBundle(move, candidate, { traits, pendingGrant }));
+
+		const config = await configureMoveRoll(move, traits, {
+			lockedAdvantage,
+			lockedTrait,
+			rollStack,
+			disadvantageConversion,
+			weaponBundles
+		});
+		if (!config) return;
+
+		// The one-shot deferred grant (see pendingGrant above) is cleared the moment this roll's own
+		// config resolves -- read-then-cleared before the roll itself, so checking a deferred
+		// entry's box *inside* this same dialog never grants it to this roll, only the next one
+		// (see move-grants-mixin.js's _pendingRollModifierGrant doc comment for the known UX quirk
+		// this implies).
+		if (pendingGrant) await this._clearPendingRollModifier(pendingGrant.sourceKey, pendingGrant.specKey);
+
+		const chosenWeapon = config.weaponId === UNARMED ? null : weapons.find((w) => w.id === config.weaponId) ?? null;
+		// Always resolves: chosenWeapon is either null (Unarmed, always the first bundle) or a real
+		// entry drawn from `weapons`, and every entry in `weapons` has its own bundle above.
+		const bundle = weaponBundles.find((b) => b.weaponKey === (chosenWeapon ? chosenWeapon.id : UNARMED));
+
+		await this._finishMoveRoll(move, chosenWeapon, config, {
+			quickRoll, guided: bundle.guided, disadvantageConversion, downgrade
+		});
+	},
+	// Shared by _onMoveRoll (weapon resolved via the merged dialog's own weapon-select, or left
+	// undefined for a move that isn't usesWeapon) and _onWeaponMoveRoll (weapon already known from
+	// the clicked button). `weapon` is an array of candidates only for _onMoveRoll's usesWeapon
+	// branch — every other caller still passes a single resolved weapon/null/undefined, exactly as
+	// before, and that path (below) is completely unchanged.
+	async _rollMove(move, weapon, quickRoll = {}) {
+		let traits = this._moveTraits(move);
+		// _moveTraits already resolved CREW for the single/zero-Carrier case; with more than one
+		// Carrier in the world that's ambiguous, so ask which one before locking in the value this
+		// roll actually uses. Cancelling aborts the whole roll, same convention the old chooseWeapon
+		// prompt's own cancel already had.
+		if (move.fixedTraits?.some((trait) => trait.key === "crew")) {
+			const carriers = findCarrierActors();
+			if (carriers.length > 1) {
+				const carrierId = await chooseCarrier(carriers);
+				if (!carrierId) return;
+				const crewValue = carriers.find((c) => c.id === carrierId)?.system.stats?.crew?.value ?? 0;
+				traits = traits.map((trait) => (trait.key === "crew" ? { ...trait, value: crewValue } : trait));
+			}
+		}
+
+		// _onMoveRoll's usesWeapon branch (see its own comment) — everything from here through the
+		// end of this function is the single-weapon path, untouched by weaponBundles at all.
+		if (Array.isArray(weapon)) {
+			if (!traits.length && !move.conditions) return;
+			return this._rollMoveWithWeaponChoice(move, weapon, traits, quickRoll);
+		}
+
+		traits = this._weaponTraitsFor(move, weapon, traits);
+		if (!traits.length && !move.conditions) return;
+
+		const pendingGrant = this._pendingRollModifierGrant(move);
+		const lockedEffect = this._lockedEffectFor(move, weapon, pendingGrant);
+		const lockedTrait = this._lockedTraitFor(move, quickRoll, traits);
+		const lockedAdvantage = this._lockedAdvantageFor(move, pendingGrant);
+		const fromCarrier = Boolean(weapon?.fromCarrier);
+		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
+		const guided = this._guidedFor(move, weapon);
+		// The Roll Modifiers section (see move-grants-mixin.js's _rollModifiersForMove/
+		// _rollStackModifier) -- resolved unconditionally, like automaticSuccess below, rather than
+		// scoped to fromCarrier/usesWeapon: a source's own moveKeys filtering already narrows each
+		// entry to the moves it actually applies to, so there's nothing frame- or weapon-specific to
+		// additionally gate here.
+		const rollModifiers = this._rollModifiersForMove(move, lockedEffect);
+		const rollStack = this._rollStackModifier();
+		// Embrace Chaos's own two hold spends -- disadvantageConversion (see
+		// _disadvantageConversionModifier) is resolved unconditionally, like rollStack above, since
+		// it's a Category D mechanism the dialog itself renders live-reactively; downgrade (see
+		// _availableDowngrade) is resolved unconditionally too, but only ever offered on the chat
+		// card after a 10+ (see moves.js#rollMove), so it's folded into baseOptions below the same
+		// conditional-spread way automaticSuccess already is.
+		const disadvantageConversion = this._disadvantageConversionModifier();
+		const downgrade = this._availableDowngrade(move);
+		const config = await configureMoveRoll(move, traits, {
+			lockedEffect,
+			lockedAdvantage,
+			lockedTrait,
+			equipmentSpends,
+			rollModifiers,
+			rollStack,
+			disadvantageConversion,
+			...(guided && { guided })
+		});
+		if (!config) return;
+
+		// The one-shot deferred grant (see pendingGrant above) is cleared the moment this roll's own
+		// config resolves -- read-then-cleared before the roll itself, so checking a deferred entry's
+		// box *inside* this same dialog never grants it to this roll, only the next one (see
+		// move-grants-mixin.js's _pendingRollModifierGrant doc comment for the known UX quirk this
+		// implies).
+		if (pendingGrant) await this._clearPendingRollModifier(pendingGrant.sourceKey, pendingGrant.specKey);
+
+		await this._finishMoveRoll(move, weapon, config, { quickRoll, guided, disadvantageConversion, downgrade });
 	},
 	// Runs after a move resolves — whether via a real roll (dice present) or Guided's "Take 7-9"
 	// (dice null). The Witch's Patron ("offers you two boons at random whenever someone leads a

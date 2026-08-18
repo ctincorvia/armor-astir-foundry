@@ -6,12 +6,6 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	rollMove: vi.fn()
 }));
 
-// Only the weapon-choice dialog is mocked — the tag catalog and resolve helpers stay real.
-vi.mock("../scripts/equipment/equipment.js", async (importOriginal) => ({
-	...(await importOriginal()),
-	chooseWeapon: vi.fn()
-}));
-
 // findCarrierActors defaults to no Carriers in the world, matching every other move-roll test
 // file's own convention (see playbook-actor-sheet-move-rolls.test.js).
 vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal) => ({
@@ -22,7 +16,7 @@ vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal)
 
 import { BASIC_MOVES, configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
-import { chooseWeapon } from "../scripts/equipment/equipment.js";
+import { UNARMED } from "../scripts/equipment/equipment.js";
 import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
 import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
@@ -43,7 +37,6 @@ beforeEach(() => {
 	configureMoveRoll.mockClear();
 	rollMove.mockClear();
 	rollMove.mockResolvedValue({ message: undefined, dice: null, tier: undefined });
-	chooseWeapon.mockClear();
 	findCarrierActors.mockClear();
 	findCarrierActors.mockReturnValue([]);
 });
@@ -360,7 +353,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 	const halberd = { id: "eq1", kind: "weapon", name: "Halberd", tags: [] };
 	const carrierWeapon = { id: "carrier-w1", kind: "weapon", name: "Broadside Cannon", tags: [] };
 
-	it("folds the single Carrier's own weapons into the choice, tagged fromCarrier", async () => {
+	it("folds the single Carrier's own weapons into the weaponBundles offer, tagged fromCarrier", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -372,11 +365,12 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 		findCarrierActors.mockReturnValue([
 			{ id: "carrier1", name: "The Wanderer", system: { attributes: { weapons: carrierWeapons } } }
 		]);
-		chooseWeapon.mockResolvedValue(null);
+		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(chooseWeapon).toHaveBeenCalledWith([halberd, { ...carrierWeapon, fromCarrier: true }]);
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED, "eq1", "carrier-w1"]);
 		// The Carrier's own stored array is never mutated — no fromCarrier flag leaks onto it.
 		expect(carrierWeapons[0]).toEqual(carrierWeapon);
 	});
@@ -390,11 +384,12 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 			}
 		};
 		findCarrierActors.mockReturnValue([{ id: "carrier1", name: "The Wanderer", system: { attributes: {} } }]);
-		chooseWeapon.mockResolvedValue(null);
+		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(chooseWeapon).toHaveBeenCalledWith([halberd]);
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED, "eq1"]);
 	});
 
 	it("offers no Carrier weapons with zero Carriers in the world", async () => {
@@ -406,11 +401,12 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 			}
 		};
 		findCarrierActors.mockReturnValue([]);
-		chooseWeapon.mockResolvedValue(null);
+		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(chooseWeapon).toHaveBeenCalledWith([halberd]);
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED, "eq1"]);
 	});
 
 	it("offers no Carrier weapons with more than one Carrier in the world", async () => {
@@ -425,11 +421,12 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 			{ id: "carrier1", name: "The Wanderer", system: { attributes: { weapons: [carrierWeapon] } } },
 			{ id: "carrier2", name: "The Anchor", system: { attributes: { weapons: [carrierWeapon] } } }
 		]);
-		chooseWeapon.mockResolvedValue(null);
+		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(chooseWeapon).toHaveBeenCalledWith([halberd]);
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED, "eq1"]);
 	});
 
 	it("offers no Carrier weapons for a usesWeapon move when Fire Support isn't picked", async () => {
@@ -443,11 +440,12 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 		findCarrierActors.mockReturnValue([
 			{ id: "carrier1", name: "The Wanderer", system: { attributes: { weapons: [carrierWeapon] } } }
 		]);
-		chooseWeapon.mockResolvedValue(null);
+		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(chooseWeapon).toHaveBeenCalledWith([halberd]);
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED, "eq1"]);
 	});
 });
 

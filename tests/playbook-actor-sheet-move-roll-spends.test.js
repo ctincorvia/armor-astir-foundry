@@ -26,9 +26,10 @@ beforeEach(() => {
 // dispel-uncertainties (not a usesWeapon move) stands in for "any ordinary move" here — these
 // tests exercise _equipmentSpends' own unscoped behavior (offering, spent/stale filtering,
 // disabling, marking), which is identical for every move except Exchange Blows/Strike Decisively.
-// Weapon-scoping itself (chooseWeapon, the weaponLabel it produces) is covered separately below in
+// Weapon-scoping itself (the merged dialog's own weaponBundles, and the weaponLabel it produces)
+// is covered separately in playbook-actor-sheet-weapon-rolls.test.js's own
 // "PlaybookActorSheet#_onMoveRoll - weapon choice" and "PlaybookActorSheet#_equipmentSpends -
-// weapon scoping".
+// weapon scoping" below.
 describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 	const know = { key: "know", label: "KNOW", value: 1 };
 	const blitzSpend = {

@@ -92,8 +92,8 @@ export function buildTagReference(items, tags = EQUIPMENT_TAGS) {
 	return { tagGroups, hasTags: tagGroups.length > 0 };
 }
 
-// Wires the click-to-switch-tab behavior shared by weapon-picker.hbs / equipment-catalog-picker.hbs
-// / starting-gear-picker.hbs's own [data-picker-tab]/[data-picker-tab-panel] markup — a bare Foundry
+// Wires the click-to-switch-tab behavior shared by equipment-catalog-picker.hbs /
+// starting-gear-picker.hbs's own [data-picker-tab]/[data-picker-tab-panel] markup — a bare Foundry
 // Dialog has no TabsV2 controller of its own. Safe to pass unconditionally as every affected
 // Dialog's `render`: when a template only rendered the tab-less single panel (hasTags false),
 // [data-picker-tab] simply matches nothing.

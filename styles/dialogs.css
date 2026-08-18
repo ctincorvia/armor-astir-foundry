@@ -115,6 +115,54 @@
 	color: var(--aa-danger);
 }
 
+/* The merged weapon-choice + move-roll dialog's own 2-column layout (see docs/domains/moves.md and
+   move-dialogs.js's weaponBundles) — Column 1 holds the weapon-independent Dice/Effect/Stack/
+   Convert controls plus the locked-Advantage note, all rendered once regardless of which weapon
+   panel is active; Column 2 holds the weapon select and its own per-weapon panels (Trait, the
+   read-only weapon card, Equipment, Roll Modifiers, and that weapon's own locked-Trait/-Effect/
+   Guided notes). Only rendered when a usesWeapon move offers weaponBundles — every other move
+   keeps the original single-column .form-group stack untouched (see the template's own
+   {{#if weaponBundles}}/{{else}} split), so none of the rules below ever apply to it. */
+.armor-astir.move-roll-dialog .move-roll-grid {
+	display: grid;
+	grid-template-columns: 1fr 1fr;
+	gap: var(--aa-space-3);
+}
+
+.armor-astir.move-roll-dialog .move-roll-column-2 {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-2);
+}
+
+/* One panel per weaponBundles entry — hidden by default, toggled by the weapon-select's own
+   change handler (see configureMoveRoll's render callback), mirroring .picker-tab-panel/.active's
+   existing show-one-hide-rest convention (this file's own picker chrome further below). */
+.armor-astir.move-roll-dialog .move-roll-weapon-panel {
+	display: none;
+}
+
+.armor-astir.move-roll-dialog .move-roll-weapon-panel.active {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-2);
+}
+
+/* The read-only weapon card reuses .equipment-item/.equipment-header/.equipment-meta/
+   .equipment-tags-block verbatim (broadened in sheet-tabs.css to also match this dialog's own
+   root class, since a Dialog never carries .sheet) — this rule only drops the sheet row's own
+   border/padding, which reads oddly on a single inert, non-clickable card rather than a list row. */
+.armor-astir.move-roll-dialog .move-roll-weapon-card {
+	padding: 0;
+	border-bottom: none;
+}
+
+.armor-astir.move-roll-dialog .move-roll-weapon-card-unarmed {
+	margin: 0;
+	font-weight: bold;
+	color: var(--aa-primary-dark);
+}
+
 .armor-astir.equipment-editor .form-group {
 	display: flex;
 	flex-direction: column;
@@ -489,10 +537,10 @@
 }
 
 /* Trait/tag chips share one look wherever they appear — the move picker's trait pills and the
-   weapon picker's tag pills. The secondary color marks them as belonging to the player's own
-   move/gear; -dark because they carry white text (see the role-token note at the top). */
+   equipment/starting-gear picker's tag pills. The secondary color marks them as belonging to the
+   player's own move/gear; -dark because they carry white text (see the role-token note at the
+   top). */
 .armor-astir.playbook-move-picker .move-picker-trait,
-.armor-astir.weapon-picker .weapon-picker-tag,
 .armor-astir.equipment-catalog-picker .equipment-catalog-picker-tag,
 .armor-astir.starting-gear-picker .starting-gear-picker-tag {
 	padding: 2px 6px;
@@ -690,41 +738,6 @@
 	font-style: italic;
 }
 
-.armor-astir.weapon-picker .weapon-picker-list {
-	margin: 0;
-	padding: 0;
-	list-style: none;
-}
-
-.armor-astir.weapon-picker .weapon-picker-item {
-	padding: var(--aa-space-1) 0;
-}
-
-.armor-astir.weapon-picker .weapon-picker-option {
-	display: flex;
-	flex-direction: row;
-	align-items: center;
-	gap: var(--aa-space-2);
-	cursor: pointer;
-}
-
-.armor-astir.weapon-picker .weapon-picker-name {
-	font-weight: bold;
-}
-
-.armor-astir.weapon-picker .weapon-picker-value {
-	font-size: 12px;
-	opacity: 0.8;
-}
-
-.armor-astir.weapon-picker .weapon-picker-tags {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
-	gap: var(--aa-space-1);
-	margin-left: 26px;
-}
-
 .armor-astir.equipment-catalog-picker .equipment-catalog-picker-tags {
 	display: flex;
 	flex-direction: row;
@@ -741,12 +754,12 @@
 	margin-left: 26px;
 }
 
-/* Shared "tabs inside a Dialog" chrome — weapon-picker.hbs, equipment-catalog-picker.hbs and
-   starting-gear-picker.hbs all wire the same [data-picker-tab]/[data-picker-tab-panel] markup via
-   wirePickerTabs (equipment.js), since a bare Foundry Dialog has no TabsV2 controller of its own.
-   Visually mirrors .armor-astir.sheet .sheet-tabs .item above. Scoped bare under .armor-astir
-   (not per-dialog-class) since it's genuinely identical across all three dialogs — matching the
-   existing precedent for cross-dialog concerns (.dialog-content, .dialog-buttons, radio inputs). */
+/* Shared "tabs inside a Dialog" chrome — equipment-catalog-picker.hbs and starting-gear-picker.hbs
+   both wire the same [data-picker-tab]/[data-picker-tab-panel] markup via wirePickerTabs
+   (equipment.js), since a bare Foundry Dialog has no TabsV2 controller of its own. Visually
+   mirrors .armor-astir.sheet .sheet-tabs .item above. Scoped bare under .armor-astir (not
+   per-dialog-class) since it's genuinely identical across both dialogs — matching the existing
+   precedent for cross-dialog concerns (.dialog-content, .dialog-buttons, radio inputs). */
 .armor-astir .picker-tabs {
 	display: flex;
 	flex-direction: row;

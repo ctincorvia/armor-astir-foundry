@@ -6,15 +6,9 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	rollMove: vi.fn()
 }));
 
-// Only the weapon-choice dialog is mocked — the tag catalog and resolve helpers stay real.
-vi.mock("../scripts/equipment/equipment.js", async (importOriginal) => ({
-	...(await importOriginal()),
-	chooseWeapon: vi.fn()
-}));
-
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
 import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
-import { UNARMED, chooseWeapon } from "../scripts/equipment/equipment.js";
+import { UNARMED } from "../scripts/equipment/equipment.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import { EXCHANGE_BLOWS, STRIKE_DECISIVELY } from "./helpers/move-fixtures.js";
 
@@ -29,7 +23,6 @@ beforeEach(() => {
 	// rollMove resolves { message, dice } (see moves.js) — a bare default so every existing test
 	// that doesn't care about the roll's dice (most of them) doesn't have to configure this itself.
 	rollMove.mockResolvedValue({ message: undefined, dice: null });
-	chooseWeapon.mockClear();
 });
 
 describe("PlaybookActorSheet#activateListeners - weapon moves", () => {
@@ -51,14 +44,20 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 	const halberd = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [], scale: "foot", tier: 1 };
 	const sidearm = { id: "eq2", kind: "weapon", name: "Sidearm", description: "", tags: [], spent: [], scale: "foot", tier: 1 };
 
-	it("prompts chooseWeapon with the actor's weapons when the move usesWeapon", async () => {
+	it("offers the actor's weapons as weaponBundles, Unarmed first, when the move usesWeapon", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [halberd, sidearm] } } };
-		chooseWeapon.mockResolvedValue(null);
+		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(chooseWeapon).toHaveBeenCalledWith([halberd, sidearm]);
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
+			weaponBundles: [
+				expect.objectContaining({ weaponKey: UNARMED, weaponLabel: "Unarmed" }),
+				expect.objectContaining({ weaponKey: "eq1", weaponLabel: "Halberd" }),
+				expect.objectContaining({ weaponKey: "eq2", weaponLabel: "Sidearm" })
+			]
+		}));
 	});
 
 	it("excludes Astir weapons from the weapon choice while unpiloted", async () => {
@@ -70,11 +69,12 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 				attributes: { astir: { id: "a1", piloted: false }, equipment: [halberd, astirWeapon] }
 			}
 		};
-		chooseWeapon.mockResolvedValue(null);
+		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(chooseWeapon).toHaveBeenCalledWith([halberd]);
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED, "eq1"]);
 	});
 
 	it("excludes mundane weapons from the weapon choice while piloted, offering only Astir weapons", async () => {
@@ -86,11 +86,12 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 				attributes: { astir: { id: "a1", piloted: true }, equipment: [halberd, astirWeapon] }
 			}
 		};
-		chooseWeapon.mockResolvedValue(null);
+		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(chooseWeapon).toHaveBeenCalledWith([astirWeapon]);
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED, "eq3"]);
 	});
 
 	it("excludes a disabled weapon from the weapon choice", async () => {
@@ -99,21 +100,23 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		sheet.actor = {
 			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [halberd, disabledWeapon] } }
 		};
-		chooseWeapon.mockResolvedValue(null);
+		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(chooseWeapon).toHaveBeenCalledWith([halberd]);
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED, "eq1"]);
 	});
 
-	it("aborts the whole roll when the weapon-choice dialog is dismissed", async () => {
+	it("aborts the whole roll when the merged dialog is dismissed", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [halberd] } } };
-		chooseWeapon.mockResolvedValue(null);
+		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(configureMoveRoll).not.toHaveBeenCalled();
+		expect(configureMoveRoll).toHaveBeenCalled();
+		expect(rollMove).not.toHaveBeenCalled();
 	});
 
 	it("scopes the roll to no weapon and labels it Unarmed when Unarmed is chosen", async () => {
@@ -122,16 +125,11 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [halberd] } },
 			update: vi.fn()
 		};
-		chooseWeapon.mockResolvedValue(UNARMED);
-		const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none" };
+		const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none", weaponId: UNARMED };
 		configureMoveRoll.mockResolvedValue(config);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
-		});
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
 		);
@@ -144,30 +142,28 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [armed, sidearm] } },
 			update: vi.fn()
 		};
-		chooseWeapon.mockResolvedValue(armed.id);
-		const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none" };
+		const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none", weaponId: armed.id };
 		configureMoveRoll.mockResolvedValue(config);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [expect.objectContaining({ equipmentId: armed.id, tagKey: "blitz" })],
-			rollModifiers: [], rollStack: null, disadvantageConversion: null
-		});
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		const armedBundle = weaponBundles.find((b) => b.weaponKey === armed.id);
+		expect(armedBundle.equipmentSpends).toEqual([expect.objectContaining({ equipmentId: armed.id, tagKey: "blitz" })]);
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz", heatUp: NO_HEAT_UP }
 		);
 	});
 
-	it("treats an id chooseWeapon resolved that no longer matches any weapon as Unarmed", async () => {
+	it("treats a weaponId configureMoveRoll resolved that no longer matches any weapon as Unarmed", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [halberd] } },
 			update: vi.fn()
 		};
-		chooseWeapon.mockResolvedValue("not-a-real-weapon-id");
-		const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none" };
+		const config = {
+			trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none", weaponId: "not-a-real-weapon-id"
+		};
 		configureMoveRoll.mockResolvedValue(config);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
@@ -177,18 +173,19 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		);
 	});
 
-	it("skips chooseWeapon entirely and rolls Unarmed when the actor has no weapons", async () => {
+	it("still offers Unarmed alone, no chooseWeapon prompt, and rolls Unarmed when the actor has no weapons", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [] } },
 			update: vi.fn()
 		};
-		const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none" };
+		const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none", weaponId: UNARMED };
 		configureMoveRoll.mockResolvedValue(config);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "strike-decisively" } } });
 
-		expect(chooseWeapon).not.toHaveBeenCalled();
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED]);
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor, STRIKE_DECISIVELY, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
 		);
@@ -198,7 +195,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 	const halberd = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["blitz"], spent: [], scale: "foot", tier: 1 };
 
-	it("rolls the clicked move with the clicked weapon, without prompting chooseWeapon", async () => {
+	it("rolls the clicked move with the clicked weapon, without offering a weapon choice", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [halberd] } },
@@ -209,7 +206,6 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(chooseWeapon).not.toHaveBeenCalled();
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })],

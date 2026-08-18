@@ -5,7 +5,6 @@ import {
 	MAX_TAGS,
 	TIER_MAX,
 	TIER_MIN,
-	WEAPON_PICKER_TEMPLATE,
 	WEAPON_RANGE_GROUP
 } from "./equipment-constants.js";
 import { EQUIPMENT_TAGS } from "./equipment-tags.js";
@@ -16,7 +15,6 @@ import {
 	findCatalogEquipment,
 	findEquipmentTag,
 	groupEquipmentTags,
-	resolveEquipmentTags,
 	withTagLabels,
 	wirePickerTabs
 } from "./equipment-helpers.js";
@@ -60,51 +58,6 @@ export async function chooseEquipmentCatalogItem(kind, catalog = EQUIPMENT_CATAL
 			close: () => resolve(null)
 		}, {
 			classes: ["armor-astir", "equipment-catalog-picker"],
-			width: 560,
-			height: 700,
-			resizable: true
-		}).render(true);
-	});
-}
-
-// Opens the "which weapon" prompt for a usesWeapon move (see moves.js,
-// PlaybookActorSheet#_onMoveRoll) and resolves the chosen weapon's id, UNARMED, or null if
-// dismissed. Mirrors chooseEquipmentCatalogItem's promise/Dialog/resolve-null shape. Assumes
-// `weapons` is non-empty — the caller only invokes this when the actor actually has a weapon to
-// choose between; with none, "unarmed" is simply true and there's nothing to ask.
-export async function chooseWeapon(weapons, tags = EQUIPMENT_TAGS) {
-	const options = weapons.map((weapon) => ({
-		key: weapon.id,
-		name: weapon.name,
-		value: equipmentValue(weapon.tags ?? [], tags),
-		tagLabels: resolveEquipmentTags(weapon.tags ?? [], tags).map((tag) => tag.label)
-	}));
-	const { tagGroups, hasTags } = buildTagReference(weapons, tags);
-	const content = await renderTemplate(WEAPON_PICKER_TEMPLATE, { options, tagGroups, hasTags });
-
-	return new Promise((resolve) => {
-		new Dialog({
-			title: "Choose a Weapon",
-			content,
-			// See chooseEquipmentCatalogItem's own render comment — must be DialogData.render, not
-			// an options field, for Foundry to actually invoke it.
-			render: wirePickerTabs,
-			buttons: {
-				choose: {
-					label: "Choose",
-					// The template pre-checks Unarmed, so .val() always resolves to something as
-					// long as Choose (rather than Cancel/close) was clicked.
-					callback: (html) => resolve(html.find("[name='weapon']:checked").val() ?? null)
-				},
-				cancel: {
-					label: "Cancel",
-					callback: () => resolve(null)
-				}
-			},
-			default: "choose",
-			close: () => resolve(null)
-		}, {
-			classes: ["armor-astir", "weapon-picker"],
 			width: 560,
 			height: 700,
 			resizable: true
