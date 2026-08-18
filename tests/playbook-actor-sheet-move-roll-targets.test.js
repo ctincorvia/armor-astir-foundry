@@ -46,7 +46,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: "advantage", lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: "advantage", lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 
@@ -61,7 +61,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: "advantage", lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: "advantage", lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 
@@ -76,7 +76,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 
@@ -91,7 +91,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			STRIKE_DECISIVELY,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: "disadvantage", lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: "disadvantage", lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 
@@ -111,7 +111,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			DISPEL_UNCERTAINTIES,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 
@@ -135,7 +135,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: "disadvantage", lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: "disadvantage", lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 });
@@ -166,7 +166,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: "confidence", lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: "confidence", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 
@@ -181,7 +181,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 
@@ -196,7 +196,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 
@@ -227,7 +227,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: "confidence", lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: "confidence", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 
@@ -254,7 +254,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 });
@@ -283,7 +283,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier and Approach lock independently"
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: "desperation", lockedAdvantage: "advantage", lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: "desperation", lockedAdvantage: "advantage", lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 });

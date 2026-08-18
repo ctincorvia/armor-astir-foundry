@@ -452,12 +452,13 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 });
 
 describe("PlaybookActorSheet#_rollMove - fromCarrier weapon skip", () => {
-	it("never offers equipment or Astir Part spends for a fromCarrier weapon, even when both would otherwise apply", async () => {
+	it("never offers equipment spends for a fromCarrier weapon, even though an installed Astir Part's own Roll Modifier still applies", async () => {
 		const sheet = new PlaybookActorSheet();
-		// Rations carries a spendable Blitz tag, and an installed, piloted Artifact part offers its
-		// own spend — both would normally show up in equipmentSpends/astirPartSpends (see
-		// playbook-actor-sheet-move-rolls.test.js's own "astir part spends" tests), proving the
-		// fromCarrier skip actually suppresses them rather than them simply being absent already.
+		// Rations carries a spendable Blitz tag, which would normally show up in equipmentSpends —
+		// proving the fromCarrier skip actually suppresses it rather than it simply being absent
+		// already. Artifact's own Roll Modifier entry, by contrast, is actor-wide rather than
+		// weapon-scoped (see _rollModifiersForMove), so it's unaffected by fromCarrier and still
+		// shows up below.
 		const gear = { id: "g1", kind: "gear", name: "Rations", tags: ["blitz"], spent: [] };
 		const carrierWeapon = {
 			id: "carrier-w1", kind: "weapon", name: "Broadside Cannon", tags: ["guided"], spent: [], fromCarrier: true
@@ -482,10 +483,20 @@ describe("PlaybookActorSheet#_rollMove - fromCarrier weapon skip", () => {
 			lockedAdvantage: null,
 			lockedTrait: null,
 			equipmentSpends: [],
-			astirPartSpends: [],
-			rollModifiers: [], rollStack: null, disadvantageConversion: null
+			rollModifiers: [{
+				key: ARTIFACT.key,
+				label: "Advantage from Artifact",
+				description: "Grants advantage towards a task this Artifact is designed for.",
+				advantage: "advantage",
+				effect: null,
+				reminderOnly: false,
+				deferred: false,
+				disabled: false,
+				disabledReason: null
+			}],
+			rollStack: null, disadvantageConversion: null
 		});
-		// Nothing was marked spent/expended on either the gear or the Astir part.
+		// Nothing was marked spent on the gear, and nothing was checked in the Roll Modifiers section.
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 });

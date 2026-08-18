@@ -3,7 +3,6 @@ import { describe, expect, it, vi } from "vitest";
 import { ASTIR_POWER_BASE } from "../scripts/frames/astir.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
-	ARTIFACT,
 	EXCHANGE_BLOWS,
 	FUTURE_SIGHT,
 	INERTIA_DRIVE,
@@ -13,7 +12,6 @@ import {
 	PETRIFIER_CORE,
 	READ_THE_ROOM,
 	STRIKE_DECISIVELY,
-	WARDING,
 	WEATHER_THE_STORM
 } from "./helpers/move-fixtures.js";
 
@@ -55,29 +53,6 @@ describe("PlaybookActorSheet#_regainAstirPower", () => {
 		await sheet._regainAstirPower(1);
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-});
-
-describe("PlaybookActorSheet#_spendAstirParts", () => {
-	it("marks each given part key Expended in one update", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { update: vi.fn() };
-
-		await sheet._spendAstirParts([WARDING.key, ARTIFACT.key]);
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.moveUses.${WARDING.key}.expended`]: true,
-			[`system.attributes.moveUses.${ARTIFACT.key}.expended`]: true
-		});
-	});
-
-	it("writes nothing for an empty list", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { update: vi.fn() };
-
-		await sheet._spendAstirParts([]);
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({});
 	});
 });
 

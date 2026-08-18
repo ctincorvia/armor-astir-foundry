@@ -52,22 +52,6 @@
 		</div>
 	</div>
 	{{/if}}
-	{{#if astirPartSpends.length}}
-	<div class="form-group move-roll-equipment">
-		<label>Astir Parts</label>
-		<div class="move-roll-equipment-list">
-			{{#each astirPartSpends}}
-			<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
-				<label class="move-roll-equipment-spend-option">
-					<input type="checkbox" name="astir-part-spend" value="{{partKey}}" {{#if disabled}}disabled{{/if}}/>
-					<span class="move-roll-equipment-name">{{partName}}</span>
-				</label>
-				<div class="move-roll-equipment-description">{{description}}</div>
-			</div>
-			{{/each}}
-		</div>
-	</div>
-	{{/if}}
 	<div class="form-group">
 		<label>Dice</label>
 		<select name="advantage" {{#if lockedAdvantage}}disabled{{/if}}>

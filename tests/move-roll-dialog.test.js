@@ -183,24 +183,6 @@ describe("configureMoveRoll - lockedAdvantage", () => {
 
 		expect((await promise).advantage).toBe("advantage");
 	});
-
-	it("lets a spent Astir Part's advantage (Artifact) win over lockedAdvantage", async () => {
-		const spend = {
-			partKey: "astir-part:artifact", partName: "Artifact", description: "d", effect: null, advantage: "advantage2", disabled: false
-		};
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { lockedAdvantage: "advantage", astirPartSpends: [spend] });
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.roll.callback(fakeRollHtml({
-			"[name='trait']": "clash",
-			"[name='advantage']": "none",
-			"[name='effect']": "none"
-		}, [], [], ["astir-part:artifact"]));
-
-		expect((await promise).advantage).toBe("advantage2");
-	});
 });
 
 describe("configureMoveRoll - intents and conditions", () => {
@@ -376,149 +358,6 @@ describe("configureMoveRoll - equipment spends", () => {
 	});
 
 	it("does not add a spentTags key when no equipment was offered", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.roll.callback(fakeRollHtml({
-			"[name='trait']": "clash",
-			"[name='advantage']": "none",
-			"[name='effect']": "none"
-		}));
-
-		expect(await promise).toEqual({ trait: clash, advantage: "none", effect: "none" });
-	});
-});
-
-describe("configureMoveRoll - astir part spends", () => {
-	const clash = CLASH_TRAIT;
-	const wardingSpend = {
-		partKey: "astir-part:warding",
-		partName: "Warding",
-		description: "Reduce an incoming source of harm from a peril to a risk, or a risk to nothing.",
-		effect: null,
-		advantage: null,
-		disabled: false
-	};
-	const artifactSpend = {
-		partKey: "astir-part:artifact",
-		partName: "Artifact",
-		description: "Grants advantage towards a task this Artifact is designed for.",
-		effect: null,
-		advantage: "advantage",
-		disabled: false
-	};
-
-	it("passes the offered astir part spends to the dialog template", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { astirPartSpends: [wardingSpend] });
-		await Promise.resolve();
-		await Promise.resolve();
-
-		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
-			astirPartSpends: [wardingSpend]
-		}));
-
-		Dialog.mock.calls.at(-1)[0].close();
-		await promise;
-	});
-
-	it("defaults astirPartSpends to an empty list", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
-			astirPartSpends: []
-		}));
-
-		Dialog.mock.calls.at(-1)[0].close();
-		await promise;
-	});
-
-	it("resolves checked astir part spends as a plain array of part keys", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { astirPartSpends: [wardingSpend] });
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.roll.callback(fakeRollHtml({
-			"[name='trait']": "clash",
-			"[name='advantage']": "none",
-			"[name='effect']": "none"
-		}, [], [], ["astir-part:warding"]));
-
-		expect(await promise).toEqual({
-			trait: clash,
-			advantage: "none",
-			effect: "none",
-			spentParts: ["astir-part:warding"]
-		});
-	});
-
-	it("sets the roll's Advantage from a checked spend's advantage, regardless of the Dice select's own value", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { astirPartSpends: [artifactSpend] });
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.roll.callback(fakeRollHtml({
-			"[name='trait']": "clash",
-			"[name='advantage']": "disadvantage",
-			"[name='effect']": "none"
-		}, [], [], ["astir-part:artifact"]));
-
-		expect((await promise).advantage).toBe("advantage");
-	});
-
-	it("sets the roll's effect from a checked spend's effect, same precedence as an equipment spend", async () => {
-		const spend = { ...wardingSpend, effect: "confidence" };
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { astirPartSpends: [spend] });
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.roll.callback(fakeRollHtml({
-			"[name='trait']": "clash",
-			"[name='advantage']": "none",
-			"[name='effect']": "desperation"
-		}, [], [], ["astir-part:warding"]));
-
-		expect((await promise).effect).toBe("confidence");
-	});
-
-	it("lets lockedEffect win over a checked part's effect", async () => {
-		const spend = { ...wardingSpend, effect: "confidence" };
-		const promise = configureMoveRoll(BITE_THE_DUST, [clash], { lockedEffect: "desperation", astirPartSpends: [spend] });
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.roll.callback(fakeRollHtml({
-			"[name='trait']": "clash",
-			"[name='advantage']": "none",
-			"[name='effect']": "none"
-		}, [], [], ["astir-part:warding"]));
-
-		expect((await promise).effect).toBe("desperation");
-	});
-
-	it("resolves an empty spentParts list when spends were offered but none were checked", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { astirPartSpends: [wardingSpend] });
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.roll.callback(fakeRollHtml({
-			"[name='trait']": "clash",
-			"[name='advantage']": "none",
-			"[name='effect']": "none"
-		}));
-
-		expect(await promise).toEqual({ trait: clash, advantage: "none", effect: "none", spentParts: [] });
-	});
-
-	it("does not add a spentParts key when no astir part was offered", async () => {
 		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
 		await Promise.resolve();
 		await Promise.resolve();
@@ -722,24 +561,6 @@ describe("configureMoveRoll - roll modifiers", () => {
 		expect((await promise).advantage).toBe("advantage2");
 	});
 
-	it("lets a spent Astir Part's advantage win over a checked roll modifier's advantage", async () => {
-		const spend = {
-			partKey: "astir-part:artifact", partName: "Artifact", description: "d", effect: null, advantage: "advantage2", disabled: false
-		};
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { astirPartSpends: [spend], rollModifiers: [advantageEntry] });
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.roll.callback(fakeRollHtml({
-			"[name='trait']": "clash",
-			"[name='advantage']": "none",
-			"[name='effect']": "none"
-		}, [], [], ["astir-part:artifact"], [advantageEntry.key]));
-
-		expect((await promise).advantage).toBe("advantage2");
-	});
-
 	it("lets a checked roll modifier's advantage win over lockedAdvantage", async () => {
 		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { lockedAdvantage: "disadvantage", rollModifiers: [advantageEntry] });
 		await Promise.resolve();
@@ -853,11 +674,8 @@ describe("configureMoveRoll - roll stack (All In)", () => {
 	});
 
 	it("wins over every other advantage/effect source when checked", async () => {
-		const spend = {
-			partKey: "astir-part:artifact", partName: "Artifact", description: "d", effect: null, advantage: "advantage", disabled: false
-		};
 		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], {
-			lockedEffect: "confidence", astirPartSpends: [spend], rollStack
+			lockedEffect: "confidence", rollStack
 		});
 		await Promise.resolve();
 		await Promise.resolve();
@@ -867,7 +685,7 @@ describe("configureMoveRoll - roll stack (All In)", () => {
 			"[name='trait']": "clash",
 			"[name='advantage']": "advantage",
 			"[name='effect']": "none"
-		}, [], [], ["astir-part:artifact"], [], [], true));
+		}, [], [], [], [], [], true));
 
 		const result = await promise;
 		expect(result.advantage).toBe("advantage2");
@@ -1049,11 +867,8 @@ describe("configureMoveRoll - disadvantage conversion (Embrace Chaos)", () => {
 	});
 
 	it("wins over every other advantage source when checked", async () => {
-		const spend = {
-			partKey: "astir-part:artifact", partName: "Artifact", description: "d", effect: null, advantage: "advantage", disabled: false
-		};
 		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], {
-			lockedEffect: "confidence", astirPartSpends: [spend], disadvantageConversion
+			lockedEffect: "confidence", disadvantageConversion
 		});
 		await Promise.resolve();
 		await Promise.resolve();
@@ -1063,7 +878,7 @@ describe("configureMoveRoll - disadvantage conversion (Embrace Chaos)", () => {
 			"[name='trait']": "clash",
 			"[name='advantage']": "disadvantage2",
 			"[name='effect']": "none"
-		}, [], [], ["astir-part:artifact"], [], [], false, true));
+		}, [], [], [], [], [], false, true));
 
 		const result = await promise;
 		expect(result.advantage).toBe("none");

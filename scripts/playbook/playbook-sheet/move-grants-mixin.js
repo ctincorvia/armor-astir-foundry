@@ -363,12 +363,11 @@ export const MoveGrantsSheetMixin = {
 		}
 		return { available: true, reason: null };
 	},
-	// The move-roll dialog's own Roll Modifiers section (see move-dialogs.js's configureMoveRoll) —
-	// mirrors _astirPartSpends' shape: every entry whose moveKeys is absent or matches the move about
-	// to be rolled is always included, never hidden, only ever `disabled` — when its own gate fails,
-	// or (for an effect-setting spec specifically, mirroring _astirPartSpends' own
-	// `Boolean(lockedEffect && part.spend.effect)`) this roll's Effect is already locked elsewhere.
-	// Dark Guarantees' reminderOnly entry (the-wither.js) is never gated or disabled — it renders as
+	// The move-roll dialog's own Roll Modifiers section (see move-dialogs.js's configureMoveRoll) --
+	// every entry whose moveKeys is absent or matches the move about to be rolled is always
+	// included, never hidden, only ever `disabled` -- when its own gate fails, or (for an
+	// effect-setting spec specifically) this roll's Effect is already locked elsewhere.
+	// Dark Guarantees' reminderOnly entry (the-wither.js) is never gated or disabled -- it renders as
 	// description text only, with no checkbox at all (see the template).
 	_rollModifiersForMove(move, lockedEffect) {
 		const entries = [];
@@ -441,7 +440,7 @@ export const MoveGrantsSheetMixin = {
 			[this._moveHoldUpdatePath(sourceKey)]: Math.max(HOLD_MIN, this._moveHoldValue(sourceKey) - amount)
 		});
 	},
-	// The write side of the Roll Modifiers section — mirrors _spendAstirParts/_spendEquipmentTags/
+	// The write side of the Roll Modifiers section — mirrors _spendEquipmentTags/
 	// handleAutomaticSuccess's own per-kind write branches, one actor.update batch for every checked
 	// entry regardless of source. A deferred entry (Snakes in the Grass, Bonded in Blood, Alchemical
 	// Suite's two Potions) additionally writes a pendingRollModifiers marker instead of applying to

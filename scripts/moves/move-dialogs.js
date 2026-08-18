@@ -21,9 +21,9 @@ export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates
 // lockedAdvantage (e.g. "advantage" for Don't Follow Me's "lead a Sortie with +DEFY & advantage"
 // — see PlaybookActorSheet#_grantedAdvantageForMove) is the same idea for the Dice select: pre-
 // selects and disables it, and is forced into the resolved advantage the same
-// belt-and-suspenders way, though an Astir Part's own spend.advantage (Artifact) still wins over
-// it — a reactive, player-chosen spend outranks a standing grant, the same precedence a spent
-// equipment/Astir Part effect already takes over lockedEffect.
+// belt-and-suspenders way, though a checked Roll Modifier's own advantage (Artifact included)
+// still wins over it — a reactive, player-chosen spend outranks a standing grant, the same
+// precedence a checked Roll Modifier's effect already takes over lockedEffect.
 //
 // lockedTrait (Don't Follow Me's own +DEFY half — see PlaybookActorSheet#_grantedTraitForMove) is
 // the Trait-select counterpart, but carries the full {key, label, value} option object rather
@@ -37,14 +37,6 @@ export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates
 // passed in rather than read off `move`. Offering it here, rather than filtering it down before
 // the call, keeps this one place responsible for turning "what's offerable" into "what was
 // checked".
-//
-// astirPartSpends (see PlaybookActorSheet#_astirPartSpends) is the same idea for an Astir Part's
-// `spend` field rather than an equipment tag's — rendered in its own dialog section (see
-// move-roll-dialog.hbs) since it isn't tied to any one equipment entry. A checked part can set
-// either axis: `spend.effect` slots into the same precedence as an equipment tag's spend, and
-// `spend.advantage` (new — nothing overrode the Advantage axis before Artifact) wins over
-// whatever the Dice select reports, the same way a spent effect already wins over the Effect
-// select.
 //
 // rollModifiers (see PlaybookActorSheet#_rollModifiersForMove) is the Roll Modifiers section —
 // every grantsRollModifier entry offered for this specific move (Category B/C entries), each
@@ -73,7 +65,6 @@ export async function configureMoveRoll(
 		lockedAdvantage = null,
 		lockedTrait = null,
 		equipmentSpends = [],
-		astirPartSpends = [],
 		rollModifiers = [],
 		rollStack = null,
 		disadvantageConversion = null,
@@ -104,7 +95,6 @@ export async function configureMoveRoll(
 		lockedAdvantageLabel: lockedAdvantage ? advantageState(lockedAdvantage).label : null,
 		lockedTrait,
 		equipmentSpends,
-		astirPartSpends,
 		rollModifiers,
 		rollStack,
 		disadvantageConversion,
@@ -151,9 +141,8 @@ export async function configureMoveRoll(
 				roll: {
 					label: "Roll",
 					// intent/conditions keys are only added for moves that define them (Help or
-					// Hinder); spentTags/spentParts are only added when there was equipment/an
-					// Astir Part to offer in the first place — every other roll's resolved shape
-					// is untouched.
+					// Hinder); spentTags is only added when there was equipment to offer in the
+					// first place — every other roll's resolved shape is untouched.
 					callback: (html) => {
 						const spentTags = equipmentSpends.length
 							? html.find("[name='equipment-tag']:checked").map((_, el) => el.value).get()
@@ -162,12 +151,6 @@ export async function configureMoveRoll(
 									return { equipmentId, tagKey };
 								})
 							: [];
-						const spentParts = astirPartSpends.length
-							? html.find("[name='astir-part-spend']:checked").map((_, el) => el.value).get()
-							: [];
-						const spentPartSpends = spentParts
-							.map((partKey) => astirPartSpends.find((spend) => spend.partKey === partKey))
-							.filter(Boolean);
 						// A checked spend's effect (e.g. Blitz -> confidence) sets the roll's
 						// Effect directly, the same way lockedEffect does — checking the tag IS
 						// the player choosing to act with confidence, so it can't require also
@@ -182,13 +165,11 @@ export async function configureMoveRoll(
 							))
 							.filter(Boolean)
 							.at(-1)?.effect;
-						const spentPartEffect = spentPartSpends.filter((spend) => spend.effect).at(-1)?.effect;
-						const spentPartAdvantage = spentPartSpends.filter((spend) => spend.advantage).at(-1)?.advantage;
 						// Roll Modifiers (see PlaybookActorSheet#_rollModifiersForMove) split into two
 						// checkbox names by the template: non-deferred [name='roll-modifier'] entries
 						// apply to THIS roll (folded into rollModifierAdvantage/rollModifierEffect
-						// below, same "checked IS the choice"/.at(-1) collision rule as the equipment/
-						// Astir Part spends above); deferred [name='pending-roll-modifier'] entries
+						// below, same "checked IS the choice"/.at(-1) collision rule as the equipment
+						// spend above); deferred [name='pending-roll-modifier'] entries
 						// never touch this roll's own Advantage/Effect, only its resource cost — both
 						// lists feed spentRollModifiers below, for
 						// PlaybookActorSheet#_spendRollModifiers to actually consume.
@@ -211,7 +192,7 @@ export async function configureMoveRoll(
 						// enabled it (Advantage selected), so no separate "is Advantage selected"
 						// re-check is needed here.
 						const allInChecked = Boolean(rollStack) && Boolean(html.find("[name='roll-stack']").prop("checked"));
-						// Embrace Chaos's own checkbox â€” same "only meaningfully checked while the
+						// Embrace Chaos's own checkbox — same "only meaningfully checked while the
 						// render callback above already enabled it" reasoning as allInChecked, just
 						// keyed off the disadvantage-conversion checkbox name instead of roll-stack.
 						const disadvantageConversionChecked = Boolean(disadvantageConversion)
@@ -220,19 +201,18 @@ export async function configureMoveRoll(
 						resolve({
 							trait: lockedTrait ?? traits.find((t) => t.key === html.find("[name='trait']").val()),
 							// A resource-spending, in-the-moment click at Roll time (disadvantageConversionChecked)
-							// outranks a standing/passive grant â€” same precedence Artifact's own spend.advantage
-							// already takes over lockedAdvantage â€” but All In's own stack still wins outright,
+							// outranks a standing/passive grant — same precedence a checked Roll
+							// Modifier's own advantage (Artifact included) already takes over
+							// lockedAdvantage — but All In's own stack still wins outright,
 							// since Advantage x2 always resolves it away from a Disadvantage state entirely.
 							advantage: (allInChecked ? rollStack.setAdvantage : null)
 								?? (disadvantageConversionChecked ? disadvantageConversion.transform[html.find("[name='advantage']").val()] : null)
-								?? spentPartAdvantage
 								?? rollModifierAdvantage
 								?? lockedAdvantage
 								?? html.find("[name='advantage']").val(),
 							effect: (allInChecked ? rollStack.setEffect : null)
 								?? lockedEffect
 								?? spentEffect
-								?? spentPartEffect
 								?? rollModifierEffect
 								?? html.find("[name='effect']").val(),
 							...(move.intents && {
@@ -242,7 +222,6 @@ export async function configureMoveRoll(
 								conditions: html.find("[name='condition']:checked").map((_, el) => el.value).get()
 							}),
 							...(equipmentSpends.length && { spentTags }),
-							...(astirPartSpends.length && { spentParts }),
 							...(rollModifiers.length && { spentRollModifiers }),
 							...(disadvantageConversionChecked && { spentDisadvantageConversion: true })
 						});

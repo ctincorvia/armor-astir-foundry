@@ -782,8 +782,8 @@ describe("PlaybookActorSheet#_effectiveApproach - Chromatic Reserves from a moun
 	});
 });
 
-describe("PlaybookActorSheet#_onMoveRoll - astir part spends from a mounted Ardent", () => {
-	it("offers an Ardent-installed part's spend when it's the mounted frame", async () => {
+describe("PlaybookActorSheet#_onMoveRoll - Roll Modifiers from a mounted Ardent", () => {
+	it("offers an Ardent-installed part's Roll Modifier when it's the mounted frame", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -797,12 +797,19 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends from a mounted Arde
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [{
-				partKey: ARTIFACT.key, partName: "Artifact", description: ARTIFACT.spend.description,
-				effect: null, advantage: "advantage", disabled: false
-			}],
 			equipmentSpends: [],
-			rollModifiers: [], rollStack: null, disadvantageConversion: null
+			rollModifiers: [{
+				key: ARTIFACT.key,
+				label: "Advantage from Artifact",
+				description: "Grants advantage towards a task this Artifact is designed for.",
+				advantage: "advantage",
+				effect: null,
+				reminderOnly: false,
+				deferred: false,
+				disabled: false,
+				disabledReason: null
+			}],
+			rollStack: null, disadvantageConversion: null
 		});
 	});
 });

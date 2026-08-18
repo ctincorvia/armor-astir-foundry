@@ -253,12 +253,18 @@ export const ASTIR_PART_CATALOG = [
 		name: "Artifact",
 		partType: "Active",
 		traits: [],
-		// Offered in the roll dialog's Astir Parts section — checking it forces the roll's
-		// Advantage axis to Advantage, unrestricted by which task it's "designed for" (matching
-		// this module's existing non-enforcement of similar scope text elsewhere). `spend.description`
-		// is a short plain-text summary for that dialog row — the part's own `description` above is
-		// rich HTML flavor text, not fit for the roll dialog.
-		spend: { advantage: "advantage", description: "Grants advantage towards a task this Artifact is designed for." },
+		// Grants advantage towards a task the Artifact is designed for, unrestricted by which task
+		// it's "designed for" (matching this module's existing non-enforcement of similar scope text
+		// elsewhere) — no moveKeys, so it's offered in every move's Roll Modifiers section.
+		// costsUse: "expended" reads/writes the same moveUses.<partKey>.expended field the Astir
+		// Moves group's own manual checkbox toggles (see move-grants-mixin.js's
+		// _rollModifierAvailability/_spendRollModifiers costsUse branches).
+		grantsRollModifier: [{
+			advantage: "advantage",
+			label: "Advantage from Artifact",
+			description: "Grants advantage towards a task this Artifact is designed for.",
+			costsUse: "expended"
+		}],
 		uses: EXPENDED_USE,
 		description:
 			"<p>High-quality artifice provides an edge when it is needed most.</p>" +

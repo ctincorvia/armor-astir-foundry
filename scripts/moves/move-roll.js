@@ -177,12 +177,6 @@ export async function rollMove(actor, move, trait, options = {}) {
 		.filter(Boolean)
 		.map(({ key, label }) => ({ key, label }));
 
-	// A spent Astir Part (Artifact — see astir.js) is the same kind of "why the total is
-	// what it is" badge as a spent equipment tag, so it rides in the same conditions list. Passed
-	// in pre-resolved (rather than a partKey this module would have to look up) so moves.js never
-	// needs to import astir.js — see PlaybookActorSheet#_rollMove.
-	const astirPartConditions = options.spentPartLabels ?? [];
-
 	// Whether this roll can still be retroactively pushed a further step of Advantage/Disadvantage
 	// (or stepped back down) after it's posted (see roll-effects.js#nextAdvantageState) — both
 	// flags ride along on the chat card so its own Add Advantage/Add Disadvantage buttons know
@@ -205,7 +199,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 	// Human Resources' extra questions (see PlaybookActorSheet#_grantedQuestionsForMove) merge onto
 	// the move's own question list, if any — this module never imports playbook-moves.js (see
 	// claude.md's import-direction note), so the extra list arrives pre-resolved via
-	// options.extraQuestions exactly like weaponLabel/spentPartLabels already do, rather than
+	// options.extraQuestions exactly like weaponLabel already does, rather than
 	// resolving playbook moves here itself.
 	const combinedQuestions = [...(move.questions ?? []), ...(options.extraQuestions ?? [])];
 
@@ -313,7 +307,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 		tierLabel: critical ? MOVE_RESULT_LABELS.critical : MOVE_RESULT_LABELS[tier],
 		resultText: resolveTierValue(move.results, tier, critical),
 		reminders: combinedReminders.length ? combinedReminders : null,
-		conditions: [...rollConditions(advantage, effect), ...moveConditions, ...equipmentConditions, ...astirPartConditions],
+		conditions: [...rollConditions(advantage, effect), ...moveConditions, ...equipmentConditions],
 		dice,
 		// Number Of The Beast (see explodeSixes above) — null/false for every actor who hasn't picked
 		// it, so the chat template renders nothing extra for anyone else.
@@ -360,7 +354,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 			effectKey: options.effect ?? "none",
 			advantageKey: advantage.key,
 			dice,
-			extraConditions: [...moveConditions, ...equipmentConditions, ...astirPartConditions],
+			extraConditions: [...moveConditions, ...equipmentConditions],
 			// Carried alongside extraConditions so move-chat-listeners.js#handleAdvantage can rebuild
 			// this reminder too if a retroactive Advantage/Disadvantage add flips the tier into or out
 			// of failure (see buildReminders' own extraFailureReminder param).

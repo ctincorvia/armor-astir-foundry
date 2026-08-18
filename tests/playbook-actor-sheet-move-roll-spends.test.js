@@ -8,7 +8,7 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 
 import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
-import { DISPEL_UNCERTAINTIES, BITE_THE_DUST, WEAPON_CONDUIT, WARDING, ARTIFACT } from "./helpers/move-fixtures.js";
+import { DISPEL_UNCERTAINTIES, BITE_THE_DUST } from "./helpers/move-fixtures.js";
 
 // _availableHeatUp's own return value for an actor with no Astir at all (see moves-mixin.js) —
 // every fixture in this file lacks one unless a test says otherwise, so _rollMove's baseOptions
@@ -58,7 +58,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			DISPEL_UNCERTAINTIES,
 			[{ key: "know", label: "KNOW", value: 1 }],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [blitzSpend], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [blitzSpend], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 
@@ -78,7 +78,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
+			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -98,7 +98,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [blitzSpend], rollModifiers: [], rollStack: null, disadvantageConversion: null
+			equipmentSpends: [blitzSpend], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -118,7 +118,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
+			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -138,7 +138,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
+			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -158,7 +158,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
+			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -179,7 +179,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
+			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -203,7 +203,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], rollModifiers: [], rollStack: null, disadvantageConversion: null
+			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -224,7 +224,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], rollModifiers: [], rollStack: null, disadvantageConversion: null
+			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -244,7 +244,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
+			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -270,7 +270,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], {
 			lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [{ ...blitzSpend, disabled: true }], rollModifiers: [], rollStack: null, disadvantageConversion: null
+			equipmentSpends: [{ ...blitzSpend, disabled: true }], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -340,249 +340,5 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [{ ...spent, spent: ["blitz"] }, untouched]
 		});
-	});
-});
-
-describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
-	const know = { key: "know", label: "KNOW", value: 1 };
-	const artifactSpend = {
-		partKey: ARTIFACT.key,
-		partName: "Artifact",
-		description: ARTIFACT.spend.description,
-		effect: null,
-		advantage: "advantage",
-		disabled: false
-	};
-
-	it("offers an installed part's spend when piloted and not yet Expended", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { know: { value: 1 } },
-				attributes: { astir: { id: "a1", parts: [ARTIFACT.key], piloted: true } }
-			}
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [artifactSpend],
-			equipmentSpends: [],
-			rollModifiers: [], rollStack: null, disadvantageConversion: null
-		});
-	});
-
-	it("offers nothing when not piloted", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { know: { value: 1 } },
-				attributes: { astir: { id: "a1", parts: [ARTIFACT.key], piloted: false } }
-			}
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [],
-			equipmentSpends: [],
-			rollModifiers: [], rollStack: null, disadvantageConversion: null
-		});
-	});
-
-	it("excludes a part already marked Expended", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { know: { value: 1 } },
-				attributes: {
-					astir: { id: "a1", parts: [ARTIFACT.key], piloted: true },
-					moveUses: { [ARTIFACT.key]: { expended: true } }
-				}
-			}
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [],
-			equipmentSpends: [],
-			rollModifiers: [], rollStack: null, disadvantageConversion: null
-		});
-	});
-
-	it("excludes a disabled part (moveUses.<key>.disabled), the same way it's dropped from _mountedParts", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { know: { value: 1 } },
-				attributes: {
-					astir: { id: "a1", parts: [ARTIFACT.key], piloted: true },
-					moveUses: { [ARTIFACT.key]: { disabled: true } }
-				}
-			}
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [],
-			equipmentSpends: [],
-			rollModifiers: [], rollStack: null, disadvantageConversion: null
-		});
-	});
-
-	it("excludes a part with no spend field", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { know: { value: 1 } },
-				attributes: { astir: { id: "a1", parts: [WEAPON_CONDUIT.key], piloted: true } }
-			}
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [],
-			equipmentSpends: [],
-			rollModifiers: [], rollStack: null, disadvantageConversion: null
-		});
-	});
-
-	// Warding used to carry a `spend` with no `effect`/`advantage`, which leaked it into every
-	// move's roll dialog as a checkbox that did nothing when checked (see docs/domains/frames.md's Astir
-	// section) — this pins it as permanently excluded, the same way an effect-less equipment tag
-	// (Ward) is excluded from _equipmentSpends, rather than relying on it merely happening to have
-	// no `spend` field today.
-	it("excludes Warding, a part whose spend sets neither effect nor advantage", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { know: { value: 1 } },
-				attributes: { astir: { id: "a1", parts: [WARDING.key], piloted: true } }
-			}
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [],
-			equipmentSpends: [],
-			rollModifiers: [], rollStack: null, disadvantageConversion: null
-		});
-	});
-
-	// No Astir Part in the catalog uses spend.effect yet (only Artifact's spend.advantage), but
-	// _astirPartSpends supports it symmetrically with an equipment tag's spend.effect (see
-	// docs/domains/frames.md's Astir section) — this stubs _mountedParts with a synthetic part so that support
-	// stays exercised rather than silently rotting until a real effect-based part is added.
-	it("offers a hypothetical part whose spend sets effect rather than advantage", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { stats: { know: { value: 1 } }, attributes: {} } };
-		sheet._mountedParts = () => [
-			{ key: "astir-part:fixture", name: "Fixture", spend: { effect: "confidence", description: "d" } }
-		];
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [{
-				partKey: "astir-part:fixture", partName: "Fixture", description: "d",
-				effect: "confidence", advantage: null, disabled: false
-			}],
-			equipmentSpends: [],
-			rollModifiers: [], rollStack: null, disadvantageConversion: null
-		});
-	});
-
-	// Artifact's spend sets Advantage, not Effect (unlike an equipment tag's spend) — a locked
-	// Effect (bite-the-dust at max Perils) has nothing to conflict with, so it stays offerable.
-	it("leaves an advantage-only spend enabled even when the roll's Effect is locked (bite the dust at max Perils)", async () => {
-		const sheet = new PlaybookActorSheet();
-		const defy = { key: "defy", label: "DEFY", value: 0 };
-		sheet.actor = {
-			system: {
-				stats: { defy: { value: 0 } },
-				attributes: {
-					dangers: [
-						{ id: "1", type: "peril", label: "a" },
-						{ id: "2", type: "peril", label: "b" },
-						{ id: "3", type: "peril", label: "c" }
-					],
-					astir: { id: "a1", parts: [ARTIFACT.key], piloted: true }
-				}
-			}
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], {
-			lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [{
-				partKey: ARTIFACT.key,
-				partName: "Artifact",
-				description: ARTIFACT.spend.description,
-				effect: null,
-				advantage: "advantage",
-				disabled: false
-			}],
-			equipmentSpends: [],
-			rollModifiers: [], rollStack: null, disadvantageConversion: null
-		});
-	});
-
-	it("marks each checked part spend Expended, then rolls the move", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { know: { value: 1 } },
-				attributes: { astir: { id: "a1", parts: [ARTIFACT.key], piloted: true } }
-			},
-			update: vi.fn()
-		};
-		const config = { trait: know, advantage: "none", effect: "none", spentParts: [ARTIFACT.key] };
-		configureMoveRoll.mockResolvedValue(config);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({ [`system.attributes.moveUses.${ARTIFACT.key}.expended`]: true });
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, {
-			...config,
-			spentPartLabels: [{ key: ARTIFACT.key, label: "Artifact" }],
-			// The actor's astir is piloted (see the fixture above) with overheating unset, so Heat
-			// Up is available here — unlike every other _rollMove test in this file.
-			heatUp: true
-		});
-	});
-
-	it("does not touch moveUses when no astir part was spent", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { stats: { know: { value: 1 } }, attributes: {} },
-			update: vi.fn()
-		};
-		const config = { trait: know, advantage: "none", effect: "none" };
-		configureMoveRoll.mockResolvedValue(config);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DISPEL_UNCERTAINTIES, know, { ...config, heatUp: NO_HEAT_UP });
 	});
 });

@@ -2,7 +2,6 @@ import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { chooseApproachOverride } from "../../core/approaches.js";
 import { chooseCarrier, findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
 import { UNARMED, chooseWeapon } from "../../equipment/equipment.js";
-import { findAstirPart } from "../../frames/astir.js";
 import { rolledDoubles } from "../../moves/roll-effects.js";
 import {
 	BASIC_MOVES,
@@ -170,15 +169,15 @@ export const MoveRollSheetMixin = {
 		// Cold Company but above the passive target-matchup Tier signal (_targetTierAdvantage -- its
 		// Approach sibling, _targetMatchupEffect, feeds lockedEffect above instead, independently,
 		// since the two axes no longer sum into one combined stack), matching the same "more specific/
-		// deliberate lock wins" ordering pendingGrant's Effect half already follows above. An Astir
-		// Part's own reactive spend.advantage (Artifact) still wins over all of this, per
-		// configureMoveRoll's own precedence -- untouched by this change.
+		// deliberate lock wins" ordering pendingGrant's Effect half already follows above. A checked
+		// Roll Modifier's own advantage (Artifact included, now an ordinary grantsRollModifier source
+		// rather than a special-cased spend) still wins over all of this, per configureMoveRoll's own
+		// precedence.
 		const lockedAdvantage = this._grantedAdvantageForMove(move)
 			?? this._coldCompanyAdvantage()
 			?? pendingGrant?.advantage
 			?? this._targetTierAdvantage(move);
 		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
-		const astirPartSpends = fromCarrier ? [] : this._astirPartSpends(lockedEffect);
 		// already defaults it to null itself, and this keeps every non-Guided call's options
 		// shape exactly as it was before Guided existed, same treatment `reroll` gets below. Holds
 		// the *source's* own label ("Guided" for the weapon tag, a part's name for Spell Routines)
@@ -217,7 +216,6 @@ export const MoveRollSheetMixin = {
 			lockedAdvantage,
 			lockedTrait,
 			equipmentSpends,
-			astirPartSpends,
 			rollModifiers,
 			rollStack,
 			disadvantageConversion,
@@ -251,7 +249,6 @@ export const MoveRollSheetMixin = {
 		// Equipment tab (see _equipmentEntry's spendable) as a player-chosen spend.
 		const spends = [...(config.spentTags ?? []), ...(forced ? [{ equipmentId: weapon.id, tagKey: forced.tagKey }] : [])];
 		if (spends.length) await this._spendEquipmentTags(spends);
-		if (config.spentParts?.length) await this._spendAstirParts(config.spentParts);
 		// See configureMoveRoll's own spentRollModifiers doc comment -- covers both immediate
 		// (checked [name='roll-modifier']) and deferred (checked [name='pending-roll-modifier'])
 		// entries alike, since both need their resource cost actually consumed; only the deferred
@@ -265,13 +262,6 @@ export const MoveRollSheetMixin = {
 		if (config.spentDisadvantageConversion) {
 			await this._spendDisadvantageConversion(disadvantageConversion.key, disadvantageConversion.costsHold.amount);
 		}
-
-		// Pre-resolved to a plain {key, label} badge here (rather than passing partKeys into
-		// moves.js) so that module never needs to import astir.js — see moves.js#rollMove.
-		const spentPartLabels = (config.spentParts ?? [])
-			.map((key) => findAstirPart(key))
-			.filter(Boolean)
-			.map((part) => ({ key: part.key, label: part.name }));
 
 		// weapon undefined (not a usesWeapon move) leaves rollMove's options untouched, same as
 		// today, for every move except Exchange Blows/Strike Decisively. null (Unarmed) or a real
@@ -301,13 +291,12 @@ export const MoveRollSheetMixin = {
 		// requiresTrait gate) rather than the move being rolled alone.
 		const extraCriticalReminder = this._grantedCriticalReminderForMove(move, config.trait?.key);
 		// Human Resources' extra Read the Room questions (see _grantedQuestionsForMove) — arrives
-		// pre-resolved via options, exactly like spentPartLabels/weaponLabel already do, so moves.js
-		// never needs to import playbook-moves.js (see claude.md's import-direction note).
+		// pre-resolved via options, exactly like weaponLabel already does, so moves.js never needs to
+		// import playbook-moves.js (see claude.md's import-direction note).
 		const extraQuestions = this._grantedQuestionsForMove(move);
 		const baseOptions = {
 			...config,
 			...(traitBonus && { traitBonus }),
-			...(spentPartLabels.length && { spentPartLabels }),
 			...(automaticSuccess.length && { automaticSuccess }),
 			...(downgrade.length && { downgrade }),
 			...(extraFailureReminder && { extraFailureReminder }),

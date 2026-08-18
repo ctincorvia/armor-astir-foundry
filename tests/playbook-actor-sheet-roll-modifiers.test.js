@@ -12,6 +12,7 @@ import { SPOTLIGHT_MIN } from "../scripts/playbook/playbook-sheet/progression-mi
 import {
 	ALCHEMICAL_SUITE,
 	ALL_IN,
+	ARTIFACT,
 	BONDED_IN_BLOOD,
 	BRANDED_BLADES,
 	COOL_OFF,
@@ -418,6 +419,38 @@ describe("PlaybookActorSheet#_rollModifiersForMove", () => {
 		expect(strikeEntries[0].label).toBe("Yellow Potion");
 		expect(strikeEntries[0].effect).toBe("confidence");
 	});
+
+	it("resolves Artifact's own entry, unscoped, disabled once its Expended checkbox is already set", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [],
+					astir: { id: "a1", piloted: true, parts: [ARTIFACT.key] }
+				}
+			}
+		};
+
+		const [entry] = sheet._rollModifiersForMove(EXCHANGE_BLOWS, null);
+
+		expect(entry).toEqual({
+			key: ARTIFACT.key,
+			label: "Advantage from Artifact",
+			description: "Grants advantage towards a task this Artifact is designed for.",
+			advantage: "advantage",
+			effect: null,
+			reminderOnly: false,
+			deferred: false,
+			disabled: false,
+			disabledReason: null
+		});
+
+		sheet.actor.system.attributes.moveUses = { [ARTIFACT.key]: { expended: true } };
+		const [expendedEntry] = sheet._rollModifiersForMove(EXCHANGE_BLOWS, null);
+
+		expect(expendedEntry.disabled).toBe(true);
+		expect(expendedEntry.disabledReason).toBe("Already used");
+	});
 });
 
 describe("PlaybookActorSheet#_rollStackModifier", () => {
@@ -672,6 +705,25 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			[`system.attributes.moveUses.${RAVENOUS_SPECTRE.key}.triggered`]: true,
 			[`system.attributes.pendingRollModifiers.${RAVENOUS_SPECTRE.key}.default`]: true
+		});
+	});
+
+	it("costsUse, not deferred (Artifact): marks its own Expended checkbox, with no pendingRollModifiers marker", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [],
+					astir: { id: "a1", piloted: true, parts: [ARTIFACT.key] }
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._spendRollModifiers([ARTIFACT.key]);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveUses.${ARTIFACT.key}.expended`]: true
 		});
 	});
 

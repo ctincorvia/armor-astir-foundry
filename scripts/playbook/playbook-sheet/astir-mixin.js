@@ -148,31 +148,6 @@ export const AstirSheetMixin = {
 	_astirParts() {
 		return resolveAstirParts(this._astirPartKeys());
 	},
-	// The Astir/Ardent Parts equivalent of _equipmentSpends above — every part installed on the
-	// currently mounted frame with a `spend.effect` or `spend.advantage` (Artifact — see astir.js)
-	// that isn't already Expended, offered in the roll dialog's own Astir Parts section (see
-	// configureMoveRoll/move-roll-dialog.hbs). Empty when nothing is mounted (see docs/domains/frames.md's
-	// Piloted note) — unlike _equipmentSpends, parts aren't scoped by weapon, since none of them
-	// are weapon-specific. A part whose `spend` sets neither (Warding, formerly) doesn't actually
-	// modify a roll, so it's excluded here the same way _equipmentSpends excludes an effect-less
-	// equipment tag (Ward, Vorpal, Refresh, ...) — its only interaction point is its own
-	// `uses`/Expended checkbox, not this dialog.
-	_astirPartSpends(lockedEffect) {
-		const spends = [];
-		for (const part of this._mountedParts()) {
-			if (!part.spend?.effect && !part.spend?.advantage) continue;
-			if (this.actor.system.attributes?.moveUses?.[part.key]?.expended) continue;
-			spends.push({
-				partKey: part.key,
-				partName: part.name,
-				description: part.spend.description,
-				effect: part.spend.effect ?? null,
-				advantage: part.spend.advantage ?? null,
-				disabled: Boolean(lockedEffect && part.spend.effect)
-			});
-		}
-		return spends;
-	},
 	// Recomputes Power/Weapon Power against a prospective parts/equipment state and, when the result
 	// is negative, forces Piloted off with a warning — an Astir with negative Power represents an
 	// unsustainable loadout and can't be piloted (see docs/domains/frames.md's Piloted note; mirrors
@@ -202,14 +177,6 @@ export const AstirSheetMixin = {
 		const next = Math.min(max, current + amount);
 		if (next === current) return;
 		await this.actor.update({ "system.attributes.astir.power": next });
-	},
-	// The Astir Parts equivalent of _spendEquipmentTags above — marks each checked Astir Part
-	// spend (Artifact) Expended, the same field the Astir Moves group's own manual checkbox
-	// toggles (see _onMoveUseToggle), so either entry point lands on one shared state.
-	async _spendAstirParts(partKeys) {
-		const updates = {};
-		for (const key of partKeys) updates[`system.attributes.moveUses.${key}.expended`] = true;
-		await this.actor.update(updates);
 	},
 	// "+ Create Astir" on an available-but-empty Astir tab. Every player may have at most one —
 	// Create/Delete are the only ways in or out (see _onAstirDelete), there's no picker here.

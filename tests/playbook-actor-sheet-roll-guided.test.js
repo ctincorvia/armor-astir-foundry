@@ -37,7 +37,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [],
+			equipmentSpends: [],
 			rollModifiers: [], rollStack: null, disadvantageConversion: null,
 			guided: "Guided"
 		});
@@ -54,7 +54,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null });
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null });
 	});
 
 	it("treats a missing tags array as not Guided", async () => {
@@ -68,7 +68,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null });
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null });
 	});
 
 	it("is never Guided for Unarmed", async () => {
@@ -81,7 +81,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null });
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null });
 	});
 
 	it("posts a guided result and never rolls when Take 7-9 is chosen", async () => {
@@ -137,7 +137,6 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [],
 			equipmentSpends: [],
 			rollModifiers: [], rollStack: null, disadvantageConversion: null,
 			guided: SPELL_ROUTINES.name
@@ -162,7 +161,6 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [],
 			equipmentSpends: [],
 			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
@@ -186,7 +184,6 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [],
 			equipmentSpends: [],
 			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
@@ -207,7 +204,6 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [],
 			equipmentSpends: [],
 			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
