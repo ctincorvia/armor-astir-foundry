@@ -802,7 +802,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends from a mounted Arde
 				effect: null, advantage: "advantage", disabled: false
 			}],
 			equipmentSpends: [],
-			rollModifiers: [], rollStack: null
+			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 });

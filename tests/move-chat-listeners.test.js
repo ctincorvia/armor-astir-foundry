@@ -26,13 +26,22 @@ beforeEach(() => {
 
 function fakeChatHtml() {
 	const state = {
-		handler: null, automaticSuccessHandler: null, heatUpHandler: null, addAdvantageHandler: null, addDisadvantageHandler: null, removed: []
+		handler: null,
+		automaticSuccessHandler: null,
+		downgradeHandler: null,
+		heatUpHandler: null,
+		addAdvantageHandler: null,
+		addDisadvantageHandler: null,
+		removed: []
 	};
 	state.html = {
 		find: (selector) => {
 			if (selector === ".move-reroll") return { on: (event, handler) => { state.handler = handler; } };
 			if (selector === ".move-automatic-success") {
 				return { on: (event, handler) => { state.automaticSuccessHandler = handler; } };
+			}
+			if (selector === ".move-downgrade") {
+				return { on: (event, handler) => { state.downgradeHandler = handler; } };
 			}
 			if (selector === ".move-heatup") return { on: (event, handler) => { state.heatUpHandler = handler; } };
 			if (selector === ".move-add-advantage") {
@@ -537,6 +546,159 @@ describe("onRenderMoveChat/handleAutomaticSuccess (Hot-blooded/Once the War's Ov
 
 		onRenderMoveChat(message, fake.html);
 		fake.automaticSuccessHandler({ currentTarget: { disabled: false, dataset: { source: "not-a-real-source" } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).not.toHaveBeenCalled();
+		expect(renderTemplate).not.toHaveBeenCalled();
+	});
+});
+
+describe("onRenderMoveChat/handleDowngrade (Embrace Chaos)", () => {
+	const EMBRACE_CHAOS_SOURCE = { key: "the-witch:embrace-chaos", name: "Embrace Chaos", amount: 1 };
+
+	beforeEach(() => {
+		renderTemplate.mockClear();
+		renderTemplate.mockResolvedValue("<div>updated</div>");
+	});
+
+	it("does nothing for a message with no downgrade offer", () => {
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat({ flags: {} }, fake.html);
+
+		expect(fake.downgradeHandler).toBeNull();
+	});
+
+	it("does nothing for a message with no flags at all", () => {
+		const fake = fakeChatHtml();
+
+		expect(() => onRenderMoveChat({}, fake.html)).not.toThrow();
+		expect(fake.downgradeHandler).toBeNull();
+	});
+
+	it("wires the button, disabling it on click, granting hold, and updating the message flavor", async () => {
+		const actor = {
+			id: "actor1",
+			system: { attributes: { moveHold: { "the-witch:embrace-chaos": { value: 0 } } } },
+			update: vi.fn()
+		};
+		game.actors.get.mockReturnValue(actor);
+		const offer = {
+			actorId: "actor1",
+			moveKey: "exchange-blows",
+			flavorArgs: { tier: "success", critical: false, conditions: [{ key: "advantage", label: "Advantage" }] },
+			sources: [EMBRACE_CHAOS_SOURCE]
+		};
+		const message = { flags: { "armor-astir": { downgrade: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		const button = { disabled: false, dataset: { source: "the-witch:embrace-chaos" } };
+		fake.downgradeHandler({ currentTarget: button });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(button.disabled).toBe(true);
+		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.the-witch:embrace-chaos.value": 1 });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, {
+			tier: "mixed",
+			critical: false,
+			conditions: [
+				{ key: "advantage", label: "Advantage" },
+				{ key: "downgrade", label: "Downgraded (Embrace Chaos)" }
+			],
+			tierLabel: MOVE_RESULT_LABELS.mixed,
+			resultText: EXCHANGE_BLOWS.results.mixed,
+			downgrade: []
+		});
+		expect(message.update).toHaveBeenCalledWith({ flavor: "<div>updated</div>" });
+	});
+
+	it("clamps the granted hold at HOLD_MAX rather than exceeding it", async () => {
+		const actor = {
+			id: "actor1",
+			system: { attributes: { moveHold: { "the-witch:embrace-chaos": { value: 3 } } } },
+			update: vi.fn()
+		};
+		game.actors.get.mockReturnValue(actor);
+		const offer = {
+			actorId: "actor1",
+			moveKey: "exchange-blows",
+			flavorArgs: { tier: "success", critical: false, conditions: [] },
+			sources: [EMBRACE_CHAOS_SOURCE]
+		};
+		const message = { flags: { "armor-astir": { downgrade: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.downgradeHandler({ currentTarget: { disabled: false, dataset: { source: "the-witch:embrace-chaos" } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.the-witch:embrace-chaos.value": 3 });
+	});
+
+	it("treats a missing moveHold pool as 0 when granting", async () => {
+		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const offer = {
+			actorId: "actor1",
+			moveKey: "exchange-blows",
+			flavorArgs: { tier: "success", critical: false, conditions: [] },
+			sources: [EMBRACE_CHAOS_SOURCE]
+		};
+		const message = { flags: { "armor-astir": { downgrade: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.downgradeHandler({ currentTarget: { disabled: false, dataset: { source: "the-witch:embrace-chaos" } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.moveHold.the-witch:embrace-chaos.value": 1 });
+	});
+
+	it("does nothing when the actor no longer exists", async () => {
+		game.actors.get.mockReturnValue(undefined);
+		const offer = { actorId: "gone", moveKey: "exchange-blows", flavorArgs: {}, sources: [EMBRACE_CHAOS_SOURCE] };
+		const message = { flags: { "armor-astir": { downgrade: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.downgradeHandler({ currentTarget: { disabled: false, dataset: { source: "the-witch:embrace-chaos" } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).not.toHaveBeenCalled();
+		expect(message.update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the rolled move no longer resolves", async () => {
+		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const offer = { actorId: "actor1", moveKey: "not-a-real-move", flavorArgs: {}, sources: [EMBRACE_CHAOS_SOURCE] };
+		const message = { flags: { "armor-astir": { downgrade: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.downgradeHandler({ currentTarget: { disabled: false, dataset: { source: "the-witch:embrace-chaos" } } });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(actor.update).not.toHaveBeenCalled();
+		expect(renderTemplate).not.toHaveBeenCalled();
+	});
+
+	it("does nothing when the clicked source key no longer matches any offered source", async () => {
+		const actor = { id: "actor1", system: { attributes: {} }, update: vi.fn() };
+		game.actors.get.mockReturnValue(actor);
+		const offer = { actorId: "actor1", moveKey: "exchange-blows", flavorArgs: {}, sources: [EMBRACE_CHAOS_SOURCE] };
+		const message = { flags: { "armor-astir": { downgrade: offer } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.downgradeHandler({ currentTarget: { disabled: false, dataset: { source: "not-a-real-source" } } });
 		await Promise.resolve();
 		await Promise.resolve();
 

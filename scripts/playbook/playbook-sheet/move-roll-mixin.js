@@ -204,6 +204,14 @@ export const MoveRollSheetMixin = {
 		// additionally gate here.
 		const rollModifiers = this._rollModifiersForMove(move, lockedEffect);
 		const rollStack = this._rollStackModifier();
+		// Embrace Chaos's own two hold spends -- disadvantageConversion (see
+		// _disadvantageConversionModifier) is resolved unconditionally, like rollStack above, since
+		// it's a Category D mechanism the dialog itself renders live-reactively; downgrade (see
+		// _availableDowngrade) is resolved unconditionally too, but only ever offered on the chat
+		// card after a 10+ (see moves.js#rollMove), so it's folded into baseOptions below the same
+		// conditional-spread way automaticSuccess already is.
+		const disadvantageConversion = this._disadvantageConversionModifier();
+		const downgrade = this._availableDowngrade(move);
 		const config = await configureMoveRoll(move, traits, {
 			lockedEffect,
 			lockedAdvantage,
@@ -212,6 +220,7 @@ export const MoveRollSheetMixin = {
 			astirPartSpends,
 			rollModifiers,
 			rollStack,
+			disadvantageConversion,
 			...(guided && { guided })
 		});
 		if (!config) return;
@@ -248,6 +257,14 @@ export const MoveRollSheetMixin = {
 		// entries alike, since both need their resource cost actually consumed; only the deferred
 		// ones additionally write a pendingRollModifiers marker (see _spendRollModifiers itself).
 		if (config.spentRollModifiers?.length) await this._spendRollModifiers(config.spentRollModifiers);
+		// Embrace Chaos's own hold spend (see _disadvantageConversionModifier/
+		// _spendDisadvantageConversion) -- resolved via configureMoveRoll's own
+		// spentDisadvantageConversion flag rather than a checked-keys list, since only one such
+		// source is ever offered per roll (mirrors rollStack's own single-source shape, unlike the
+		// list-shaped spentRollModifiers immediately above).
+		if (config.spentDisadvantageConversion) {
+			await this._spendDisadvantageConversion(disadvantageConversion.key, disadvantageConversion.costsHold.amount);
+		}
 
 		// Pre-resolved to a plain {key, label} badge here (rather than passing partKeys into
 		// moves.js) so that module never needs to import astir.js — see moves.js#rollMove.
@@ -292,6 +309,7 @@ export const MoveRollSheetMixin = {
 			...(traitBonus && { traitBonus }),
 			...(spentPartLabels.length && { spentPartLabels }),
 			...(automaticSuccess.length && { automaticSuccess }),
+			...(downgrade.length && { downgrade }),
 			...(extraFailureReminder && { extraFailureReminder }),
 			...(extraSuccessReminder && { extraSuccessReminder }),
 			...(extraCriticalReminder && { extraCriticalReminder }),

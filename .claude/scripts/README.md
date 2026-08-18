@@ -9,8 +9,12 @@ alias notes), since that's the interpreter that actually resolves on this machin
 
 - **`replace_lines.py`** — replace (or insert into) a line range in a file by line number instead
   of by exact-text match. Reach for this instead of `Edit` when a multi-line change keeps failing
-  because of tabs/spaces or other whitespace that's hard to reproduce exactly by hand. Run with
-  `--help` or `-h`, or read its own docstring, for full usage.
+  because of tabs/spaces or other whitespace that's hard to reproduce exactly by hand. New content
+  normally comes from stdin, but prefer `--input <content-file>` when the content is already sitting
+  in a scratch file — a `<` shell redirect can't be covered by a Bash permission allow-rule's prefix
+  match (redirection is a hard boundary the permission system won't auto-approve), so it prompts
+  every time even though the command itself is pre-approved; `--input` keeps it a plain argument and
+  skips the prompt. Run with `--help` or `-h`, or read its own docstring, for full usage.
 - **`regex_replace.py`** — apply one or more regex substitutions across one or more files at once
   (JSON spec on stdin). Reach for this instead of a raw `perl -pi`/`sed -i` one-liner whenever the
   same insertion/edit needs to repeat across several call sites with varying surrounding text (e.g.

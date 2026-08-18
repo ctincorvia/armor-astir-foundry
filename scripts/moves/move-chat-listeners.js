@@ -1,6 +1,7 @@
 import {
 	MOVE_CHAT_TEMPLATE,
 	MOVE_RESULT_LABELS,
+	HOLD_MAX,
 	HOLD_MIN,
 	buildReminders,
 	isCriticalResult,
@@ -115,6 +116,35 @@ async function handleAutomaticSuccess(message, offer, sourceKey) {
 	await message.update({ flavor });
 }
 
+// Embrace Chaos's own Downgrade button (see PlaybookActorSheet#_availableDowngrade/moves.js#rollMove)
+// — the mirror image of handleAutomaticSuccess above: grants hold (clamped to HOLD_MAX) instead of
+// spending it, and edits the already-posted card's flavor down to a mixed result instead of up to a
+// success. Same "edit flavor in place, leave content/dice untouched" reasoning as
+// handleAutomaticSuccess — there's no re-roll here either, just the player opting to take the 7-9
+// the rules text offers instead of the 10+ they actually rolled.
+async function handleDowngrade(message, offer, sourceKey) {
+	const actor = game.actors.get(offer.actorId);
+	const move = ALL_MOVES.find((m) => m.key === offer.moveKey);
+	const source = offer.sources.find((s) => s.key === sourceKey);
+	if (!actor || !move || !source) return;
+
+	const current = actor.system.attributes?.moveHold?.[source.key]?.value ?? 0;
+	await actor.update({
+		[`system.attributes.moveHold.${source.key}.value`]: Math.min(HOLD_MAX, current + source.amount)
+	});
+
+	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
+		...offer.flavorArgs,
+		tier: "mixed",
+		critical: false,
+		tierLabel: MOVE_RESULT_LABELS.mixed,
+		resultText: move.results.mixed,
+		conditions: [...offer.flavorArgs.conditions, { key: "downgrade", label: `Downgraded (${source.name})` }],
+		downgrade: []
+	});
+	await message.update({ flavor });
+}
+
 // Retroactively adds or removes one die on an already-posted roll and re-applies the
 // keep-highest/keep-lowest rule (see roll-effects.js#nextAdvantageState/addDie/removeDie),
 // potentially flipping the result tier — a GM or the roller granting or walking back
@@ -208,6 +238,15 @@ export function onRenderMoveChat(message, html) {
 			// left at all, but that update is async.
 			event.currentTarget.disabled = true;
 			handleAutomaticSuccess(message, automaticSuccess, event.currentTarget.dataset.source);
+		});
+	}
+
+	const downgrade = message.flags?.["armor-astir"]?.downgrade;
+	if (downgrade) {
+		html.find(".move-downgrade").on("click", (event) => {
+			// Same immediate-disable reasoning as the reroll/automatic-success buttons above.
+			event.currentTarget.disabled = true;
+			handleDowngrade(message, downgrade, event.currentTarget.dataset.source);
 		});
 	}
 

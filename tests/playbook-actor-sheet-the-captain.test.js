@@ -483,7 +483,7 @@ describe("PlaybookActorSheet#_rollMove - fromCarrier weapon skip", () => {
 			lockedTrait: null,
 			equipmentSpends: [],
 			astirPartSpends: [],
-			rollModifiers: [], rollStack: null
+			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 		// Nothing was marked spent/expended on either the gear or the Astir part.
 		expect(sheet.actor.update).not.toHaveBeenCalled();

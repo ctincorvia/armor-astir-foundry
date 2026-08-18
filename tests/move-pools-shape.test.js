@@ -246,4 +246,21 @@ describe("MOVE_POOLS", () => {
 			requiresUnmounted: true
 		});
 	});
+
+	it("gives Embrace Chaos a flatHold pool with its own Activate button suppressed, plus its three hold-spend grants", () => {
+		const embraceChaos = findPlaybookMove("the-witch:embrace-chaos");
+
+		expect(embraceChaos.flatHold).toBe(1);
+		expect(embraceChaos.suppressActivateButton).toBe(true);
+		expect(embraceChaos.grantsDowngradeHold).toEqual({ amount: 1 });
+		expect(embraceChaos.grantsAutomaticSuccess).toEqual({
+			cost: 1,
+			requiresTier: "mixed",
+			buttonLabel: "Upgrade from embrace chaos"
+		});
+		expect(embraceChaos.grantsDisadvantageConversion).toEqual({
+			costsHold: { amount: 1 },
+			transform: { disadvantage: "advantage", disadvantage2: "none" }
+		});
+	});
 });

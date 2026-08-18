@@ -962,6 +962,219 @@ describe("configureMoveRoll - roll stack (All In)", () => {
 	});
 });
 
+describe("configureMoveRoll - disadvantage conversion (Embrace Chaos)", () => {
+	const clash = CLASH_TRAIT;
+	const disadvantageConversion = {
+		key: "the-witch:embrace-chaos",
+		label: "Embrace Chaos",
+		costsHold: { amount: 1 },
+		transform: { disadvantage: "advantage", disadvantage2: "none" }
+	};
+
+	it("passes disadvantageConversion through to the dialog template", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { disadvantageConversion });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			disadvantageConversion
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults disadvantageConversion to null", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			disadvantageConversion: null
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("leaves advantage untouched, and omits spentDisadvantageConversion, when the checkbox isn't checked", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { disadvantageConversion });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "disadvantage",
+			"[name='effect']": "none"
+		}, [], [], [], [], [], false, false));
+
+		const result = await promise;
+		expect(result.advantage).toBe("disadvantage");
+		expect(result.spentDisadvantageConversion).toBeUndefined();
+	});
+
+	it("resolves transform['disadvantage'] -> 'advantage' when checked with Disadvantage selected", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { disadvantageConversion });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "disadvantage",
+			"[name='effect']": "none"
+		}, [], [], [], [], [], false, true));
+
+		const result = await promise;
+		expect(result.advantage).toBe("advantage");
+		expect(result.spentDisadvantageConversion).toBe(true);
+	});
+
+	it("resolves transform['disadvantage2'] -> 'none' (a flat roll) when checked with Disadvantage x2 selected", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { disadvantageConversion });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "disadvantage2",
+			"[name='effect']": "none"
+		}, [], [], [], [], [], false, true));
+
+		const result = await promise;
+		expect(result.advantage).toBe("none");
+		expect(result.spentDisadvantageConversion).toBe(true);
+	});
+
+	it("wins over every other advantage source when checked", async () => {
+		const spend = {
+			partKey: "astir-part:artifact", partName: "Artifact", description: "d", effect: null, advantage: "advantage", disabled: false
+		};
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], {
+			lockedEffect: "confidence", astirPartSpends: [spend], disadvantageConversion
+		});
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "disadvantage2",
+			"[name='effect']": "none"
+		}, [], [], ["astir-part:artifact"], [], [], false, true));
+
+		const result = await promise;
+		expect(result.advantage).toBe("none");
+	});
+
+	// The live-reactive checkbox itself — same pattern as fakeRollStackRenderHtml above, keyed off
+	// the disadvantage-conversion checkbox name instead of roll-stack.
+	function fakeDisadvantageConversionRenderHtml({ advantage = "none", checked = false } = {}) {
+		const state = { advantage, disadvantageConversionDisabled: undefined, disadvantageConversionChecked: checked, advantageHandlers: {} };
+		const disadvantageConversionEl = {
+			prop(name, value) {
+				if (name === "disabled") state.disadvantageConversionDisabled = value;
+				if (name === "checked") {
+					state.disadvantageConversionChecked = typeof value === "function"
+						? value(0, state.disadvantageConversionChecked)
+						: value;
+				}
+				return disadvantageConversionEl;
+			}
+		};
+		const advantageEl = {
+			val: () => state.advantage,
+			on: (event, handler) => { state.advantageHandlers[event] = handler; }
+		};
+		state.html = {
+			find: (selector) => {
+				if (selector === "[name='advantage']") return advantageEl;
+				if (selector === "[name='disadvantage-conversion']") return disadvantageConversionEl;
+				return {};
+			}
+		};
+		return state;
+	}
+
+	it("does nothing when disadvantageConversion wasn't offered", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeDisadvantageConversionRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.disadvantageConversionDisabled).toBeUndefined();
+		expect(Object.keys(state.advantageHandlers)).toEqual([]);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("enables the checkbox on open when Disadvantage is already selected", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { disadvantageConversion });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeDisadvantageConversionRenderHtml({ advantage: "disadvantage" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.disadvantageConversionDisabled).toBe(false);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("enables the checkbox on open when Disadvantage x2 is already selected", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { disadvantageConversion });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeDisadvantageConversionRenderHtml({ advantage: "disadvantage2" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.disadvantageConversionDisabled).toBe(false);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("disables and unchecks the checkbox on open for every other Dice state", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { disadvantageConversion });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeDisadvantageConversionRenderHtml({ advantage: "none", checked: true });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.disadvantageConversionDisabled).toBe(true);
+		expect(state.disadvantageConversionChecked).toBe(false);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("re-evaluates live when the Advantage select changes", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { disadvantageConversion });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeDisadvantageConversionRenderHtml({ advantage: "none" });
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		expect(state.disadvantageConversionDisabled).toBe(true);
+
+		state.advantage = "disadvantage";
+		state.advantageHandlers.change();
+
+		expect(state.disadvantageConversionDisabled).toBe(false);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+});
+
 describe("configureVariableDiceRoll", () => {
 	function fakeVariableDiceHtml(values) {
 		return { find: (selector) => ({ val: () => values[selector] }) };

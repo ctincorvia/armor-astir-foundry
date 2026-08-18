@@ -113,6 +113,18 @@
 		</div>
 	</div>
 	{{/if}}
+	{{#if disadvantageConversion}}
+	<div class="form-group move-roll-equipment move-roll-modifiers">
+		<label>Convert</label>
+		<div class="move-roll-equipment-spend">
+			<label class="move-roll-equipment-spend-option">
+				<input type="checkbox" name="disadvantage-conversion" disabled/>
+				<span class="move-roll-equipment-name">{{disadvantageConversion.label}}</span>
+			</label>
+			<div class="move-roll-equipment-description">Spend 1 hold to convert your current Disadvantage into Advantage (or, at Disadvantage x2, into a flat roll).</div>
+		</div>
+	</div>
+	{{/if}}
 	{{#if lockedTrait}}
 	<p class="move-roll-locked-note">Locked: {{lockedTrait.label}}</p>
 	{{/if}}

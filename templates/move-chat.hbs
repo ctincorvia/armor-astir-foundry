@@ -82,8 +82,11 @@
 	{{#if heatUp}}
 	<button type="button" class="move-heatup">Heat Up (Reroll)</button>
 	{{/if}}
+	{{#each downgrade}}
+	<button type="button" class="move-downgrade" data-source="{{key}}">Downgrade for {{name}}</button>
+	{{/each}}
 	{{#each automaticSuccess}}
-	<button type="button" class="move-automatic-success" data-source="{{key}}">Automatic success from {{name}}</button>
+	<button type="button" class="move-automatic-success" data-source="{{key}}">{{#if buttonLabel}}{{buttonLabel}}{{else}}Automatic success from {{name}}{{/if}}</button>
 	{{/each}}
 	<div class="move-advantage-controls">
 		{{#if showAddAdvantage}}<button type="button" class="move-add-advantage">+Advantage</button>{{/if}}

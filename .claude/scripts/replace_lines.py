@@ -7,9 +7,12 @@ spaces, a line-number prefix that looks like part of the content, trailing white
 visible). Working from line numbers instead of exact content sidesteps that whole failure class.
 
 Usage:
-    py replace_lines.py <file> <start> <end> [--dry-run]
+    py replace_lines.py <file> <start> <end> [--dry-run] [--input <content-file>]
 
-New content is read from stdin, exactly as it should appear in the file (no line-number prefixes).
+New content is read from stdin, exactly as it should appear in the file (no line-number prefixes)
+-- or from --input <content-file> instead, which avoids needing a `<` shell redirect (redirection
+can't be covered by a Bash permission allow-rule's prefix match, so it prompts every time even when
+the command itself is pre-approved).
 
 - <start>/<end> are 1-indexed and inclusive, matching Read's own line numbers.
 - <end> may equal <start - 1> to insert before <start> without removing anything (e.g. start=10
@@ -28,8 +31,8 @@ Examples:
     	const z = 3;
     EOF
 
-    # Insert two lines before line 10, from a temp file (PowerShell-friendly)
-    py .claude/scripts/replace_lines.py scripts/foo.js 10 9 < new_lines.txt
+    # Insert two lines before line 10, from a temp file, no shell redirect needed
+    py .claude/scripts/replace_lines.py scripts/foo.js 10 9 --input new_lines.txt
 
     # Preview only
     py .claude/scripts/replace_lines.py scripts/foo.js 42 45 --dry-run <<'EOF'
@@ -47,6 +50,8 @@ def main():
     parser.add_argument("start", type=int)
     parser.add_argument("end", type=int)
     parser.add_argument("--dry-run", action="store_true", help="print a unified diff instead of writing")
+    parser.add_argument("--input", metavar="FILE",
+                         help="read new content from FILE instead of stdin (avoids a `<` shell redirect)")
     args = parser.parse_args()
 
     if args.start < 1 or args.end < args.start - 1:
@@ -62,7 +67,11 @@ def main():
     if args.start > len(lines) + 1:
         sys.exit(f"error: start ({args.start}) is past end of file ({len(lines)} lines)")
 
-    new_lines = sys.stdin.read().splitlines()
+    if args.input:
+        with open(args.input, "r", encoding="utf-8") as f:
+            new_lines = f.read().splitlines()
+    else:
+        new_lines = sys.stdin.read().splitlines()
 
     before = lines[:args.start - 1]
     after = lines[args.end:]

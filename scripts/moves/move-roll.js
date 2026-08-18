@@ -241,10 +241,23 @@ export async function rollMove(actor, move, trait, options = {}) {
 
 	// options.automaticSuccess (see PlaybookActorSheet#_availableAutomaticSuccess) is the actor's
 	// full list of currently-qualifying "spend hold/a use to treat this roll as a 10+" sources
-	// (Hot-blooded, Once the War's Over, The Arity Method) — offered on the chat card only when
-	// there's actually room to improve the result; an already-successful roll has nothing to spend
-	// toward.
-	const automaticSuccessOffer = tier !== "success" ? (options.automaticSuccess ?? []) : [];
+	// (Hot-blooded, Once the War's Over, The Arity Method, Embrace Chaos's own Upgrade) — offered on
+	// the chat card only when there's actually room to improve the result; an already-successful
+	// roll has nothing to spend toward. A source's own optional requiresTier (Embrace Chaos only —
+	// see the-witch.js) additionally restricts *that* source to one specific non-success tier, on
+	// top of the shared tier !== "success" gate every source is already subject to: three of this
+	// flag's other five sources (Dark Rebirth, Ancient Recall, Ain't No Grave) intentionally fire on
+	// a failure, so this filter has to be additive/per-source rather than tightening the shared gate
+	// itself, which would silently break them.
+	const automaticSuccessOffer = tier === "success"
+		? []
+		: (options.automaticSuccess ?? []).filter((source) => !source.requiresTier || source.requiresTier === tier);
+
+	// options.downgrade (see PlaybookActorSheet#_availableDowngrade) is Embrace Chaos's own mirror
+	// offer — "roll a 10+, opt to take a 7-9 instead, hold 1" — so unlike automaticSuccessOffer
+	// above, it's only ever relevant on a genuine 10+/12+ (tier === "success"), the one case
+	// automaticSuccessOffer explicitly excludes.
+	const downgradeOffer = tier === "success" ? (options.downgrade ?? []) : [];
 
 	// options.heatUp (see PlaybookActorSheet#_availableHeatUp) is unscoped by move key or weapon,
 	// unlike reroll — but like reroll, and unlike automaticSuccess, the button is omitted entirely
@@ -318,6 +331,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 		// chat card's button can name just that one tag rather than listing all three.
 		rerollLabel,
 		automaticSuccess: automaticSuccessOffer,
+		downgrade: downgradeOffer,
 		heatUp: Boolean(heatUpOffer),
 		showAddAdvantage,
 		showAddDisadvantage
@@ -334,6 +348,9 @@ export async function rollMove(actor, move, trait, options = {}) {
 		...(rerollOffer && { reroll: { ...rerollOffer, flavorArgs } }),
 		...(automaticSuccessOffer.length && {
 			automaticSuccess: { actorId: actor.id, moveKey: move.key, flavorArgs, sources: automaticSuccessOffer }
+		}),
+		...(downgradeOffer.length && {
+			downgrade: { actorId: actor.id, moveKey: move.key, flavorArgs, sources: downgradeOffer }
 		}),
 		...(heatUpOffer && { heatUp: { ...heatUpOffer, flavorArgs } }),
 		advantageOffer: {

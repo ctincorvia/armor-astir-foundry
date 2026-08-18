@@ -68,19 +68,25 @@ export const THE_WITCH_POOL = {
 		{
 			key: "the-witch:embrace-chaos",
 			name: "Embrace Chaos",
-			// "Take a partial success as if you had rolled a 7-9" is retroactive on an already-posted
-			// roll -- the same mechanism Once the War's Over already proves out verbatim: a
-			// grantsAutomaticSuccess entry is a chat-card offer, not a pre-roll dialog choice, so it
-			// upgrades a *different*, later 7-9 roll to a 10+ rather than needing to rewrite this roll's
-			// own tier after the fact. The "hold 1" itself is this move's own flatHold pool (driving the
-			// existing generic hold stepper), spent 1-for-1 on either listed option: upgrading a 7-9
-			// (grantsAutomaticSuccess.cost) or converting a disadvantage into an advantage on the
-			// currently open roll (grantsRollModifier.costsHold, not deferred -- the rules text reads as
-			// an in-the-moment choice, not a bank-for-later one).
+			// "Roll a 10+, opt to take a 7-9 instead, hold 1" is the mirror image of
+			// grantsAutomaticSuccess -- grantsDowngradeHold offers a chat-card button on a 10+ that
+			// *grants* hold instead of spending it (see move-grants-mixin.js's _availableDowngrade/
+			// move-chat-listeners.js's handleDowngrade). The banked hold then spends 1-for-1 on either
+			// listed option: grantsAutomaticSuccess (already the correct "succeed as if you'd rolled a
+			// 10+" mechanism, here additionally gated by requiresTier: "mixed" so this source -- unlike
+			// its five siblings -- only ever offers on a 7-9, never a failure) or
+			// grantsDisadvantageConversion, a second Category D mechanism (see docs/domains/moves.md)
+			// alongside All In's grantsRollStack -- live-reactive to the roll dialog's own Dice select
+			// rather than a fixed unconditional advantage grant.
 			traits: [],
 			flatHold: 1,
-			grantsAutomaticSuccess: { cost: 1 },
-			grantsRollModifier: [{ advantage: "advantage", costsHold: { amount: 1 } }],
+			suppressActivateButton: true,
+			grantsDowngradeHold: { amount: 1 },
+			grantsAutomaticSuccess: { cost: 1, requiresTier: "mixed", buttonLabel: "Upgrade from embrace chaos" },
+			grantsDisadvantageConversion: {
+				costsHold: { amount: 1 },
+				transform: { disadvantage: "advantage", disadvantage2: "none" }
+			},
 			description:
 				"<p>Whenever you roll a 10+, you may opt to instead take a partial success as if you had " +
 				"rolled a 7-9. If you do so, hold 1, which you may spend at any point before the end of " +

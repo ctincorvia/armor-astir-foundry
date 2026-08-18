@@ -6,7 +6,7 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	rollMove: vi.fn()
 }));
 
-import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
+import { HOLD_MAX, configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import { SPOTLIGHT_MIN } from "../scripts/playbook/playbook-sheet/progression-mixin.js";
 import {
@@ -16,6 +16,7 @@ import {
 	BRANDED_BLADES,
 	COOL_OFF,
 	DARK_GUARANTEES,
+	EMBRACE_CHAOS,
 	EXCHANGE_BLOWS,
 	FIELD_TESTING,
 	IDENTIFY,
@@ -435,6 +436,111 @@ describe("PlaybookActorSheet#_rollStackModifier", () => {
 			key: ALL_IN.key,
 			label: ALL_IN.name,
 			...ALL_IN.grantsRollStack
+		});
+	});
+});
+
+// The mirror image of _availableAutomaticSuccess (unit-tested through integration elsewhere, e.g.
+// playbook-actor-sheet-the-captain.test.js) -- direct unit tests here since Embrace Chaos is the
+// flag's only source. Scoping (moves/excludeMoves) and the picked-source gate mirror that resolver
+// exactly; the HOLD_MAX ceiling is the one gate this resolver adds on top.
+describe("PlaybookActorSheet#_availableDowngrade", () => {
+	it("offers Embrace Chaos's downgrade once picked, with room left in its own hold pool", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 0 } } } }
+		};
+
+		expect(sheet._availableDowngrade(EXCHANGE_BLOWS)).toEqual([
+			{ key: EMBRACE_CHAOS.key, name: EMBRACE_CHAOS.name, amount: 1 }
+		]);
+	});
+
+	it("withholds the offer once the source's own hold pool is at HOLD_MAX", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: HOLD_MAX } } }
+			}
+		};
+
+		expect(sheet._availableDowngrade(EXCHANGE_BLOWS)).toEqual([]);
+	});
+
+	it("withholds the offer entirely when the source hasn't been picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
+
+		expect(sheet._availableDowngrade(EXCHANGE_BLOWS)).toEqual([]);
+	});
+
+	it("treats a missing moveHold pool as 0, offering the downgrade", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [EMBRACE_CHAOS.key] } } };
+
+		expect(sheet._availableDowngrade(EXCHANGE_BLOWS)).toEqual([
+			{ key: EMBRACE_CHAOS.key, name: EMBRACE_CHAOS.name, amount: 1 }
+		]);
+	});
+});
+
+describe("PlaybookActorSheet#_disadvantageConversionModifier", () => {
+	it("returns null when Embrace Chaos hasn't been picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
+
+		expect(sheet._disadvantageConversionModifier()).toBeNull();
+	});
+
+	it("returns null once picked but unaffordable (below its own hold cost)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 0 } } } }
+		};
+
+		expect(sheet._disadvantageConversionModifier()).toBeNull();
+	});
+
+	it("resolves the source once picked and affordable", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } } } }
+		};
+
+		expect(sheet._disadvantageConversionModifier()).toEqual({
+			key: EMBRACE_CHAOS.key,
+			label: EMBRACE_CHAOS.name,
+			...EMBRACE_CHAOS.grantsDisadvantageConversion
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_spendDisadvantageConversion", () => {
+	it("decrements the source's own hold pool by the spent amount", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } } } },
+			update: vi.fn()
+		};
+
+		await sheet._spendDisadvantageConversion(EMBRACE_CHAOS.key, 1);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveHold.${EMBRACE_CHAOS.key}.value`]: 0
+		});
+	});
+
+	it("clamps the spend at HOLD_MIN rather than going negative", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { moveHold: { [EMBRACE_CHAOS.key]: { value: 0 } } } },
+			update: vi.fn()
+		};
+
+		await sheet._spendDisadvantageConversion(EMBRACE_CHAOS.key, 1);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveHold.${EMBRACE_CHAOS.key}.value`]: 0
 		});
 	});
 });
@@ -873,6 +979,52 @@ describe("PlaybookActorSheet#_rollMove - pending Roll Modifier grant", () => {
 		configureMoveRoll.mockResolvedValue({ trait: undefined, advantage: "none", effect: "none" });
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "weather-the-storm" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+// _rollMove's wiring of configureMoveRoll's own spentDisadvantageConversion flag into
+// _spendDisadvantageConversion — mirrors the "spends every checked roll modifier" integration test
+// above, just for Embrace Chaos's own single-source spend instead of the list-shaped Roll Modifiers.
+describe("PlaybookActorSheet#_rollMove - disadvantageConversion spend (Embrace Chaos)", () => {
+	it("spends the source's own hold once the roll dialog resolves with spentDisadvantageConversion", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({
+			trait: { key: "clash", label: "CLASH", value: 0 },
+			advantage: "advantage",
+			effect: "none",
+			spentDisadvantageConversion: true
+		});
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveHold.${EMBRACE_CHAOS.key}.value`]: 0
+		});
+	});
+
+	it("does not spend anything when spentDisadvantageConversion wasn't set", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({
+			trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none"
+		});
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});

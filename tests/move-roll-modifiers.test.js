@@ -273,6 +273,142 @@ describe("rollMove - automatic success offer (Hot-blooded/Once the War's Over/Th
 	});
 });
 
+describe("rollMove - automatic success requiresTier gate (Embrace Chaos's own Upgrade)", () => {
+	const HOT_BLOODED_SOURCE = { key: "the-impostor:hot-blooded", name: "Hot-blooded", cost: 3 };
+	const EMBRACE_CHAOS_UPGRADE_SOURCE = {
+		key: "the-witch:embrace-chaos", name: "Embrace Chaos", cost: 1, requiresTier: "mixed", buttonLabel: "Upgrade from embrace chaos"
+	};
+
+	it("offers a requiresTier: mixed source on a Mixed result", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		mockRoll({ dice: [3, 4] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { automaticSuccess: [EMBRACE_CHAOS_UPGRADE_SOURCE] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ automaticSuccess: [EMBRACE_CHAOS_UPGRADE_SOURCE] })
+		);
+	});
+
+	it("does not offer a requiresTier: mixed source on a failure", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { automaticSuccess: [EMBRACE_CHAOS_UPGRADE_SOURCE] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ automaticSuccess: [] }));
+	});
+
+	it("still offers an unrestricted source (Hot-blooded) on that same failure, proving the filter is additive/per-source", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, {
+			automaticSuccess: [EMBRACE_CHAOS_UPGRADE_SOURCE, HOT_BLOODED_SOURCE]
+		});
+
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ automaticSuccess: [HOT_BLOODED_SOURCE] })
+		);
+	});
+});
+
+describe("rollMove - downgrade offer (Embrace Chaos)", () => {
+	const EMBRACE_CHAOS_SOURCE = { key: "the-witch:embrace-chaos", name: "Embrace Chaos", amount: 1 };
+
+	it("offers downgrade, and records everything needed to spend it, on a plain 10+", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [5, 5] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { downgrade: [EMBRACE_CHAOS_SOURCE] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ downgrade: [EMBRACE_CHAOS_SOURCE] })
+		);
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(rollInstance.toMessage).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			flavor: "",
+			flags: {
+				"armor-astir": {
+					downgrade: {
+						actorId: "actor1",
+						moveKey: "exchange-blows",
+						flavorArgs: expect.objectContaining({ tier: "success", downgrade: [EMBRACE_CHAOS_SOURCE] }),
+						sources: [EMBRACE_CHAOS_SOURCE]
+					},
+					advantageOffer: expect.any(Object)
+				}
+			}
+		});
+	});
+
+	it("offers downgrade on a 12+ critical, the same as a plain 10+", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		mockRoll({ dice: [6, 6] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { downgrade: [EMBRACE_CHAOS_SOURCE] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(
+			MOVE_CHAT_TEMPLATE,
+			expect.objectContaining({ downgrade: [EMBRACE_CHAOS_SOURCE] })
+		);
+	});
+
+	it("does not offer downgrade on a Mixed result", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [3, 4] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { downgrade: [EMBRACE_CHAOS_SOURCE] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ downgrade: [] }));
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(rollInstance.toMessage).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			flavor: "",
+			flags: { "armor-astir": { advantageOffer: expect.any(Object) } }
+		});
+	});
+
+	it("does not offer downgrade on a failure", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		mockRoll({ dice: [1, 1] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { downgrade: [EMBRACE_CHAOS_SOURCE] });
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ downgrade: [] }));
+	});
+
+	it("does not offer downgrade on a 10+ when nothing was passed", async () => {
+		const actor = { id: "actor1", system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [5, 5] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({ downgrade: [] }));
+		const rollInstance = Roll.mock.results.at(-1).value;
+		expect(rollInstance.toMessage).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			flavor: "",
+			flags: { "armor-astir": { advantageOffer: expect.any(Object) } }
+		});
+	});
+});
+
 describe("rollMove - heat up (Astir Overheating reroll)", () => {
 	// Unlike reroll (failure only) and automaticSuccess (non-success only), Heat Up's own gate
 	// (see PlaybookActorSheet#_availableHeatUp) carries no tier restriction of its own — it's

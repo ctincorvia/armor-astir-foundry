@@ -4,7 +4,7 @@ import { getTargetedNpc } from "../../moves/target-tier.js";
 import { TIER_MIN } from "../../equipment/equipment.js";
 import { approachMatchupStack } from "../../moves/approach-matchup.js";
 import { ALL_MOVES } from "../../moves/all-moves.js";
-import { HOLD_MIN } from "../../moves/moves.js";
+import { HOLD_MAX, HOLD_MIN } from "../../moves/moves.js";
 import { SPOTLIGHT_MIN } from "./progression-mixin.js";
 
 // Standing, actor-wide roll effects (Number Of The Beast, Cold Company) and every "does a picked
@@ -272,6 +272,23 @@ export const MoveGrantsSheetMixin = {
 			})
 			.map((m) => ({ key: m.key, name: m.name, ...m.grantsAutomaticSuccess }));
 	},
+	// The Witch's Embrace Chaos: "whenever you roll a 10+, you may opt to instead take a partial
+	// success as if you had rolled a 7-9. If you do so, hold 1." The mirror image of
+	// _availableAutomaticSuccess above â€” a chat-card offer on a 10+ that *grants* hold instead of
+	// spending it (see move-chat-listeners.js's handleDowngrade) â€” so it shares the same
+	// moves/excludeMoves scoping and picked-source gate. The one extra gate _availableAutomaticSuccess
+	// doesn't need: the source's own hold pool must have room left, since offering a downgrade that
+	// grants nothing (already at HOLD_MAX) would cost the player a worse result for no benefit.
+	_availableDowngrade(move) {
+		const pickedKeys = resolvePlaybookMoves(this._playbookMoves()).map((m) => m.key);
+		return ALL_MOVES
+			.filter((m) => m.grantsDowngradeHold)
+			.filter((m) => !m.grantsDowngradeHold.moves || m.grantsDowngradeHold.moves.includes(move.key))
+			.filter((m) => !m.grantsDowngradeHold.excludeMoves?.includes(move.key))
+			.filter((m) => pickedKeys.includes(m.key))
+			.filter((m) => this._moveHoldValue(m.key) < HOLD_MAX)
+			.map((m) => ({ key: m.key, name: m.name, ...m.grantsDowngradeHold }));
+	},
 	// Heat Up's own gate (see moves.js — the rules text has the player tick their Astir's existing
 	// Overheating checkbox, system.attributes.astir.overheating, to retry a roll). Requires the Astir
 	// specifically to be the mounted frame, same as every other Astir-conditioned effect in this
@@ -401,6 +418,28 @@ export const MoveGrantsSheetMixin = {
 		const source = resolvePlaybookMoves(this._playbookMoves()).find((m) => m.grantsRollStack);
 		if (!source) return null;
 		return { key: source.key, label: source.name, ...source.grantsRollStack };
+	},
+	// Embrace Chaos's own "convert a disadvantage into an advantage" spend â€” the second Category D
+	// mechanism (see docs/domains/moves.md) alongside All In's grantsRollStack above: live-reactive
+	// to the roll dialog's own Dice-select value rather than a gated actor-state spend, so like
+	// _rollStackModifier it resolves the single currently-picked source once rather than scanning
+	// every source the way _availableAutomaticSuccess/_availableDowngrade do. Returns null (nothing
+	// to offer) once the source's own hold can't cover its cost, the same affordability gate
+	// _rollModifierAvailability's own costsHold branch already applies elsewhere.
+	_disadvantageConversionModifier() {
+		const source = resolvePlaybookMoves(this._playbookMoves()).find((m) => m.grantsDisadvantageConversion);
+		if (!source) return null;
+		const { costsHold } = source.grantsDisadvantageConversion;
+		if (this._moveHoldValue(source.key) < costsHold.amount) return null;
+		return { key: source.key, label: source.name, ...source.grantsDisadvantageConversion };
+	},
+	// The write side of _disadvantageConversionModifier above â€” spends the checked amount from the
+	// source's own hold pool, the same clamped decrement _spendRollModifiers' own costsHold branch
+	// already performs, just against a single resolved source instead of a scanned list.
+	async _spendDisadvantageConversion(sourceKey, amount) {
+		await this.actor.update({
+			[this._moveHoldUpdatePath(sourceKey)]: Math.max(HOLD_MIN, this._moveHoldValue(sourceKey) - amount)
+		});
 	},
 	// The write side of the Roll Modifiers section — mirrors _spendAstirParts/_spendEquipmentTags/
 	// handleAutomaticSuccess's own per-kind write branches, one actor.update batch for every checked

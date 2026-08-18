@@ -6,9 +6,9 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	rollMove: vi.fn()
 }));
 
-import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
+import { HOLD_MAX, configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
-import { EXCHANGE_BLOWS, STRIKE_DECISIVELY, BITE_THE_DUST } from "./helpers/move-fixtures.js";
+import { EXCHANGE_BLOWS, STRIKE_DECISIVELY, BITE_THE_DUST, EMBRACE_CHAOS } from "./helpers/move-fixtures.js";
 
 // _availableHeatUp's own return value for an actor with no Astir at all (see moves-mixin.js) —
 // every fixture in this file lacks one unless a test says otherwise, so _rollMove's baseOptions
@@ -342,6 +342,60 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 			expect.arrayContaining(["the-impostor:hot-blooded", "soldier:once-the-wars-over"])
 		);
 		expect(options.automaticSuccess).toHaveLength(2);
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - downgrade offer (Embrace Chaos)", () => {
+	const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none" };
+
+	it("offers Embrace Chaos's downgrade once picked, below HOLD_MAX", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { equipment: [], playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 0 } } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		const options = rollMove.mock.calls.at(-1)[3];
+		expect(options.downgrade).toEqual([{ key: EMBRACE_CHAOS.key, name: EMBRACE_CHAOS.name, amount: 1 }]);
+	});
+
+	it("withholds Embrace Chaos's downgrade once its own hold pool is at HOLD_MAX", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					equipment: [], playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: HOLD_MAX } }
+				}
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		const options = rollMove.mock.calls.at(-1)[3];
+		expect(options.downgrade).toBeUndefined();
+	});
+
+	it("withholds Embrace Chaos's downgrade when it hasn't been picked at all", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		const options = rollMove.mock.calls.at(-1)[3];
+		expect(options.downgrade).toBeUndefined();
 	});
 });
 

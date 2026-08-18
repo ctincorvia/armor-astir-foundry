@@ -8,9 +8,10 @@ export const CLASH_TRAIT = { key: "clash", label: "CLASH", value: 1 };
 // checkedConditions/checkedEquipmentTags/checkedAstirPartSpends/checkedRollModifiers/
 // checkedPendingRollModifiers fake the jQuery `.find("[name='...']:checked").map(...).get()`
 // chains configureMoveRoll uses to collect Help or Hinder's checkbox values, equipment spends,
-// Astir Part spends, and (non-deferred/deferred) Roll Modifiers checkboxes. rollStackChecked fakes
-// the single `.find("[name='roll-stack']").prop("checked")` read All In's own checkbox uses (a
-// bare boolean, not a list, since only one Stack checkbox is ever rendered).
+// Astir Part spends, and (non-deferred/deferred) Roll Modifiers checkboxes. rollStackChecked/
+// disadvantageConversionChecked fake the single `.find("[name='...']").prop("checked")` reads All
+// In's own Stack checkbox and Embrace Chaos's own Convert checkbox use (each a bare boolean, not a
+// list, since only one of either is ever rendered).
 export function fakeRollHtml(
 	values,
 	checkedConditions = [],
@@ -18,7 +19,8 @@ export function fakeRollHtml(
 	checkedAstirPartSpends = [],
 	checkedRollModifiers = [],
 	checkedPendingRollModifiers = [],
-	rollStackChecked = false
+	rollStackChecked = false,
+	disadvantageConversionChecked = false
 ) {
 	return {
 		find: (selector) => {
@@ -39,6 +41,9 @@ export function fakeRollHtml(
 			}
 			if (selector === "[name='roll-stack']") {
 				return { prop: (prop) => (prop === "checked" ? rollStackChecked : undefined) };
+			}
+			if (selector === "[name='disadvantage-conversion']") {
+				return { prop: (prop) => (prop === "checked" ? disadvantageConversionChecked : undefined) };
 			}
 			return { val: () => values[selector] };
 		}

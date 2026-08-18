@@ -27,6 +27,7 @@ const PRE_ORDAINED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:pre-
 const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
 const CLASSICAL_SPELLCASTING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:classical-spellcasting");
 const ADVANCED_EVOCATION = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:advanced-evocation");
+const EMBRACE_CHAOS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:embrace-chaos");
 
 beforeEach(() => {
 	choosePlaybookMove.mockClear();
@@ -246,6 +247,30 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 			traitBonusChoice: "",
 			trackers: []
 		});
+	});
+
+	// Embrace Chaos carries suppressActivateButton (see moves-mixin.js) on top of its own flatHold,
+	// so unlike every other flatHold move it renders no Activate button at all -- the only way to
+	// gain its hold is the chat-card Downgrade offer (see move-grants-mixin.js's
+	// grantsDowngradeHold). The hold stepper/pool itself must still resolve normally, since
+	// trackHold/separateHoldPool/hold read move.flatHold directly, unaffected by
+	// suppressActivateButton.
+	it("suppresses Embrace Chaos's Activate button while leaving its hold stepper/pool intact", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 2 } } }
+			}
+		};
+
+		const [move] = playbookGroup(sheet.getData()).moves;
+
+		expect(move.activatable).toBe(false);
+		expect(move.rollable).toBe(false);
+		expect(move.trackHold).toBe(true);
+		expect(move.separateHoldPool).toBe(true);
+		expect(move.hold).toBe(2);
 	});
 
 	it("resolves Transmute Self's numericTrackers, with a stored value on one and the default 0 on the other", () => {

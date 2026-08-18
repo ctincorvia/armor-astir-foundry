@@ -308,8 +308,13 @@ export const MovesSheetMixin = {
 				// see the template's rollable/activatable branch and _onMoveActivate. Divination
 				// Codex's showsReadTheRoomQuestions and a move's own activateChoices (Bureaucrat,
 				// Shree Klime) get the same button, for the same reason: no dice, just an action to
-				// take.
-				activatable: Boolean(move.flatHold)
+				// take. suppressActivateButton (Embrace Chaos only) opts a flatHold move back out of
+				// this: its hold is granted entirely through the chat-card Downgrade offer (see
+				// move-grants-mixin.js's grantsDowngradeHold), never by clicking Activate for free, so
+				// showing that button here would offer a mechanism the rules text doesn't grant — the
+				// hold stepper/pool itself (trackHold/separateHoldPool/hold below) still reads
+				// move.flatHold directly and is unaffected.
+				activatable: (Boolean(move.flatHold) && !move.suppressActivateButton)
 					|| Boolean(move.showsReadTheRoomQuestions)
 					|| Boolean(move.activateChoices)
 					|| Boolean(move.activatesApproachOverride)

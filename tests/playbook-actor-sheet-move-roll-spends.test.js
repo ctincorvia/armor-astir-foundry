@@ -58,7 +58,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			DISPEL_UNCERTAINTIES,
 			[{ key: "know", label: "KNOW", value: 1 }],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [blitzSpend], rollModifiers: [], rollStack: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, astirPartSpends: [], equipmentSpends: [blitzSpend], rollModifiers: [], rollStack: null, disadvantageConversion: null }
 		);
 	});
 
@@ -78,7 +78,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null
+			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -98,7 +98,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [blitzSpend], rollModifiers: [], rollStack: null
+			astirPartSpends: [], equipmentSpends: [blitzSpend], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -118,7 +118,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null
+			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -138,7 +138,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null
+			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -158,7 +158,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null
+			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -179,7 +179,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null
+			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -203,7 +203,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], rollModifiers: [], rollStack: null
+			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -224,7 +224,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], rollModifiers: [], rollStack: null
+			astirPartSpends: [], equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -244,7 +244,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null
+			astirPartSpends: [], equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -270,7 +270,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], {
 			lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null,
-			astirPartSpends: [], equipmentSpends: [{ ...blitzSpend, disabled: true }], rollModifiers: [], rollStack: null
+			astirPartSpends: [], equipmentSpends: [{ ...blitzSpend, disabled: true }], rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -370,7 +370,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [artifactSpend],
 			equipmentSpends: [],
-			rollModifiers: [], rollStack: null
+			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -390,7 +390,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [],
 			equipmentSpends: [],
-			rollModifiers: [], rollStack: null
+			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -413,7 +413,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [],
 			equipmentSpends: [],
-			rollModifiers: [], rollStack: null
+			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -436,7 +436,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [],
 			equipmentSpends: [],
-			rollModifiers: [], rollStack: null
+			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -456,7 +456,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [],
 			equipmentSpends: [],
-			rollModifiers: [], rollStack: null
+			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -481,7 +481,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			astirPartSpends: [],
 			equipmentSpends: [],
-			rollModifiers: [], rollStack: null
+			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -506,7 +506,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 				effect: "confidence", advantage: null, disabled: false
 			}],
 			equipmentSpends: [],
-			rollModifiers: [], rollStack: null
+			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 
@@ -543,7 +543,7 @@ describe("PlaybookActorSheet#_onMoveRoll - astir part spends", () => {
 				disabled: false
 			}],
 			equipmentSpends: [],
-			rollModifiers: [], rollStack: null
+			rollModifiers: [], rollStack: null, disadvantageConversion: null
 		});
 	});
 

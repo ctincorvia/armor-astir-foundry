@@ -52,6 +52,11 @@ export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates
 // PlaybookActorSheet#_rollStackModifier) is the separate, single Category D entry (All In) —
 // a live Dice-select-reactive stack rather than a gated actor-state spend, so it's wired through
 // the Dialog's own `render` callback below instead of a checked-box lookup at Roll time alone.
+// disadvantageConversion (see PlaybookActorSheet#_disadvantageConversionModifier) is Embrace
+// Chaos's own second Category D entry — live-reactive the same way, but keyed off a `transform`
+// lookup table (Disadvantage -> Advantage, Disadvantage x2 -> flat) rather than rollStack's single
+// fixed setAdvantage/setEffect pair, since which state it resolves to depends on which
+// Disadvantage state is currently selected.
 //
 // guided (see PlaybookActorSheet#_rollMove) is the *source's* own label — "Guided" for the weapon
 // tag, or the granting Astir Part's name (e.g. "Spell Routines") — rather than a bare boolean.
@@ -71,6 +76,7 @@ export async function configureMoveRoll(
 		astirPartSpends = [],
 		rollModifiers = [],
 		rollStack = null,
+		disadvantageConversion = null,
 		guided = null
 	} = {}
 ) {
@@ -101,6 +107,7 @@ export async function configureMoveRoll(
 		astirPartSpends,
 		rollModifiers,
 		rollStack,
+		disadvantageConversion,
 		guided
 	});
 
@@ -116,13 +123,29 @@ export async function configureMoveRoll(
 			// at equipment-dialogs.js's chooseEquipmentCatalogItem/chooseWeapon, whose own `render`
 			// field sits in this same spot for the same reason).
 			render: (html) => {
-				if (!rollStack) return;
-				const updateRollStackState = () => {
-					const enabled = html.find("[name='advantage']").val() === "advantage";
-					html.find("[name='roll-stack']").prop("disabled", !enabled).prop("checked", (i, v) => enabled && v);
-				};
-				html.find("[name='advantage']").on("change", updateRollStackState);
-				updateRollStackState();
+				if (rollStack) {
+					const updateRollStackState = () => {
+						const enabled = html.find("[name='advantage']").val() === "advantage";
+						html.find("[name='roll-stack']").prop("disabled", !enabled).prop("checked", (i, v) => enabled && v);
+					};
+					html.find("[name='advantage']").on("change", updateRollStackState);
+					updateRollStackState();
+				}
+
+				// Embrace Chaos's own live-reactive checkbox (Category D â€” see
+				// grantsDisadvantageConversion's own doc comment above): enabled only while the
+				// currently selected Dice state has a transform entry (Disadvantage or Disadvantage
+				// x2), unchecked the moment the Dice select changes to a state with none. A separate
+				// `if` block, not an `else`/early-return chained off rollStack above â€” the two grants
+				// are independent, and a move could in principle offer either alone.
+				if (disadvantageConversion) {
+					const updateDisadvantageConversionState = () => {
+						const enabled = Boolean(disadvantageConversion.transform[html.find("[name='advantage']").val()]);
+						html.find("[name='disadvantage-conversion']").prop("disabled", !enabled).prop("checked", (i, v) => enabled && v);
+					};
+					html.find("[name='advantage']").on("change", updateDisadvantageConversionState);
+					updateDisadvantageConversionState();
+				}
 			},
 			buttons: {
 				roll: {
@@ -188,10 +211,20 @@ export async function configureMoveRoll(
 						// enabled it (Advantage selected), so no separate "is Advantage selected"
 						// re-check is needed here.
 						const allInChecked = Boolean(rollStack) && Boolean(html.find("[name='roll-stack']").prop("checked"));
+						// Embrace Chaos's own checkbox â€” same "only meaningfully checked while the
+						// render callback above already enabled it" reasoning as allInChecked, just
+						// keyed off the disadvantage-conversion checkbox name instead of roll-stack.
+						const disadvantageConversionChecked = Boolean(disadvantageConversion)
+							&& Boolean(html.find("[name='disadvantage-conversion']").prop("checked"));
 
 						resolve({
 							trait: lockedTrait ?? traits.find((t) => t.key === html.find("[name='trait']").val()),
+							// A resource-spending, in-the-moment click at Roll time (disadvantageConversionChecked)
+							// outranks a standing/passive grant â€” same precedence Artifact's own spend.advantage
+							// already takes over lockedAdvantage â€” but All In's own stack still wins outright,
+							// since Advantage x2 always resolves it away from a Disadvantage state entirely.
 							advantage: (allInChecked ? rollStack.setAdvantage : null)
+								?? (disadvantageConversionChecked ? disadvantageConversion.transform[html.find("[name='advantage']").val()] : null)
 								?? spentPartAdvantage
 								?? rollModifierAdvantage
 								?? lockedAdvantage
@@ -210,7 +243,8 @@ export async function configureMoveRoll(
 							}),
 							...(equipmentSpends.length && { spentTags }),
 							...(astirPartSpends.length && { spentParts }),
-							...(rollModifiers.length && { spentRollModifiers })
+							...(rollModifiers.length && { spentRollModifiers }),
+							...(disadvantageConversionChecked && { spentDisadvantageConversion: true })
 						});
 					}
 				},
