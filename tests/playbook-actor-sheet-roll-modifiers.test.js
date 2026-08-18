@@ -240,12 +240,12 @@ describe("PlaybookActorSheet#_rollModifierAvailability", () => {
 		});
 	});
 
-	it("costsPotion: available with at least 1 of the named color, unavailable at 0", () => {
+	it("costsPotion: available while the named color is unspent, unavailable once spent", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { astir: { id: "a1", potions: { blue: 1 } } } } };
+		sheet.actor = { system: { attributes: { astir: { id: "a1", potions: { blue: false } } } } };
 		expect(sheet._rollModifierAvailability(blueSpec, ALCHEMICAL_SUITE)).toEqual({ available: true, reason: null });
 
-		sheet.actor.system.attributes.astir.potions.blue = 0;
+		sheet.actor.system.attributes.astir.potions.blue = true;
 		expect(sheet._rollModifierAvailability(blueSpec, ALCHEMICAL_SUITE)).toEqual({
 			available: false,
 			reason: "No blue Potion left"
@@ -403,7 +403,7 @@ describe("PlaybookActorSheet#_rollModifiersForMove", () => {
 			system: {
 				attributes: {
 					playbookMoves: [],
-					astir: { id: "a1", piloted: true, parts: [ALCHEMICAL_SUITE.key], potions: { blue: 1, yellow: 1 } }
+					astir: { id: "a1", piloted: true, parts: [ALCHEMICAL_SUITE.key], potions: { blue: false, yellow: false } }
 				}
 			}
 		};
@@ -514,13 +514,13 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.resources.hold.value": 1 });
 	});
 
-	it("costsPotion + deferred (Alchemical Suite's own specKey): decrements the named color and writes its own pending marker", async () => {
+	it("costsPotion + deferred (Alchemical Suite's own specKey): marks the named color spent and writes its own pending marker", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				attributes: {
 					playbookMoves: [],
-					astir: { id: "a1", piloted: true, parts: [ALCHEMICAL_SUITE.key], potions: { blue: 1 } }
+					astir: { id: "a1", piloted: true, parts: [ALCHEMICAL_SUITE.key], potions: { blue: false } }
 				}
 			},
 			update: vi.fn()
@@ -529,12 +529,12 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 		await sheet._spendRollModifiers(["blue"]);
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.astir.potions.blue": 0,
+			"system.attributes.astir.potions.blue": true,
 			[`system.attributes.pendingRollModifiers.${ALCHEMICAL_SUITE.key}.blue`]: true
 		});
 	});
 
-	it("costsPotion: treats a missing potions object as 0 before clamping", async () => {
+	it("costsPotion: treats a missing potions object as available", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -549,7 +549,7 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 		await sheet._spendRollModifiers(["blue"]);
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.astir.potions.blue": 0,
+			"system.attributes.astir.potions.blue": true,
 			[`system.attributes.pendingRollModifiers.${ALCHEMICAL_SUITE.key}.blue`]: true
 		});
 	});

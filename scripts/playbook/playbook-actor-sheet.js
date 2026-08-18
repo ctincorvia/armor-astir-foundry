@@ -326,7 +326,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".astir-weapon-power-step").on("click", this._onAstirWeaponPowerStep.bind(this));
 		html.find(".astir-overheating-checkbox").on("change", this._onAstirOverheatingToggle.bind(this));
 		html.find(".astir-piloted-checkbox").on("change", this._onAstirPilotedToggle.bind(this));
-		html.find(".astir-potion-use").on("click", this._onAstirPotionUse.bind(this));
+		html.find(".astir-potion-checkbox").on("change", this._onAstirPotionToggle.bind(this));
 		html.find(".astir-part-add").on("click", this._onAstirPartAdd.bind(this));
 		html.find(".astir-part-remove").on("click", this._onAstirPartRemove.bind(this));
 		html.find(".astir-extra-part-add").on("click", this._onAstirExtraPartAdd.bind(this));

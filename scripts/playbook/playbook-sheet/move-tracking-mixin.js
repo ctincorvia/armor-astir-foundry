@@ -1,6 +1,6 @@
 import { choosePlaybookMove, resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { HOLD_MAX, HOLD_MIN } from "../../moves/moves.js";
-import { chooseStartingMoves, findStartingMovePool } from "../../moves/starting-moves.js";
+import { chooseStartingMoves, findStartingMovePool, startingMoveKeysByPlaybook } from "../../moves/starting-moves.js";
 
 // Hold/tracker steppers, uses checkboxes and trait-bonus choice, plus the Playbook Moves add/remove
 // and starting-moves pickers — see moves-mixin.js's file comment for how this file relates to its
@@ -82,7 +82,7 @@ export const MoveTrackingSheetMixin = {
 	// was confirmed with nothing selected.
 	async _onPlaybookMoveAdd() {
 		const current = this._playbookMoves();
-		const key = await choosePlaybookMove(this.actor.system.playbook?.name, current);
+		const key = await choosePlaybookMove(this.actor.system.playbook?.name, current, startingMoveKeysByPlaybook());
 		if (!key || current.includes(key)) return;
 
 		await this.actor.update({

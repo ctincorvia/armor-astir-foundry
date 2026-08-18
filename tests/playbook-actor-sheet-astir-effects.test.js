@@ -17,42 +17,6 @@ import {
 	WEATHER_THE_STORM
 } from "./helpers/move-fixtures.js";
 
-describe("PlaybookActorSheet#_grantPotions", () => {
-	it("increments each color by 1", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { attributes: { astir: { id: "a1", potions: { red: 1, blue: 0, yellow: 0 } } } },
-			update: vi.fn()
-		};
-
-		await sheet._grantPotions();
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.astir.potions": { red: 2, blue: 1, yellow: 1 }
-		});
-	});
-
-	it("treats a missing potions object as all zero", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { astir: { id: "a1" } } }, update: vi.fn() };
-
-		await sheet._grantPotions();
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.astir.potions": { red: 1, blue: 1, yellow: 1 }
-		});
-	});
-
-	it("does nothing when there is no Astir", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
-
-		await sheet._grantPotions();
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-});
-
 describe("PlaybookActorSheet#_regainAstirPower", () => {
 	it("adds the given amount, clamped to the parts-adjusted maximum", async () => {
 		const sheet = new PlaybookActorSheet();

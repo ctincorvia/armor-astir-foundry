@@ -380,7 +380,8 @@
 }
 
 /* Potions (Alchemical Suite — see astir.js) — a compact row per color rather than the full
-   .move-list treatment, since there's nothing to add/remove/roll, just a count and a Use button. */
+   .move-list treatment, since there's nothing to add/remove/roll, just a label and a Spent
+   checkbox (see .potion-spent, sheet-tabs.css). */
 .armor-astir.sheet .potion-list {
 	display: flex;
 	flex-direction: column;
@@ -392,7 +393,7 @@
 
 .armor-astir.sheet .potion {
 	display: grid;
-	grid-template-columns: minmax(0, 1fr) auto auto;
+	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: center;
 	gap: var(--aa-space-2);
 }
@@ -407,7 +408,6 @@
 .armor-astir.sheet .power-value,
 .armor-astir.sheet .hold-value,
 .armor-astir.sheet .gravity-clock-value,
-.armor-astir.sheet .potion-value,
 .armor-astir.sheet .tier-value,
 .armor-astir.sheet .move-tracker-value {
 	min-width: 1.5em;

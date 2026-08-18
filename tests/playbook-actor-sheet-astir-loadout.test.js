@@ -1045,6 +1045,6 @@ describe("PlaybookActorSheet#getData - astir extraParts/extraWeapons", () => {
 			}
 		};
 
-		expect(sheet.getData().astir.potions).toEqual({ red: 0, blue: 0, yellow: 0 });
+		expect(sheet.getData().astir.potions).toEqual({ red: false, blue: false, yellow: false });
 	});
 });

@@ -225,8 +225,8 @@ export const MoveRollSheetMixin = {
 
 		// Guided's "Take 7-9" button resolves with nothing but this flag — no trait, dice, or
 		// equipment/Astir Part spend was ever read, so there's nothing to mark spent and nothing
-		// left to roll. Lead a Sortie's Potion grant (see _onMoveResolved) still applies — the
-		// Sortie was led either way — but there's no dice to check for Flourish Component.
+		// left to roll. _onMoveResolved still runs below (Cold Company, Witch's Patron, ...) — there's
+		// just no dice to check for Flourish Component's regain-on-doubles.
 		if (config.takeSeven) {
 			await postGuidedResult(this.actor, move, {
 				weaponLabel: weapon ? weapon.name : "Unarmed",
@@ -330,9 +330,8 @@ export const MoveRollSheetMixin = {
 	// Runs after a move resolves — whether via a real roll (dice present) or Guided's "Take 7-9"
 	// (dice null). The Witch's Patron ("offers you two boons at random whenever someone leads a
 	// Sortie") is checked first and unconditionally, before the mounted-frame early-return below —
-	// unlike Potions/doubles-regen (Astir Part effects, gated on the Astir specifically being
-	// mounted), Patron is a base playbook feature that doesn't care whether — or which — frame is
-	// mounted.
+	// unlike doubles-regen (an Astir Part effect, gated on the Astir specifically being mounted),
+	// Patron is a base playbook feature that doesn't care whether — or which — frame is mounted.
 	async _onMoveResolved(move, dice, tier) {
 		if (move.key === "lead-a-sortie"
 				&& resolvePlaybookMoves(this._playbookMoves()).some((m) => m.key === "the-witch:patron")) {
@@ -355,17 +354,14 @@ export const MoveRollSheetMixin = {
 				await this.actor.update({ [`system.attributes.moveUses.${coldCompany.key}.${useKey}`]: false });
 			}
 		}
-		// The two Astir Part effects below react to a move's outcome rather than being offered as part
-		// of setting it up. Both are scoped to the mounted frame's own parts (see docs/domains/frames.md's Piloted
-		// note): a part contributes nothing when no frame is currently mounted. Both
-		// grantsPotionsOnLeadASortie and regainPowerOnDoubles carry a powerCost, so — like grantsGuided
-		// above — neither can ever be installed on an Ardent; this still reads generically off
-		// _mountedParts() rather than special-casing the Astir.
+		// Flourish Component's regain-Power-on-doubles reacts to a move's outcome rather than being
+		// offered as part of setting it up, and is scoped to the mounted frame's own parts (see
+		// docs/domains/frames.md's Piloted note): a part contributes nothing when no frame is
+		// currently mounted. regainPowerOnDoubles carries a powerCost, so — like grantsGuided above —
+		// it can never be installed on an Ardent; this still reads generically off _mountedParts()
+		// rather than special-casing the Astir.
 		if (!this._mountedFrame()) return;
 		const parts = this._mountedParts();
-		if (move.key === "lead-a-sortie" && parts.some((part) => part.grantsPotionsOnLeadASortie)) {
-			await this._grantPotions();
-		}
 		if (dice && parts.some((part) => part.regainPowerOnDoubles) && rolledDoubles(dice)) {
 			await this._regainAstirPower(1);
 		}

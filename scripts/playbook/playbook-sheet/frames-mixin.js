@@ -245,8 +245,8 @@ export const FramesSheetMixin = {
 	},
 	// Clears every Sortie-scoped spend/uses checkbox, plus the flat hold pools (B-Plot, Get Out of
 	// My Way!, Once the War's Over — all scoped to "the Sortie" by their own text, see moves.js/
-	// playbook-moves.js), Alchemical Suite's Potions when installed (mirrors getData's own
-	// grantsPotionsOnLeadASortie gating so an Astir without the part never gains a stray potions
+	// playbook-moves.js), grants Alchemical Suite's Potions when installed (mirrors getData's own
+	// grantsPotionsOnRefreshSortie gating so an Astir without the part never gains a stray potions
 	// field), and Tactical Genius's hold tracker, which resets to its computed 1+KNOW value rather
 	// than a flat min (see the in-loop comment below).
 	_onRefreshSortie() {
@@ -282,8 +282,11 @@ export const FramesSheetMixin = {
 					Math.min(tracker.max, Math.max(tracker.min, 1 + know));
 			}
 		}
-		if (this._astirParts().some((part) => part.grantsPotionsOnLeadASortie)) {
-			updates["system.attributes.astir.potions"] = { red: 0, blue: 0, yellow: 0 };
+		// Alchemical Suite's "Take 1 of each Potion" (see astir-parts.js's grantsPotionsOnRefreshSortie)
+		// — this reset *is* the grant: every color goes back to unspent (false), making all three
+		// available again, the same "spent boolean, not a count" shape equipment tags/move uses use.
+		if (this._astirParts().some((part) => part.grantsPotionsOnRefreshSortie)) {
+			updates["system.attributes.astir.potions"] = { red: false, blue: false, yellow: false };
 		}
 		// Equipment-sourced Bonus Downtime Tokens (Artificers — see equipment-mixin.js/
 		// starting-gear.js) reset the same way, but equipment isn't a catalog to walk like ALL_MOVES

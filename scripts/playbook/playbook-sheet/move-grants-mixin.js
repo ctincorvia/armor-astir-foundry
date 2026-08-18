@@ -337,7 +337,7 @@ export const MoveGrantsSheetMixin = {
 			return { available, reason: available ? null : `Needs ${spec.costsHold.amount} hold` };
 		}
 		if (spec.costsPotion) {
-			const available = (this._astir()?.potions?.[spec.costsPotion] ?? 0) > 0;
+			const available = !this._astir()?.potions?.[spec.costsPotion];
 			return { available, reason: available ? null : `No ${spec.costsPotion} Potion left` };
 		}
 		if (spec.costsUse) {
@@ -425,8 +425,7 @@ export const MoveGrantsSheetMixin = {
 					updates[this._moveHoldUpdatePath(moveKey)] =
 						Math.max(HOLD_MIN, this._moveHoldValue(moveKey) - spec.costsHold.amount);
 				} else if (spec.costsPotion) {
-					const current = this._astir()?.potions?.[spec.costsPotion] ?? 0;
-					updates[`system.attributes.astir.potions.${spec.costsPotion}`] = Math.max(0, current - 1);
+					updates[`system.attributes.astir.potions.${spec.costsPotion}`] = true;
 				} else if (spec.costsUse) {
 					updates[`system.attributes.moveUses.${source.key}.${spec.costsUse}`] = true;
 				}

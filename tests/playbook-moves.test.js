@@ -11,6 +11,7 @@ import {
 	unmetMoveRequirements
 } from "../scripts/moves/playbook-moves.js";
 import { ALL_MOVES } from "../scripts/moves/all-moves.js";
+import { startingMoveKeysByPlaybook } from "../scripts/moves/starting-moves.js";
 
 const BULLHEADED = "the-impostor:bullheaded";
 // Deny is the one real Cantrip with traits/results — plays the same functional role the old
@@ -179,6 +180,18 @@ describe("pickerSection", () => {
 
 		expect(section.moves.find((m) => m.key === "free").tooltip).toBe("Gated");
 		expect(section.moves.find((m) => m.key === "needs-b").tooltip).toBe("Requires b; Gated");
+	});
+
+	it("drops a move named in excludeKeys, alongside the selected/exclusiveGroup filtering", () => {
+		const section = pickerSection(POOL, [], { excludeKeys: new Set(["needs-b"]) });
+
+		expect(section.moves.map((m) => m.key)).toEqual(["free"]);
+	});
+
+	it("behaves exactly as before when excludeKeys is omitted", () => {
+		const section = pickerSection(POOL, []);
+
+		expect(section.moves.map((m) => m.key)).toEqual(["needs-b", "free"]);
 	});
 });
 
@@ -370,6 +383,51 @@ describe("playbookMoveSections", () => {
 	});
 });
 
+// Extends FIXTURE_POOLS' Beta pool with a second move, so the startingMoveKeys exclusion tests
+// below can assert one move is dropped while an unrelated move in the same pool still appears —
+// kept as its own fixture array so it doesn't disturb FIXTURE_POOLS' existing emptiness-by-
+// selection tests above (which rely on Beta having exactly one move).
+const STARTING_MOVE_KEYS_FIXTURE_POOLS = FIXTURE_POOLS.map((pool) =>
+	pool.key === "beta"
+		? { ...pool, moves: [...pool.moves, { key: "beta:two", name: "Beta Two", traits: [], description: "<p>b2</p>" }] }
+		: pool
+);
+
+describe("playbookMoveSections - startingMoveKeys", () => {
+	it("excludes a fixture playbook's own starting-move key from its listing under Other Playbooks", () => {
+		const startingMoveKeys = new Map([["The Beta", new Set(["beta:one"])]]);
+		const sections = playbookMoveSections("The Alpha", [], STARTING_MOVE_KEYS_FIXTURE_POOLS, startingMoveKeys);
+		const beta = sections.find((section) => section.key === "other-playbooks")
+			.sections.find((section) => section.key === "beta");
+
+		expect(beta.moves.map((move) => move.key)).not.toContain("beta:one");
+	});
+
+	it("still offers an ordinary (non-excluded) move from that same pool", () => {
+		const startingMoveKeys = new Map([["The Beta", new Set(["beta:one"])]]);
+		const sections = playbookMoveSections("The Alpha", [], STARTING_MOVE_KEYS_FIXTURE_POOLS, startingMoveKeys);
+		const beta = sections.find((section) => section.key === "other-playbooks")
+			.sections.find((section) => section.key === "beta");
+
+		expect(beta.moves.map((move) => move.key)).toContain("beta:two");
+	});
+
+	it("leaves the actor's own pool section unaffected even when the map contains that playbook's own key", () => {
+		const startingMoveKeys = new Map([["The Alpha", new Set(["alpha:one"])]]);
+		const [own] = playbookMoveSections("The Alpha", [], STARTING_MOVE_KEYS_FIXTURE_POOLS, startingMoveKeys);
+
+		expect(own.key).toBe("alpha");
+		expect(own.moves.map((move) => move.key)).toEqual(["alpha:one"]);
+	});
+
+	it("reproduces today's exact output on the existing fixtures when the fourth param is omitted", () => {
+		const withDefault = playbookMoveSections("The Alpha", [], STARTING_MOVE_KEYS_FIXTURE_POOLS);
+		const withEmptyMap = playbookMoveSections("The Alpha", [], STARTING_MOVE_KEYS_FIXTURE_POOLS, new Map());
+
+		expect(withDefault).toEqual(withEmptyMap);
+	});
+});
+
 describe("choosePlaybookMove", () => {
 	it("renders the picker template with the built sections", async () => {
 		choosePlaybookMove("The Scout");
@@ -443,6 +501,21 @@ describe("choosePlaybookMove", () => {
 		const { sections } = renderTemplate.mock.calls.at(-1)[1];
 
 		expect(sections.flatMap((section) => section.moves ?? [])).toEqual([]);
+	});
+
+	it("excludes The Commander's Ace Crew/Debrief starting moves from a Scout's Other Playbooks section, while an ordinary Commander move still appears", async () => {
+		choosePlaybookMove("The Scout", [], startingMoveKeysByPlaybook());
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { sections } = renderTemplate.mock.calls.at(-1)[1];
+		const commander = sections.find((section) => section.key === "other-playbooks")
+			.sections.find((section) => section.key === "the-commander");
+
+		const keys = commander.moves.map((move) => move.key);
+		expect(keys).not.toContain("the-commander:ace-crew");
+		expect(keys).not.toContain("the-commander:debrief");
+		expect(keys).toContain("the-commander:withdraw");
 	});
 });
 

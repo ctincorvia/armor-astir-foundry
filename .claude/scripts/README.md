@@ -11,6 +11,16 @@ alias notes), since that's the interpreter that actually resolves on this machin
   of by exact-text match. Reach for this instead of `Edit` when a multi-line change keeps failing
   because of tabs/spaces or other whitespace that's hard to reproduce exactly by hand. Run with
   `--help` or `-h`, or read its own docstring, for full usage.
+- **`regex_replace.py`** — apply one or more regex substitutions across one or more files at once
+  (JSON spec on stdin). Reach for this instead of a raw `perl -pi`/`sed -i` one-liner whenever the
+  same insertion/edit needs to repeat across several call sites with varying surrounding text (e.g.
+  splicing a new key into many `expect(...).toHaveBeenCalledWith({...})` object literals whose
+  other fields differ). A raw `perl -pi -e 's/.../.../g'` can silently mix `\n`/`\r\n` line endings
+  the moment its replacement text hardcodes a bare `\n` against a `\r\n` file (or vice versa,
+  silently fail to match at all) — this script normalizes to `\n` internally and re-expands to the
+  file's real, detected EOL exactly once at the end, and aborts with nothing written if a pattern
+  matches zero times, rather than continuing on a silent no-op. Run with `--help` or `-h`, or read
+  its own docstring, for full usage.
 
 ## Convention
 

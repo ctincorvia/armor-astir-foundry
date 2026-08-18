@@ -763,12 +763,12 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 		});
 	});
 
-	it("resets Astir Potions to 0 when Alchemical Suite is installed", () => {
+	it("grants 1 of each Astir Potion (marks every color available) when Alchemical Suite is installed", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				attributes: {
-					astir: { id: "a1", parts: [ALCHEMICAL_SUITE.key], potions: { red: 2, blue: 1, yellow: 3 } }
+					astir: { id: "a1", parts: [ALCHEMICAL_SUITE.key], potions: { red: true, blue: false, yellow: true } }
 				}
 			},
 			update: vi.fn()
@@ -777,7 +777,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 		sheet._onRefreshSortie();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.astir.potions": { red: 0, blue: 0, yellow: 0 },
+			"system.attributes.astir.potions": { red: false, blue: false, yellow: false },
 			"system.attributes.moveHold.b-plot.value": 0,
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,

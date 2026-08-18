@@ -10,7 +10,9 @@
       "Bash(where /R *)",
       "Bash(npx lint-staged)",
       "Bash(npm run pullJSONtoLDB)",
-      "Bash(awk '$1>=900')"
+      "Bash(awk '$1>=900')",
+      "Bash(py .claude/scripts/*)",
+      "PowerShell(py .claude/scripts/*)"
     ],
     "ask": [
       "Bash(rm *)",

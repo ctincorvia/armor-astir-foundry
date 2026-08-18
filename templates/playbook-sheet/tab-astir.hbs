@@ -62,18 +62,24 @@
 						<ol class="potion-list">
 							<li class="potion">
 								<span class="potion-label">Red</span>
-								<span class="potion-value">{{astir.potions.red}}</span>
-								<button type="button" class="astir-potion-use" data-potion="red" {{#unless astir.potions.red}}disabled{{/unless}}>Use</button>
+								<label class="potion-spent">
+									<input type="checkbox" class="astir-potion-checkbox" data-potion="red" {{#if astir.potions.red}}checked{{/if}}/>
+									Spent
+								</label>
 							</li>
 							<li class="potion">
 								<span class="potion-label">Blue</span>
-								<span class="potion-value">{{astir.potions.blue}}</span>
-								<button type="button" class="astir-potion-use" data-potion="blue" {{#unless astir.potions.blue}}disabled{{/unless}}>Use</button>
+								<label class="potion-spent">
+									<input type="checkbox" class="astir-potion-checkbox" data-potion="blue" {{#if astir.potions.blue}}checked{{/if}}/>
+									Spent
+								</label>
 							</li>
 							<li class="potion">
 								<span class="potion-label">Yellow</span>
-								<span class="potion-value">{{astir.potions.yellow}}</span>
-								<button type="button" class="astir-potion-use" data-potion="yellow" {{#unless astir.potions.yellow}}disabled{{/unless}}>Use</button>
+								<label class="potion-spent">
+									<input type="checkbox" class="astir-potion-checkbox" data-potion="yellow" {{#if astir.potions.yellow}}checked{{/if}}/>
+									Spent
+								</label>
 							</li>
 						</ol>
 						{{/if}}

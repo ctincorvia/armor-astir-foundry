@@ -105,11 +105,14 @@ function selectedExclusiveGroups(selectedKeys) {
 // nothing can be taken twice) and, on top of that, any move whose exclusiveGroup is already
 // covered by a selected move is dropped too (see selectedExclusiveGroups above). A move whose
 // requiresMoves isn't met is a different kind of "can't have" — see pickerMove above — so it stays
-// in the list, just disabled. `extraTooltip` is threaded straight through to pickerMove.
-export function pickerSection(pool, selectedKeys, { note = pool.note, open = false, extraTooltip } = {}) {
+// in the list, just disabled. `excludeKeys` (an optional Set) additionally drops moves by key
+// outright — used by playbookMoveSections below to hide another playbook's starting moves (see
+// starting-moves.js's startingMoveKeysByPlaybook) from its "Other Playbooks" listing.
+// `extraTooltip` is threaded straight through to pickerMove.
+export function pickerSection(pool, selectedKeys, { note = pool.note, open = false, extraTooltip, excludeKeys } = {}) {
 	const excludedGroups = selectedExclusiveGroups(selectedKeys);
 	const moves = pool.moves.filter((move) =>
-		!selectedKeys.includes(move.key) && !(move.exclusiveGroup && excludedGroups.has(move.exclusiveGroup))
+		!selectedKeys.includes(move.key) && !(move.exclusiveGroup && excludedGroups.has(move.exclusiveGroup)) && !excludeKeys?.has(move.key)
 	);
 	if (!moves.length) return null;
 	return {
@@ -133,7 +136,14 @@ export function pickerSection(pool, selectedKeys, { note = pool.note, open = fal
 // `pools` is injectable for testing the ordering/nesting/emptiness rules against fixtures, so
 // those tests don't quietly change meaning as real move content fills the pools in (same reason
 // choosePlaybook takes its playbooks in actor-creation.js).
-export function playbookMoveSections(playbookName, selectedKeys = [], pools = MOVE_POOLS) {
+//
+// `startingMoveKeys` (a Map from playbookName to a Set of that playbook's grantedKeys/pickOneKeys
+// starting moves — see starting-moves.js's startingMoveKeysByPlaybook) excludes those keys from
+// each *other* playbook's pool under "Other Playbooks", so e.g. a Scout can't pick up The
+// Commander's unconditional Ace Crew/Debrief grants from the picker. A playbook's own starting
+// moves stay pickable in its own pool section (the `own` computation below), unaffected. Defaults
+// to an empty Map so omitting it reproduces today's exact (unfiltered) behavior.
+export function playbookMoveSections(playbookName, selectedKeys = [], pools = MOVE_POOLS, startingMoveKeys = new Map()) {
 	const sections = [];
 
 	const own = pools.find((pool) => pool.playbookName && pool.playbookName === playbookName);
@@ -149,7 +159,7 @@ export function playbookMoveSections(playbookName, selectedKeys = [], pools = MO
 
 	const others = pools
 		.filter((pool) => pool.playbookName && pool !== own)
-		.map((pool) => pickerSection(pool, selectedKeys))
+		.map((pool) => pickerSection(pool, selectedKeys, { excludeKeys: startingMoveKeys.get(pool.playbookName) }))
 		.filter(Boolean);
 	if (others.length) {
 		sections.push({
@@ -166,9 +176,11 @@ export function playbookMoveSections(playbookName, selectedKeys = [], pools = MO
 
 // Opens the "+" picker and resolves the chosen move's key, or null if the dialog was dismissed or
 // nothing was selected. Mirrors configureMoveRoll (moves.js) and choosePlaybook
-// (actor-creation.js) for the promise/Dialog shape.
-export async function choosePlaybookMove(playbookName, selectedKeys = []) {
-	const sections = playbookMoveSections(playbookName, selectedKeys);
+// (actor-creation.js) for the promise/Dialog shape. `startingMoveKeys` is threaded straight
+// through to playbookMoveSections (see its own comment) — callers pass
+// starting-moves.js's startingMoveKeysByPlaybook() in practice.
+export async function choosePlaybookMove(playbookName, selectedKeys = [], startingMoveKeys = new Map()) {
+	const sections = playbookMoveSections(playbookName, selectedKeys, MOVE_POOLS, startingMoveKeys);
 	const content = await renderTemplate(PLAYBOOK_MOVE_PICKER_TEMPLATE, { sections });
 
 	return new Promise((resolve) => {

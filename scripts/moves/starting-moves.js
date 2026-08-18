@@ -180,6 +180,16 @@ export function findStartingMovePool(playbookName, pools = STARTING_MOVE_POOLS) 
 	return pools.find((pool) => pool.playbookName === playbookName) ?? null;
 }
 
+// Keyed by playbookName, not poolKey, because that's the join key playbookMoveSections' own
+// MOVE_POOLS pools carry (their own playbookName) — the caller (move-tracking-mixin.js) matches
+// this Map's keys against pool.playbookName, never poolKey. Only grantedKeys/pickOneKeys are
+// unioned in: chooseCount's "Additional Moves" budget isn't a fixed key set, and an Additional
+// Move pick is meant to remain generally pickable from another playbook's pool, unlike a
+// grantedKeys/pickOneKeys starting move.
+export function startingMoveKeysByPlaybook(pools = STARTING_MOVE_POOLS) {
+	return new Map(pools.map((pool) => [pool.playbookName, new Set([...pool.grantedKeys, ...pool.pickOneKeys])]));
+}
+
 // Whether a playbook's own pool unconditionally grants a move flagged grantsHomeInsteadOfChannel
 // (currently just Adrift's love, love, love — see playbook-moves.js) — used wherever code needs to
 // treat CHANNEL as available for a playbook that substitutes it with +HOME (Astir-tab availability

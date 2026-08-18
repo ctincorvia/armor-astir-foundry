@@ -6,6 +6,7 @@ import {
 	chooseStartingMoves,
 	findStartingMovePool,
 	playbookGrantsHomeInsteadOfChannel,
+	startingMoveKeysByPlaybook,
 	startingMovePickerData
 } from "../scripts/moves/starting-moves.js";
 
@@ -212,6 +213,29 @@ describe("findStartingMovePool", () => {
 		expect(findStartingMovePool("The Scout")).toEqual(
 			STARTING_MOVE_POOLS.find((pool) => pool.playbookName === "The Scout")
 		);
+	});
+});
+
+describe("startingMoveKeysByPlaybook", () => {
+	it("unions grantedKeys and pickOneKeys into a Set, keyed by playbookName", () => {
+		const keysByPlaybook = startingMoveKeysByPlaybook(FIXTURE_POOLS);
+
+		expect(keysByPlaybook.get("Fixture Playbook")).toEqual(
+			new Set(["fixture-playbook:delta", "fixture-playbook:alpha", "fixture-playbook:beta"])
+		);
+	});
+
+	it("gives a chooseCount-only pool (no grantedKeys/pickOneKeys) an empty Set, not an absent entry", () => {
+		const keysByPlaybook = startingMoveKeysByPlaybook(FIXTURE_POOLS);
+
+		expect(keysByPlaybook.has("Fixture Empty Playbook")).toBe(true);
+		expect(keysByPlaybook.get("Fixture Empty Playbook")).toEqual(new Set());
+	});
+
+	it("defaults to the real STARTING_MOVE_POOLS, e.g. excluding The Commander's Ace Crew and Debrief", () => {
+		const keysByPlaybook = startingMoveKeysByPlaybook();
+
+		expect(keysByPlaybook.get("The Commander")).toEqual(new Set(["the-commander:ace-crew", "the-commander:debrief"]));
 	});
 });
 

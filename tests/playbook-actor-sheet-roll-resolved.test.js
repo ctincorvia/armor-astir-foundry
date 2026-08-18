@@ -10,7 +10,7 @@ import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { WITCH_BOONS } from "../scripts/playbook/witch.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
-	ALCHEMICAL_SUITE, LEAD_A_SORTIE, PATRON, EXCHANGE_BLOWS, BITE_THE_DUST, INDOMITABLE,
+	ALCHEMICAL_SUITE, FLOURISH_COMPONENT, LEAD_A_SORTIE, PATRON, EXCHANGE_BLOWS, BITE_THE_DUST, INDOMITABLE,
 	READ_THE_ROOM, TRUTH_MAKING, WEAVE_MAGIC, A_GREENER_WORLD, SHARP_TONGUE
 } from "./helpers/move-fixtures.js";
 
@@ -89,19 +89,23 @@ describe("PlaybookActorSheet#_onMoveResolved - Patron's random Boon grant", () =
 			system: {
 				attributes: {
 					playbookMoves: [PATRON.key],
-					astir: { id: "a1", parts: [ALCHEMICAL_SUITE.key], piloted: true }
+					astir: { id: "a1", parts: [FLOURISH_COMPONENT.key], piloted: true, power: 1 }
 				}
 			},
 			update: vi.fn()
 		};
+		const dice = [
+			{ original: 3, result: 3, changed: false, kept: true },
+			{ original: 3, result: 3, changed: false, kept: true }
+		];
 
-		await sheet._onMoveResolved(LEAD_A_SORTIE, null);
+		await sheet._onMoveResolved(LEAD_A_SORTIE, dice);
 
-		// One update for the Boon grant, one for Alchemical Suite's Potions grant — Patron's grant
-		// doesn't short-circuit the existing mounted-frame branch below it.
+		// One update for the Boon grant, one for Flourish Component's regain-Power-on-doubles —
+		// Patron's grant doesn't short-circuit the existing mounted-frame branch below it.
 		expect(sheet.actor.update).toHaveBeenCalledTimes(2);
 		expect(sheet.actor.update.mock.calls[1][0]).toMatchObject({
-			"system.attributes.astir.potions": { red: 1, blue: 1, yellow: 1 }
+			"system.attributes.astir.power": 2
 		});
 	});
 });

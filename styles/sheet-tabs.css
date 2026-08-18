@@ -447,7 +447,12 @@
 	color: var(--aa-secondary-dark);
 }
 
-.armor-astir.sheet .equipment-tag-spent {
+/* Alchemical Suite's Potions (Astir tab) share this same "checkbox + label" spent-tracker row
+   shape with an equipment tag's own Spent checkbox — .potion (sheet-chrome.css) is a 2-column
+   grid rather than .equipment-tag's baseline-aligned one, but order/align-self are harmless no-ops
+   there, so joining the selector is simpler than duplicating the rule. */
+.armor-astir.sheet .equipment-tag-spent,
+.armor-astir.sheet .potion-spent {
 	order: 2;
 	/* Opts out of the grid row's own align-items: baseline — a flex container with a checkbox in
 	   it has no real text baseline to match against .equipment-tag-label's, which is what left it

@@ -88,16 +88,18 @@ export const AstirSheetMixin = {
 				// A second, Weapon-Conduit-only Power pool — 0/0 (and hidden by the template) for
 				// every Astir that doesn't have it.
 				weaponPower: { value: astir.weaponPower ?? 0, max: astirMaxWeaponPower(this._astirPartKeys(astir), equipment) },
-				// Only appears once a part actually grants it — an object (even one holding 0)
-				// rather than a bare number, so the template's {{#if}} doesn't mistake a legitimate
-				// 0 count for "not present". Standardised Parts' own Repair Tokens grant is now a
-				// generic Bonus Downtime Tokens pool instead (see docs/domains/frames.md's Ardents section) —
-				// this Potions field is the one remaining example of the pattern.
-				potions: astirParts.some((part) => part.grantsPotionsOnLeadASortie)
+				// Only appears once a part actually grants it — an object (even one holding every
+				// color already spent) rather than a bare boolean, so the template's {{#if}} doesn't
+				// mistake "not present" for "installed but fully spent". Standardised Parts' own
+				// Repair Tokens grant is now a generic Bonus Downtime Tokens pool instead (see
+				// docs/domains/frames.md's Ardents section) — this Potions field is the one
+				// remaining example of the pattern. Each color is a spent boolean (true = spent),
+				// not a count — Refresh Sortie grants at most 1 of each (see _onRefreshSortie).
+				potions: astirParts.some((part) => part.grantsPotionsOnRefreshSortie)
 					? {
-						red: astir.potions?.red ?? 0,
-						blue: astir.potions?.blue ?? 0,
-						yellow: astir.potions?.yellow ?? 0
+						red: Boolean(astir.potions?.red),
+						blue: Boolean(astir.potions?.blue),
+						yellow: Boolean(astir.potions?.yellow)
 					}
 					: null,
 				// tier is derived from the Astir's own Tier, not stored on the part — every part
@@ -189,21 +191,6 @@ export const AstirSheetMixin = {
 			ui.notifications.warn("This Astir's Power is negative — Piloted has been turned off.");
 		}
 		return updates;
-	},
-	// Alchemical Suite's "Take 1 of each Potion when someone leads a Sortie" — scoped to this
-	// actor's own Lead a Sortie roll (see astir.js's grantsPotionsOnLeadASortie comment). No cap:
-	// the rules text never limits how many can stack.
-	async _grantPotions() {
-		const astir = this._astir();
-		if (!astir) return;
-		const potions = astir.potions ?? {};
-		await this.actor.update({
-			"system.attributes.astir.potions": {
-				red: (potions.red ?? 0) + 1,
-				blue: (potions.blue ?? 0) + 1,
-				yellow: (potions.yellow ?? 0) + 1
-			}
-		});
 	},
 	// Flourish Component's "regain 1 Power when you roll doubles" — clamped to the derived max the
 	// same way _onAstirPowerStep's manual stepper already is.
@@ -333,15 +320,14 @@ export const AstirSheetMixin = {
 		if (!this._astir()) return;
 		this.actor.update({ "system.attributes.astir.overheating": event.currentTarget.checked });
 	},
-	// Alchemical Suite's Potions (see getData/astir.js) — a plain decrement-only "Use" button, min
-	// 0, the same manual-spend model this module gives every other consumable resource.
-	_onAstirPotionUse(event) {
+	// Alchemical Suite's Potions (see getData/astir.js) — a plain, freely reversible spent
+	// checkbox, the same manual-tracker shape _onEquipmentTagSpentToggle/_onMoveUseToggle already
+	// give every other single-use resource in this module.
+	_onAstirPotionToggle(event) {
 		const astir = this._astir();
 		if (!astir) return;
 		const { potion: color } = event.currentTarget.dataset;
-		const current = astir.potions?.[color] ?? 0;
-		if (current <= 0) return;
-		this.actor.update({ [`system.attributes.astir.potions.${color}`]: current - 1 });
+		this.actor.update({ [`system.attributes.astir.potions.${color}`]: event.currentTarget.checked });
 	},
 	// Adding a Part can lower max Power below the current value (and, for Weapon Conduit, raise
 	// max Weapon Power above 0) — all written in the same update, via _astirPowerUpdates.

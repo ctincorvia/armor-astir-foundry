@@ -393,45 +393,36 @@ describe("PlaybookActorSheet#_onAstirWeaponPowerStep", () => {
 	});
 });
 
-describe("PlaybookActorSheet#_onAstirPotionUse", () => {
-	it("decrements the chosen color by 1", () => {
+describe("PlaybookActorSheet#_onAstirPotionToggle", () => {
+	it("writes the checkbox's checked state for the chosen color", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
-			system: { attributes: { astir: { id: "a1", potions: { red: 2, blue: 0, yellow: 1 } } } },
+			system: { attributes: { astir: { id: "a1", potions: { red: false, blue: false, yellow: true } } } },
 			update: vi.fn()
 		};
 
-		sheet._onAstirPotionUse({ currentTarget: { dataset: { potion: "red" } } });
+		sheet._onAstirPotionToggle({ currentTarget: { dataset: { potion: "red" }, checked: true } });
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.potions.red": 1 });
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.potions.red": true });
 	});
 
-	it("does nothing when that color is already at 0", () => {
+	it("can uncheck a previously spent color", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
-			system: { attributes: { astir: { id: "a1", potions: { red: 0, blue: 0, yellow: 0 } } } },
+			system: { attributes: { astir: { id: "a1", potions: { red: true, blue: false, yellow: false } } } },
 			update: vi.fn()
 		};
 
-		sheet._onAstirPotionUse({ currentTarget: { dataset: { potion: "red" } } });
+		sheet._onAstirPotionToggle({ currentTarget: { dataset: { potion: "red" }, checked: false } });
 
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-
-	it("treats a missing potions object as all zero", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { astir: { id: "a1" } } }, update: vi.fn() };
-
-		sheet._onAstirPotionUse({ currentTarget: { dataset: { potion: "red" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.potions.red": false });
 	});
 
 	it("does nothing when there is no Astir", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
 
-		sheet._onAstirPotionUse({ currentTarget: { dataset: { potion: "red" } } });
+		sheet._onAstirPotionToggle({ currentTarget: { dataset: { potion: "red" }, checked: true } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});

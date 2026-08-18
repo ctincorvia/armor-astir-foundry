@@ -433,7 +433,21 @@ describe("PlaybookActorSheet#_onPlaybookMoveAdd", () => {
 
 		await sheet._onPlaybookMoveAdd();
 
-		expect(choosePlaybookMove).toHaveBeenCalledWith("The Scout", [BULLHEADED.key]);
+		expect(choosePlaybookMove).toHaveBeenCalledWith("The Scout", [BULLHEADED.key], expect.any(Map));
+	});
+
+	// Confirms the wiring itself: the actual Map passed is built by starting-moves.js's
+	// startingMoveKeysByPlaybook (unmocked in this file), not just any Map — see playbook-moves.test.js
+	// and starting-moves.test.js for coverage of what the picker/Map-building functions do with it.
+	it("passes the real startingMoveKeysByPlaybook() Map as the third argument", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: "The Scout" } }, update: vi.fn() };
+		choosePlaybookMove.mockResolvedValue(null);
+
+		await sheet._onPlaybookMoveAdd();
+
+		const startingMoveKeys = choosePlaybookMove.mock.calls.at(-1)[2];
+		expect(startingMoveKeys.get("The Commander")).toEqual(new Set(["the-commander:ace-crew", "the-commander:debrief"]));
 	});
 
 	it("appends the chosen move to the actor's picks", async () => {
@@ -496,7 +510,7 @@ describe("PlaybookActorSheet#_onPlaybookMoveAdd", () => {
 
 		await sheet._onPlaybookMoveAdd();
 
-		expect(choosePlaybookMove).toHaveBeenCalledWith(undefined, []);
+		expect(choosePlaybookMove).toHaveBeenCalledWith(undefined, [], expect.any(Map));
 	});
 
 	// Classical Spellcasting's own grantsEquipment (see _grantedMoveEquipmentUpdate's own tests for

@@ -10,7 +10,7 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 import { configureMoveRoll, postGuidedResult, rollMove } from "../scripts/moves/moves.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
-	EXCHANGE_BLOWS, DISPEL_UNCERTAINTIES, ALCHEMICAL_SUITE, FLOURISH_COMPONENT, SPELL_ROUTINES
+	EXCHANGE_BLOWS, DISPEL_UNCERTAINTIES, FLOURISH_COMPONENT, SPELL_ROUTINES
 } from "./helpers/move-fixtures.js";
 
 beforeEach(() => {
@@ -214,45 +214,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 	});
 });
 
-describe("PlaybookActorSheet#_rollMove - Astir Part reactions (potions, doubles regen)", () => {
-	it("grants a Potion of each color after this actor rolls Lead a Sortie with Alchemical Suite installed", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { know: { value: 1 }, defy: { value: 0 } },
-				attributes: {
-					astir: { id: "a1", parts: [ALCHEMICAL_SUITE.key], piloted: true, potions: { red: 1, blue: 0, yellow: 0 } }
-				}
-			},
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue({ trait: { key: "know", label: "KNOW", value: 1 }, advantage: "none", effect: "none" });
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.astir.potions": { red: 2, blue: 1, yellow: 1 }
-		});
-	});
-
-	it("does not grant Potions for a move other than Lead a Sortie", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { know: { value: 1 } },
-				attributes: { astir: { id: "a1", parts: [ALCHEMICAL_SUITE.key], piloted: true } }
-			},
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue({ trait: { key: "know", label: "KNOW", value: 1 }, advantage: "none", effect: "none" });
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalledWith(expect.objectContaining({
-			"system.attributes.astir.potions": expect.anything()
-		}));
-	});
-
+describe("PlaybookActorSheet#_rollMove - Astir Part reactions (doubles regen)", () => {
 	it("regains 1 Power when the roll's kept dice come up doubles with Flourish Component installed", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
@@ -293,13 +255,13 @@ describe("PlaybookActorSheet#_rollMove - Astir Part reactions (potions, doubles 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 
-	it("does not react to potions/doubles when not piloted", async () => {
+	it("does not regain Power on doubles when not piloted", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				stats: { know: { value: 1 }, defy: { value: 0 } },
 				attributes: {
-					astir: { id: "a1", parts: [ALCHEMICAL_SUITE.key, FLOURISH_COMPONENT.key], piloted: false, power: 1 }
+					astir: { id: "a1", parts: [FLOURISH_COMPONENT.key], piloted: false, power: 1 }
 				}
 			},
 			update: vi.fn()

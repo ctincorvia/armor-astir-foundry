@@ -310,16 +310,16 @@ describe("PlaybookActorSheet#getData - astir", () => {
 						power: 4,
 						parts: [ALCHEMICAL_SUITE.key],
 						move: null,
-						potions: { red: 2, blue: 0, yellow: 1 }
+						potions: { red: true, blue: false, yellow: true }
 					}
 				}
 			}
 		};
 
-		expect(sheet.getData().astir.potions).toEqual({ red: 2, blue: 0, yellow: 1 });
+		expect(sheet.getData().astir.potions).toEqual({ red: true, blue: false, yellow: true });
 	});
 
-	it("defaults each Potion color to 0 when none is stored yet", () => {
+	it("defaults each Potion color to unspent when none is stored yet", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -330,7 +330,7 @@ describe("PlaybookActorSheet#getData - astir", () => {
 			}
 		};
 
-		expect(sheet.getData().astir.potions).toEqual({ red: 0, blue: 0, yellow: 0 });
+		expect(sheet.getData().astir.potions).toEqual({ red: false, blue: false, yellow: false });
 	});
 
 	it("resolves the unique move to its key and name", () => {
@@ -549,7 +549,7 @@ describe("PlaybookActorSheet#activateListeners - astir", () => {
 			[".astir-weapon-power-step", "click"],
 			[".astir-overheating-checkbox", "change"],
 			[".astir-piloted-checkbox", "change"],
-			[".astir-potion-use", "click"],
+			[".astir-potion-checkbox", "change"],
 			[".astir-part-add", "click"],
 			[".astir-part-remove", "click"],
 			[".astir-move-add", "click"],

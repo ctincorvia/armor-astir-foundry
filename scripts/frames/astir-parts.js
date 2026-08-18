@@ -140,11 +140,9 @@ export const ASTIR_PART_CATALOG = [
 		partType: "Passive",
 		traits: [],
 		powerCost: 2,
-		// See PlaybookActorSheet#_onMoveResolved — grants a Potion of each color when this
-		// actor rolls Lead a Sortie. Scope note: the rules text reads as party-wide ("someone
-		// leads a Sortie"), but an actor sheet only ever sees its own rolls, so this is scoped to
-		// this Astir's own pilot leading the Sortie.
-		grantsPotionsOnLeadASortie: true,
+		// See FramesSheetMixin#_onRefreshSortie — grants 1 of each Potion (all three become
+		// available) whenever the Controls tab's Refresh Sortie button is clicked.
+		grantsPotionsOnRefreshSortie: true,
 		grantsRollModifier: [
 			{ key: "blue", moveKeys: ["weave-magic"], advantage: "advantage", costsPotion: "blue", deferred: true,
 				label: "Blue Potion", description: "Take advantage when you next weave magic." },
