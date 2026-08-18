@@ -7,7 +7,7 @@ import { registerNpcActorSheet } from "./world-actors/npc-actor-sheet.js";
 
 export const MODULE_ID = "armor-astir";
 
-export const PLAYBOOK_SHEET_PARTIALS = [
+export const SHEET_PARTIALS = [
 	"modules/armor-astir/templates/playbook-sheet/header.hbs",
 	"modules/armor-astir/templates/playbook-sheet/status-row.hbs",
 	"modules/armor-astir/templates/playbook-sheet/dangers-column.hbs",
@@ -18,13 +18,14 @@ export const PLAYBOOK_SHEET_PARTIALS = [
 	"modules/armor-astir/templates/playbook-sheet/tab-social.hbs",
 	"modules/armor-astir/templates/playbook-sheet/tab-advancement.hbs",
 	"modules/armor-astir/templates/playbook-sheet/tab-downtime.hbs",
-	"modules/armor-astir/templates/playbook-sheet/tab-cosmetic.hbs"
+	"modules/armor-astir/templates/playbook-sheet/tab-cosmetic.hbs",
+	"modules/armor-astir/templates/shared/equipment-card.hbs"
 ];
 
 export function registerInitHook() {
 	Hooks.once("init", () => {
 		console.log(`${MODULE_ID} | Initialized`);
-		loadTemplates(PLAYBOOK_SHEET_PARTIALS);
+		loadTemplates(SHEET_PARTIALS);
 	});
 }
 

@@ -1,0 +1,52 @@
+<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}" data-equipment-id="{{id}}">
+	<div class="equipment-header">
+		<span class="equipment-name">{{name}}</span>
+		<div class="equipment-meta">
+			<span class="equipment-value">Value {{value}}</span>
+			{{#if tier}}<span class="equipment-tier-value">Tier {{tier}}</span>{{/if}}
+			{{#if scaleLabel}}<span class="equipment-scale">{{scaleLabel}}</span>{{/if}}
+		</div>
+		<div class="equipment-actions">
+			{{#if disabledToggle}}
+			<label class="equipment-disabled">
+				<input type="checkbox" class="equipment-disabled-checkbox" data-equipment-id="{{id}}" {{#if disabled}}checked{{/if}}/>
+				Disabled
+			</label>
+			{{/if}}
+			{{#if controls}}
+			<div class="equipment-item-controls">
+				<button type="button" class="equipment-edit" data-equipment-id="{{id}}">Edit</button>
+				<button type="button" class="equipment-remove" data-equipment-id="{{id}}" aria-label="Remove equipment">✕</button>
+			</div>
+			{{/if}}
+		</div>
+	</div>
+	{{#if description}}
+	<div class="equipment-description">{{description}}</div>
+	{{/if}}
+	{{#if tags.length}}
+	<div class="equipment-tags-block">
+		<ul class="equipment-tag-list">
+			{{#each tags}}
+			<li class="equipment-tag">
+				<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
+				{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
+				{{#if spendable}}
+				<label class="equipment-tag-spent">
+					<input type="checkbox" class="equipment-tag-spent-checkbox" data-equipment-id="{{../id}}" data-tag="{{key}}" {{#if spent}}checked{{/if}}/>
+					Spent
+				</label>
+				{{/if}}
+			</li>
+			{{/each}}
+		</ul>
+	</div>
+	{{/if}}
+	{{#if weaponMoves.length}}
+	<div class="weapon-move-controls">
+		{{#each weaponMoves}}
+		<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-gate-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
+		{{/each}}
+	</div>
+	{{/if}}
+</li>

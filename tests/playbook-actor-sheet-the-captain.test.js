@@ -361,9 +361,8 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 				attributes: { playbookMoves: [FIRE_SUPPORT.key], equipment: [halberd] }
 			}
 		};
-		const carrierWeapons = [carrierWeapon];
 		findCarrierActors.mockReturnValue([
-			{ id: "carrier1", name: "The Wanderer", system: { attributes: { weapons: carrierWeapons } } }
+			{ id: "carrier1", name: "The Wanderer", system: { attributes: { weapons: { primary: carrierWeapon, secondary: null } } } }
 		]);
 		configureMoveRoll.mockResolvedValue(null);
 
@@ -371,8 +370,8 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 
 		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
 		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED, "eq1", "carrier-w1"]);
-		// The Carrier's own stored array is never mutated — no fromCarrier flag leaks onto it.
-		expect(carrierWeapons[0]).toEqual(carrierWeapon);
+		// The Carrier's own stored entry is never mutated — no fromCarrier flag leaks onto it.
+		expect(carrierWeapon.fromCarrier).toBeUndefined();
 	});
 
 	it("treats a single Carrier with no weapons array at all as offering none", async () => {
@@ -418,8 +417,8 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 			}
 		};
 		findCarrierActors.mockReturnValue([
-			{ id: "carrier1", name: "The Wanderer", system: { attributes: { weapons: [carrierWeapon] } } },
-			{ id: "carrier2", name: "The Anchor", system: { attributes: { weapons: [carrierWeapon] } } }
+			{ id: "carrier1", name: "The Wanderer", system: { attributes: { weapons: { primary: carrierWeapon, secondary: null } } } },
+			{ id: "carrier2", name: "The Anchor", system: { attributes: { weapons: { primary: carrierWeapon, secondary: null } } } }
 		]);
 		configureMoveRoll.mockResolvedValue(null);
 
@@ -438,7 +437,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 			}
 		};
 		findCarrierActors.mockReturnValue([
-			{ id: "carrier1", name: "The Wanderer", system: { attributes: { weapons: [carrierWeapon] } } }
+			{ id: "carrier1", name: "The Wanderer", system: { attributes: { weapons: { primary: carrierWeapon, secondary: null } } } }
 		]);
 		configureMoveRoll.mockResolvedValue(null);
 

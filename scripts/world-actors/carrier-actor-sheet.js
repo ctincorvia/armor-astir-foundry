@@ -11,15 +11,7 @@ export const CARRIER_ACTOR_TYPE = "armor-astir.carrier";
 const CREW_MIN = -3;
 const CREW_MAX = 3;
 
-// The Carrier carries exactly two named, fixed-role weapon slots (see
-// docs/domains/world-actors.md, "World actors") rather than a flat add/remove list — each has its
-// own Tier, its own tag budget, and its own always-on locked tags (mirrors the "locked tag"
-// mechanism playbook-sheet/equipment-mixin.js uses for move-granted weapon tags, keyed here by
-// slot instead of by picked move — see _weaponTagKeys below). `key` addresses the slot in
-// `system.attributes.weapons`/dataset attributes; `tier`/`maxTagValue` feed configureEquipment's
-// carrierWeaponTier/maxTagValue options; `lockedTagKeys` feeds both configureEquipment's
-// excludedTagKeys (so the player can never pick them as a regular tag) and _weaponTagKeys (so
-// they're always unioned back in when the slot is read).
+// see docs/domains/world-actors.md, "The Carrier carries two named, fixed-role weapon slots"
 const WEAPON_SLOTS = [
 	{ key: "primary", tier: TIER_MAX, label: "Tier V Weapon", lockedTagKeys: ["set-up", "mounted"], maxTagValue: 2 },
 	{ key: "secondary", tier: 3, label: "Tier III Weapon", lockedTagKeys: ["mounted"], maxTagValue: 1 }
@@ -54,29 +46,20 @@ export class CarrierActorSheet extends WorldActorSheet {
 		return this.actor.system.attributes?.weapons ?? {};
 	}
 
-	// Mirrors playbook-sheet/equipment-mixin.js's _grantedWeaponTagKeys/_weaponTagKeys pair
-	// exactly, except the union is keyed by slot (a static list) instead of by whichever moves are
-	// currently picked. Never written into entry.tags itself — computed fresh every read — so
-	// there's no checkbox for set-up/mounted in configureEquipment's editor and no way to uncheck
-	// them; that's the entire lock.
+	// see docs/domains/world-actors.md, "The Carrier carries two named, fixed-role weapon slots"
 	_weaponTagKeys(slot, entry) {
 		return [...new Set([...(entry.tags ?? []), ...slot.lockedTagKeys])];
 	}
 
-	// Deliberately pared down from PlaybookActorSheet#_equipmentEntry — no spendable/spent tag
-	// tracking (see _onWeaponAdd's comment: Carrier weapons don't offer equipment spends in the
-	// roll dialog yet, so a "spent" checkbox would have nothing to drive), and scale is always
-	// "Astir Scale" (configureEquipment's carrierWeapon option never lets it be anything else).
-	// Tier comes from the slot, not the entry — a Carrier weapon's Tier is fixed by which slot it
-	// occupies, not something the entry itself needs to store (see configureEquipment's
-	// carrierWeaponTier option and _onWeaponAdd/_onWeaponEdit's forced-tier save below).
+	// see docs/domains/world-actors.md, "The Carrier carries two named, fixed-role weapon slots"
 	_weaponEntry(slot, entry) {
 		const tagKeys = this._weaponTagKeys(slot, entry);
 		const tags = resolveEquipmentTags(tagKeys).map((tag) => ({
 			key: tag.key,
 			label: tag.label,
 			value: tag.value,
-			description: tag.description
+			description: tag.description,
+			showValue: true
 		}));
 		return {
 			id: entry.id,
@@ -86,8 +69,15 @@ export class CarrierActorSheet extends WorldActorSheet {
 			value: equipmentValue(tagKeys),
 			scaleLabel: WEAPON_SCALES.find((s) => s.key === entry.scale)?.label ?? entry.scale,
 			tier: slot.tier,
-			moves: CARRIER_WEAPON_MOVES.map(({ key, name }) => ({ key, name }))
+			weaponMoves: CARRIER_WEAPON_MOVES.map(({ key, name }) => ({ key, name }))
 		};
+	}
+
+	// Resolves an in-card button's data-equipment-id (the shared equipment-card.hbs partial
+	// addresses by id, not by slot key) back to the slot that holds it.
+	_weaponSlotForId(id) {
+		const weapons = this._weapons();
+		return WEAPON_SLOTS.find((slot) => weapons[slot.key]?.id === id) ?? null;
 	}
 
 	// One row per assigned Support actor's Quarters (Quarters section, read-only — see
@@ -121,8 +111,8 @@ export class CarrierActorSheet extends WorldActorSheet {
 		super.activateListeners(html);
 		html.find(".crew-step").on("click", this._onCrewStep.bind(this));
 		html.find(".weapon-add").on("click", this._onWeaponAdd.bind(this));
-		html.find(".weapon-edit").on("click", this._onWeaponEdit.bind(this));
-		html.find(".weapon-remove").on("click", this._onWeaponRemove.bind(this));
+		html.find(".equipment-edit").on("click", this._onWeaponEdit.bind(this));
+		html.find(".equipment-remove").on("click", this._onWeaponRemove.bind(this));
 		html.find(".weapon-move-roll").on("click", this._onWeaponMoveRoll.bind(this));
 	}
 
@@ -134,13 +124,7 @@ export class CarrierActorSheet extends WorldActorSheet {
 		this.actor.update({ "system.stats.crew.value": next });
 	}
 
-	// Carrier weapons are always custom (never picked from a catalog — see claude.md) and always
-	// go through configureEquipment's carrierWeapon option, which hides Kind/Scale and locks Tier
-	// to the slot's own tier — forced again here regardless of what configureEquipment resolved,
-	// so a bug in that dialog can't leak a non-weapon or off-tier entry into the slot.
-	// excludedTagKeys/maxTagValue keep the slot's locked tags (set-up/mounted) off the checkbox
-	// list entirely and cap the player-pickable tag budget per slot (see WEAPON_SLOTS above) —
-	// the locked tags themselves are unioned back in only at read time, by _weaponTagKeys.
+	// see docs/domains/world-actors.md, "The Carrier carries two named, fixed-role weapon slots"
 	async _onWeaponAdd(event) {
 		const { slot: slotKey } = event.currentTarget.dataset;
 		const slot = WEAPON_SLOTS.find((s) => s.key === slotKey);
@@ -160,10 +144,10 @@ export class CarrierActorSheet extends WorldActorSheet {
 	}
 
 	async _onWeaponEdit(event) {
-		const { slot: slotKey } = event.currentTarget.dataset;
-		const slot = WEAPON_SLOTS.find((s) => s.key === slotKey);
-		const entry = slot ? this._weapons()[slot.key] : null;
-		if (!entry) return;
+		const { equipmentId } = event.currentTarget.dataset;
+		const slot = this._weaponSlotForId(equipmentId);
+		if (!slot) return;
+		const entry = this._weapons()[slot.key];
 
 		const result = await configureEquipment(entry, undefined, {
 			carrierWeapon: true,
@@ -179,8 +163,10 @@ export class CarrierActorSheet extends WorldActorSheet {
 	}
 
 	_onWeaponRemove(event) {
-		const { slot: slotKey } = event.currentTarget.dataset;
-		this.actor.update({ [`system.attributes.weapons.${slotKey}`]: null });
+		const { equipmentId } = event.currentTarget.dataset;
+		const slot = this._weaponSlotForId(equipmentId);
+		if (!slot) return;
+		this.actor.update({ [`system.attributes.weapons.${slot.key}`]: null });
 	}
 
 	// Exchange Blows/Strike Decisively always roll +CREW when a Carrier uses them (see
@@ -190,10 +176,11 @@ export class CarrierActorSheet extends WorldActorSheet {
 	// no button to click. Deliberately skips equipment spends/forced-effects/reroll/Guided, all
 	// of which PlaybookActorSheet's weapon rolls support — see claude.md for that scope cut.
 	async _onWeaponMoveRoll(event) {
-		const { move: moveKey, slot: slotKey } = event.currentTarget.dataset;
+		const { move: moveKey, equipmentId } = event.currentTarget.dataset;
 		const move = CARRIER_WEAPON_MOVES.find((m) => m.key === moveKey);
-		const weapon = this._weapons()[slotKey];
-		if (!move || !weapon) return;
+		const slot = this._weaponSlotForId(equipmentId);
+		if (!move || !slot) return;
+		const weapon = this._weapons()[slot.key];
 
 		const traits = [{ key: "crew", label: "CREW", value: this.actor.system.stats?.crew?.value ?? 0 }];
 		const config = await configureMoveRoll(move, traits, {});

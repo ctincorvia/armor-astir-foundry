@@ -63,7 +63,8 @@ export const MoveRollSheetMixin = {
 			if (this._grantsCarrierWeaponAccess(move)) {
 				const carriers = findCarrierActors();
 				if (carriers.length === 1) {
-					const carrierWeapons = (carriers[0].system.attributes?.weapons ?? [])
+					const carrierWeapons = Object.values(carriers[0].system.attributes?.weapons ?? {})
+						.filter(Boolean)
 						.map((w) => ({ ...w, fromCarrier: true }));
 					weapons = [...weapons, ...carrierWeapons];
 				}

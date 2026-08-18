@@ -146,7 +146,9 @@ describe("CarrierActorSheet#getData", () => {
 		// 0 (melee) + -1 (set-up) + 1 (mounted) = 0, proving the locked tags' values are folded
 		// into the displayed total even though the player never picked them.
 		expect(primary.value).toBe(0);
-		expect(primary.moves).toEqual([
+		// showValue: true so the shared equipment-card.hbs partial renders each tag's value inline.
+		expect(primary.tags.every((tag) => tag.showValue === true)).toBe(true);
+		expect(primary.weaponMoves).toEqual([
 			{ key: "exchange-blows", name: "Exchange Blows" },
 			{ key: "strike-decisively", name: "Strike Decisively" }
 		]);
@@ -199,8 +201,8 @@ describe("CarrierActorSheet#activateListeners", () => {
 
 		expect(html.find).toHaveBeenCalledWith(".crew-step");
 		expect(html.find).toHaveBeenCalledWith(".weapon-add");
-		expect(html.find).toHaveBeenCalledWith(".weapon-edit");
-		expect(html.find).toHaveBeenCalledWith(".weapon-remove");
+		expect(html.find).toHaveBeenCalledWith(".equipment-edit");
+		expect(html.find).toHaveBeenCalledWith(".equipment-remove");
 		expect(html.find).toHaveBeenCalledWith(".weapon-move-roll");
 	});
 });
@@ -325,7 +327,7 @@ describe("CarrierActorSheet#_onWeaponEdit", () => {
 		sheet.actor = { system: { attributes: { weapons: { primary: existing } } }, update: vi.fn() };
 		configureEquipment.mockResolvedValue({ name: "New Name", description: "", kind: "weapon", tags: [], scale: "astir", tier: 1 });
 
-		await sheet._onWeaponEdit({ currentTarget: { dataset: { slot: "primary" } } });
+		await sheet._onWeaponEdit({ currentTarget: { dataset: { equipmentId: "w1" } } });
 
 		expect(configureEquipment).toHaveBeenCalledWith(existing, undefined, {
 			carrierWeapon: true,
@@ -346,7 +348,7 @@ describe("CarrierActorSheet#_onWeaponEdit", () => {
 		sheet.actor = { system: { attributes: { weapons: { secondary: existing } } }, update: vi.fn() };
 		configureEquipment.mockResolvedValue({ name: "New Name", description: "", kind: "weapon", tags: [], scale: "astir", tier: 1 });
 
-		await sheet._onWeaponEdit({ currentTarget: { dataset: { slot: "secondary" } } });
+		await sheet._onWeaponEdit({ currentTarget: { dataset: { equipmentId: "w2" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.weapons.secondary": {
@@ -355,20 +357,11 @@ describe("CarrierActorSheet#_onWeaponEdit", () => {
 		});
 	});
 
-	it("does nothing when the targeted slot is empty", async () => {
+	it("does nothing for an unknown id", async () => {
 		const sheet = new CarrierActorSheet();
-		sheet.actor = { system: { attributes: { weapons: { primary: null } } }, update: vi.fn() };
+		sheet.actor = { system: { attributes: { weapons: { primary: { id: "w1" } } } }, update: vi.fn() };
 
-		await sheet._onWeaponEdit({ currentTarget: { dataset: { slot: "primary" } } });
-
-		expect(configureEquipment).not.toHaveBeenCalled();
-	});
-
-	it("does nothing for a slot key that doesn't match any WEAPON_SLOTS entry", async () => {
-		const sheet = new CarrierActorSheet();
-		sheet.actor = { system: { attributes: { weapons: {} } }, update: vi.fn() };
-
-		await sheet._onWeaponEdit({ currentTarget: { dataset: { slot: "tertiary" } } });
+		await sheet._onWeaponEdit({ currentTarget: { dataset: { equipmentId: "unknown" } } });
 
 		expect(configureEquipment).not.toHaveBeenCalled();
 	});
@@ -378,23 +371,35 @@ describe("CarrierActorSheet#_onWeaponEdit", () => {
 		sheet.actor = { system: { attributes: { weapons: { primary: { id: "w1" } } } }, update: vi.fn() };
 		configureEquipment.mockResolvedValue(null);
 
-		await sheet._onWeaponEdit({ currentTarget: { dataset: { slot: "primary" } } });
+		await sheet._onWeaponEdit({ currentTarget: { dataset: { equipmentId: "w1" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 });
 
 describe("CarrierActorSheet#_onWeaponRemove", () => {
-	it("sets the clicked slot to null", () => {
+	it("sets the matching slot to null", () => {
 		const sheet = new CarrierActorSheet();
 		sheet.actor = {
 			system: { attributes: { weapons: { primary: { id: "w1" }, secondary: { id: "w2" } } } },
 			update: vi.fn()
 		};
 
-		sheet._onWeaponRemove({ currentTarget: { dataset: { slot: "primary" } } });
+		sheet._onWeaponRemove({ currentTarget: { dataset: { equipmentId: "w1" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.weapons.primary": null });
+	});
+
+	it("does nothing for an unknown id", () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: { attributes: { weapons: { primary: { id: "w1" }, secondary: { id: "w2" } } } },
+			update: vi.fn()
+		};
+
+		sheet._onWeaponRemove({ currentTarget: { dataset: { equipmentId: "unknown" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 });
 
@@ -406,7 +411,7 @@ describe("CarrierActorSheet#_onWeaponMoveRoll", () => {
 		};
 		configureMoveRoll.mockResolvedValue({ trait: { key: "crew", label: "CREW", value: 2 } });
 
-		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", slot: "primary" } } });
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
@@ -428,7 +433,7 @@ describe("CarrierActorSheet#_onWeaponMoveRoll", () => {
 		};
 		configureMoveRoll.mockResolvedValue({ trait: { key: "crew", label: "CREW", value: 0 } });
 
-		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "strike-decisively", slot: "primary" } } });
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "strike-decisively", equipmentId: "w1" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(STRIKE_DECISIVELY, expect.any(Array), {});
 	});
@@ -440,7 +445,7 @@ describe("CarrierActorSheet#_onWeaponMoveRoll", () => {
 		};
 		configureMoveRoll.mockResolvedValue({ trait: { key: "crew", label: "CREW", value: 1 } });
 
-		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", slot: "secondary" } } });
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w2" } } });
 
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor,
@@ -457,16 +462,16 @@ describe("CarrierActorSheet#_onWeaponMoveRoll", () => {
 		};
 		configureMoveRoll.mockResolvedValue(null);
 
-		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", slot: "primary" } } });
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
 
 		expect(rollMove).not.toHaveBeenCalled();
 	});
 
-	it("does nothing when the targeted slot has no weapon", async () => {
+	it("does nothing for an unknown id", async () => {
 		const sheet = new CarrierActorSheet();
 		sheet.actor = { system: { stats: { crew: { value: 0 } }, attributes: { weapons: {} } } };
 
-		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", slot: "primary" } } });
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
 
 		expect(configureMoveRoll).not.toHaveBeenCalled();
 	});
@@ -477,7 +482,7 @@ describe("CarrierActorSheet#_onWeaponMoveRoll", () => {
 			system: { stats: { crew: { value: 0 } }, attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon" } } } }
 		};
 
-		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "not-a-real-move", slot: "primary" } } });
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "not-a-real-move", equipmentId: "w1" } } });
 
 		expect(configureMoveRoll).not.toHaveBeenCalled();
 	});
@@ -489,7 +494,7 @@ describe("CarrierActorSheet#_onWeaponMoveRoll", () => {
 		};
 		configureMoveRoll.mockResolvedValue(null);
 
-		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", slot: "primary" } } });
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, [{ key: "crew", label: "CREW", value: 0 }], {});
 	});

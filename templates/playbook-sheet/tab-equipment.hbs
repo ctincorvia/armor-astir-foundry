@@ -13,54 +13,7 @@
 						</div>
 						<ol class="equipment-list">
 							{{#each equipment.weapons}}
-							<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}" data-equipment-id="{{id}}">
-								<div class="equipment-header">
-									<span class="equipment-name">{{name}}</span>
-									<div class="equipment-meta">
-										<span class="equipment-value">Value {{value}}</span>
-										<span class="equipment-tier-value">Tier {{tier}}</span>
-										<span class="equipment-scale">{{scaleLabel}}</span>
-									</div>
-									<div class="equipment-actions">
-										<label class="equipment-disabled">
-											<input type="checkbox" class="equipment-disabled-checkbox" data-equipment-id="{{id}}" {{#if disabled}}checked{{/if}}/>
-											Disabled
-										</label>
-										<div class="equipment-item-controls">
-											<button type="button" class="equipment-edit" data-equipment-id="{{id}}">Edit</button>
-											<button type="button" class="equipment-remove" data-equipment-id="{{id}}" aria-label="Remove equipment">✕</button>
-										</div>
-									</div>
-								</div>
-								{{#if description}}
-								<div class="equipment-description">{{description}}</div>
-								{{/if}}
-								{{#if tags.length}}
-								<div class="equipment-tags-block">
-									<ul class="equipment-tag-list">
-										{{#each tags}}
-										<li class="equipment-tag">
-											<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
-											{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
-											{{#if spendable}}
-											<label class="equipment-tag-spent">
-												<input type="checkbox" class="equipment-tag-spent-checkbox" data-equipment-id="{{../id}}" data-tag="{{key}}" {{#if spent}}checked{{/if}}/>
-												Spent
-											</label>
-											{{/if}}
-										</li>
-										{{/each}}
-									</ul>
-								</div>
-								{{/if}}
-								{{#if weaponMoves.length}}
-								<div class="weapon-move-controls">
-									{{#each weaponMoves}}
-									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-gate-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
-									{{/each}}
-								</div>
-								{{/if}}
-							</li>
+							{{> "modules/armor-astir/templates/shared/equipment-card.hbs" controls=true disabledToggle=true}}
 							{{/each}}
 						</ol>
 						{{#if equipment.astirWeapons.length}}
@@ -69,50 +22,7 @@
 						</div>
 						<ol class="equipment-list">
 							{{#each equipment.astirWeapons}}
-							<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}" data-equipment-id="{{id}}">
-								<div class="equipment-header">
-									<span class="equipment-name">{{name}}</span>
-									<div class="equipment-meta">
-										<span class="equipment-value">Value {{value}}</span>
-										<span class="equipment-tier-value">Tier {{tier}}</span>
-										<span class="equipment-scale">{{scaleLabel}}</span>
-									</div>
-									<div class="equipment-actions">
-										<label class="equipment-disabled">
-											<input type="checkbox" class="equipment-disabled-checkbox" data-equipment-id="{{id}}" {{#if disabled}}checked{{/if}}/>
-											Disabled
-										</label>
-									</div>
-								</div>
-								{{#if description}}
-								<div class="equipment-description">{{description}}</div>
-								{{/if}}
-								{{#if tags.length}}
-								<div class="equipment-tags-block">
-									<ul class="equipment-tag-list">
-										{{#each tags}}
-										<li class="equipment-tag">
-											<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
-											{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
-											{{#if spendable}}
-											<label class="equipment-tag-spent">
-												<input type="checkbox" class="equipment-tag-spent-checkbox" data-equipment-id="{{../id}}" data-tag="{{key}}" {{#if spent}}checked{{/if}}/>
-												Spent
-											</label>
-											{{/if}}
-										</li>
-										{{/each}}
-									</ul>
-								</div>
-								{{/if}}
-								{{#if weaponMoves.length}}
-								<div class="weapon-move-controls">
-									{{#each weaponMoves}}
-									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-gate-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
-									{{/each}}
-								</div>
-								{{/if}}
-							</li>
+							{{> "modules/armor-astir/templates/shared/equipment-card.hbs" disabledToggle=true}}
 							{{/each}}
 						</ol>
 						{{/if}}
@@ -122,50 +32,7 @@
 						</div>
 						<ol class="equipment-list">
 							{{#each equipment.ardentWeapons}}
-							<li class="equipment-item{{#if disabled}} equipment-item-disabled{{/if}}" data-equipment-id="{{id}}">
-								<div class="equipment-header">
-									<span class="equipment-name">{{name}}</span>
-									<div class="equipment-meta">
-										<span class="equipment-value">Value {{value}}</span>
-										<span class="equipment-tier-value">Tier {{tier}}</span>
-										<span class="equipment-scale">{{scaleLabel}}</span>
-									</div>
-									<div class="equipment-actions">
-										<label class="equipment-disabled">
-											<input type="checkbox" class="equipment-disabled-checkbox" data-equipment-id="{{id}}" {{#if disabled}}checked{{/if}}/>
-											Disabled
-										</label>
-									</div>
-								</div>
-								{{#if description}}
-								<div class="equipment-description">{{description}}</div>
-								{{/if}}
-								{{#if tags.length}}
-								<div class="equipment-tags-block">
-									<ul class="equipment-tag-list">
-										{{#each tags}}
-										<li class="equipment-tag">
-											<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
-											{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
-											{{#if spendable}}
-											<label class="equipment-tag-spent">
-												<input type="checkbox" class="equipment-tag-spent-checkbox" data-equipment-id="{{../id}}" data-tag="{{key}}" {{#if spent}}checked{{/if}}/>
-												Spent
-											</label>
-											{{/if}}
-										</li>
-										{{/each}}
-									</ul>
-								</div>
-								{{/if}}
-								{{#if weaponMoves.length}}
-								<div class="weapon-move-controls">
-									{{#each weaponMoves}}
-									<button type="button" class="weapon-move-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" data-equipment-id="{{../id}}" {{#if gated}}disabled data-gate-tooltip="{{tooltip}}"{{/if}}>{{name}}</button>
-									{{/each}}
-								</div>
-								{{/if}}
-							</li>
+							{{> "modules/armor-astir/templates/shared/equipment-card.hbs" disabledToggle=true}}
 							{{/each}}
 						</ol>
 						{{/if}}
@@ -180,41 +47,7 @@
 						</div>
 						<ol class="equipment-list">
 							{{#each equipment.gear}}
-							<li class="equipment-item" data-equipment-id="{{id}}">
-								<div class="equipment-header">
-									<span class="equipment-name">{{name}}</span>
-									<div class="equipment-meta">
-										<span class="equipment-value">Value {{value}}</span>
-									</div>
-									<div class="equipment-actions">
-										<div class="equipment-item-controls">
-											<button type="button" class="equipment-edit" data-equipment-id="{{id}}">Edit</button>
-											<button type="button" class="equipment-remove" data-equipment-id="{{id}}" aria-label="Remove equipment">✕</button>
-										</div>
-									</div>
-								</div>
-								{{#if description}}
-								<div class="equipment-description">{{description}}</div>
-								{{/if}}
-								{{#if tags.length}}
-								<div class="equipment-tags-block">
-									<ul class="equipment-tag-list">
-										{{#each tags}}
-										<li class="equipment-tag">
-											<span class="equipment-tag-label">{{label}}{{#if showValue}} ({{value}}){{/if}}</span>
-											{{#if description}}<span class="equipment-tag-description">{{description}}</span>{{/if}}
-											{{#if spendable}}
-											<label class="equipment-tag-spent">
-												<input type="checkbox" class="equipment-tag-spent-checkbox" data-equipment-id="{{../id}}" data-tag="{{key}}" {{#if spent}}checked{{/if}}/>
-												Spent
-											</label>
-											{{/if}}
-										</li>
-										{{/each}}
-									</ul>
-								</div>
-								{{/if}}
-							</li>
+							{{> "modules/armor-astir/templates/shared/equipment-card.hbs" controls=true}}
 							{{/each}}
 						</ol>
 						{{#if isSupport}}
