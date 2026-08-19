@@ -6,7 +6,9 @@ import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js"
 
 const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
 const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
-const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:bullheaded");
+// Haste (see cantrips.js) has no uses of its own — Bullheaded no longer fits this role now that it
+// carries a real `uses` checkbox behind its own grantsRollModifier grant (see the-impostor.js).
+const HASTE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:haste");
 const CLASSICAL_SPELLCASTING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:classical-spellcasting");
 
 describe("PlaybookActorSheet#getData - move uses", () => {
@@ -16,7 +18,7 @@ describe("PlaybookActorSheet#getData - move uses", () => {
 
 	it("gives a move with no uses declared an empty uses array", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { playbookMoves: [BULLHEADED.key] } } };
+		sheet.actor = { system: { attributes: { playbookMoves: [HASTE.key] } } };
 
 		expect(playbookGroup(sheet.getData()).moves[0].uses).toEqual([]);
 	});
@@ -232,7 +234,7 @@ describe("PlaybookActorSheet#_grantedMoveEquipmentUpdate", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: {} } };
 
-		expect(sheet._grantedMoveEquipmentUpdate(BULLHEADED.key)).toEqual({});
+		expect(sheet._grantedMoveEquipmentUpdate(HASTE.key)).toEqual({});
 	});
 
 	it("snapshots Classical Spellcasting's Hand-casting weapon onto the actor's equipment", () => {

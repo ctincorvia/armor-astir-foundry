@@ -62,6 +62,19 @@
 				</div>
 			</div>
 			{{/if}}
+			{{#if riders.length}}
+			<div class="form-group move-roll-equipment move-roll-list-section">
+				<label>Riders</label>
+				<div class="move-roll-equipment-list">
+					{{#each riders}}
+					<div class="move-roll-equipment-spend">
+						<span class="move-roll-equipment-name">{{label}}</span>
+						<div class="move-roll-equipment-description">{{text}}</div>
+					</div>
+					{{/each}}
+				</div>
+			</div>
+			{{/if}}
 			<div class="form-group move-roll-select-group">
 				<label>Effect</label>
 				<select name="effect" {{#if lockedEffect}}disabled{{/if}}>
@@ -141,6 +154,19 @@
 		<input type="hidden" name="trait" value="{{key}}"/>
 		{{/each}}
 		{{/if}}
+	</div>
+	{{/if}}
+	{{#if riders.length}}
+	<div class="form-group move-roll-equipment move-roll-list-section">
+		<label>Riders</label>
+		<div class="move-roll-equipment-list">
+			{{#each riders}}
+			<div class="move-roll-equipment-spend">
+				<span class="move-roll-equipment-name">{{label}}</span>
+				<div class="move-roll-equipment-description">{{text}}</div>
+			</div>
+			{{/each}}
+		</div>
 	</div>
 	{{/if}}
 	{{#if intents}}

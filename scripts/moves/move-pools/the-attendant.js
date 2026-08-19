@@ -50,6 +50,14 @@ export const THE_ATTENDANT_POOL = {
 			// re-gates it live on the sheet if Signed & Sealed is ever removed afterward.
 			requiresMoves: ["the-attendant:signed-sealed"],
 			traits: [],
+			// "You may opt to roll with disadvantage" is already the player's own free choice on the
+			// Dice select. This move's text also triggers on a 7-9, which has no reminder mechanism
+			// yet (no addsMixedReminderToMove sibling exists) — only the 10+ half is wired here;
+			// revisit the 7-9 half if/when that mechanism is built.
+			addsSuccessReminderToMove: {
+				moveKeys: ["exchange-blows"],
+				reminder: "If you rolled with disadvantage, any other foes who witness it immediately take a risk"
+			},
 			description:
 				"<p><em>Requires: Signed &amp; Sealed.</em></p>" +
 				"<p>When you exchange blows you may opt to roll with disadvantage: if you do, on a 7-9 or " +

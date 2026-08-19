@@ -120,10 +120,15 @@ export const THE_IMPOSTOR_POOL = {
 			name: "Bullheaded",
 			// No roll — traits is empty and there are no conditions, so the sheet's `rollable`
 			// flag stays false and only a Description button renders (same treatment as
-			// Subsystems in SPECIAL_MOVES). Taking the risk and claiming the advantage are both
-			// narrated, not rolled: the risk becomes a Danger and the advantage is picked in the
-			// next roll's dialog.
+			// Subsystems in SPECIAL_MOVES). Taking the risk is already the existing Danger "Add"
+			// controls (system.attributes.dangers), same reasoning as Cantrips' Fire-Eater/Selfless.
+			// "Advantage on your next roll" is now a real, deferred, unscoped grantsRollModifier
+			// entry — the same shape Bonded In Blood/Ravenous Spectre use for their own untracked-
+			// precondition triggers, with a manual `uses` checkbox standing in for "took a risk for
+			// this" since nothing in this module tracks that condition automatically.
 			traits: [],
+			uses: [{ key: "took-risk", label: "Took a risk for this" }],
+			grantsRollModifier: [{ advantage: "advantage", costsUse: "took-risk", deferred: true }],
 			description:
 				"<p>You may take a risk to take advantage on your next roll. People know that you are brash " +
 				"and liable to put yourself—and maybe them—in danger to get the job done.</p>"

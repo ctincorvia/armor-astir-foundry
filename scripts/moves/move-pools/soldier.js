@@ -183,8 +183,14 @@ export const SOLDIER_POOL = {
 			key: "soldier:fisher-of-men",
 			name: "Fisher of Men",
 			// Hooks aren't tracked anywhere in this module yet (referenced only as fiction elsewhere,
-			// e.g. bite-the-dust's Hooks text in moves.js) — descriptive only.
+			// e.g. bite-the-dust's Hooks text in moves.js) — surfaced as a reminder on Strike
+			// Decisively's own success instead, the same unenforceable-precondition-in-reminder-text
+			// technique astir-moves.js's Mana Devourer already uses for its own untracked precondition.
 			traits: [],
+			addsSuccessReminderToMove: {
+				moveKeys: ["strike-decisively"],
+				reminder: "You may impose one of your Hooks on the other party, if they survive"
+			},
 			description:
 				"<p>When you strike decisively and succeed, you may impose one of your Hooks on the other " +
 				"party if they survive. If that character belongs to a player, it does not count against " +

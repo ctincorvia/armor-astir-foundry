@@ -178,6 +178,23 @@ export const MoveRollSheetMixin = {
 		const fromCarrier = Boolean(weapon?.fromCarrier);
 		return (!fromCarrier && this._weaponIsGuided(weapon) && "Guided") || this._guidedFromPartFor(move) || null;
 	},
+	// Pre-roll preview of the move's passive on-roll bonuses (Roll Modifiers' post-roll reminder
+	// trio — see move-grants-mixin.js's _grantedFailureReminderForMove/_grantedSuccessReminderForMove/
+	// _grantedCriticalReminderForMove), reusing those same three resolvers rather than a new data
+	// model. traitKey is deliberately omitted from the critical-reminder call — the trait isn't
+	// chosen until inside the dialog this list previews, so a requiresTrait-gated critical reminder
+	// (Sharp Tongue only, today) won't preview pre-roll; it still fires correctly post-roll via
+	// _finishMoveRoll's own already-trait-aware call, unaffected.
+	_ridersForMove(move) {
+		const onFailure = this._grantedFailureReminderForMove(move);
+		const onSuccess = this._grantedSuccessReminderForMove(move);
+		const onCritical = this._grantedCriticalReminderForMove(move);
+		return [
+			...(onFailure ? [{ label: "On 6-", text: onFailure }] : []),
+			...(onSuccess ? [{ label: "On 10+", text: onSuccess }] : []),
+			...(onCritical ? [{ label: "On 12+", text: onCritical }] : [])
+		];
+	},
 	// Shared tail of both _rollMove's single-weapon path and _rollMoveWithWeaponChoice's array
 	// path, once configureMoveRoll's dialog has resolved — everything from Guided's "Take 7-9"
 	// early return through the final rollMove call and _onMoveResolved. `weapon` is always a
@@ -351,6 +368,10 @@ export const MoveRollSheetMixin = {
 		// conditional-spread way automaticSuccess already is.
 		const disadvantageConversion = this._disadvantageConversionModifier();
 		const downgrade = this._availableDowngrade(move);
+		// Riders (see _ridersForMove) — none of the three resolvers it calls take a weapon, so this
+		// is computed once here rather than per weaponBundles entry, and passed at the top level of
+		// configureMoveRoll below rather than folded into _weaponRollBundle.
+		const riders = this._ridersForMove(move);
 
 		// "Unarmed" first (see docs/domains/equipment.md's chooseWeapon precedent this replaces).
 		const weaponBundles = [null, ...weapons].map((candidate) =>
@@ -361,6 +382,7 @@ export const MoveRollSheetMixin = {
 			lockedTrait,
 			rollStack,
 			disadvantageConversion,
+			riders,
 			weaponBundles
 		});
 		if (!config) return;
@@ -434,6 +456,7 @@ export const MoveRollSheetMixin = {
 		// conditional-spread way automaticSuccess already is.
 		const disadvantageConversion = this._disadvantageConversionModifier();
 		const downgrade = this._availableDowngrade(move);
+		const riders = this._ridersForMove(move);
 		const config = await configureMoveRoll(move, traits, {
 			lockedEffect,
 			lockedAdvantage,
@@ -442,6 +465,7 @@ export const MoveRollSheetMixin = {
 			rollModifiers,
 			rollStack,
 			disadvantageConversion,
+			riders,
 			...(guided && { guided })
 		});
 		if (!config) return;

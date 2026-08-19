@@ -186,11 +186,16 @@ export const THE_PARADIGM_POOL = {
 			name: "Ascension",
 			// Doesn't roll on its own — it adds CHANNEL as an option to bite-the-dust's trait choice
 			// (see the addsTraitToMove singular-moveKey path, same as Facilitator's). "Clear all risks on
-			// a 10+ rather than one" is prose only: risk-clearing isn't a counted mechanic anywhere in
-			// this module (Dangers are a freeform panel, not a tally), and bite-the-dust's own
-			// results.success text (moves.js) is deliberately left untouched by this move.
+			// a 10+ rather than one" is surfaced as a reminder on bite-the-dust's own success instead of
+			// enforced — risk-clearing isn't a counted mechanic anywhere in this module (Dangers are a
+			// freeform panel, not a tally), and bite-the-dust's own results.success text (moves.js) is
+			// deliberately left untouched by this move.
 			traits: [],
 			addsTraitToMove: { moveKey: "bite-the-dust", trait: "channel" },
+			addsSuccessReminderToMove: {
+				moveKeys: ["bite-the-dust"],
+				reminder: "Clear all risks, rather than just one"
+			},
 			description:
 				"<p>By divine decree you become something beyond the person you were. You may bite the " +
 				"dust with +CHANNEL, and clear all risks on a 10+ rather than one.</p>"

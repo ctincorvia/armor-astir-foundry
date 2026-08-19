@@ -808,7 +808,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Roll Modifiers from a mounted Ardent"
 				disabled: false,
 				disabledReason: null
 			}],
-			rollStack: null, disadvantageConversion: null
+			rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
 });

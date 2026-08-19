@@ -159,6 +159,15 @@ describe("MOVE_POOLS", () => {
 		expect(dontFollowMe.grantsAdvantageOnMove).toEqual({ moveKey: "lead-a-sortie", advantage: "advantage" });
 	});
 
+	it("gives Bullheaded a deferred, unscoped advantage grant behind its own 'took a risk' uses checkbox", () => {
+		const bullheaded = findPlaybookMove("the-impostor:bullheaded");
+
+		expect(bullheaded.uses).toEqual([{ key: "took-risk", label: "Took a risk for this" }]);
+		expect(bullheaded.grantsRollModifier).toEqual([
+			{ advantage: "advantage", costsUse: "took-risk", deferred: true }
+		]);
+	});
+
 	it("rolls Face To Face with +TALK, with a mixed-success choose-one menu", () => {
 		const faceToFace = findPlaybookMove("the-impostor:face-to-face");
 

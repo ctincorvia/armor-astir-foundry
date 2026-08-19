@@ -441,6 +441,66 @@ describe("configureMoveRoll - guided", () => {
 	});
 });
 
+// Riders (see PlaybookActorSheet#_ridersForMove) — a read-only preview of the move's passive
+// on-roll bonuses, passed through to the template unscoped by weapon (see the field's own doc
+// comment above configureMoveRoll). No Roll-button/callback wiring to test here, unlike
+// equipmentSpends/rollModifiers — riders carries no key/disabled/deferred concept for the Roll
+// callback to read back.
+describe("configureMoveRoll - riders", () => {
+	const clash = CLASH_TRAIT;
+	const riders = [{ label: "On 10+", text: "Coordinator's own reminder" }];
+
+	it("passes the given riders through to the dialog template", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { riders });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			riders
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults riders to an empty list", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			riders: []
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	// weaponBundles' own per-bundle fields (Trait, Equipment, Roll Modifiers) are read from the
+	// active panel (see the weaponBundles describe block below) — riders is deliberately not one of
+	// them, since none of its three source resolvers take a weapon. This proves it still reaches the
+	// template unscoped, once at the top level, even when weaponBundles is also passed.
+	it("passes riders through unchanged alongside weaponBundles", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], {
+			riders,
+			weaponBundles: [{
+				weaponKey: "unarmed", weaponLabel: "Unarmed", weaponCard: null, traits: [clash],
+				traitOptions: [{ key: "clash", label: "CLASH (1)" }], lockedEffect: null,
+				equipmentSpends: [], guided: null, rollModifiers: []
+			}]
+		});
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			riders
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+});
+
 describe("configureMoveRoll - roll modifiers", () => {
 	const clash = CLASH_TRAIT;
 	const advantageEntry = {

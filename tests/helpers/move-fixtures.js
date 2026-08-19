@@ -60,6 +60,7 @@ export const DARK_GUARANTEES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-wit
 export const SNAKES_IN_THE_GRASS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-adrift:snakes-in-the-grass");
 export const RAVENOUS_SPECTRE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:ravenous-spectre");
 export const BONDED_IN_BLOOD = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:bonded-in-blood");
+export const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:bullheaded");
 export const EMBRACE_CHAOS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:embrace-chaos");
 export const ALL_IN = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:all-in");
 // separateHold (not flatHold) — the-arcanist:reshape, the one exercised _moveHoldValue/

@@ -15,6 +15,7 @@ import {
 	ARTIFACT,
 	BONDED_IN_BLOOD,
 	BRANDED_BLADES,
+	BULLHEADED,
 	COOL_OFF,
 	DARK_GUARANTEES,
 	EMBRACE_CHAOS,
@@ -895,6 +896,24 @@ describe("PlaybookActorSheet#_rollModifiersForMove - Bonded In Blood", () => {
 		expect(entry.disabled).toBe(false);
 
 		sheet.actor.system.attributes.moveUses = { [BONDED_IN_BLOOD.key]: { "took-peril": true } };
+		expect(sheet._rollModifiersForMove(READ_THE_ROOM, null)[0].disabled).toBe(true);
+	});
+});
+
+// Regression: Bullheaded (the-impostor.js) follows the same unscoped-deferred-uses shape too, just
+// with its own "took a risk" use key -- same one-pass-through-case treatment as Bonded In Blood
+// above, so this catalog entry's own call site isn't dead code either.
+describe("PlaybookActorSheet#_rollModifiersForMove - Bullheaded", () => {
+	it("is unscoped, deferred, and gated on its own uses checkbox", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [BULLHEADED.key] } } };
+
+		const [entry] = sheet._rollModifiersForMove(READ_THE_ROOM, null);
+
+		expect(entry.deferred).toBe(true);
+		expect(entry.disabled).toBe(false);
+
+		sheet.actor.system.attributes.moveUses = { [BULLHEADED.key]: { "took-risk": true } };
 		expect(sheet._rollModifiersForMove(READ_THE_ROOM, null)[0].disabled).toBe(true);
 	});
 });

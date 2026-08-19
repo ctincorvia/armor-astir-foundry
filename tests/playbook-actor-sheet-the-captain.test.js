@@ -491,7 +491,7 @@ describe("PlaybookActorSheet#_rollMove - fromCarrier weapon skip", () => {
 				disabled: false,
 				disabledReason: null
 			}],
-			rollStack: null, disadvantageConversion: null
+			rollStack: null, disadvantageConversion: null, riders: []
 		});
 		// Nothing was marked spent on the gear, and nothing was checked in the Roll Modifiers section.
 		expect(sheet.actor.update).not.toHaveBeenCalled();

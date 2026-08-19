@@ -11,6 +11,47 @@ describe("MOVE_POOLS - the-wither", () => {
 	});
 });
 
+describe("MOVE_POOLS - soldier", () => {
+	it("gives Fisher of Men a Strike Decisively-scoped addsSuccessReminderToMove grant", () => {
+		const fisherOfMen = findPlaybookMove("soldier:fisher-of-men");
+
+		expect(fisherOfMen.traits).toEqual([]);
+		expect(fisherOfMen.addsSuccessReminderToMove).toEqual({
+			moveKeys: ["strike-decisively"],
+			reminder: "You may impose one of your Hooks on the other party, if they survive"
+		});
+	});
+});
+
+describe("MOVE_POOLS - the-paradigm", () => {
+	it("gives Ascension a CHANNEL addsTraitToMove grant on bite-the-dust plus a matching success reminder", () => {
+		const ascension = findPlaybookMove("the-paradigm:ascension");
+
+		expect(ascension.traits).toEqual([]);
+		expect(ascension.addsTraitToMove).toEqual({ moveKey: "bite-the-dust", trait: "channel" });
+		expect(ascension.addsSuccessReminderToMove).toEqual({
+			moveKeys: ["bite-the-dust"],
+			reminder: "Clear all risks, rather than just one"
+		});
+	});
+});
+
+describe("MOVE_POOLS - the-witch", () => {
+	it("gives Bearer Of Curses the same condensed choice-menu reminder on all three Exchange Blows tiers", () => {
+		const bearerOfCurses = findPlaybookMove("the-witch:bearer-of-curses");
+		const expectedGrant = {
+			moveKeys: ["exchange-blows"],
+			reminder: "First time this Scene, choose 1: they can't use subsystems this Scene; you " +
+				"leave a lasting mark on them; or the next move against them is made with advantage"
+		};
+
+		expect(bearerOfCurses.traits).toEqual([]);
+		expect(bearerOfCurses.addsSuccessReminderToMove).toEqual(expectedGrant);
+		expect(bearerOfCurses.addsFailureReminderToMove).toEqual(expectedGrant);
+		expect(bearerOfCurses.addsCriticalReminderToMove).toEqual(expectedGrant);
+	});
+});
+
 describe("MOVE_POOLS - the-adrift", () => {
 	it("registers The Adrift's own pool with 9 moves", () => {
 		const adrift = MOVE_POOLS.find((pool) => pool.key === "the-adrift");
@@ -316,6 +357,16 @@ describe("MOVE_POOLS - the-attendant", () => {
 			expect(move.traits).toEqual([]);
 			expect(move.results).toBeUndefined();
 		}
+	});
+
+	it("gives In Blood & Terror an Exchange Blows-scoped addsSuccessReminderToMove grant for its 10+ half only", () => {
+		const inBloodTerror = findPlaybookMove("the-attendant:in-blood-terror");
+
+		expect(inBloodTerror.addsSuccessReminderToMove).toEqual({
+			moveKeys: ["exchange-blows"],
+			reminder: "If you rolled with disadvantage, any other foes who witness it immediately take a risk"
+		});
+		expect(inBloodTerror.addsFailureReminderToMove).toBeUndefined();
 	});
 });
 

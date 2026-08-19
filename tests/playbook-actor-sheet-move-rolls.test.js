@@ -18,7 +18,9 @@ import { BASIC_MOVES, configureMoveRoll, rollMove } from "../scripts/moves/moves
 import { UNARMED } from "../scripts/equipment/equipment.js";
 import { findCarrierActors, chooseCarrier } from "../scripts/world-actors/carrier-actor-sheet.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
-import { EXCHANGE_BLOWS, BITE_THE_DUST, WEAVE_MAGIC, LEAD_A_SORTIE, DENY, I_KNOW_YOU, BUREAUCRAT } from "./helpers/move-fixtures.js";
+import {
+	EXCHANGE_BLOWS, STRIKE_DECISIVELY, BITE_THE_DUST, WEAVE_MAGIC, LEAD_A_SORTIE, DENY, I_KNOW_YOU, BUREAUCRAT, MANA_DEVOURER
+} from "./helpers/move-fixtures.js";
 
 // _availableHeatUp's own return value for an actor with no Astir at all (see moves-mixin.js) —
 // every fixture in this file lacks one unless a test says otherwise, so _rollMove's baseOptions
@@ -37,6 +39,7 @@ function unarmedWeaponRollConfig({ lockedAdvantage = null, lockedTrait = null, l
 		lockedTrait,
 		rollStack: null,
 		disadvantageConversion: null,
+		riders: [],
 		weaponBundles: [expect.objectContaining({ weaponKey: UNARMED, weaponLabel: "Unarmed", lockedEffect })]
 	};
 }
@@ -106,7 +109,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			I_KNOW_YOU,
 			[familiarity],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, I_KNOW_YOU, familiarity, { ...config, heatUp: NO_HEAT_UP });
 	});
@@ -121,7 +124,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			BASIC_MOVES.find((m) => m.key === "help-or-hinder"),
 			[],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 	});
 
@@ -181,7 +184,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 	});
 
@@ -201,7 +204,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 2 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 	});
 
@@ -224,7 +227,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: -1 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 	});
 
@@ -257,7 +260,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 	});
 
@@ -280,7 +283,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 	});
 
@@ -326,7 +329,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] });
 	});
 
 	it("does not lock Desperation when at max Dangers but the types are mixed", async () => {
@@ -347,7 +350,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] });
 	});
 
 	it("does not lock Desperation when below max Dangers, even if all are Perils", async () => {
@@ -367,7 +370,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] });
 	});
 
 	it("never locks Desperation for a move without forcesDesperationAtMaxPerils, even at max Perils", async () => {
@@ -417,7 +420,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			WEAVE_MAGIC,
 			[{ key: "channel", label: "CHANNEL", value: 0 }],
-			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 	});
 
@@ -438,7 +441,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			WEAVE_MAGIC,
 			[{ key: "channel", label: "CHANNEL", value: 0 }],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 	});
 
@@ -452,7 +455,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			WEAVE_MAGIC,
 			[{ key: "channel", label: "CHANNEL", value: 0 }],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 	});
 
@@ -515,6 +518,87 @@ describe("PlaybookActorSheet#_onMoveRoll - Bureaucrat's quick-roll redirect to E
 				extraReminders: BUREAUCRAT.quickRollsMove.reminders,
 				heatUp: NO_HEAT_UP
 			}
+		);
+	});
+});
+
+// _ridersForMove's own pre-roll preview (move-roll-mixin.js) — reuses the same three
+// _grantedXReminderForMove resolvers _finishMoveRoll already calls post-roll (see
+// playbook-actor-sheet-roll-resolved.test.js/playbook-actor-sheet-the-captain.test.js for those
+// resolvers' own dedicated tests), so this only needs to prove the wiring: built correctly for both
+// the single-weapon path (_onWeaponMoveRoll, weapon already known) and the array path
+// (_onMoveRoll's weaponBundles), empty when nothing is granted, and — for the array path — passed
+// once at the top level rather than duplicated into every weaponBundles entry.
+describe("PlaybookActorSheet#_rollMove - riders (_ridersForMove)", () => {
+	const manaDevourerRider = { label: "On 10+", text: "+1 Power (against another Astir, with physical harm)" };
+
+	it("passes Mana Devourer's own reminder as a rider on the single-weapon path (_onWeaponMoveRoll)", async () => {
+		const sheet = new PlaybookActorSheet();
+		const halberd = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [] };
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { astir: { id: "a1", move: MANA_DEVOURER.key, piloted: true, parts: [] }, equipment: [halberd] }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "strike-decisively", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			STRIKE_DECISIVELY,
+			expect.any(Array),
+			expect.objectContaining({ riders: [manaDevourerRider] })
+		);
+	});
+
+	it("passes an empty riders array on the single-weapon path when nothing is granted", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: {} } };
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			expect.objectContaining({ key: "dispel-uncertainties" }),
+			expect.any(Array),
+			expect.objectContaining({ riders: [] })
+		);
+	});
+
+	it("passes Mana Devourer's reminder once at the top level through the usesWeapon (array) branch, not per weaponBundles entry", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { astir: { id: "a1", move: MANA_DEVOURER.key, piloted: true, parts: [] }, equipment: [] }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "strike-decisively" } } });
+
+		const [, , options] = configureMoveRoll.mock.calls.at(-1);
+		expect(options.riders).toEqual([manaDevourerRider]);
+		for (const bundle of options.weaponBundles) {
+			expect(bundle.riders).toBeUndefined();
+		}
+	});
+
+	it("passes an empty riders array through the usesWeapon (array) branch when nothing is granted", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [] } }
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			expect.objectContaining({ riders: [] })
 		);
 	});
 });
