@@ -1,22 +1,53 @@
 import { WorldActorSheet } from "./world-actor-sheet.js";
+import { DIVISION_KINDS, findDivisionKind } from "./division-kinds.js";
 
 export const AUTHORITY_SHEET_TEMPLATE = "modules/armor-astir/templates/authority-actor-sheet.hbs";
 
 const STABILITY_MIN = 1;
-const STABILITY_MAX = 10;
+export const STABILITY_MAX = 9;
+export const PILLARS_PER_DIVISION = 3;
 
-// The Authority represents the empire/oppressor (see claude.md, "Domain conventions"): a
-// Stability rating, exactly three Pillars and three Divisions (createWorldActor seeds these at
-// creation — see actor-creation.js — so the sheet always has exactly three of each to render,
-// with no add/remove control for either), and freeform Assets/Actors rosters that reuse
-// WorldActorSheet's generic entry-list handling unchanged. Each Division's Strength/Disfavor
-// counters are stepped via WorldActorSheet's generic _onEntryCounterStep (see the template's
-// data-min/data-max), so there's no bespoke stepper code left in this class.
+// The Authority represents the empire/oppressor (see docs/domains/world-actors.md, "World
+// actors"): a Stability rating, exactly three Divisions, and exactly three Pillars per Division
+// (nine total) — createWorldActor seeds all of these at creation (see actor-creation.js), so the
+// sheet always has exactly three Divisions and nine Pillars to render, with no add/remove control
+// for either. Pillars are stored as a flat list under system.attributes.pillars with a
+// divisionId foreign key back to their owning Division, rather than nested inside each Division
+// object — this is what lets GRIP/Felled/kind-select all ride WorldActorSheet's existing generic
+// _onEntryFieldChange/_onEntryCounterStep handlers unchanged (those handlers only know how to
+// read/write one flat list at a time), the same flat-list shape Cause's Factions already use.
+// Each Division also carries a `kind` key (chosen by the GM, unset at creation) resolved against
+// the DIVISION_KINDS catalog in _divisionsData to attach its passive/active outcome text fresh on
+// every render — catalog-in-code, key-on-actor, same convention as astir-parts.js's partType.
+// Division Strength/Disfavor and Pillar GRIP are all stepped via WorldActorSheet's generic
+// _onEntryCounterStep (see the template's data-min/data-max), so there's no bespoke stepper code
+// left in this class.
 export class AuthorityActorSheet extends WorldActorSheet {
 	static get defaultOptions() {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			classes: ["armor-astir", "sheet", "actor", "world-actor", "authority"],
 			template: AUTHORITY_SHEET_TEMPLATE
+		});
+	}
+
+	// Groups the flat pillars list onto its owning Division by divisionId, and resolves each
+	// Division's kind against the DIVISION_KINDS catalog for display. kindOptions is attached per
+	// division (rather than once at the top of getData's return value) specifically so the
+	// template's {{selectOptions kindOptions ...}} needs no {{../}} hop — it's called from inside
+	// a {{#each divisions}}.
+	_divisionsData() {
+		const pillars = this._list("pillars");
+		return this._list("divisions").map((division) => {
+			const kind = findDivisionKind(division.kind);
+			return {
+				...division,
+				kindOptions: DIVISION_KINDS,
+				passiveOutcome: kind?.passive ?? "",
+				activeOutcomes: kind?.active ?? [],
+				pillars: pillars
+					.filter((pillar) => pillar.divisionId === division.id)
+					.map((pillar) => ({ ...pillar, grip: pillar.grip ?? 0 }))
+			};
 		});
 	}
 
@@ -27,8 +58,7 @@ export class AuthorityActorSheet extends WorldActorSheet {
 			value: stabilityValue,
 			steps: Array.from({ length: STABILITY_MAX }, (_, i) => ({ step: i + 1, filled: i + 1 <= stabilityValue }))
 		};
-		data.pillars = this._list("pillars");
-		data.divisions = this._list("divisions");
+		data.divisions = this._divisionsData();
 		data.assets = this._list("assets");
 		data.notableActors = this._list("notableActors");
 		return data;

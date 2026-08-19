@@ -1,0 +1,19 @@
+<section class="notable-actors">
+	<div class="section-header">
+		<h3>Actors ({{notableActors.length}})</h3>
+		<div class="section-header-actions">
+			<button type="button" class="entry-list-add icon-add-button" data-list="notableActors" title="Add Actor" aria-label="Add Actor">+</button>
+		</div>
+	</div>
+	<ol class="entry-list notable-actor-list">
+		{{#each notableActors}}
+		<li class="entry-list-item" data-entry-id="{{id}}">
+			<div class="entry-list-row">
+				<input type="text" class="entry-list-field" data-list="notableActors" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Name"/>
+				<button type="button" class="entry-list-remove" data-list="notableActors" data-entry-id="{{id}}" aria-label="Remove actor">✕</button>
+			</div>
+			<textarea class="entry-list-field" data-list="notableActors" data-entry-id="{{id}}" data-field="description" placeholder="Brief description…">{{description}}</textarea>
+		</li>
+		{{/each}}
+	</ol>
+</section>

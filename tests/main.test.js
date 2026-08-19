@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { MODULE_ID, SHEET_PARTIALS, registerInitHook } from "../scripts/main.js";
+import { MODULE_ID, PLAYBOOK_SHEET_PARTIALS, AUTHORITY_SHEET_PARTIALS, registerInitHook } from "../scripts/main.js";
 
 describe("registerInitHook", () => {
 	it("registers an init hook", () => {
@@ -19,12 +19,12 @@ describe("registerInitHook", () => {
 		logSpy.mockRestore();
 	});
 
-	it("preloads the playbook sheet partials when the hook fires", () => {
+	it("preloads the playbook and authority sheet partials when the hook fires", () => {
 		registerInitHook();
 		const callback = Hooks.once.mock.calls.at(-1)[1];
 		callback();
 
-		expect(loadTemplates).toHaveBeenCalledWith(SHEET_PARTIALS);
-		expect(SHEET_PARTIALS).toHaveLength(12);
+		expect(loadTemplates).toHaveBeenCalledWith([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS]);
+		expect([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS]).toHaveLength(17);
 	});
 });

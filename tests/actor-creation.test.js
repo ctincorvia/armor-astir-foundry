@@ -385,8 +385,15 @@ describe("createWorldActor", () => {
 		expect(result).toEqual({ id: "new-carrier" });
 	});
 
-	it("creates an authority actor at 10 stability, with three seeded pillars and divisions", async () => {
+	it("creates an authority actor at 9 stability, with three divisions each seeding three pillars keyed to that division", async () => {
 		Actor.create.mockResolvedValue({ id: "new-authority" });
+		// resetAllMocks (see this file's beforeEach) wiped the default randomID stub, which always
+		// returns the constant "test-id" — that would make every Division's id identical and make
+		// it impossible to verify each Pillar's divisionId actually points at a distinct Division.
+		// A counter-based implementation, for this test only, gives each call a distinct id so the
+		// FK pairing below can actually be checked.
+		let nextId = 0;
+		foundry.utils.randomID.mockImplementation(() => `id-${++nextId}`);
 
 		await createWorldActor(AUTHORITY_KIND);
 
@@ -397,16 +404,22 @@ describe("createWorldActor", () => {
 				folder: null,
 				system: {
 					attributes: {
-						stability: { value: 10 },
-						pillars: [
-							{ id: "test-id", name: "", description: "" },
-							{ id: "test-id", name: "", description: "" },
-							{ id: "test-id", name: "", description: "" }
-						],
+						stability: { value: 9 },
 						divisions: [
-							{ id: "test-id", name: "", description: "", strength: 5, disfavor: 0 },
-							{ id: "test-id", name: "", description: "", strength: 4, disfavor: 0 },
-							{ id: "test-id", name: "", description: "", strength: 4, disfavor: 0 }
+							{ id: "id-1", name: "", description: "", strength: 5, disfavor: 0, kind: "" },
+							{ id: "id-2", name: "", description: "", strength: 4, disfavor: 0, kind: "" },
+							{ id: "id-3", name: "", description: "", strength: 4, disfavor: 0, kind: "" }
+						],
+						pillars: [
+							{ id: "id-4", divisionId: "id-1", name: "", description: "", grip: 0, felled: false },
+							{ id: "id-5", divisionId: "id-1", name: "", description: "", grip: 0, felled: false },
+							{ id: "id-6", divisionId: "id-1", name: "", description: "", grip: 0, felled: false },
+							{ id: "id-7", divisionId: "id-2", name: "", description: "", grip: 0, felled: false },
+							{ id: "id-8", divisionId: "id-2", name: "", description: "", grip: 0, felled: false },
+							{ id: "id-9", divisionId: "id-2", name: "", description: "", grip: 0, felled: false },
+							{ id: "id-10", divisionId: "id-3", name: "", description: "", grip: 0, felled: false },
+							{ id: "id-11", divisionId: "id-3", name: "", description: "", grip: 0, felled: false },
+							{ id: "id-12", divisionId: "id-3", name: "", description: "", grip: 0, felled: false }
 						],
 						assets: [],
 						notableActors: []

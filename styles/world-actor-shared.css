@@ -1,0 +1,170 @@
+/* Carrier/Authority/Cause (see docs/domains/world-actors.md, "World actors"). Reuses the --aa-*
+   tokens, h3, and .section-header/.icon-add-button rules already declared in sheet-chrome.css/
+   sheet-layout.css (loaded alongside this file — see module.json) rather than redeclaring them;
+   only the pieces shared by these three sheets live here. Authority's own Stability/Division/
+   Pillar-specific rules live in the sibling authority-sheet.css instead, so that world actor's
+   larger sheet doesn't bloat this shared file. */
+.armor-astir.sheet.world-actor {
+	min-width: 480px;
+}
+
+.armor-astir.sheet.world-actor section {
+	margin-bottom: var(--aa-space-4);
+}
+
+/* Carrier's Crew stepper — same visual language as sheet-chrome.css's consolidated trait-step/
+   power-step/hold-step/... rule, kept as its own copy rather than joining that selector so this
+   stylesheet has no reason to touch sheet-chrome.css. */
+.armor-astir.sheet .trait-control {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+}
+
+.armor-astir.sheet .trait-value {
+	min-width: 1.5em;
+	text-align: center;
+	font-weight: 700;
+	color: var(--aa-primary-dark);
+}
+
+/* Shared by Crew's stepper, the NPC sheet's Tier stepper (see npc-actor-sheet.js's _onTierStep),
+   and every generic entry-list counter step (Authority's Division Strength/Disfavor and Pillar
+   GRIP, Cause's Faction Grip — see world-actor-sheet.js's _onEntryCounterStep) — same small +/-
+   control everywhere it appears. */
+.armor-astir.sheet .crew-step,
+.armor-astir.sheet .tier-step,
+.armor-astir.sheet .entry-list-counter-step {
+	width: 22px;
+	height: 22px;
+	padding: 0;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	line-height: 1;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .crew-step:hover,
+.armor-astir.sheet .tier-step:hover,
+.armor-astir.sheet .entry-list-counter-step:hover {
+	border-color: var(--aa-primary);
+	color: var(--aa-primary-dark);
+}
+
+.armor-astir.sheet .description textarea {
+	width: 100%;
+	min-height: 4em;
+	resize: vertical;
+}
+
+/* Generic entry-level counter row (Authority's Division Strength/Disfavor and Pillar GRIP,
+   Cause's Faction Grip) — a label, a stepped value, and the +/- pair from
+   .entry-list-counter-step above. */
+.armor-astir.sheet .entry-counter-row {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-3);
+}
+
+.armor-astir.sheet .entry-counter {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+}
+
+.armor-astir.sheet .entry-counter label {
+	font-size: 11px;
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+/* Every freeform world-actor list (Carrier's Crew Members, Authority's Assets/Actors, Cause's
+   Factions) shares this row shape: a name (+ optional extra field) and remove button on one
+   line, an optional description textarea beneath. */
+.armor-astir.sheet .entry-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .entry-list-item {
+	padding: var(--aa-space-2) var(--aa-space-1);
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.sheet .entry-list-item:last-child {
+	border-bottom: none;
+}
+
+/* Same zebra-stripe/hover treatment as sheet-tabs.css's .move/.equipment-item rows — an
+   interaction always reads in the primary color, a resting stripe in the quieter secondary.
+   Excludes .pillar-list/.division-list: those lay their entries out as cards (see
+   authority-sheet.css), not a vertical row list, so ":nth-child(even)" would just tint the
+   middle card instead of reading as a stripe. */
+.armor-astir.sheet .entry-list:not(.pillar-list):not(.division-list) > .entry-list-item:nth-child(even) {
+	background: var(--aa-secondary-tint);
+}
+
+.armor-astir.sheet .entry-list:not(.pillar-list):not(.division-list) > .entry-list-item:hover {
+	background: var(--aa-primary-tint);
+}
+
+.armor-astir.sheet .entry-list-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+}
+
+.armor-astir.sheet .entry-list-row input[type="text"] {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
+.armor-astir.sheet .entry-list textarea {
+	width: 100%;
+	min-height: 3em;
+	margin-top: var(--aa-space-1);
+	resize: vertical;
+}
+
+/* Shared by both of a Faction's status checkboxes (Exhausted, Seized) and a Pillar's Felled
+   checkbox — one label/checkbox pair shape, used across both sheets. */
+.armor-astir.sheet .faction-flag-label,
+.armor-astir.sheet .pillar-flag-label {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	flex: 0 0 auto;
+	gap: var(--aa-space-1);
+	white-space: nowrap;
+}
+
+.armor-astir.sheet .entry-list-item.faction-exhausted,
+.armor-astir.sheet .entry-list-item.pillar-felled {
+	opacity: 0.6;
+}
+
+/* Same remove-button treatment as sheet-layout.css's danger/gravity-clock/equipment removes —
+   its own copy, same reasoning as .crew-step above. */
+.armor-astir.sheet .entry-list-remove {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	line-height: 1;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .entry-list-remove:hover {
+	border-color: var(--aa-danger);
+	color: var(--aa-danger);
+}

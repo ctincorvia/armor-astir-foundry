@@ -114,7 +114,7 @@
 }
 
 /* Paradigm's Shaken checkbox on a Tenet (a Hook entry, isParadigm-gated — see claude.md's Tenets
-   notes) — same inline label/checkbox pairing as world-actor-sheet.css's own .faction-flag-label,
+   notes) — same inline label/checkbox pairing as world-actor-shared.css's own .faction-flag-label,
    mirrored here since the two sheets' CSS stays in separate files. */
 .armor-astir.sheet .hook-flag-label {
 	display: flex;

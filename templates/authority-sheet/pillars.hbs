@@ -1,0 +1,20 @@
+<ol class="entry-list pillar-list">
+	{{#each pillars}}
+	<li class="entry-list-item pillar-item{{#if felled}} pillar-felled{{/if}}" data-entry-id="{{id}}">
+		<input type="text" class="entry-list-field pillar-name" data-list="pillars" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Pillar name"/>
+		<div class="entry-counter-row">
+			<div class="entry-counter">
+				<label>Grip</label>
+				<button type="button" class="entry-list-counter-step" data-list="pillars" data-entry-id="{{id}}" data-field="grip" data-delta="-1" data-min="0" data-max="3" aria-label="Decrease Grip">-</button>
+				<span class="trait-value">{{grip}}</span>
+				<button type="button" class="entry-list-counter-step" data-list="pillars" data-entry-id="{{id}}" data-field="grip" data-delta="1" data-min="0" data-max="3" aria-label="Increase Grip">+</button>
+			</div>
+			<label class="pillar-flag-label">
+				<input type="checkbox" class="entry-list-field" data-list="pillars" data-entry-id="{{id}}" data-field="felled" {{#if felled}}checked{{/if}}/>
+				Felled
+			</label>
+		</div>
+		<textarea class="entry-list-field pillar-description" data-list="pillars" data-entry-id="{{id}}" data-field="description" placeholder="What does the Authority hold here?">{{description}}</textarea>
+	</li>
+	{{/each}}
+</ol>

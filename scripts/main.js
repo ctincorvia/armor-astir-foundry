@@ -7,7 +7,7 @@ import { registerNpcActorSheet } from "./world-actors/npc-actor-sheet.js";
 
 export const MODULE_ID = "armor-astir";
 
-export const SHEET_PARTIALS = [
+export const PLAYBOOK_SHEET_PARTIALS = [
 	"modules/armor-astir/templates/playbook-sheet/header.hbs",
 	"modules/armor-astir/templates/playbook-sheet/status-row.hbs",
 	"modules/armor-astir/templates/playbook-sheet/dangers-column.hbs",
@@ -22,10 +22,18 @@ export const SHEET_PARTIALS = [
 	"modules/armor-astir/templates/shared/equipment-card.hbs"
 ];
 
+export const AUTHORITY_SHEET_PARTIALS = [
+	"modules/armor-astir/templates/authority-sheet/stability.hbs",
+	"modules/armor-astir/templates/authority-sheet/divisions.hbs",
+	"modules/armor-astir/templates/authority-sheet/pillars.hbs",
+	"modules/armor-astir/templates/authority-sheet/assets.hbs",
+	"modules/armor-astir/templates/authority-sheet/notable-actors.hbs"
+];
+
 export function registerInitHook() {
 	Hooks.once("init", () => {
 		console.log(`${MODULE_ID} | Initialized`);
-		loadTemplates(SHEET_PARTIALS);
+		loadTemplates([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS]);
 	});
 }
 

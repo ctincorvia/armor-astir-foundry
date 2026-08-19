@@ -1,5 +1,6 @@
 import { playbookGrantsHomeInsteadOfChannel } from "./moves/starting-moves.js";
 import { TIER_MIN } from "./equipment/equipment.js";
+import { STABILITY_MAX, PILLARS_PER_DIVISION } from "./world-actors/authority-actor-sheet.js";
 
 // Each playbook is a compendium Actor (see claude.md, "Domain conventions"). Adding a new
 // playbook means adding an entry here plus its own compendium pack; no other code changes.
@@ -140,23 +141,31 @@ export const WORLD_ACTOR_KINDS = [
 		key: "authority",
 		type: "armor-astir.authority",
 		name: "Authority",
-		// Pillars and Divisions are always exactly three slots (see authority-actor-sheet.js) —
-		// seeded blank here rather than left empty, since that sheet has no add/remove control
-		// for either list. Divisions additionally seed Strength (0-5, starting at 5/4/4) and
-		// Disfavor (0-10, always starting at 0).
-		buildSystem: () => ({
-			attributes: {
-				stability: { value: 10 },
-				pillars: [blankEntry(), blankEntry(), blankEntry()],
-				divisions: [
-					blankEntry({ strength: 5, disfavor: 0 }),
-					blankEntry({ strength: 4, disfavor: 0 }),
-					blankEntry({ strength: 4, disfavor: 0 })
-				],
-				assets: [],
-				notableActors: []
-			}
-		})
+		// Three Divisions, each with exactly three Pillars (see authority-actor-sheet.js) — Divisions
+		// are built first so their ids exist before Pillars are derived from them, seeding each
+		// Pillar's divisionId foreign key. Neither list has an add/remove control on the sheet.
+		// Divisions additionally seed Strength (0-5, starting at 5/4/4) and Disfavor (0-10, always
+		// starting at 0); `kind` is left unset ("") since picking it is a GM rules decision, not
+		// something the code should seed. Pillars seed grip: 0 and felled: false.
+		buildSystem: () => {
+			const divisions = [
+				blankEntry({ strength: 5, disfavor: 0, kind: "" }),
+				blankEntry({ strength: 4, disfavor: 0, kind: "" }),
+				blankEntry({ strength: 4, disfavor: 0, kind: "" })
+			];
+			return {
+				attributes: {
+					stability: { value: STABILITY_MAX },
+					divisions,
+					pillars: divisions.flatMap((division) => Array.from(
+						{ length: PILLARS_PER_DIVISION },
+						() => blankEntry({ divisionId: division.id, grip: 0, felled: false })
+					)),
+					assets: [],
+					notableActors: []
+				}
+			};
+		}
 	},
 	{
 		key: "cause",

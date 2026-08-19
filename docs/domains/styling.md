@@ -3,7 +3,18 @@
 # Sheet Styling
 
 ## Sheet styling
-All of this module's CSS lives in one file, `styles/playbook-actor-sheet.css`, covering the actor sheet, every dialog (all carry the `armor-astir` class) and the chat card (its own `armor-astir-move-chat` root, never nested under `armor-astir`). Tokens are declared on both roots so nothing leaks into pbta's chrome or other modules' sheets. None of this is caught by any test — see Recurring conventions.
+This module's CSS is split across several files under `styles/`, all loaded together (see `module.json`'s `styles[]` array) and all styling the same handful of roots: the playbook actor sheet, the three world actor sheets (Carrier/Authority/Cause), every dialog (all carry the `armor-astir` class), and the chat card (its own `armor-astir-move-chat` root, never nested under `armor-astir`). The files are:
+
+- `tokens.css` — the `--aa-*` custom properties themselves. **Must stay first in `module.json`'s `styles[]` array** — every other file references these tokens and has no fallback if it loads first.
+- `sheet-chrome.css` — headers, portrait, name/callsign, header labels/selects, tier readout, status row, the shared bordered-panel treatment, meters, numeric readouts, pip tracks, +/- steppers, the sheet min-width floor.
+- `sheet-layout.css` — the sticky Dangers/Tabs columns, Dangers list, Gravity Clocks, generic Clocks, Burdens, tab nav chrome, Astir/Ardent identity sections, tab visibility/scroll overrides.
+- `sheet-tabs.css` — per-tab content (Moves, Equipment, Astir/Ardents, Social, Advancement, Downtime, Cosmetic).
+- `move-chat.css` — the chat card.
+- `dialogs.css` — every `Dialog`-based picker/editor.
+- `world-actor-shared.css` — rules shared by all three world actor sheets (Carrier/Authority/Cause): the entry-list family, entry-counter rows, the crew/tier/entry-list-counter stepper, flag-label checkboxes, etc.
+- `authority-sheet.css` — Authority-only rules (Stability track, Division/Pillar cards, kind-select, outcome-text blocks) that don't belong in the shared file since no other world actor sheet uses them.
+
+The world actor sheets (`world-actor-shared.css`/`authority-sheet.css`) deliberately duplicate a handful of small rules (steppers, remove buttons, pip tracks) that visually match rules already declared in `sheet-chrome.css`/`sheet-layout.css`, rather than reaching into those playbook-sheet stylesheets to share a selector — see e.g. `world-actor-shared.css`'s own `.crew-step`/`.entry-list-counter-step` comment. None of this is caught by any test — see Recurring conventions.
 
 - **Style against the role tokens, never the gem names.** The palette defines `--aa-moonstone*` / `--aa-amethyst*`, but every rule uses `--aa-primary*` / `--aa-secondary*`, which alias one gem each at the top of the file. Primary = chrome the player acts on (section headers and their underline rules, tab nav, all buttons, hover states); secondary = the player's own tracked state (Spotlight/Gravity Clock pips, numeric readouts, equipment tag labels, row striping). Writing `var(--aa-moonstone)` in a rule works but breaks the abstraction — swapping which gem plays which role is meant to be a two-line edit, and it has already been done once. `grep "var(--aa-moonstone\|var(--aa-amethyst)" styles/` should only ever match the six role mappings.
 - **The `-dark` variants are a contrast requirement, not just darker shades.** Moonstone at full strength (`#7fa8b8`) is only ~2.6:1 against white — well under the 4.5:1 floor — so any surface that *fills* with a color and carries white text must use a `-dark` variant (`--aa-moonstone-dark` is ~5.5:1, amethyst is ~8.7:1 even at base). This is why the chat card's Confidence/Desperation chips and the move/weapon picker's trait pills use `--aa-secondary-dark`. Getting this wrong produced unreadable buttons once already.

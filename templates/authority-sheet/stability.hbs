@@ -1,0 +1,11 @@
+<section class="stability">
+	<h3>Stability</h3>
+	<ol class="stability-track">
+		{{#each stability.steps}}
+		<li class="stability-step-item">
+			<button type="button" class="stability-step{{#if filled}} filled{{/if}}" data-step="{{step}}" aria-label="Stability step {{step}}"></button>
+		</li>
+		{{/each}}
+	</ol>
+	<span class="stability-value">{{stability.value}}</span>
+</section>

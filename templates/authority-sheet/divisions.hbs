@@ -1,0 +1,41 @@
+<section class="divisions">
+	<h3>Divisions</h3>
+	<ol class="entry-list division-list">
+		{{#each divisions}}
+		<li class="entry-list-item" data-entry-id="{{id}}">
+			<input type="text" class="entry-list-field division-name" data-list="divisions" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Division name"/>
+			<select class="entry-list-field division-kind" data-list="divisions" data-entry-id="{{id}}" data-field="kind">
+				{{selectOptions kindOptions selected=kind valueAttr="key" labelAttr="label" blank="— Choose —"}}
+			</select>
+			<div class="entry-counter-row">
+				<div class="entry-counter">
+					<label>Strength</label>
+					<button type="button" class="entry-list-counter-step" data-list="divisions" data-entry-id="{{id}}" data-field="strength" data-delta="-1" data-min="0" data-max="5" aria-label="Decrease Strength">-</button>
+					<span class="trait-value">{{strength}}</span>
+					<button type="button" class="entry-list-counter-step" data-list="divisions" data-entry-id="{{id}}" data-field="strength" data-delta="1" data-min="0" data-max="5" aria-label="Increase Strength">+</button>
+				</div>
+				<div class="entry-counter">
+					<label>Disfavor</label>
+					<button type="button" class="entry-list-counter-step" data-list="divisions" data-entry-id="{{id}}" data-field="disfavor" data-delta="-1" data-min="0" data-max="10" aria-label="Decrease Disfavor">-</button>
+					<span class="trait-value">{{disfavor}}</span>
+					<button type="button" class="entry-list-counter-step" data-list="divisions" data-entry-id="{{id}}" data-field="disfavor" data-delta="1" data-min="0" data-max="10" aria-label="Increase Disfavor">+</button>
+				</div>
+			</div>
+			<textarea class="entry-list-field division-description" data-list="divisions" data-entry-id="{{id}}" data-field="description" placeholder="Describe this hostile organization…">{{description}}</textarea>
+			{{#if passiveOutcome}}
+			<div class="division-passive-outcome">
+				<h4>Passive Outcome</h4>
+				{{{passiveOutcome}}}
+			</div>
+			{{/if}}
+			{{#if activeOutcomes.length}}
+			<div class="division-active-outcomes">
+				<h4>Active Outcomes</h4>
+				<ul>{{#each activeOutcomes}}<li>{{{this}}}</li>{{/each}}</ul>
+			</div>
+			{{/if}}
+			{{> "modules/armor-astir/templates/authority-sheet/pillars.hbs"}}
+		</li>
+		{{/each}}
+	</ol>
+</section>

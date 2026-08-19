@@ -1,0 +1,114 @@
+/* Authority-only rules (see docs/domains/world-actors.md, "World actors") — Stability, Divisions
+   and their nested Pillars. Depends on styles/tokens.css for var(--aa-*) and reuses the shared
+   .entry-list/.entry-counter/.trait-value rules from world-actor-shared.css (loaded alongside
+   this file — see module.json); only what's unique to this one sheet lives here. */
+
+/* Authority's Stability track — a 9-segment pip row, same look as sheet-layout.css's
+   spotlight/gravity-clock/clock steps but its own copy, same reasoning as world-actor-shared.css's
+   .crew-step. */
+.armor-astir.sheet .stability-track {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-2);
+	margin: 0 0 var(--aa-space-2);
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .stability-step {
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .stability-step.filled {
+	background: var(--aa-secondary);
+	border-color: var(--aa-secondary);
+}
+
+.armor-astir.sheet .stability-value {
+	font-weight: 700;
+	color: var(--aa-primary-dark);
+}
+
+/* Divisions are always exactly three fixed slots (see authority-actor-sheet.js), stacked as full-
+   width cards rather than laid out side by side — a Division card is much taller than a simple
+   name+description entry now (kind select, two outcome blocks, and three nested Pillar cards), so
+   it can't fit three across in a 640px-wide sheet the way it used to. */
+.armor-astir.sheet .division-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-3);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Pillars are always exactly three fixed slots per Division (see authority-actor-sheet.js), laid
+   out side by side inside their owning Division card, unlike the vertical freeform lists in
+   world-actor-shared.css. */
+.armor-astir.sheet .pillar-list {
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
+	gap: var(--aa-space-3);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+/* Direct-child combinators, not descendant selectors: a Pillar card is now nested inside a
+   Division card's own DOM (see authority-sheet/pillars.hbs), so a plain descendant selector here
+   would double up the card treatment onto every Pillar too. */
+.armor-astir.sheet .division-list > .entry-list-item,
+.armor-astir.sheet .pillar-list > .entry-list-item {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+	padding: var(--aa-space-2);
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+}
+
+.armor-astir.sheet .division-kind {
+	width: 100%;
+}
+
+/* No existing h4 rule elsewhere in the module (checked sheet-chrome.css, which owns h3) — these
+   are the first h4s this module renders, so a small heading style for them lives here rather than
+   inheriting the browser default. */
+.armor-astir.sheet h4 {
+	margin: var(--aa-space-2) 0 var(--aa-space-1);
+	font-size: 11px;
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	text-transform: uppercase;
+	color: var(--aa-primary-dark);
+}
+
+/* A quiet resting surface for the catalog's read-only outcome text (see division-kinds.js) — tight
+   prose margins keep its <p>/<ul> content from blowing the Division card open. */
+.armor-astir.sheet .division-passive-outcome,
+.armor-astir.sheet .division-active-outcomes {
+	padding: var(--aa-space-2);
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-tint);
+}
+
+.armor-astir.sheet .division-passive-outcome p {
+	margin: 0;
+}
+
+.armor-astir.sheet .division-active-outcomes ul {
+	margin: 0;
+	padding-left: var(--aa-space-3);
+}
+
+.armor-astir.sheet .division-active-outcomes li {
+	margin: 0;
+}
