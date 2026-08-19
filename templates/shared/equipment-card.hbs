@@ -25,6 +25,7 @@
 	<div class="equipment-description">{{description}}</div>
 	{{/if}}
 	{{#if tags.length}}
+	{{#unless hideTags}}
 	<div class="equipment-tags-block">
 		<ul class="equipment-tag-list">
 			{{#each tags}}
@@ -43,6 +44,7 @@
 			{{/each}}
 		</ul>
 	</div>
+	{{/unless}}
 	{{/if}}
 	{{#if weaponMoves.length}}
 	<div class="weapon-move-controls">

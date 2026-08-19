@@ -150,9 +150,29 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
 		const armedBundle = weaponBundles.find((b) => b.weaponKey === armed.id);
 		expect(armedBundle.equipmentSpends).toEqual([expect.objectContaining({ equipmentId: armed.id, tagKey: "blitz" })]);
+		// Blitz is the only tag on this weapon, and it's spendable (excluded from narrativeTags) —
+		// see PlaybookActorSheet#_narrativeWeaponTags' own tests for the tag-inclusion cases.
+		expect(armedBundle.narrativeTags).toEqual([]);
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz", heatUp: NO_HEAT_UP }
 		);
+	});
+
+	it("carries the weapon's narrative (no codified mechanic) tags on its own bundle", async () => {
+		const sheet = new PlaybookActorSheet();
+		const armed = { ...halberd, tags: ["impact"] };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [armed, sidearm] } }
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		const armedBundle = weaponBundles.find((b) => b.weaponKey === armed.id);
+		expect(armedBundle.narrativeTags).toEqual([
+			expect.objectContaining({ equipmentId: armed.id, tagKey: "impact", tagLabel: "Impact" })
+		]);
 	});
 
 	it("treats a weaponId configureMoveRoll resolved that no longer matches any weapon as Unarmed", async () => {
@@ -208,7 +228,7 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })],
+			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], narrativeTags: [],
 			rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 		expect(rollMove).toHaveBeenCalledWith(

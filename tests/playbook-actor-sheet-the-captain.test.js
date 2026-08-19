@@ -351,7 +351,10 @@ describe("PlaybookActorSheet#_moveTraits - Fire Support's KNOW addsTraitToMove",
 
 describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offering", () => {
 	const halberd = { id: "eq1", kind: "weapon", name: "Halberd", tags: [] };
-	const carrierWeapon = { id: "carrier-w1", kind: "weapon", name: "Broadside Cannon", tags: [] };
+	// Carries a narrative Impact tag (no codified mechanic) — proves the bundle's own fromCarrier
+	// scope cut suppresses narrativeTags too, not just equipmentSpends, rather than it simply being
+	// absent already (mirrors the "Rations carries a spendable Blitz tag" proof further below).
+	const carrierWeapon = { id: "carrier-w1", kind: "weapon", name: "Broadside Cannon", tags: ["impact"] };
 
 	it("folds the single Carrier's own weapons into the weaponBundles offer, tagged fromCarrier", async () => {
 		const sheet = new PlaybookActorSheet();
@@ -370,6 +373,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 
 		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
 		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED, "eq1", "carrier-w1"]);
+		expect(weaponBundles.find((b) => b.weaponKey === "carrier-w1").narrativeTags).toEqual([]);
 		// The Carrier's own stored entry is never mutated — no fromCarrier flag leaks onto it.
 		expect(carrierWeapon.fromCarrier).toBeUndefined();
 	});
@@ -449,13 +453,13 @@ describe("PlaybookActorSheet#_onMoveRoll - Fire Support's Carrier weapon offerin
 });
 
 describe("PlaybookActorSheet#_rollMove - fromCarrier weapon skip", () => {
-	it("never offers equipment spends for a fromCarrier weapon, even though an installed Astir Part's own Roll Modifier still applies", async () => {
+	it("never offers equipment spends or narrative tags for a fromCarrier weapon, even though an installed Astir Part's own Roll Modifier still applies", async () => {
 		const sheet = new PlaybookActorSheet();
 		// Rations carries a spendable Blitz tag, which would normally show up in equipmentSpends —
-		// proving the fromCarrier skip actually suppresses it rather than it simply being absent
-		// already. Artifact's own Roll Modifier entry, by contrast, is actor-wide rather than
-		// weapon-scoped (see _rollModifiersForMove), so it's unaffected by fromCarrier and still
-		// shows up below.
+		// proving the fromCarrier skip actually suppresses it (and narrativeTags alongside it)
+		// rather than it simply being absent already. Artifact's own Roll Modifier entry, by
+		// contrast, is actor-wide rather than weapon-scoped (see _rollModifiersForMove), so it's
+		// unaffected by fromCarrier and still shows up below.
 		const gear = { id: "g1", kind: "gear", name: "Rations", tags: ["blitz"], spent: [] };
 		const carrierWeapon = {
 			id: "carrier-w1", kind: "weapon", name: "Broadside Cannon", tags: ["guided"], spent: [], fromCarrier: true
@@ -479,7 +483,7 @@ describe("PlaybookActorSheet#_rollMove - fromCarrier weapon skip", () => {
 			lockedEffect: null,
 			lockedAdvantage: null,
 			lockedTrait: null,
-			equipmentSpends: [],
+			equipmentSpends: [], narrativeTags: [],
 			rollModifiers: [{
 				key: ARTIFACT.key,
 				label: "Advantage from Artifact",

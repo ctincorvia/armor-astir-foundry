@@ -7,6 +7,7 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 }));
 
 import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
+import { EQUIPMENT_TAGS } from "../scripts/equipment/equipment.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import { DISPEL_UNCERTAINTIES, BITE_THE_DUST } from "./helpers/move-fixtures.js";
 
@@ -59,7 +60,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			DISPEL_UNCERTAINTIES,
 			[{ key: "know", label: "KNOW", value: 1 }],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [blitzSpend], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [blitzSpend], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 	});
 
@@ -79,7 +80,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
 
@@ -99,7 +100,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [blitzSpend], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [blitzSpend], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
 
@@ -119,7 +120,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
 
@@ -139,7 +140,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
 
@@ -159,7 +160,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
 
@@ -180,7 +181,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
 
@@ -204,7 +205,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
 
@@ -225,7 +226,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
 
@@ -245,7 +246,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
 
@@ -271,7 +272,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], {
 			lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [{ ...blitzSpend, disabled: true }], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [{ ...blitzSpend, disabled: true }], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
 
@@ -341,5 +342,139 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [{ ...spent, spent: ["blitz"] }, untouched]
 		});
+	});
+});
+
+// _narrativeWeaponTags is _equipmentSpends' own sibling for tags with no codified mechanic (see
+// docs/domains/equipment.md's narrative-tag definition) — same frame/disabled/scoped filtering,
+// tested directly here rather than through _onMoveRoll since there's no equipmentSpends-style
+// checked-box round trip to exercise.
+describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
+	const impact = EQUIPMENT_TAGS.find((t) => t.key === "impact");
+	const melee = EQUIPMENT_TAGS.find((t) => t.key === "melee");
+	const arcane = EQUIPMENT_TAGS.find((t) => t.key === "arcane");
+
+	function narrativeTagRow(entry, tag) {
+		return {
+			equipmentId: entry.id,
+			equipmentName: entry.name,
+			tagKey: tag.key,
+			tagLabel: tag.label,
+			description: tag.description
+		};
+	}
+
+	it("includes a plain narrative tag with no codified mechanic (Impact)", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["impact"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } } };
+
+		expect(sheet._narrativeWeaponTags()).toEqual([narrativeTagRow(entry, impact)]);
+	});
+
+	it("excludes a spend tag (Blitz)", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["blitz"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } } };
+
+		expect(sheet._narrativeWeaponTags()).toEqual([]);
+	});
+
+	it("excludes a forcesEffect tag (Unreliable)", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["unreliable"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } } };
+
+		expect(sheet._narrativeWeaponTags()).toEqual([]);
+	});
+
+	it("excludes a reroll tag (Decisive)", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "eq1", kind: "weapon", name: "Sword", description: "", tags: ["decisive"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } } };
+
+		expect(sheet._narrativeWeaponTags()).toEqual([]);
+	});
+
+	it("excludes a Guided tag", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["guided"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } } };
+
+		expect(sheet._narrativeWeaponTags()).toEqual([]);
+	});
+
+	it("excludes a Drain tag (exclusiveGroup DRAIN_GROUP), even though it carries no spend field", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "eq1", kind: "weapon", name: "Lance", description: "", tags: ["drain-1"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } } };
+
+		expect(sheet._narrativeWeaponTags()).toEqual([]);
+	});
+
+	it("includes a WEAPON_RANGE_GROUP classifier tag (Melee), which carries no codified effect", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["melee"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } } };
+
+		expect(sheet._narrativeWeaponTags()).toEqual([narrativeTagRow(entry, melee)]);
+	});
+
+	it("includes an Approach tag (Arcane), which is purely descriptive", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["arcane"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [entry] } } };
+
+		expect(sheet._narrativeWeaponTags()).toEqual([narrativeTagRow(entry, arcane)]);
+	});
+
+	it("excludes an Astir weapon's narrative tag while unpiloted", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = { id: "eq1", kind: "weapon", astir: true, name: "Lance", description: "", tags: ["impact"], spent: [] };
+		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: false }, equipment: [entry] } } };
+
+		expect(sheet._narrativeWeaponTags()).toEqual([]);
+	});
+
+	it("offers an Astir weapon's narrative tag once piloted, excluding a mundane weapon's", () => {
+		const sheet = new PlaybookActorSheet();
+		const astirWeapon = { id: "eq1", kind: "weapon", astir: true, name: "Lance", description: "", tags: ["impact"], spent: [] };
+		const mundane = { id: "eq2", kind: "weapon", name: "Halberd", description: "", tags: ["impact"], spent: [] };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", piloted: true }, equipment: [astirWeapon, mundane] } }
+		};
+
+		expect(sheet._narrativeWeaponTags()).toEqual([narrativeTagRow(astirWeapon, impact)]);
+	});
+
+	it("excludes a disabled weapon's narrative tag", () => {
+		const sheet = new PlaybookActorSheet();
+		const entry = {
+			id: "eq1", kind: "weapon", disabled: true, name: "Halberd", description: "", tags: ["impact"], spent: []
+		};
+		sheet.actor = { system: { attributes: { equipment: [entry] } } };
+
+		expect(sheet._narrativeWeaponTags()).toEqual([]);
+	});
+
+	it("leaves a gear entry's narrative tag unaffected by piloted state", () => {
+		const sheet = new PlaybookActorSheet();
+		const gear = { id: "eq1", kind: "gear", name: "Charm", description: "", tags: ["impact"], spent: [] };
+		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: true }, equipment: [gear] } } };
+
+		expect(sheet._narrativeWeaponTags()).toEqual([narrativeTagRow(gear, impact)]);
+	});
+
+	it("excludes every other weapon's narrative tags when scoped to one weapon, but never filters gear", () => {
+		const sheet = new PlaybookActorSheet();
+		const scoped = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["impact"], spent: [] };
+		const other = { id: "eq2", kind: "weapon", name: "Sidearm", description: "", tags: ["impact"], spent: [] };
+		const gear = { id: "eq3", kind: "gear", name: "Charm", description: "", tags: ["impact"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [scoped, other, gear] } } };
+
+		expect(sheet._narrativeWeaponTags(scoped)).toEqual([
+			narrativeTagRow(scoped, impact),
+			narrativeTagRow(gear, impact)
+		]);
 	});
 });

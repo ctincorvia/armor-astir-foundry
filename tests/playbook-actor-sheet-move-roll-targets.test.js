@@ -129,7 +129,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			DISPEL_UNCERTAINTIES,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 	});
 
@@ -272,7 +272,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
+			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
 		);
 	});
 });

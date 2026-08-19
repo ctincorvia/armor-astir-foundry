@@ -2,6 +2,7 @@
 {{#if weaponBundles}}
 	<div class="move-roll-grid">
 		<div class="move-roll-column-1">
+			<h3 class="move-roll-column-header">Controls</h3>
 			<div class="form-group move-roll-select-group">
 				<label>Weapon</label>
 				<select name="weapon-select">
@@ -62,19 +63,6 @@
 				</div>
 			</div>
 			{{/if}}
-			{{#if riders.length}}
-			<div class="form-group move-roll-equipment move-roll-list-section">
-				<label>Riders</label>
-				<div class="move-roll-equipment-list">
-					{{#each riders}}
-					<div class="move-roll-equipment-spend">
-						<span class="move-roll-equipment-name">{{label}}</span>
-						<div class="move-roll-equipment-description">{{text}}</div>
-					</div>
-					{{/each}}
-				</div>
-			</div>
-			{{/if}}
 			<div class="form-group move-roll-select-group">
 				<label>Effect</label>
 				<select name="effect" {{#if lockedEffect}}disabled{{/if}}>
@@ -86,12 +74,26 @@
 			{{/if}}
 		</div>
 		<div class="move-roll-column-2">
+			<h3 class="move-roll-column-header">Weapons</h3>
 			{{#each weaponBundles}}
 			<div class="move-roll-weapon-panel{{#if @first}} active{{/if}}" data-weapon-panel="{{weaponKey}}">
 				{{#if weaponCard}}
-				{{#with weaponCard}}{{> "modules/armor-astir/templates/shared/equipment-card.hbs" class="move-roll-weapon-card" readOnly=true}}{{/with}}
+				{{#with weaponCard}}{{> "modules/armor-astir/templates/shared/equipment-card.hbs" class="move-roll-weapon-card" readOnly=true hideTags=true}}{{/with}}
 				{{else}}
 				<p class="move-roll-weapon-card-unarmed">Unarmed</p>
+				{{/if}}
+				{{#if narrativeTags.length}}
+				<div class="form-group move-roll-equipment move-roll-list-section">
+					<label>Tags</label>
+					<div class="move-roll-equipment-list">
+						{{#each narrativeTags}}
+						<div class="move-roll-equipment-spend">
+							<span class="move-roll-equipment-name">{{equipmentName}} — {{tagLabel}}</span>
+							<div class="move-roll-equipment-description">{{description}}</div>
+						</div>
+						{{/each}}
+					</div>
+				</div>
 				{{/if}}
 				{{#if equipmentSpends.length}}
 				<div class="form-group move-roll-equipment move-roll-list-section">
@@ -109,9 +111,9 @@
 					</div>
 				</div>
 				{{/if}}
-				{{#if rollModifiers.length}}
 				<div class="form-group move-roll-equipment move-roll-list-section">
 					<label>Roll Modifiers</label>
+					{{#if rollModifiers.length}}
 					<div class="move-roll-equipment-list">
 						{{#each rollModifiers}}
 						<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
@@ -128,8 +130,10 @@
 						</div>
 						{{/each}}
 					</div>
+					{{else}}
+					<p class="move-roll-list-section-empty">There are no roll modifiers for this roll.</p>
+					{{/if}}
 				</div>
-				{{/if}}
 				{{#if lockedEffect}}
 				<p class="move-roll-locked-note">Locked: {{lockedEffectLabel}}</p>
 				{{/if}}
@@ -138,6 +142,21 @@
 				{{/if}}
 			</div>
 			{{/each}}
+			<div class="form-group move-roll-equipment move-roll-list-section">
+				<label>Riders</label>
+				{{#if riders.length}}
+				<div class="move-roll-equipment-list">
+					{{#each riders}}
+					<div class="move-roll-equipment-spend">
+						<span class="move-roll-equipment-name">{{label}}</span>
+						<div class="move-roll-equipment-description">{{text}}</div>
+					</div>
+					{{/each}}
+				</div>
+				{{else}}
+				<p class="move-roll-list-section-empty">There are no riders for this roll.</p>
+				{{/if}}
+			</div>
 		</div>
 	</div>
 {{else}}
@@ -154,19 +173,6 @@
 		<input type="hidden" name="trait" value="{{key}}"/>
 		{{/each}}
 		{{/if}}
-	</div>
-	{{/if}}
-	{{#if riders.length}}
-	<div class="form-group move-roll-equipment move-roll-list-section">
-		<label>Riders</label>
-		<div class="move-roll-equipment-list">
-			{{#each riders}}
-			<div class="move-roll-equipment-spend">
-				<span class="move-roll-equipment-name">{{label}}</span>
-				<div class="move-roll-equipment-description">{{text}}</div>
-			</div>
-			{{/each}}
-		</div>
 	</div>
 	{{/if}}
 	{{#if intents}}
@@ -187,6 +193,19 @@
 			<label class="move-roll-condition">
 				<input type="checkbox" name="condition" value="{{key}}"/> {{label}}
 			</label>
+			{{/each}}
+		</div>
+	</div>
+	{{/if}}
+	{{#if narrativeTags.length}}
+	<div class="form-group move-roll-equipment move-roll-list-section">
+		<label>Tags</label>
+		<div class="move-roll-equipment-list">
+			{{#each narrativeTags}}
+			<div class="move-roll-equipment-spend">
+				<span class="move-roll-equipment-name">{{equipmentName}} — {{tagLabel}}</span>
+				<div class="move-roll-equipment-description">{{description}}</div>
+			</div>
 			{{/each}}
 		</div>
 	</div>
@@ -219,9 +238,9 @@
 			{{selectOptions effectStates selected=lockedEffect valueAttr="key" labelAttr="label"}}
 		</select>
 	</div>
-	{{#if rollModifiers.length}}
 	<div class="form-group move-roll-equipment move-roll-list-section">
 		<label>Roll Modifiers</label>
+		{{#if rollModifiers.length}}
 		<div class="move-roll-equipment-list">
 			{{#each rollModifiers}}
 			<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
@@ -238,8 +257,25 @@
 			</div>
 			{{/each}}
 		</div>
+		{{else}}
+		<p class="move-roll-list-section-empty">There are no roll modifiers for this roll.</p>
+		{{/if}}
 	</div>
-	{{/if}}
+	<div class="form-group move-roll-equipment move-roll-list-section">
+		<label>Riders</label>
+		{{#if riders.length}}
+		<div class="move-roll-equipment-list">
+			{{#each riders}}
+			<div class="move-roll-equipment-spend">
+				<span class="move-roll-equipment-name">{{label}}</span>
+				<div class="move-roll-equipment-description">{{text}}</div>
+			</div>
+			{{/each}}
+		</div>
+		{{else}}
+		<p class="move-roll-list-section-empty">There are no riders for this roll.</p>
+		{{/if}}
+	</div>
 	{{#if rollStack}}
 	<div class="form-group move-roll-equipment move-roll-modifiers">
 		<label>Stack</label>

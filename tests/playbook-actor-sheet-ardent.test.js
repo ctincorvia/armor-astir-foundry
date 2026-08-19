@@ -796,7 +796,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Roll Modifiers from a mounted Ardent"
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [],
+			equipmentSpends: [], narrativeTags: [],
 			rollModifiers: [{
 				key: ARTIFACT.key,
 				label: "Advantage from Artifact",

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, configureVariableDiceRoll } from "../scripts/moves/moves.js";
-import { UNARMED } from "../scripts/equipment/equipment.js";
+import { EQUIPMENT_TAGS, UNARMED } from "../scripts/equipment/equipment.js";
 import { CLASH_TRAIT, fakeRollHtml, mockRoll } from "./helpers/move-test-helpers.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
@@ -371,6 +371,47 @@ describe("configureMoveRoll - equipment spends", () => {
 		}));
 
 		expect(await promise).toEqual({ trait: clash, advantage: "none", effect: "none" });
+	});
+});
+
+// narrativeTags (see PlaybookActorSheet#_narrativeWeaponTags) — a read-only display list, unlike
+// equipmentSpends above, so there's no Roll-button/checkbox round trip to test here, only the
+// render-time passthrough (mirrors the "riders" describe block's own shape further below).
+describe("configureMoveRoll - narrative tags", () => {
+	const clash = CLASH_TRAIT;
+	const impact = EQUIPMENT_TAGS.find((t) => t.key === "impact");
+	const impactTag = {
+		equipmentId: "eq1",
+		equipmentName: "Halberd",
+		tagKey: impact.key,
+		tagLabel: impact.label,
+		description: impact.description
+	};
+
+	it("passes the offered narrative tags to the dialog template", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { narrativeTags: [impactTag] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			narrativeTags: [impactTag]
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults narrativeTags to an empty list", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			narrativeTags: []
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
 	});
 });
 

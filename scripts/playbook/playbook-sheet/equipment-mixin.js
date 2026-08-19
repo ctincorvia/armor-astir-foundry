@@ -1,4 +1,5 @@
 import {
+	DRAIN_GROUP,
 	WEAPON_SCALES,
 	chooseEquipmentCatalogItem,
 	configureEquipment,
@@ -229,6 +230,31 @@ export const EquipmentSheetMixin = {
 			}
 		}
 		return spends;
+	},
+	// The actor's narrative (no codified mechanic) weapon/gear tags, offered read-only in the
+	// roll dialog's own Tags section — see docs/domains/equipment.md's "narrative tag" definition.
+	// Same frame/disabled/scoped filtering as _equipmentSpends immediately above.
+	_narrativeWeaponTags(weapon) {
+		const scoped = weapon !== undefined;
+		const mountedFrameId = this._mountedFrame()?.id ?? null;
+		const tags = [];
+		for (const entry of this._equipment()) {
+			if (entry.kind === "weapon" && this._weaponFrameId(entry) !== mountedFrameId) continue;
+			if (entry.kind === "weapon" && entry.disabled) continue;
+			if (scoped && entry.kind === "weapon" && entry.id !== weapon?.id) continue;
+			for (const tagKey of this._weaponTagKeys(entry)) {
+				const tag = findEquipmentTag(tagKey);
+				if (!tag || tag.spend || tag.forcesEffect || tag.reroll || tag.guided || tag.exclusiveGroup === DRAIN_GROUP) continue;
+				tags.push({
+					equipmentId: entry.id,
+					equipmentName: entry.name,
+					tagKey: tag.key,
+					tagLabel: tag.label,
+					description: tag.description
+				});
+			}
+		}
+		return tags;
 	},
 	// Turns a starting-gear pool entry (granted or picked — see starting-gear.js) into a real
 	// equipment.js-shaped entry, the same snapshot treatment a catalog pick already gets. Only a

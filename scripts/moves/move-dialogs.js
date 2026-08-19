@@ -38,6 +38,10 @@ export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates
 // the call, keeps this one place responsible for turning "what's offerable" into "what was
 // checked".
 //
+// narrativeTags (see PlaybookActorSheet#_narrativeWeaponTags) is the same weapon-tag scoping,
+// but for tags with no codified mechanic — purely a read-only display list, nothing to check or
+// resolve back out of the dialog.
+//
 // riders (see PlaybookActorSheet#_ridersForMove) is a read-only preview of the move's passive
 // on-roll bonuses — reuses the same four _grantedXReminderForMove resolvers the post-roll chat
 // card already calls, just surfaced before the player commits to rolling. Unlike rollModifiers,
@@ -91,6 +95,7 @@ export async function configureMoveRoll(
 		lockedAdvantage = null,
 		lockedTrait = null,
 		equipmentSpends = [],
+		narrativeTags = [],
 		rollModifiers = [],
 		rollStack = null,
 		disadvantageConversion = null,
@@ -123,6 +128,7 @@ export async function configureMoveRoll(
 		lockedAdvantageLabel: lockedAdvantage ? advantageState(lockedAdvantage).label : null,
 		lockedTrait,
 		equipmentSpends,
+		narrativeTags,
 		rollModifiers,
 		rollStack,
 		disadvantageConversion,

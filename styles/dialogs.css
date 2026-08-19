@@ -57,6 +57,31 @@
 	padding-bottom: var(--aa-space-1);
 }
 
+/* Empty-state paragraph for a Roll Modifiers/Riders section that always renders now (rather than
+   disappearing when its list is empty) — same italic/muted convention as .move-picker-empty/
+   .equipment-catalog-picker-empty/.starting-gear-picker-empty further below. */
+.armor-astir.move-roll-dialog .move-roll-list-section-empty {
+	margin: 0;
+	font-size: 12px;
+	font-style: italic;
+	opacity: 0.7;
+}
+
+/* Column-level headers ("Controls"/"Weapons") for the weaponBundles grid — mirrors
+   .armor-astir.sheet h3's own uppercase/primary-underline treatment (sheet-chrome.css) so this
+   dialog's section titles read consistently with the rest of the module, scoped here since a
+   Dialog never carries ".sheet". */
+.armor-astir.move-roll-dialog .move-roll-column-header {
+	margin: 0 0 var(--aa-space-2);
+	padding-bottom: var(--aa-space-1);
+	border-bottom: 2px solid var(--aa-primary);
+	font-size: 13px;
+	font-weight: 700;
+	letter-spacing: 0.08em;
+	text-transform: uppercase;
+	color: var(--aa-primary-dark);
+}
+
 .armor-astir.move-roll-dialog .move-roll-conditions {
 	align-items: flex-start;
 }

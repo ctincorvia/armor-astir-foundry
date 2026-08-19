@@ -337,6 +337,7 @@ export const MoveRollSheetMixin = {
 		const lockedEffect = this._lockedEffectFor(move, weapon, pendingGrant);
 		const fromCarrier = Boolean(weapon?.fromCarrier);
 		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
+		const narrativeTags = fromCarrier ? [] : this._narrativeWeaponTags(weapon);
 		const guided = this._guidedFor(move, weapon);
 		const rollModifiers = this._rollModifiersForMove(move, lockedEffect);
 		return {
@@ -351,6 +352,7 @@ export const MoveRollSheetMixin = {
 			traitOptions: bundleTraits.map((trait) => ({ key: trait.key, label: `${trait.label} (${trait.value})` })),
 			lockedEffect,
 			equipmentSpends,
+			narrativeTags,
 			guided,
 			rollModifiers
 		};
@@ -446,6 +448,7 @@ export const MoveRollSheetMixin = {
 		const lockedAdvantage = this._lockedAdvantageFor(move, pendingGrant);
 		const fromCarrier = Boolean(weapon?.fromCarrier);
 		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
+		const narrativeTags = fromCarrier ? [] : this._narrativeWeaponTags(weapon);
 		const guided = this._guidedFor(move, weapon);
 		// The Roll Modifiers section (see move-grants-mixin.js's _rollModifiersForMove/
 		// _rollStackModifier) -- resolved unconditionally, like automaticSuccess below, rather than
@@ -468,6 +471,7 @@ export const MoveRollSheetMixin = {
 			lockedAdvantage,
 			lockedTrait,
 			equipmentSpends,
+			narrativeTags,
 			rollModifiers,
 			rollStack,
 			disadvantageConversion,

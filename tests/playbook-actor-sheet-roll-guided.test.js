@@ -38,7 +38,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [],
+			equipmentSpends: [], narrativeTags: [],
 			rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [],
 			guided: "Guided"
 		});
@@ -55,7 +55,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] });
 	});
 
 	it("treats a missing tags array as not Guided", async () => {
@@ -69,7 +69,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] });
 	});
 
 	it("is never Guided for Unarmed", async () => {
@@ -144,7 +144,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [],
+			equipmentSpends: [], narrativeTags: [],
 			rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [],
 			guided: SPELL_ROUTINES.name
 		});
@@ -168,7 +168,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [],
+			equipmentSpends: [], narrativeTags: [],
 			rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
@@ -191,7 +191,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [],
+			equipmentSpends: [], narrativeTags: [],
 			rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
@@ -211,7 +211,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [],
+			equipmentSpends: [], narrativeTags: [],
 			rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
 		});
 	});
