@@ -168,10 +168,6 @@
 	color: var(--aa-primary-dark);
 }
 
-.armor-astir.move-roll-dialog .move-roll-conditions {
-	align-items: flex-start;
-}
-
 .armor-astir.move-roll-dialog .move-roll-conditions-list {
 	display: flex;
 	flex-direction: column;
@@ -183,7 +179,6 @@
 	flex-direction: row;
 	align-items: center;
 	gap: var(--aa-space-1);
-	white-space: nowrap;
 }
 
 .armor-astir.move-roll-dialog .move-roll-locked-note {
@@ -265,14 +260,18 @@
 	color: var(--aa-danger);
 }
 
-/* The merged weapon-choice + move-roll dialog's own 2-column layout (see docs/domains/moves.md and
-   move-dialogs.js's weaponBundles) — Column 1 holds the weapon select, each weapon's own Trait
+/* The move-roll dialog's shared 2-column layout — used by both branches of the template's own
+   {{#if weaponBundles}}/{{else}} split (see docs/domains/moves.md and move-dialogs.js's
+   weaponBundles), with column 2's header text the only thing that differs between them ("Weapons"
+   vs. "Equipment & Modifiers").
+   For a weaponBundles (usesWeapon) move: Column 1 holds the weapon select, each weapon's own Trait
    control (+ locked-Trait note), and the weapon-independent Dice/Effect/Stack/Convert controls plus
    the locked-Advantage note; Column 2 holds the rest of each weapon's own per-panel content (the
    read-only weapon card, Equipment, Roll Modifiers, and that weapon's own locked-Effect/Guided
-   notes). Only rendered when a usesWeapon move offers weaponBundles — every other move keeps the
-   original single-column .form-group stack untouched (see the template's own
-   {{#if weaponBundles}}/{{else}} split), so none of the rules below ever apply to it. */
+   notes).
+   For every other move: Column 1 holds Trait/Intent/Conditions, the same Dice/Stack/Convert/Effect
+   controls, and the locked-Trait/locked-Advantage/locked-Effect/Guided notes; Column 2 holds Tags,
+   Equipment, Roll Modifiers, and Riders. */
 .armor-astir.move-roll-dialog .move-roll-grid {
 	display: grid;
 	grid-template-columns: minmax(160px, 1fr) minmax(280px, 2fr);

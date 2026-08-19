@@ -153,150 +153,158 @@
 		</div>
 	</div>
 {{else}}
-	{{#if traits.length}}
-	<div class="form-group">
-		<label>Trait</label>
-		{{#if (gt traits.length 1)}}
-		<select name="trait" {{#if lockedTrait}}disabled{{/if}}>
-			{{selectOptions traitOptions selected=lockedTrait.key valueAttr="key" labelAttr="label"}}
-		</select>
-		{{else}}
-		{{#each traits}}
-		<span class="move-roll-trait-label">{{label}} ({{value}})</span>
-		<input type="hidden" name="trait" value="{{key}}"/>
-		{{/each}}
-		{{/if}}
-	</div>
-	{{/if}}
-	{{#if intents}}
-	<div class="form-group">
-		<label>Intent</label>
-		<select name="intent">
-			{{#each intents}}
-			<option value="{{key}}">{{label}}</option>
-			{{/each}}
-		</select>
-	</div>
-	{{/if}}
-	{{#if conditions}}
-	<div class="form-group move-roll-conditions">
-		<label>Conditions</label>
-		<div class="move-roll-conditions-list">
-			{{#each conditions}}
-			<label class="move-roll-condition">
-				<input type="checkbox" name="condition" value="{{key}}"/> {{label}}
-			</label>
-			{{/each}}
-		</div>
-	</div>
-	{{/if}}
-	{{#if narrativeTags.length}}
-	<div class="form-group move-roll-equipment move-roll-list-section">
-		<label>Tags</label>
-		<div class="equipment-tags-block"><ul class="equipment-tag-list">
-			{{#each narrativeTags}}
-			<li class="equipment-tag"><span class="equipment-tag-label">{{equipmentName}} — {{tagLabel}}{{#if showValue}} ({{value}}){{/if}}</span><span class="equipment-tag-description">{{description}}</span></li>
-			{{/each}}
-		</ul></div>
-	</div>
-	{{/if}}
-	{{#if equipmentSpends.length}}
-	<div class="form-group move-roll-equipment move-roll-list-section">
-		<label>Equipment</label>
-		<div class="move-roll-equipment-list">
-			{{#each equipmentSpends}}
-			<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
-				<label class="move-roll-equipment-spend-option">
-					<input type="checkbox" name="equipment-tag" value="{{equipmentId}}::{{tagKey}}" {{#if disabled}}disabled{{/if}}/>
-					<span class="move-roll-equipment-name">{{equipmentName}} — {{tagLabel}}</span>
-				</label>
-				<div class="move-roll-equipment-description">{{description}}</div>
+	<div class="move-roll-grid">
+		<div class="move-roll-column-1">
+			<h3 class="move-roll-column-header">Controls</h3>
+			{{#if traits.length}}
+			<div class="form-group move-roll-select-group">
+				<label>Trait</label>
+				{{#if (gt traits.length 1)}}
+				<select name="trait" {{#if lockedTrait}}disabled{{/if}}>
+					{{selectOptions traitOptions selected=lockedTrait.key valueAttr="key" labelAttr="label"}}
+				</select>
+				{{else}}
+				{{#each traits}}
+				<span class="move-roll-trait-label">{{label}} ({{value}})</span>
+				<input type="hidden" name="trait" value="{{key}}"/>
+				{{/each}}
+				{{/if}}
 			</div>
-			{{/each}}
-		</div>
-	</div>
-	{{/if}}
-	<div class="form-group">
-		<label>Dice</label>
-		{{> "modules/armor-astir/templates/shared/notched-slider.hbs" name="advantage" states=advantageStates selectedKey=advantageSelectedKey selectedLabel=advantageSelectedLabel}}
-	</div>
-	<div class="form-group">
-		<label>Effect</label>
-		{{> "modules/armor-astir/templates/shared/notched-slider.hbs" name="effect" states=effectStates selectedKey=effectSelectedKey selectedLabel=effectSelectedLabel}}
-	</div>
-	<div class="form-group move-roll-equipment move-roll-list-section">
-		<label>Roll Modifiers</label>
-		{{#if rollModifiers.length}}
-		<div class="move-roll-equipment-list">
-			{{#each rollModifiers}}
-			<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
-				<label class="move-roll-equipment-spend-option">
-					{{#unless reminderOnly}}
-					<input type="checkbox" name="{{#if deferred}}pending-roll-modifier{{else}}roll-modifier{{/if}}"
-					       value="{{key}}" {{#if disabled}}disabled{{/if}}/>
-					{{/unless}}
-					<span class="move-roll-equipment-name">{{label}}</span>
-					{{#if deferred}}<span class="move-roll-modifier-deferred-note">(applies to your next qualifying roll)</span>{{/if}}
-				</label>
-				<div class="move-roll-equipment-description">{{{description}}}</div>
-				{{#if disabledReason}}<div class="move-roll-modifier-reason">{{disabledReason}}</div>{{/if}}
+			{{/if}}
+			{{#if intents}}
+			<div class="form-group move-roll-select-group">
+				<label>Intent</label>
+				<select name="intent">
+					{{#each intents}}
+					<option value="{{key}}">{{label}}</option>
+					{{/each}}
+				</select>
 			</div>
-			{{/each}}
-		</div>
-		{{else}}
-		<p class="move-roll-list-section-empty">There are no roll modifiers for this roll.</p>
-		{{/if}}
-	</div>
-	<div class="form-group move-roll-equipment move-roll-list-section">
-		<label>Riders</label>
-		{{#if riders.length}}
-		<div class="move-roll-equipment-list">
-			{{#each riders}}
-			<div class="move-roll-equipment-spend">
-				<span class="move-roll-equipment-name">{{label}}</span>
-				<div class="move-roll-equipment-description">{{text}}</div>
+			{{/if}}
+			{{#if conditions}}
+			<div class="form-group move-roll-equipment move-roll-list-section">
+				<label>Conditions</label>
+				<div class="move-roll-conditions-list">
+					{{#each conditions}}
+					<label class="move-roll-condition">
+						<input type="checkbox" name="condition" value="{{key}}"/> {{label}}
+					</label>
+					{{/each}}
+				</div>
 			</div>
-			{{/each}}
+			{{/if}}
+			<div class="form-group move-roll-select-group">
+				<label>Dice</label>
+				{{> "modules/armor-astir/templates/shared/notched-slider.hbs" name="advantage" states=advantageStates selectedKey=advantageSelectedKey selectedLabel=advantageSelectedLabel}}
+			</div>
+			{{#if rollStack}}
+			<div class="form-group move-roll-equipment move-roll-modifiers">
+				<label>Stack</label>
+				<div class="move-roll-equipment-spend">
+					<label class="move-roll-equipment-spend-option">
+						<input type="checkbox" name="roll-stack" disabled/>
+						<span class="move-roll-equipment-name">{{rollStack.label}}</span>
+					</label>
+					<div class="move-roll-equipment-description">Take an additional Advantage at the cost of Desperation.</div>
+				</div>
+			</div>
+			{{/if}}
+			{{#if disadvantageConversion}}
+			<div class="form-group move-roll-equipment move-roll-modifiers">
+				<label>Convert</label>
+				<div class="move-roll-equipment-spend">
+					<label class="move-roll-equipment-spend-option">
+						<input type="checkbox" name="disadvantage-conversion" disabled/>
+						<span class="move-roll-equipment-name">{{disadvantageConversion.label}}</span>
+					</label>
+					<div class="move-roll-equipment-description">Spend 1 hold to convert your current Disadvantage into Advantage (or, at Disadvantage x2, into a flat roll).</div>
+				</div>
+			</div>
+			{{/if}}
+			<div class="form-group move-roll-select-group">
+				<label>Effect</label>
+				{{> "modules/armor-astir/templates/shared/notched-slider.hbs" name="effect" states=effectStates selectedKey=effectSelectedKey selectedLabel=effectSelectedLabel}}
+			</div>
+			{{#if lockedTrait}}
+			<p class="move-roll-locked-note">Locked: {{lockedTrait.label}}</p>
+			{{/if}}
+			{{#if lockedAdvantage}}
+			<p class="move-roll-locked-note">Locked: {{lockedAdvantageLabel}}</p>
+			{{/if}}
+			{{#if lockedEffect}}
+			<p class="move-roll-locked-note">Locked: {{lockedEffectLabel}}</p>
+			{{/if}}
+			{{#if guided}}
+			<p class="move-roll-guided-note">{{guided}}: use the "Take 7-9" button below to skip rolling.</p>
+			{{/if}}
 		</div>
-		{{else}}
-		<p class="move-roll-list-section-empty">There are no riders for this roll.</p>
-		{{/if}}
-	</div>
-	{{#if rollStack}}
-	<div class="form-group move-roll-equipment move-roll-modifiers">
-		<label>Stack</label>
-		<div class="move-roll-equipment-spend">
-			<label class="move-roll-equipment-spend-option">
-				<input type="checkbox" name="roll-stack" disabled/>
-				<span class="move-roll-equipment-name">{{rollStack.label}}</span>
-			</label>
-			<div class="move-roll-equipment-description">Take an additional Advantage at the cost of Desperation.</div>
+		<div class="move-roll-column-2">
+			<h3 class="move-roll-column-header">Equipment &amp; Modifiers</h3>
+			{{#if narrativeTags.length}}
+			<div class="form-group move-roll-equipment move-roll-list-section">
+				<label>Tags</label>
+				<div class="equipment-tags-block"><ul class="equipment-tag-list">
+					{{#each narrativeTags}}
+					<li class="equipment-tag"><span class="equipment-tag-label">{{equipmentName}} — {{tagLabel}}{{#if showValue}} ({{value}}){{/if}}</span><span class="equipment-tag-description">{{description}}</span></li>
+					{{/each}}
+				</ul></div>
+			</div>
+			{{/if}}
+			{{#if equipmentSpends.length}}
+			<div class="form-group move-roll-equipment move-roll-list-section">
+				<label>Equipment</label>
+				<div class="move-roll-equipment-list">
+					{{#each equipmentSpends}}
+					<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
+						<label class="move-roll-equipment-spend-option">
+							<input type="checkbox" name="equipment-tag" value="{{equipmentId}}::{{tagKey}}" {{#if disabled}}disabled{{/if}}/>
+							<span class="move-roll-equipment-name">{{equipmentName}} — {{tagLabel}}</span>
+						</label>
+						<div class="move-roll-equipment-description">{{description}}</div>
+					</div>
+					{{/each}}
+				</div>
+			</div>
+			{{/if}}
+			<div class="form-group move-roll-equipment move-roll-list-section">
+				<label>Roll Modifiers</label>
+				{{#if rollModifiers.length}}
+				<div class="move-roll-equipment-list">
+					{{#each rollModifiers}}
+					<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
+						<label class="move-roll-equipment-spend-option">
+							{{#unless reminderOnly}}
+							<input type="checkbox" name="{{#if deferred}}pending-roll-modifier{{else}}roll-modifier{{/if}}"
+							       value="{{key}}" {{#if disabled}}disabled{{/if}}/>
+							{{/unless}}
+							<span class="move-roll-equipment-name">{{label}}</span>
+							{{#if deferred}}<span class="move-roll-modifier-deferred-note">(applies to your next qualifying roll)</span>{{/if}}
+						</label>
+						<div class="move-roll-equipment-description">{{{description}}}</div>
+						{{#if disabledReason}}<div class="move-roll-modifier-reason">{{disabledReason}}</div>{{/if}}
+					</div>
+					{{/each}}
+				</div>
+				{{else}}
+				<p class="move-roll-list-section-empty">There are no roll modifiers for this roll.</p>
+				{{/if}}
+			</div>
+			<div class="form-group move-roll-equipment move-roll-list-section">
+				<label>Riders</label>
+				{{#if riders.length}}
+				<div class="move-roll-equipment-list">
+					{{#each riders}}
+					<div class="move-roll-equipment-spend">
+						<span class="move-roll-equipment-name">{{label}}</span>
+						<div class="move-roll-equipment-description">{{text}}</div>
+					</div>
+					{{/each}}
+				</div>
+				{{else}}
+				<p class="move-roll-list-section-empty">There are no riders for this roll.</p>
+				{{/if}}
+			</div>
 		</div>
 	</div>
-	{{/if}}
-	{{#if disadvantageConversion}}
-	<div class="form-group move-roll-equipment move-roll-modifiers">
-		<label>Convert</label>
-		<div class="move-roll-equipment-spend">
-			<label class="move-roll-equipment-spend-option">
-				<input type="checkbox" name="disadvantage-conversion" disabled/>
-				<span class="move-roll-equipment-name">{{disadvantageConversion.label}}</span>
-			</label>
-			<div class="move-roll-equipment-description">Spend 1 hold to convert your current Disadvantage into Advantage (or, at Disadvantage x2, into a flat roll).</div>
-		</div>
-	</div>
-	{{/if}}
-	{{#if lockedTrait}}
-	<p class="move-roll-locked-note">Locked: {{lockedTrait.label}}</p>
-	{{/if}}
-	{{#if lockedAdvantage}}
-	<p class="move-roll-locked-note">Locked: {{lockedAdvantageLabel}}</p>
-	{{/if}}
-	{{#if lockedEffect}}
-	<p class="move-roll-locked-note">Locked: {{lockedEffectLabel}}</p>
-	{{/if}}
-	{{#if guided}}
-	<p class="move-roll-guided-note">{{guided}}: use the "Take 7-9" button below to skip rolling.</p>
-	{{/if}}
 {{/if}}
 </form>
