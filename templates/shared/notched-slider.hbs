@@ -1,0 +1,12 @@
+<div class="notched-slider" data-notched-slider="{{name}}">
+	<div class="notched-slider-track">
+		{{#each states}}
+		<label class="notched-slider-stop{{#if disabled}} disabled{{/if}}">
+			<input type="radio" name="{{../name}}-notch" value="{{key}}" title="{{label}}"
+			       {{#if selected}}checked{{/if}} {{#if disabled}}disabled{{/if}}/>
+		</label>
+		{{/each}}
+	</div>
+	<span class="notched-slider-readout" data-notched-slider-readout>{{selectedLabel}}</span>
+	<input type="hidden" name="{{name}}" value="{{selectedKey}}"/>
+</div>
