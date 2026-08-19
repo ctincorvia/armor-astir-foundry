@@ -179,37 +179,46 @@ export const MoveRollSheetMixin = {
 		return (!fromCarrier && this._weaponIsGuided(weapon) && "Guided") || this._guidedFromPartFor(move) || null;
 	},
 	// Pre-roll preview of the move's passive on-roll bonuses (Roll Modifiers' post-roll reminder
-	// quartet — see move-grants-mixin.js's _grantedFailureReminderForMove/_grantedSuccessReminderForMove/
-	// _grantedMixedReminderForMove/_grantedCriticalReminderForMove), reusing those same four
-	// resolvers rather than a new data model. traitKey is deliberately omitted from the
+	// quartet — see move-grants-mixin.js's _grantingMoveForFailureReminder/_grantingMoveForSuccessReminder/
+	// _grantingMoveForMixedReminder/_grantingMoveForCriticalReminder), reusing those same four
+	// finders rather than a new data model, and prefixing each row's label with the granting move's
+	// own name so a rider is traceable to what granted it. traitKey is deliberately omitted from the
 	// critical-reminder call — the trait isn't chosen until inside the dialog this list previews, so
 	// a requiresTrait-gated critical reminder (Sharp Tongue only, today) won't preview pre-roll; it
 	// still fires correctly post-roll via _finishMoveRoll's own already-trait-aware call, unaffected.
 	// Two catalog combinations get collapsed into a single row when the text matches: mixed+success
-	// ("On Any Success") and all four tiers ("All Rolls:"). Every other combination stays unmerged —
-	// add a broader scheme the day a catalog move actually needs one.
+	// ("On Any Success") and all four tiers ("All Rolls:"). Both merged rows are labeled from the
+	// first tier's own source name (mixed's source for "On Any Success", failure's source for "All
+	// Rolls:") since in the current catalog a merge only ever collapses reminders that came from the
+	// same single source anyway. Every other combination stays unmerged — add a broader scheme the
+	// day a catalog move actually needs one.
 	_ridersForMove(move) {
-		const onFailure = this._grantedFailureReminderForMove(move);
-		const onMixed = this._grantedMixedReminderForMove(move);
-		const onSuccess = this._grantedSuccessReminderForMove(move);
-		const onCritical = this._grantedCriticalReminderForMove(move);
+		const failureSource = this._grantingMoveForFailureReminder(move);
+		const mixedSource = this._grantingMoveForMixedReminder(move);
+		const successSource = this._grantingMoveForSuccessReminder(move);
+		const criticalSource = this._grantingMoveForCriticalReminder(move);
+
+		const onFailure = failureSource?.addsFailureReminderToMove.reminder ?? null;
+		const onMixed = mixedSource?.addsMixedReminderToMove.reminder ?? null;
+		const onSuccess = successSource?.addsSuccessReminderToMove.reminder ?? null;
+		const onCritical = criticalSource?.addsCriticalReminderToMove.reminder ?? null;
 
 		if (onFailure && onMixed && onSuccess && onCritical &&
 			onFailure === onMixed && onMixed === onSuccess && onSuccess === onCritical) {
-			return [{ label: "All Rolls:", text: onFailure }];
+			return [{ label: `${failureSource.name} - All Rolls:`, text: onFailure }];
 		}
 
 		const anySuccess = onMixed && onSuccess && onMixed === onSuccess;
 
 		return [
-			...(onFailure ? [{ label: "On 6-", text: onFailure }] : []),
+			...(onFailure ? [{ label: `${failureSource.name} - On 6-`, text: onFailure }] : []),
 			...(anySuccess
-				? [{ label: "On Any Success", text: onMixed }]
+				? [{ label: `${mixedSource.name} - On Any Success`, text: onMixed }]
 				: [
-					...(onMixed ? [{ label: "On 7-9", text: onMixed }] : []),
-					...(onSuccess ? [{ label: "On 10+", text: onSuccess }] : [])
+					...(onMixed ? [{ label: `${mixedSource.name} - On 7-9`, text: onMixed }] : []),
+					...(onSuccess ? [{ label: `${successSource.name} - On 10+`, text: onSuccess }] : [])
 				]),
-			...(onCritical ? [{ label: "On 12+", text: onCritical }] : [])
+			...(onCritical ? [{ label: `${criticalSource.name} - On 12+`, text: onCritical }] : [])
 		];
 	},
 	// Shared tail of both _rollMove's single-weapon path and _rollMoveWithWeaponChoice's array

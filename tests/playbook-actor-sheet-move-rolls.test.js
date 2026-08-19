@@ -523,7 +523,8 @@ describe("PlaybookActorSheet#_onMoveRoll - Bureaucrat's quick-roll redirect to E
 });
 
 // _ridersForMove's own pre-roll preview (move-roll-mixin.js) — reuses the same four
-// _grantedXReminderForMove resolvers _finishMoveRoll already calls post-roll (see
+// _grantingMoveForXReminder finders the _grantedXReminderForMove resolvers _finishMoveRoll calls
+// post-roll are themselves thin wrappers over (see
 // playbook-actor-sheet-roll-resolved.test.js/playbook-actor-sheet-the-captain.test.js for those
 // resolvers' own dedicated tests), so this only needs to prove the wiring: built correctly for both
 // the single-weapon path (_onWeaponMoveRoll, weapon already known) and the array path
@@ -531,7 +532,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Bureaucrat's quick-roll redirect to E
 // once at the top level rather than duplicated into every weaponBundles entry.
 describe("PlaybookActorSheet#_rollMove - riders (_ridersForMove)", () => {
 	const manaDevourerRiders = [
-		{ label: "On Any Success", text: "+1 Power (against another Astir, with physical harm)" }
+		{ label: "Mana Devourer - On Any Success", text: "+1 Power (against another Astir, with physical harm)" }
 	];
 
 	it("passes Mana Devourer's own reminder as a rider on the single-weapon path (_onWeaponMoveRoll)", async () => {
@@ -621,7 +622,7 @@ describe("PlaybookActorSheet#_rollMove - riders (_ridersForMove)", () => {
 			expect.any(Array),
 			expect.objectContaining({
 				riders: [{
-					label: "All Rolls:",
+					label: "Bearer Of Curses - All Rolls:",
 					text: "First time this Scene, choose 1: they can't use subsystems this Scene; you leave " +
 						"a lasting mark on them; or the next move against them is made with advantage"
 				}]

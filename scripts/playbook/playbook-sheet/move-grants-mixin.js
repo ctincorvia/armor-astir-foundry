@@ -177,14 +177,16 @@ export const MoveGrantsSheetMixin = {
 	// ever surfaced by moves.js#rollMove on an actual 6-. requiresAstirMounted mirrors the same
 	// flag on this move's own addsTraitToMove grant above — no reminder to tick a box that was
 	// never offered as a roll option in the first place while unmounted or in an Ardent.
-	_grantedFailureReminderForMove(move) {
-		const granting = this._grantingMoves()
+	_grantingMoveForFailureReminder(move) {
+		return this._grantingMoves()
 			.find((m) => {
 				const grant = m.addsFailureReminderToMove;
 				if (!grant?.moveKeys?.includes(move.key)) return false;
 				return !grant.requiresAstirMounted || this._mountedFrame()?.kind === "astir";
-			});
-		return granting?.addsFailureReminderToMove.reminder ?? null;
+			}) ?? null;
+	},
+	_grantedFailureReminderForMove(move) {
+		return this._grantingMoveForFailureReminder(move)?.addsFailureReminderToMove.reminder ?? null;
 	},
 	// Coordinator's "your ally may act with confidence in addition to advantage" (see
 	// playbook-moves.js's addsSuccessReminderToMove) — the success-tier mirror of
@@ -194,20 +196,24 @@ export const MoveGrantsSheetMixin = {
 	// never legitimately exercise. Add the gate back (matching _grantedFailureReminderForMove's own
 	// `!grant.requiresAstirMounted || this._mountedFrame()?.kind === "astir"` line) the day a grant
 	// actually needs it — same shape _grantedQuestionsForMove already uses for the same reason.
+	_grantingMoveForSuccessReminder(move) {
+		return this._grantingMoves()
+			.find((m) => m.addsSuccessReminderToMove?.moveKeys?.includes(move.key)) ?? null;
+	},
 	_grantedSuccessReminderForMove(move) {
-		const granting = this._grantingMoves()
-			.find((m) => m.addsSuccessReminderToMove?.moveKeys?.includes(move.key));
-		return granting?.addsSuccessReminderToMove.reminder ?? null;
+		return this._grantingMoveForSuccessReminder(move)?.addsSuccessReminderToMove.reminder ?? null;
 	},
 	// The 7-9 mirror of _grantedSuccessReminderForMove above, backing addsMixedReminderToMove (The
 	// Scout's Patch Job, Mana Devourer/Fisher of Men/In Blood & Terror's own "succeed" text covering
 	// both 7-9 and 10+ per their moves' own results.mixed wording). Same moveKeys-required shape as
 	// addsSuccessReminderToMove/addsFailureReminderToMove (not addsCriticalReminderToMove's
 	// optional-moveKeys convention) — nothing needs a universal "any move" mixed-tier grant yet.
+	_grantingMoveForMixedReminder(move) {
+		return this._grantingMoves()
+			.find((m) => m.addsMixedReminderToMove?.moveKeys?.includes(move.key)) ?? null;
+	},
 	_grantedMixedReminderForMove(move) {
-		const granting = this._grantingMoves()
-			.find((m) => m.addsMixedReminderToMove?.moveKeys?.includes(move.key));
-		return granting?.addsMixedReminderToMove.reminder ?? null;
+		return this._grantingMoveForMixedReminder(move)?.addsMixedReminderToMove.reminder ?? null;
 	},
 	// The 12+ mirror of _grantedSuccessReminderForMove above, backing addsCriticalReminderToMove
 	// (Soldier's Indomitable, Cantrips' Truth-making, The Advocate's A Greener World, The
@@ -220,16 +226,18 @@ export const MoveGrantsSheetMixin = {
 	// (Sharp Tongue only, "when you exchange blows with +TALK") further restricts the grant to
 	// whichever trait was actually rolled, since Exchange Blows itself offers a choice of CLASH or
 	// TALK and the move's own text cares which one was used.
-	_grantedCriticalReminderForMove(move, traitKey) {
-		const granting = this._grantingMoves()
+	_grantingMoveForCriticalReminder(move, traitKey) {
+		return this._grantingMoves()
 			.find((m) => {
 				const grant = m.addsCriticalReminderToMove;
 				if (!grant) return false;
 				if (grant.moveKeys && !grant.moveKeys.includes(move.key)) return false;
 				if (grant.requiresTrait && grant.requiresTrait !== traitKey) return false;
 				return true;
-			});
-		return granting?.addsCriticalReminderToMove.reminder ?? null;
+			}) ?? null;
+	},
+	_grantedCriticalReminderForMove(move, traitKey) {
+		return this._grantingMoveForCriticalReminder(move, traitKey)?.addsCriticalReminderToMove.reminder ?? null;
 	},
 	// Every move flagged grantsAutomaticSuccess (Hot-blooded, Once the War's Over, The Arity
 	// Method, Dark Rebirth, Ancient Recall, Ain't No Grave — see playbook-moves.js) can spend its
