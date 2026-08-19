@@ -185,15 +185,30 @@ export const MoveRollSheetMixin = {
 	// critical-reminder call — the trait isn't chosen until inside the dialog this list previews, so
 	// a requiresTrait-gated critical reminder (Sharp Tongue only, today) won't preview pre-roll; it
 	// still fires correctly post-roll via _finishMoveRoll's own already-trait-aware call, unaffected.
+	// Two catalog combinations get collapsed into a single row when the text matches: mixed+success
+	// ("On Any Success") and all four tiers ("All Rolls:"). Every other combination stays unmerged —
+	// add a broader scheme the day a catalog move actually needs one.
 	_ridersForMove(move) {
 		const onFailure = this._grantedFailureReminderForMove(move);
 		const onMixed = this._grantedMixedReminderForMove(move);
 		const onSuccess = this._grantedSuccessReminderForMove(move);
 		const onCritical = this._grantedCriticalReminderForMove(move);
+
+		if (onFailure && onMixed && onSuccess && onCritical &&
+			onFailure === onMixed && onMixed === onSuccess && onSuccess === onCritical) {
+			return [{ label: "All Rolls:", text: onFailure }];
+		}
+
+		const anySuccess = onMixed && onSuccess && onMixed === onSuccess;
+
 		return [
 			...(onFailure ? [{ label: "On 6-", text: onFailure }] : []),
-			...(onMixed ? [{ label: "On 7-9", text: onMixed }] : []),
-			...(onSuccess ? [{ label: "On 10+", text: onSuccess }] : []),
+			...(anySuccess
+				? [{ label: "On Any Success", text: onMixed }]
+				: [
+					...(onMixed ? [{ label: "On 7-9", text: onMixed }] : []),
+					...(onSuccess ? [{ label: "On 10+", text: onSuccess }] : [])
+				]),
 			...(onCritical ? [{ label: "On 12+", text: onCritical }] : [])
 		];
 	},

@@ -531,8 +531,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Bureaucrat's quick-roll redirect to E
 // once at the top level rather than duplicated into every weaponBundles entry.
 describe("PlaybookActorSheet#_rollMove - riders (_ridersForMove)", () => {
 	const manaDevourerRiders = [
-		{ label: "On 7-9", text: "+1 Power (against another Astir, with physical harm)" },
-		{ label: "On 10+", text: "+1 Power (against another Astir, with physical harm)" }
+		{ label: "On Any Success", text: "+1 Power (against another Astir, with physical harm)" }
 	];
 
 	it("passes Mana Devourer's own reminder as a rider on the single-weapon path (_onWeaponMoveRoll)", async () => {
@@ -602,6 +601,31 @@ describe("PlaybookActorSheet#_rollMove - riders (_ridersForMove)", () => {
 			EXCHANGE_BLOWS,
 			expect.any(Array),
 			expect.objectContaining({ riders: [] })
+		);
+	});
+
+	it("collapses The Witch's Bearer Of Curses into a single \"All Rolls:\" row when all four tiers match", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { equipment: [], playbookMoves: ["the-witch:bearer-of-curses"] }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			expect.objectContaining({
+				riders: [{
+					label: "All Rolls:",
+					text: "First time this Scene, choose 1: they can't use subsystems this Scene; you leave " +
+						"a lasting mark on them; or the next move against them is made with advantage"
+				}]
+			})
 		);
 	});
 });
