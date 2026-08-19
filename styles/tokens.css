@@ -2,12 +2,23 @@
    playbook-actor-sheet.css so every other stylesheet in this module can load after it and
    reference var(--aa-*). Must stay first in module.json's styles array. */
 
-/* Design tokens. Declared on both roots this module renders under — the actor sheet + every
-   dialog (all carry the "armor-astir" class) and the chat card (its own "armor-astir-move-chat"
-   root, never nested under "armor-astir") — so nothing leaks into pbta's own chrome or other
-   modules' sheets. */
+/* Design tokens. Declared on every root this module renders under — the actor sheet + every
+   dialog (all carry the "armor-astir" class), the chat card (its own "armor-astir-move-chat"
+   root, never nested under "armor-astir"), and the chat message list-item itself — so nothing
+   leaks into pbta's own chrome or other modules' sheets.
+
+   The li.chat-message selector is not redundant with .armor-astir-move-chat: custom properties
+   only inherit down the DOM tree, and Foundry's own dice-roll box (.dice-formula/.dice-total/
+   .dice-tooltip, styled in move-chat.css) is a DOM *sibling* of .armor-astir-move-chat — both live
+   inside the same li.chat-message, but .dice-roll sits in the message's content div while
+   .armor-astir-move-chat sits in the header's flavor-text span (see move-chat.css's comment on
+   this same split). Without redeclaring the tokens here too, a var(--aa-secondary-tint) etc. used
+   against .dice-formula resolves to nothing — invalid at computed-value time, so it silently
+   computes to the property's initial value instead of erroring, which is why the rule shows up
+   unstruck-through in devtools yet visibly does nothing. */
 .armor-astir,
-.armor-astir-move-chat {
+.armor-astir-move-chat,
+li.chat-message:has(.armor-astir-move-chat) {
 	/* Palette — the two gems, named for what they are. Nothing styles against these directly. */
 	--aa-moonstone: #7fa8b8;
 	--aa-moonstone-dark: #4a6e7c;

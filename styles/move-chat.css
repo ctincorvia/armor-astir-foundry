@@ -9,7 +9,8 @@
    the Reroll button) sits flush against Foundry's own roll display with zero gap. This margin is
    what puts space back between the two; it has to live on the outermost element since a flex
    item's margin (flavor-text is a flex child of the header) doesn't collapse through its
-   container the way a normal block margin would. */
+   container the way a normal block margin would. Below, the `li.chat-message:has(...)` rules
+   restyle that sibling dice-roll box itself — see the comment there for why. */
 .armor-astir-move-chat {
 	margin-bottom: var(--aa-space-2);
 }
@@ -262,6 +263,46 @@
    so a run of exploded 6's reads as visually distinct from the roll's own kept/dropped dice. */
 .armor-astir-move-chat .move-die-exploded {
 	border-color: var(--aa-secondary-dark);
+}
+
+/* Foundry's own dice-roll box (see the .armor-astir-move-chat comment above) ships default gray
+   chrome (rgba(0,0,0,0.1) fill, generic border) that clashes with everything around it. Scoped via
+   :has() to only this module's chat cards, not every roll in the game — .dice-roll and
+   .armor-astir-move-chat are siblings under the same li.chat-message, not ancestor/descendant, so
+   a plain descendant selector from .armor-astir-move-chat can't reach it. Restyled with the
+   secondary (moonstone) token rather than primary/amethyst: this is a readout, not a control —
+   see the role-token split in docs/domains/styling.md — so it stays visually distinct from the
+   card's purple action buttons instead of adding another purple element next to them. Pass/fail
+   is left to the existing tier badge; core never sets .dice-total.success/.failure on a stock
+   roll, so there's nothing to color-code here anyway. */
+li.chat-message:has(.armor-astir-move-chat) .dice-formula {
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-tint);
+	color: var(--aa-secondary-dark);
+	font-weight: 700;
+}
+
+li.chat-message:has(.armor-astir-move-chat) .dice-total {
+	border: 1px solid var(--aa-secondary-dark);
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-tint);
+	color: var(--aa-secondary-dark);
+	padding: 2px 0;
+}
+
+/* Light touch only on the expanded per-die breakdown — it's an opt-in view, and the individual
+   die faces already carry meaningful color via Foundry's own .roll.success/.max/.failure/.min/
+   .discarded/.rerolled classes, which this deliberately doesn't override. */
+li.chat-message:has(.armor-astir-move-chat) .dice-tooltip .tooltip-part {
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	padding: var(--aa-space-1);
+}
+
+li.chat-message:has(.armor-astir-move-chat) .dice-tooltip .part-total {
+	font-weight: bold;
+	color: var(--aa-secondary-dark);
 }
 
 /* Number Of The Beast's "killed in a spectacular fashion" badge — deliberately unmissable, the
