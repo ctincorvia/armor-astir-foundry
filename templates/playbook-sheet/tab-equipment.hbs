@@ -6,8 +6,8 @@
 								{{#if equipment.startingGear.available}}
 								<button type="button" class="starting-gear-add icon-add-button labeled-add-button" title="Choose Starting Gear" aria-label="Choose Starting Gear">+ Starting Equipment</button>
 								{{else}}
-								<button type="button" class="equipment-add icon-add-button" data-kind="weapon" title="Add Weapon" aria-label="Add Weapon">+</button>
-								<button type="button" class="equipment-catalog-add icon-add-button" data-kind="weapon" title="Pick Weapon from Catalog" aria-label="Pick Weapon from Catalog">O</button>
+								<button type="button" class="equipment-catalog-add icon-add-button" data-kind="weapon" title="Pick Weapon from Catalog" aria-label="Pick Weapon from Catalog">+</button>
+								<button type="button" class="equipment-add icon-add-button labeled-add-button" data-kind="weapon" title="Add Weapon" aria-label="Add Weapon">Custom</button>
 								{{/if}}
 							</div>
 						</div>
@@ -40,8 +40,8 @@
 							<h3>Gear</h3>
 							<div class="section-header-actions">
 								{{#unless equipment.startingGear.available}}
-								<button type="button" class="equipment-add icon-add-button" data-kind="gear" title="Add Gear" aria-label="Add Gear">+</button>
-								<button type="button" class="equipment-catalog-add icon-add-button" data-kind="gear" title="Pick Gear from Catalog" aria-label="Pick Gear from Catalog">O</button>
+								<button type="button" class="equipment-catalog-add icon-add-button" data-kind="gear" title="Pick Gear from Catalog" aria-label="Pick Gear from Catalog">+</button>
+								<button type="button" class="equipment-add icon-add-button labeled-add-button" data-kind="gear" title="Add Gear" aria-label="Add Gear">Custom</button>
 								{{/unless}}
 							</div>
 						</div>

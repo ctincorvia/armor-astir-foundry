@@ -27,10 +27,10 @@ export function fakeNoopJQuery() {
 //
 // panelScoped (default false, so every existing caller's selector strings are unaffected) fakes
 // configureMoveRoll's weaponBundles-only rescoping (see move-dialogs.js's own doc comment) of the
-// equipment-tag/roll-modifier/pending-roll-modifier checked-list reads to
-// `[data-weapon-panel].active [name='...']:checked` instead of the bare `[name='...']:checked` —
-// the trait select needs no special case here, since its own read always falls through to the
-// generic `values[selector]` branch below regardless of which selector string it's keyed by.
+// equipment-tag/roll-modifier/pending-roll-modifier/roll-stack/disadvantage-conversion reads to
+// `[data-weapon-panel].active [name='...']` instead of the bare `[name='...']` — the trait select
+// needs no special case here, since its own read always falls through to the generic
+// `values[selector]` branch below regardless of which selector string it's keyed by.
 export function fakeRollHtml(
 	values,
 	checkedConditions = [],
@@ -60,10 +60,10 @@ export function fakeRollHtml(
 			if (selector === `${scope}[name='pending-roll-modifier']:checked`) {
 				return { map: (fn) => ({ get: () => checkedPendingRollModifiers.map((value, index) => fn(index, { value })) }) };
 			}
-			if (selector === "[name='roll-stack']") {
+			if (selector === `${scope}[name='roll-stack']`) {
 				return { prop: (prop) => (prop === "checked" ? rollStackChecked : undefined) };
 			}
-			if (selector === "[name='disadvantage-conversion']") {
+			if (selector === `${scope}[name='disadvantage-conversion']`) {
 				return { prop: (prop) => (prop === "checked" ? disadvantageConversionChecked : undefined) };
 			}
 			return { val: () => values[selector] };

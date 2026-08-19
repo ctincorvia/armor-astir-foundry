@@ -1464,6 +1464,57 @@ describe("configureMoveRoll - weaponBundles", () => {
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
 	});
+
+	// rollStack/disadvantageConversion are top-level dialog fields (unlike Trait/Equipment/Roll
+	// Modifiers, which vary per bundle), but the template now duplicates their checkbox markup into
+	// every weapon panel's own Roll Modifiers list for placement — so the Roll-time read still needs
+	// to be scoped to the *active* panel's own copy, exactly like equipmentTagSelector/
+	// rollModifierSelector above (see move-dialogs.js's own rollStackSelector/
+	// disadvantageConversionSelector). fakeRollHtml's panelScoped=true only matches the
+	// `[data-weapon-panel].active [name='...']` selector string, so these tests fail loudly if
+	// move-dialogs.js ever regresses back to the bare unscoped selector.
+	it("resolves advantage/effect from rollStack when the active panel's own Stack checkbox is checked", async () => {
+		const rollStack = { key: "cantrips:all-in", label: "All In", requiresAdvantageSelected: true, setAdvantage: "advantage2", setEffect: "desperation" };
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { weaponBundles: [unarmedBundle, halberdBundle], rollStack });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='weapon-select']": halberdBundle.weaponKey,
+			"[data-weapon-panel].active [name='trait']": "clash",
+			"[name='advantage']": "advantage",
+			"[name='effect']": "none"
+		}, [], [], [], [], [], true, false, true));
+
+		const result = await promise;
+		expect(result.advantage).toBe("advantage2");
+		expect(result.effect).toBe("desperation");
+	});
+
+	it("resolves advantage from disadvantageConversion when the active panel's own Convert checkbox is checked", async () => {
+		const disadvantageConversion = {
+			key: "the-witch:embrace-chaos",
+			label: "Embrace Chaos",
+			costsHold: { amount: 1 },
+			transform: { disadvantage: "advantage", disadvantage2: "none" }
+		};
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { weaponBundles: [unarmedBundle, halberdBundle], disadvantageConversion });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='weapon-select']": halberdBundle.weaponKey,
+			"[data-weapon-panel].active [name='trait']": "clash",
+			"[name='advantage']": "disadvantage",
+			"[name='effect']": "none"
+		}, [], [], [], [], [], false, true, true));
+
+		const result = await promise;
+		expect(result.advantage).toBe("advantage");
+		expect(result.spentDisadvantageConversion).toBe(true);
+	});
 });
 
 describe("configureVariableDiceRoll", () => {

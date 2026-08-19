@@ -114,9 +114,13 @@ function wireNotchedSlider(html, name) {
 // .active on every matching element in one query without needing to know which column it's in.
 // This function's own render/Roll-button wiring below reads every weapon-dependent field (Trait,
 // Equipment, Roll Modifiers) from the *active* panel instead of the dialog's single top-level
-// copy — Dice/Effect/Stack/Convert/lockedAdvantage stay top-level and unscoped either way, since
-// none of those vary by weapon (see _rollMoveWithWeaponChoice's own weapon-independent/-dependent
-// split). Left null (the default) for every non-usesWeapon move, and for _onWeaponMoveRoll's own
+// copy — Dice/Effect/lockedAdvantage stay top-level and unscoped either way, since none of those
+// vary by weapon (see _rollMoveWithWeaponChoice's own weapon-independent/-dependent split).
+// Stack/Convert's underlying values are top-level too, but the template now places their checkbox
+// markup inside each weapon panel's own Roll Modifiers list for layout, duplicating it once per
+// panel — so the Roll-time read below scopes to the *active* panel the same way Trait/Equipment/
+// Roll Modifiers do, even though the value itself doesn't vary by weapon.
+// Left null (the default) for every non-usesWeapon move, and for _onWeaponMoveRoll's own
 // quick-roll path (the weapon is already known there, so there's nothing to choose) — both keep
 // rendering and resolving through the exact same single-column path as before this option existed.
 export async function configureMoveRoll(
@@ -267,6 +271,12 @@ export async function configureMoveRoll(
 						const pendingRollModifierSelector = weaponBundles
 							? "[data-weapon-panel].active [name='pending-roll-modifier']:checked"
 							: "[name='pending-roll-modifier']:checked";
+						const rollStackSelector = weaponBundles
+							? "[data-weapon-panel].active [name='roll-stack']"
+							: "[name='roll-stack']";
+						const disadvantageConversionSelector = weaponBundles
+							? "[data-weapon-panel].active [name='disadvantage-conversion']"
+							: "[name='disadvantage-conversion']";
 
 						const spentTags = activeEquipmentSpends.length
 							? html.find(equipmentTagSelector).map((_, el) => el.value).get()
@@ -315,12 +325,12 @@ export async function configureMoveRoll(
 						// Only ever meaningfully checked while the render callback above has already
 						// enabled it (Advantage selected), so no separate "is Advantage selected"
 						// re-check is needed here.
-						const allInChecked = Boolean(rollStack) && Boolean(html.find("[name='roll-stack']").prop("checked"));
+						const allInChecked = Boolean(rollStack) && Boolean(html.find(rollStackSelector).prop("checked"));
 						// Embrace Chaos's own checkbox — same "only meaningfully checked while the
 						// render callback above already enabled it" reasoning as allInChecked, just
 						// keyed off the disadvantage-conversion checkbox name instead of roll-stack.
 						const disadvantageConversionChecked = Boolean(disadvantageConversion)
-							&& Boolean(html.find("[name='disadvantage-conversion']").prop("checked"));
+							&& Boolean(html.find(disadvantageConversionSelector).prop("checked"));
 
 						resolve({
 							trait: lockedTrait ?? activeTraits.find((t) => t.key === html.find(traitSelector).val()),

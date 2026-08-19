@@ -20,8 +20,8 @@
 
 /* Weapon/Trait/Dice/Effect (Column 1 of the weaponBundles grid — see .move-roll-grid below) are all
    plain "one label, one dropdown" rows, unlike the other .form-group variants elsewhere in this file
-   (Stack/Convert stay row-shaped; Equipment/Roll Modifiers become header-shaped — see
-   .move-roll-list-section below), so a fixed label column lets their labels and selects both line up
+   (Equipment/Roll Modifiers become header-shaped — see .move-roll-list-section below), so a fixed
+   label column lets their labels and selects both line up
    into two even columns rather than each select starting wherever its own label's text happens to
    end — the flex+space-between layout .form-group uses elsewhere. Equal specificity to the
    .form-group rule above (three classes each) so source order, not specificity, is what makes this
@@ -123,8 +123,7 @@
 
 /* Equipment and Roll Modifiers both read as a section header above their own .move-roll-equipment-
    list, not a row label to the left of it — either list can hold several entries (a weapon's Blitz/
-   Guided/etc. tags; Manawheels, Sharper Knives, ...), unlike the single fixed item Stack/Convert
-   each pair with a label to the left of, which stay row-shaped. Mirrors the equipment-editor's own
+   Guided/etc. tags; Manawheels, Sharper Knives, Stack, Convert, ...). Mirrors the equipment-editor's own
    form-group > label treatment above (stacked layout, bold primary-colored label, line-height:1 to
    undo Foundry core's `form .form-group label { line-height: var(--form-field-height) }` quirk
    documented there) rather than inventing a second header style. Equal specificity to .form-group,
@@ -264,13 +263,13 @@
    weaponBundles), with column 2's header text the only thing that differs between them ("Weapons"
    vs. "Equipment & Modifiers").
    For a weaponBundles (usesWeapon) move: Column 1 holds the weapon select, each weapon's own Trait
-   control (+ locked-Trait note), and the weapon-independent Dice/Effect/Stack/Convert controls plus
-   the locked-Advantage note; Column 2 holds the rest of each weapon's own per-panel content (the
-   read-only weapon card, Equipment, Roll Modifiers, and that weapon's own locked-Effect/Guided
-   notes).
-   For every other move: Column 1 holds Trait/Intent/Conditions, the same Dice/Stack/Convert/Effect
-   controls, and the locked-Trait/locked-Advantage/locked-Effect/Guided notes; Column 2 holds Tags,
-   Equipment, Roll Modifiers, and Riders. */
+   control (+ locked-Trait note), and the weapon-independent Dice/Effect controls plus the locked-
+   Advantage note; Column 2 holds the rest of each weapon's own per-panel content (the read-only
+   weapon card, Equipment, Roll Modifiers — which folds in Stack/Convert, see move-dialogs.js's own
+   weaponBundles comment — and that weapon's own locked-Effect/Guided notes).
+   For every other move: Column 1 holds Trait/Intent/Conditions, the same Dice/Effect controls, and
+   the locked-Trait/locked-Advantage/locked-Effect/Guided notes; Column 2 holds Tags, Equipment,
+   Roll Modifiers (Stack/Convert folded in the same way), and Riders. */
 .armor-astir.move-roll-dialog .move-roll-grid {
 	display: grid;
 	grid-template-columns: minmax(160px, 1fr) minmax(280px, 2fr);
