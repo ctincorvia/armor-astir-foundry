@@ -30,6 +30,7 @@
 .armor-astir.move-roll-dialog .move-roll-select-group {
 	display: grid;
 	grid-template-columns: 70px 1fr;
+	font-weight: 700;
 }
 
 .armor-astir.move-roll-dialog .move-roll-select-group select {
@@ -51,9 +52,8 @@
 .armor-astir.move-roll-dialog .notched-slider-track {
 	display: flex;
 	align-items: center;
-	justify-content: space-between;
+	justify-content: space-evenly;
 	position: relative;
-	padding: 0 var(--aa-space-1);
 }
 
 /* Thin baseline behind the stops so discrete radio notches still read as one connected track. */
@@ -92,7 +92,6 @@
 .armor-astir.move-roll-dialog .notched-slider-stop input[type="radio"]:checked {
 	background: var(--aa-primary-dark);
 	border-color: var(--aa-primary-dark);
-	transform: scale(1.2);
 }
 
 .armor-astir.move-roll-dialog .notched-slider-stop input[type="radio"]:disabled {
