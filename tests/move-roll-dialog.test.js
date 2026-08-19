@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, configureVariableDiceRoll } from "../scripts/moves/moves.js";
 import { EQUIPMENT_TAGS, UNARMED } from "../scripts/equipment/equipment.js";
-import { CLASH_TRAIT, fakeRollHtml, mockRoll } from "./helpers/move-test-helpers.js";
+import { CLASH_TRAIT, fakeNoopJQuery, fakeRollHtml, mockRoll } from "./helpers/move-test-helpers.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 const HELP_OR_HINDER = BASIC_MOVES.find((m) => m.key === "help-or-hinder");
@@ -76,6 +76,151 @@ describe("configureMoveRoll", () => {
 		dialogOptions.close();
 
 		expect(await promise).toBeNull();
+	});
+});
+
+describe("configureMoveRoll - notched slider states", () => {
+	const clash = CLASH_TRAIT;
+
+	it("shapes advantageStates in display order, with no lock", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			advantageStates: [
+				{ key: "disadvantage2", label: "Disadvantage x2", selected: false, disabled: false },
+				{ key: "disadvantage", label: "Disadvantage", selected: false, disabled: false },
+				{ key: "none", label: "None", selected: true, disabled: false },
+				{ key: "advantage", label: "Advantage", selected: false, disabled: false },
+				{ key: "advantage2", label: "Advantage x2", selected: false, disabled: false }
+			],
+			advantageSelectedKey: "none",
+			advantageSelectedLabel: "None"
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("shapes effectStates in display order, with no lock", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			effectStates: [
+				{ key: "desperation", label: "Desperation", selected: false, disabled: false },
+				{ key: "none", label: "None", selected: true, disabled: false },
+				{ key: "confidence", label: "Confidence", selected: false, disabled: false }
+			],
+			effectSelectedKey: "none",
+			effectSelectedLabel: "None"
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("disables every advantageStates entry and selects the locked one when lockedAdvantage is set", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { lockedAdvantage: "advantage2" });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			advantageStates: [
+				{ key: "disadvantage2", label: "Disadvantage x2", selected: false, disabled: true },
+				{ key: "disadvantage", label: "Disadvantage", selected: false, disabled: true },
+				{ key: "none", label: "None", selected: false, disabled: true },
+				{ key: "advantage", label: "Advantage", selected: false, disabled: true },
+				{ key: "advantage2", label: "Advantage x2", selected: true, disabled: true }
+			],
+			advantageSelectedKey: "advantage2",
+			advantageSelectedLabel: "Advantage x2"
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("disables every effectStates entry and selects the locked one when lockedEffect is set", async () => {
+		const promise = configureMoveRoll(BITE_THE_DUST, [clash], { lockedEffect: "desperation" });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			effectStates: [
+				{ key: "desperation", label: "Desperation", selected: true, disabled: true },
+				{ key: "none", label: "None", selected: false, disabled: true },
+				{ key: "confidence", label: "Confidence", selected: false, disabled: true }
+			],
+			effectSelectedKey: "desperation",
+			effectSelectedLabel: "Desperation"
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+});
+
+describe("configureMoveRoll - notched slider wiring", () => {
+	const clash = CLASH_TRAIT;
+
+	// Fakes the differently-named <name>-notch radio group driving the hidden [name=<name>] input
+	// (see wireNotchedSlider, move-dialogs.js) — captures the change handler and the hidden
+	// input's/readout's own writes so the handler can be invoked directly, mirroring
+	// fakeRollStackRenderHtml's own shape above for the same "invoke the render callback's wiring
+	// directly" reason.
+	function fakeNotchedSliderRenderHtml(name) {
+		const state = { hiddenValue: undefined, triggered: false, readoutText: null, handlers: {} };
+		const hiddenEl = {
+			val(value) { if (value === undefined) return state.hiddenValue; state.hiddenValue = value; return hiddenEl; },
+			trigger(event) { if (event === "change") state.triggered = true; return hiddenEl; }
+		};
+		const readoutEl = { text(value) { state.readoutText = value; return readoutEl; } };
+		state.html = {
+			find: (selector) => {
+				if (selector === `[name='${name}']`) return hiddenEl;
+				if (selector === `[name='${name}-notch']`) return { on: (event, handler) => { state.handlers[event] = handler; } };
+				if (selector === `[data-notched-slider='${name}'] [data-notched-slider-readout]`) return readoutEl;
+				return fakeNoopJQuery();
+			}
+		};
+		return state;
+	}
+
+	it("drives the hidden advantage input and fires change when a Dice notch is picked", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeNotchedSliderRenderHtml("advantage");
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		state.handlers.change({ target: { value: "advantage2", title: "Advantage x2" } });
+
+		expect(state.hiddenValue).toBe("advantage2");
+		expect(state.triggered).toBe(true);
+		expect(state.readoutText).toBe("Advantage x2");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("drives the hidden effect input and fires change when an Effect notch is picked", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeNotchedSliderRenderHtml("effect");
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		state.handlers.change({ target: { value: "confidence", title: "Confidence" } });
+
+		expect(state.hiddenValue).toBe("confidence");
+		expect(state.triggered).toBe(true);
+		expect(state.readoutText).toBe("Confidence");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
 	});
 });
 
@@ -813,7 +958,7 @@ describe("configureMoveRoll - roll stack (All In)", () => {
 			find: (selector) => {
 				if (selector === "[name='advantage']") return advantageEl;
 				if (selector === "[name='roll-stack']") return rollStackEl;
-				return {};
+				return fakeNoopJQuery();
 			}
 		};
 		return state;
@@ -1009,7 +1154,7 @@ describe("configureMoveRoll - disadvantage conversion (Embrace Chaos)", () => {
 			find: (selector) => {
 				if (selector === "[name='advantage']") return advantageEl;
 				if (selector === "[name='disadvantage-conversion']") return disadvantageConversionEl;
-				return {};
+				return fakeNoopJQuery();
 			}
 		};
 		return state;
@@ -1160,11 +1305,18 @@ describe("configureMoveRoll - weaponBundles", () => {
 	function fakeWeaponPanelRenderHtml() {
 		const state = { handler: null, removeClassCalls: [], addClassCalls: [] };
 		state.html = {
-			find: (selector) => ({
-				on: (event, handler) => { state.handler = handler; },
-				removeClass: (cls) => { state.removeClassCalls.push([selector, cls]); },
-				addClass: (cls) => { state.addClassCalls.push([selector, cls]); }
-			})
+			find: (selector) => {
+				if (selector === "[name='weapon-select']") {
+					return { on: (event, handler) => { state.handler = handler; } };
+				}
+				if (selector === "[data-weapon-panel]" || selector.startsWith("[data-weapon-panel=")) {
+					return {
+						removeClass: (cls) => { state.removeClassCalls.push([selector, cls]); },
+						addClass: (cls) => { state.addClassCalls.push([selector, cls]); }
+					};
+				}
+				return fakeNoopJQuery();
+			}
 		};
 		return state;
 	}

@@ -1,12 +1,44 @@
 import {
-	ADVANTAGE_STATES,
-	EFFECT_STATES,
 	advantageState,
 	effectState
 } from "./roll-effects.js";
 
 export const MOVE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates/move-roll-dialog.hbs";
 export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates/variable-dice-roll-dialog.hbs";
+
+// Display order for the Dice/Effect notched sliders (templates/shared/notched-slider.hbs) — not
+// ADVANTAGE_STATES/EFFECT_STATES' own catalog order, which roll-effects.js's other callers
+// (nextAdvantageState, etc.) iterate by their own logic and shouldn't be reshuffled for display.
+const ADVANTAGE_DISPLAY_ORDER = ["disadvantage2", "disadvantage", "none", "advantage", "advantage2"];
+const EFFECT_DISPLAY_ORDER = ["desperation", "none", "confidence"];
+
+// Shapes one ADVANTAGE_DISPLAY_ORDER/EFFECT_DISPLAY_ORDER list into the {states, selectedKey,
+// selectedLabel} the notched-slider partial needs — every stop disabled together when locked,
+// matching the old <select disabled> behavior.
+function buildNotchedSlider(displayOrder, resolveState, lockedKey) {
+	const selectedKey = lockedKey ?? "none";
+	return {
+		states: displayOrder.map((key) => {
+			const state = resolveState(key);
+			return { key: state.key, label: state.label, selected: state.key === selectedKey, disabled: Boolean(lockedKey) };
+		}),
+		selectedKey,
+		selectedLabel: resolveState(selectedKey).label
+	};
+}
+
+// Drives the hidden [name=<name>] input from the differently-named <name>-notch radio group
+// (see notched-slider.hbs) and fires a real "change" event on it, so the pre-existing rollStack/
+// disadvantageConversion listeners below — which only know about [name='advantage'] — keep firing
+// exactly as they did when this was a <select>.
+function wireNotchedSlider(html, name) {
+	const hiddenInput = html.find(`[name='${name}']`);
+	const readout = html.find(`[data-notched-slider='${name}'] [data-notched-slider-readout]`);
+	html.find(`[name='${name}-notch']`).on("change", (event) => {
+		hiddenInput.val(event.target.value).trigger("change");
+		readout.text(event.target.title);
+	});
+}
 
 // Opens a dialog to pick the trait to roll with (plus any Advantage/Disadvantage and
 // Confidence/Desperation) and resolves the player's choice, or null if the dialog was
@@ -104,6 +136,9 @@ export async function configureMoveRoll(
 		weaponBundles = null
 	} = {}
 ) {
+	const advantageSlider = buildNotchedSlider(ADVANTAGE_DISPLAY_ORDER, advantageState, lockedAdvantage);
+	const effectSlider = buildNotchedSlider(EFFECT_DISPLAY_ORDER, effectState, lockedEffect);
+
 	const content = await renderTemplate(MOVE_ROLL_DIALOG_TEMPLATE, {
 		traits,
 		// The Trait select's own options need each option's numeric value baked into its label
@@ -116,8 +151,12 @@ export async function configureMoveRoll(
 		traitOptions: traits.map((trait) => ({ key: trait.key, label: `${trait.label} (${trait.value})` })),
 		intents: move.intents,
 		conditions: move.conditions,
-		advantageStates: ADVANTAGE_STATES,
-		effectStates: EFFECT_STATES,
+		advantageStates: advantageSlider.states,
+		advantageSelectedKey: advantageSlider.selectedKey,
+		advantageSelectedLabel: advantageSlider.selectedLabel,
+		effectStates: effectSlider.states,
+		effectSelectedKey: effectSlider.selectedKey,
+		effectSelectedLabel: effectSlider.selectedLabel,
 		lockedEffect,
 		// Display label for the locked-note below the Effect select — resolved here rather than
 		// hardcoded in the template, since lockedEffect can now be "confidence" (Field Scout's
@@ -156,6 +195,9 @@ export async function configureMoveRoll(
 			// at equipment-dialogs.js's chooseEquipmentCatalogItem, whose own `render` field sits in
 			// this same spot for the same reason).
 			render: (html) => {
+				wireNotchedSlider(html, "advantage");
+				wireNotchedSlider(html, "effect");
+
 				// The weapon <select> that switches which weaponBundles panel is visible (see
 				// move-roll-dialog.hbs's own {{#if weaponBundles}} markup) — a plain synchronous
 				// class toggle, no re-render, mirroring wirePickerTabs' own tab-switch wiring

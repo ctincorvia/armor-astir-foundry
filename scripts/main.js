@@ -19,7 +19,8 @@ export const PLAYBOOK_SHEET_PARTIALS = [
 	"modules/armor-astir/templates/playbook-sheet/tab-advancement.hbs",
 	"modules/armor-astir/templates/playbook-sheet/tab-downtime.hbs",
 	"modules/armor-astir/templates/playbook-sheet/tab-cosmetic.hbs",
-	"modules/armor-astir/templates/shared/equipment-card.hbs"
+	"modules/armor-astir/templates/shared/equipment-card.hbs",
+	"modules/armor-astir/templates/shared/notched-slider.hbs"
 ];
 
 export const AUTHORITY_SHEET_PARTIALS = [

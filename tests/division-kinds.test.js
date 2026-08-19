@@ -17,6 +17,23 @@ describe("DIVISION_KINDS", () => {
 
 		expect(new Set(keys).size).toBe(keys.length);
 	});
+
+	it("holds the six real Division kinds, not placeholder content", () => {
+		expect(DIVISION_KINDS.map((kind) => kind.key)).toEqual([
+			"military",
+			"subterfuge",
+			"resource",
+			"research",
+			"curator",
+			"executive"
+		]);
+		for (const kind of DIVISION_KINDS) {
+			expect(kind.passive).not.toContain("TODO");
+			for (const outcome of kind.active) {
+				expect(outcome).not.toContain("TODO");
+			}
+		}
+	});
 });
 
 describe("findDivisionKind", () => {

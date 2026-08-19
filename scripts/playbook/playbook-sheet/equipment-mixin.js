@@ -233,12 +233,18 @@ export const EquipmentSheetMixin = {
 	},
 	// The actor's narrative (no codified mechanic) weapon/gear tags, offered read-only in the
 	// roll dialog's own Tags section — see docs/domains/equipment.md's "narrative tag" definition.
-	// Same frame/disabled/scoped filtering as _equipmentSpends immediately above.
+	// Same frame/disabled/scoped filtering as _equipmentSpends immediately above, plus one
+	// difference: unscoped (weapon undefined — every non-usesWeapon move) drops every weapon-kind
+	// entry outright rather than leaving them unfiltered. Unlike a spend (an actionable resource a
+	// player might use on any roll, per _equipmentSpends' own comment), a weapon's narrative tag is
+	// pure flavor about that weapon — it has nothing to say about a roll that never involves one.
+	// Gear stays unfiltered either way, same as _equipmentSpends.
 	_narrativeWeaponTags(weapon) {
 		const scoped = weapon !== undefined;
 		const mountedFrameId = this._mountedFrame()?.id ?? null;
 		const tags = [];
 		for (const entry of this._equipment()) {
+			if (!scoped && entry.kind === "weapon") continue;
 			if (entry.kind === "weapon" && this._weaponFrameId(entry) !== mountedFrameId) continue;
 			if (entry.kind === "weapon" && entry.disabled) continue;
 			if (scoped && entry.kind === "weapon" && entry.id !== weapon?.id) continue;
@@ -250,6 +256,8 @@ export const EquipmentSheetMixin = {
 					equipmentName: entry.name,
 					tagKey: tag.key,
 					tagLabel: tag.label,
+					value: tag.value,
+					showValue: true,
 					description: tag.description
 				});
 			}

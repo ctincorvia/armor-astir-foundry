@@ -73,6 +73,11 @@ web_modules/
 .env.*
 !.env.example
 
+# Stray file created when a command redirects to `nul` under Git Bash instead
+# of cmd.exe/PowerShell, where `nul` isn't a special device — see CLAUDE.md's
+# "Windows shell gotchas" section.
+/nul
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

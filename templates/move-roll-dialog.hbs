@@ -35,9 +35,7 @@
 			{{/each}}
 			<div class="form-group move-roll-select-group">
 				<label>Dice</label>
-				<select name="advantage" {{#if lockedAdvantage}}disabled{{/if}}>
-					{{selectOptions advantageStates selected=lockedAdvantage valueAttr="key" labelAttr="label"}}
-				</select>
+				{{> "modules/armor-astir/templates/shared/notched-slider.hbs" name="advantage" states=advantageStates selectedKey=advantageSelectedKey selectedLabel=advantageSelectedLabel}}
 			</div>
 			{{#if rollStack}}
 			<div class="form-group move-roll-equipment move-roll-modifiers">
@@ -65,9 +63,7 @@
 			{{/if}}
 			<div class="form-group move-roll-select-group">
 				<label>Effect</label>
-				<select name="effect" {{#if lockedEffect}}disabled{{/if}}>
-					{{selectOptions effectStates selected=lockedEffect valueAttr="key" labelAttr="label"}}
-				</select>
+				{{> "modules/armor-astir/templates/shared/notched-slider.hbs" name="effect" states=effectStates selectedKey=effectSelectedKey selectedLabel=effectSelectedLabel}}
 			</div>
 			{{#if lockedAdvantage}}
 			<p class="move-roll-locked-note">Locked: {{lockedAdvantageLabel}}</p>
@@ -85,14 +81,11 @@
 				{{#if narrativeTags.length}}
 				<div class="form-group move-roll-equipment move-roll-list-section">
 					<label>Tags</label>
-					<div class="move-roll-equipment-list">
+					<div class="equipment-tags-block"><ul class="equipment-tag-list">
 						{{#each narrativeTags}}
-						<div class="move-roll-equipment-spend">
-							<span class="move-roll-equipment-name">{{equipmentName}} — {{tagLabel}}</span>
-							<div class="move-roll-equipment-description">{{description}}</div>
-						</div>
+						<li class="equipment-tag"><span class="equipment-tag-label">{{equipmentName}} — {{tagLabel}}{{#if showValue}} ({{value}}){{/if}}</span><span class="equipment-tag-description">{{description}}</span></li>
 						{{/each}}
-					</div>
+					</ul></div>
 				</div>
 				{{/if}}
 				{{#if equipmentSpends.length}}
@@ -200,14 +193,11 @@
 	{{#if narrativeTags.length}}
 	<div class="form-group move-roll-equipment move-roll-list-section">
 		<label>Tags</label>
-		<div class="move-roll-equipment-list">
+		<div class="equipment-tags-block"><ul class="equipment-tag-list">
 			{{#each narrativeTags}}
-			<div class="move-roll-equipment-spend">
-				<span class="move-roll-equipment-name">{{equipmentName}} — {{tagLabel}}</span>
-				<div class="move-roll-equipment-description">{{description}}</div>
-			</div>
+			<li class="equipment-tag"><span class="equipment-tag-label">{{equipmentName}} — {{tagLabel}}{{#if showValue}} ({{value}}){{/if}}</span><span class="equipment-tag-description">{{description}}</span></li>
 			{{/each}}
-		</div>
+		</ul></div>
 	</div>
 	{{/if}}
 	{{#if equipmentSpends.length}}
@@ -228,15 +218,11 @@
 	{{/if}}
 	<div class="form-group">
 		<label>Dice</label>
-		<select name="advantage" {{#if lockedAdvantage}}disabled{{/if}}>
-			{{selectOptions advantageStates selected=lockedAdvantage valueAttr="key" labelAttr="label"}}
-		</select>
+		{{> "modules/armor-astir/templates/shared/notched-slider.hbs" name="advantage" states=advantageStates selectedKey=advantageSelectedKey selectedLabel=advantageSelectedLabel}}
 	</div>
 	<div class="form-group">
 		<label>Effect</label>
-		<select name="effect" {{#if lockedEffect}}disabled{{/if}}>
-			{{selectOptions effectStates selected=lockedEffect valueAttr="key" labelAttr="label"}}
-		</select>
+		{{> "modules/armor-astir/templates/shared/notched-slider.hbs" name="effect" states=effectStates selectedKey=effectSelectedKey selectedLabel=effectSelectedLabel}}
 	</div>
 	<div class="form-group move-roll-equipment move-roll-list-section">
 		<label>Roll Modifiers</label>

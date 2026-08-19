@@ -5,6 +5,18 @@ import { vi } from "vitest";
 // itself) that don't otherwise need a real actor-backed trait.
 export const CLASH_TRAIT = { key: "clash", label: "CLASH", value: 1 };
 
+// A no-op fake jQuery object for selectors a render-callback test harness doesn't otherwise care
+// about — e.g. wireNotchedSlider's own .find() calls (move-dialogs.js), which every
+// configureMoveRoll render callback now issues regardless of which live-reactive wiring a given
+// test is actually exercising.
+export function fakeNoopJQuery() {
+	const noop = {
+		on() {}, val() {}, trigger() { return noop; }, text() { return noop; },
+		prop() { return noop; }, removeClass() { return noop; }, addClass() { return noop; }
+	};
+	return noop;
+}
+
 // checkedConditions/checkedEquipmentTags/checkedAstirPartSpends/checkedRollModifiers/
 // checkedPendingRollModifiers fake the jQuery `.find("[name='...']:checked").map(...).get()`
 // chains configureMoveRoll uses to collect Help or Hinder's checkbox values, equipment spends,

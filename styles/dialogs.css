@@ -36,6 +36,92 @@
 	width: 100%;
 }
 
+/* The Dice/Effect notched sliders (templates/shared/notched-slider.hbs) replace the old <select>s
+   here — a segmented track of radio "stops" instead of a dropdown. Stacks vertically (track, then
+   a small readout label) so the same markup fits both this narrow ~160px grid column and the wider
+   flex .form-group row below without different internal layouts. */
+.armor-astir.move-roll-dialog .notched-slider {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: var(--aa-space-1);
+	min-width: 0;
+}
+
+.armor-astir.move-roll-dialog .notched-slider-track {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	position: relative;
+	padding: 0 var(--aa-space-1);
+}
+
+/* Thin baseline behind the stops so discrete radio notches still read as one connected track. */
+.armor-astir.move-roll-dialog .notched-slider-track::before {
+	content: "";
+	position: absolute;
+	left: var(--aa-space-1);
+	right: var(--aa-space-1);
+	height: 2px;
+	background: var(--aa-secondary-tint);
+	z-index: 0;
+}
+
+.armor-astir.move-roll-dialog .notched-slider-stop {
+	position: relative;
+	z-index: 1;
+	display: flex;
+	cursor: pointer;
+}
+
+.armor-astir.move-roll-dialog .notched-slider-stop.disabled {
+	cursor: not-allowed;
+}
+
+.armor-astir.move-roll-dialog .notched-slider-stop input[type="radio"] {
+	appearance: none;
+	width: 14px;
+	height: 14px;
+	margin: 0;
+	border-radius: 50%;
+	border: 2px solid var(--aa-secondary-dark);
+	background: #fff;
+	cursor: pointer;
+}
+
+.armor-astir.move-roll-dialog .notched-slider-stop input[type="radio"]:checked {
+	background: var(--aa-primary-dark);
+	border-color: var(--aa-primary-dark);
+	transform: scale(1.2);
+}
+
+.armor-astir.move-roll-dialog .notched-slider-stop input[type="radio"]:disabled {
+	opacity: 0.4;
+	cursor: not-allowed;
+}
+
+.armor-astir.move-roll-dialog .notched-slider-readout {
+	font-size: 11px;
+	font-weight: bold;
+	color: var(--aa-primary-dark);
+	text-align: center;
+	white-space: nowrap;
+}
+
+/* Column 1 of the weaponBundles grid (minmax(160px, 1fr)) — fills the same track the old <select>
+   used to (see .move-roll-select-group select above). */
+.armor-astir.move-roll-dialog .move-roll-select-group .notched-slider {
+	width: 100%;
+}
+
+/* The non-weaponBundles branch's plain .form-group is flex row/space-between; the old compact
+   <select> just sized itself, but this wider track needs the remaining row width to spread its
+   stops. */
+.armor-astir.move-roll-dialog .form-group > .notched-slider {
+	flex: 1;
+	min-width: 0;
+}
+
 /* Equipment and Roll Modifiers both read as a section header above their own .move-roll-equipment-
    list, not a row label to the left of it — either list can hold several entries (a weapon's Blitz/
    Guided/etc. tags; Manawheels, Sharper Knives, ...), unlike the single fixed item Stack/Convert

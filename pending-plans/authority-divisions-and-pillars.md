@@ -224,7 +224,7 @@ strings, matching every other rules-text render in the module (`move-chat.hbs`,
 {{/if}}
 {{#if activeOutcomes.length}}
 <div class="division-active-outcomes">
-  <h4>Active Outcomes</h4>
+  <h4>On winning a conflict scene, choose one:</h4>
   <ul>{{#each activeOutcomes}}<li>{{{this}}}</li>{{/each}}</ul>
 </div>
 {{/if}}

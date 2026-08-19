@@ -360,6 +360,8 @@ describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
 			equipmentName: entry.name,
 			tagKey: tag.key,
 			tagLabel: tag.label,
+			value: tag.value,
+			showValue: true,
 			description: tag.description
 		};
 	}
@@ -369,7 +371,7 @@ describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
 		const entry = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["impact"], spent: [] };
 		sheet.actor = { system: { attributes: { equipment: [entry] } } };
 
-		expect(sheet._narrativeWeaponTags()).toEqual([narrativeTagRow(entry, impact)]);
+		expect(sheet._narrativeWeaponTags(entry)).toEqual([narrativeTagRow(entry, impact)]);
 	});
 
 	it("excludes a spend tag (Blitz)", () => {
@@ -377,7 +379,7 @@ describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
 		const entry = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["blitz"], spent: [] };
 		sheet.actor = { system: { attributes: { equipment: [entry] } } };
 
-		expect(sheet._narrativeWeaponTags()).toEqual([]);
+		expect(sheet._narrativeWeaponTags(entry)).toEqual([]);
 	});
 
 	it("excludes a forcesEffect tag (Unreliable)", () => {
@@ -385,7 +387,7 @@ describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
 		const entry = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["unreliable"], spent: [] };
 		sheet.actor = { system: { attributes: { equipment: [entry] } } };
 
-		expect(sheet._narrativeWeaponTags()).toEqual([]);
+		expect(sheet._narrativeWeaponTags(entry)).toEqual([]);
 	});
 
 	it("excludes a reroll tag (Decisive)", () => {
@@ -393,7 +395,7 @@ describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
 		const entry = { id: "eq1", kind: "weapon", name: "Sword", description: "", tags: ["decisive"], spent: [] };
 		sheet.actor = { system: { attributes: { equipment: [entry] } } };
 
-		expect(sheet._narrativeWeaponTags()).toEqual([]);
+		expect(sheet._narrativeWeaponTags(entry)).toEqual([]);
 	});
 
 	it("excludes a Guided tag", () => {
@@ -401,7 +403,7 @@ describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
 		const entry = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["guided"], spent: [] };
 		sheet.actor = { system: { attributes: { equipment: [entry] } } };
 
-		expect(sheet._narrativeWeaponTags()).toEqual([]);
+		expect(sheet._narrativeWeaponTags(entry)).toEqual([]);
 	});
 
 	it("excludes a Drain tag (exclusiveGroup DRAIN_GROUP), even though it carries no spend field", () => {
@@ -409,7 +411,7 @@ describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
 		const entry = { id: "eq1", kind: "weapon", name: "Lance", description: "", tags: ["drain-1"], spent: [] };
 		sheet.actor = { system: { attributes: { equipment: [entry] } } };
 
-		expect(sheet._narrativeWeaponTags()).toEqual([]);
+		expect(sheet._narrativeWeaponTags(entry)).toEqual([]);
 	});
 
 	it("includes a WEAPON_RANGE_GROUP classifier tag (Melee), which carries no codified effect", () => {
@@ -417,7 +419,7 @@ describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
 		const entry = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["melee"], spent: [] };
 		sheet.actor = { system: { attributes: { equipment: [entry] } } };
 
-		expect(sheet._narrativeWeaponTags()).toEqual([narrativeTagRow(entry, melee)]);
+		expect(sheet._narrativeWeaponTags(entry)).toEqual([narrativeTagRow(entry, melee)]);
 	});
 
 	it("includes an Approach tag (Arcane), which is purely descriptive", () => {
@@ -425,7 +427,7 @@ describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
 		const entry = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["arcane"], spent: [] };
 		sheet.actor = { system: { attributes: { equipment: [entry] } } };
 
-		expect(sheet._narrativeWeaponTags()).toEqual([narrativeTagRow(entry, arcane)]);
+		expect(sheet._narrativeWeaponTags(entry)).toEqual([narrativeTagRow(entry, arcane)]);
 	});
 
 	it("excludes an Astir weapon's narrative tag while unpiloted", () => {
@@ -433,7 +435,7 @@ describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
 		const entry = { id: "eq1", kind: "weapon", astir: true, name: "Lance", description: "", tags: ["impact"], spent: [] };
 		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: false }, equipment: [entry] } } };
 
-		expect(sheet._narrativeWeaponTags()).toEqual([]);
+		expect(sheet._narrativeWeaponTags(entry)).toEqual([]);
 	});
 
 	it("offers an Astir weapon's narrative tag once piloted, excluding a mundane weapon's", () => {
@@ -444,7 +446,7 @@ describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
 			system: { attributes: { astir: { id: "a1", piloted: true }, equipment: [astirWeapon, mundane] } }
 		};
 
-		expect(sheet._narrativeWeaponTags()).toEqual([narrativeTagRow(astirWeapon, impact)]);
+		expect(sheet._narrativeWeaponTags(astirWeapon)).toEqual([narrativeTagRow(astirWeapon, impact)]);
 	});
 
 	it("excludes a disabled weapon's narrative tag", () => {
@@ -454,7 +456,16 @@ describe("PlaybookActorSheet#_narrativeWeaponTags", () => {
 		};
 		sheet.actor = { system: { attributes: { equipment: [entry] } } };
 
-		expect(sheet._narrativeWeaponTags()).toEqual([]);
+		expect(sheet._narrativeWeaponTags(entry)).toEqual([]);
+	});
+
+	it("excludes every weapon's narrative tag when unscoped (a non-weapon move), but still includes gear", () => {
+		const sheet = new PlaybookActorSheet();
+		const weapon = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["impact"], spent: [] };
+		const gear = { id: "eq2", kind: "gear", name: "Charm", description: "", tags: ["impact"], spent: [] };
+		sheet.actor = { system: { attributes: { equipment: [weapon, gear] } } };
+
+		expect(sheet._narrativeWeaponTags()).toEqual([narrativeTagRow(gear, impact)]);
 	});
 
 	it("leaves a gear entry's narrative tag unaffected by piloted state", () => {

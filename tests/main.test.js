@@ -25,6 +25,6 @@ describe("registerInitHook", () => {
 		callback();
 
 		expect(loadTemplates).toHaveBeenCalledWith([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS]);
-		expect([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS]).toHaveLength(17);
+		expect([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS]).toHaveLength(18);
 	});
 });

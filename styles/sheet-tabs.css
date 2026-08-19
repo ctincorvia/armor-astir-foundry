@@ -337,6 +337,7 @@
 	flex-wrap: wrap;
 	align-items: center;
 	gap: var(--aa-space-2);
+	margin-bottom: var(--aa-space-2);
 }
 
 .armor-astir.sheet .equipment-name,

@@ -78,10 +78,12 @@
 	width: 100%;
 }
 
-/* No existing h4 rule elsewhere in the module (checked sheet-chrome.css, which owns h3) — these
-   are the first h4s this module renders, so a small heading style for them lives here rather than
-   inheriting the browser default. */
-.armor-astir.sheet h4 {
+/* Scoped to .window-content, not just .armor-astir.sheet, because Foundry core's own window chrome
+   renders the app title as <h4 class="window-title"> inside .window-header (a sibling of
+   .window-content, outside it) — an unscoped rule here would also paint that title
+   --aa-primary-dark instead of the white tokens.css's .window-header rule sets, since a rule
+   directly targeting an element always wins over an inherited color regardless of specificity. */
+.armor-astir.sheet .window-content h4 {
 	margin: var(--aa-space-2) 0 var(--aa-space-1);
 	font-size: 11px;
 	font-weight: 700;
@@ -106,7 +108,6 @@
 
 .armor-astir.sheet .division-active-outcomes ul {
 	margin: 0;
-	padding-left: var(--aa-space-3);
 }
 
 .armor-astir.sheet .division-active-outcomes li {
