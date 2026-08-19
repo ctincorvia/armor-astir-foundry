@@ -199,6 +199,16 @@ export const MoveGrantsSheetMixin = {
 			.find((m) => m.addsSuccessReminderToMove?.moveKeys?.includes(move.key));
 		return granting?.addsSuccessReminderToMove.reminder ?? null;
 	},
+	// The 7-9 mirror of _grantedSuccessReminderForMove above, backing addsMixedReminderToMove (The
+	// Scout's Patch Job, Mana Devourer/Fisher of Men/In Blood & Terror's own "succeed" text covering
+	// both 7-9 and 10+ per their moves' own results.mixed wording). Same moveKeys-required shape as
+	// addsSuccessReminderToMove/addsFailureReminderToMove (not addsCriticalReminderToMove's
+	// optional-moveKeys convention) — nothing needs a universal "any move" mixed-tier grant yet.
+	_grantedMixedReminderForMove(move) {
+		const granting = this._grantingMoves()
+			.find((m) => m.addsMixedReminderToMove?.moveKeys?.includes(move.key));
+		return granting?.addsMixedReminderToMove.reminder ?? null;
+	},
 	// The 12+ mirror of _grantedSuccessReminderForMove above, backing addsCriticalReminderToMove
 	// (Soldier's Indomitable, Cantrips' Truth-making, The Advocate's A Greener World, The
 	// Diplomat's Sharp Tongue — see playbook-moves.js/docs/domains/moves.md's "Adding move content"). Unlike

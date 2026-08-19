@@ -415,6 +415,7 @@ describe("rollMove", () => {
 			extraConditions: [],
 			extraFailureReminder: null,
 			extraSuccessReminder: null,
+			extraMixedReminder: null,
 			extraCriticalReminder: null,
 			extraReminders: null,
 			flavorArgs: expect.any(Object)

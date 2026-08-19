@@ -12,19 +12,27 @@ describe("MOVE_POOLS - the-wither", () => {
 });
 
 describe("MOVE_POOLS - soldier", () => {
-	it("gives Fisher of Men a Strike Decisively-scoped addsSuccessReminderToMove grant", () => {
+	it("gives Fisher of Men a Strike Decisively-scoped addsSuccessReminderToMove/addsMixedReminderToMove grant, on both tiers alike", () => {
 		const fisherOfMen = findPlaybookMove("soldier:fisher-of-men");
-
-		expect(fisherOfMen.traits).toEqual([]);
-		expect(fisherOfMen.addsSuccessReminderToMove).toEqual({
+		const expectedGrant = {
 			moveKeys: ["strike-decisively"],
 			reminder: "You may impose one of your Hooks on the other party, if they survive"
-		});
+		};
+
+		expect(fisherOfMen.traits).toEqual([]);
+		expect(fisherOfMen.addsSuccessReminderToMove).toEqual(expectedGrant);
+		expect(fisherOfMen.addsMixedReminderToMove).toEqual(expectedGrant);
 	});
 });
 
 describe("MOVE_POOLS - the-paradigm", () => {
-	it("gives Ascension a CHANNEL addsTraitToMove grant on bite-the-dust plus a matching success reminder", () => {
+	// Unlike Mana Devourer/Fisher of Men/In Blood & Terror, this stays 10+-only: bite-the-dust's own
+	// results.mixed ("Retreat from the Sortie safely, or be put in peril") is a genuinely different
+	// outcome from its success text, not framed as "you succeed as above" the way Strike
+	// Decisively's own mixed text is — and Ascension's own rules text says "on a 10+", not "when you
+	// succeed". Check the target move's own results.mixed wording before assuming a reminder needs
+	// addsMixedReminderToMove too.
+	it("gives Ascension a CHANNEL addsTraitToMove grant on bite-the-dust plus a matching success reminder, 10+ only", () => {
 		const ascension = findPlaybookMove("the-paradigm:ascension");
 
 		expect(ascension.traits).toEqual([]);
@@ -33,11 +41,12 @@ describe("MOVE_POOLS - the-paradigm", () => {
 			moveKeys: ["bite-the-dust"],
 			reminder: "Clear all risks, rather than just one"
 		});
+		expect(ascension.addsMixedReminderToMove).toBeUndefined();
 	});
 });
 
 describe("MOVE_POOLS - the-witch", () => {
-	it("gives Bearer Of Curses the same condensed choice-menu reminder on all three Exchange Blows tiers", () => {
+	it("gives Bearer Of Curses the same condensed choice-menu reminder on all four Exchange Blows tiers", () => {
 		const bearerOfCurses = findPlaybookMove("the-witch:bearer-of-curses");
 		const expectedGrant = {
 			moveKeys: ["exchange-blows"],
@@ -47,8 +56,21 @@ describe("MOVE_POOLS - the-witch", () => {
 
 		expect(bearerOfCurses.traits).toEqual([]);
 		expect(bearerOfCurses.addsSuccessReminderToMove).toEqual(expectedGrant);
+		expect(bearerOfCurses.addsMixedReminderToMove).toEqual(expectedGrant);
 		expect(bearerOfCurses.addsFailureReminderToMove).toEqual(expectedGrant);
 		expect(bearerOfCurses.addsCriticalReminderToMove).toEqual(expectedGrant);
+	});
+});
+
+describe("MOVE_POOLS - the-scout", () => {
+	it("gives Patch Job a Cool Off-scoped addsMixedReminderToMove grant", () => {
+		const patchJob = findPlaybookMove("the-scout:patch-job");
+
+		expect(patchJob.traits).toEqual([]);
+		expect(patchJob.addsMixedReminderToMove).toEqual({
+			moveKeys: ["cool-off"],
+			reminder: "Instead of the usual result, you attract unwanted attention"
+		});
 	});
 });
 
@@ -359,13 +381,15 @@ describe("MOVE_POOLS - the-attendant", () => {
 		}
 	});
 
-	it("gives In Blood & Terror an Exchange Blows-scoped addsSuccessReminderToMove grant for its 10+ half only", () => {
+	it("gives In Blood & Terror an Exchange Blows-scoped addsSuccessReminderToMove/addsMixedReminderToMove grant, on both tiers alike", () => {
 		const inBloodTerror = findPlaybookMove("the-attendant:in-blood-terror");
-
-		expect(inBloodTerror.addsSuccessReminderToMove).toEqual({
+		const expectedGrant = {
 			moveKeys: ["exchange-blows"],
 			reminder: "If you rolled with disadvantage, any other foes who witness it immediately take a risk"
-		});
+		};
+
+		expect(inBloodTerror.addsSuccessReminderToMove).toEqual(expectedGrant);
+		expect(inBloodTerror.addsMixedReminderToMove).toEqual(expectedGrant);
 		expect(inBloodTerror.addsFailureReminderToMove).toBeUndefined();
 	});
 });

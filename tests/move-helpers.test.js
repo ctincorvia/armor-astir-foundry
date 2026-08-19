@@ -159,4 +159,17 @@ describe("buildReminders", () => {
 		]);
 		expect(buildReminders("success", none, "fail reminder", "success reminder")).toEqual(["success reminder"]);
 	});
+
+	it("includes the extraMixedReminder only on an actual 7-9", () => {
+		const none = effectState("none");
+		const reminder = "Instead of the usual result, you attract unwanted attention";
+
+		expect(buildReminders("mixed", none, null, null, false, null, reminder)).toEqual([reminder]);
+		expect(buildReminders("success", none, null, null, false, null, reminder)).toEqual([]);
+		expect(buildReminders("failure", none, null, null, false, null, reminder)).toEqual(FAILURE_REMINDERS);
+	});
+
+	it("omits the extraMixedReminder slot entirely when none is passed", () => {
+		expect(buildReminders("mixed", effectState("none"))).toEqual([]);
+	});
 });

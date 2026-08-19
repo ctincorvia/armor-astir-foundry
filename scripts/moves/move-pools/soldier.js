@@ -186,8 +186,15 @@ export const SOLDIER_POOL = {
 			// e.g. bite-the-dust's Hooks text in moves.js) — surfaced as a reminder on Strike
 			// Decisively's own success instead, the same unenforceable-precondition-in-reminder-text
 			// technique astir-moves.js's Mana Devourer already uses for its own untracked precondition.
+			// "Strike decisively and succeed" covers both tiers, same as Mana Devourer — Strike
+			// Decisively's own results.mixed text is itself a success ("you succeed as above, but
+			// choose 1"), so this needs addsMixedReminderToMove alongside addsSuccessReminderToMove.
 			traits: [],
 			addsSuccessReminderToMove: {
+				moveKeys: ["strike-decisively"],
+				reminder: "You may impose one of your Hooks on the other party, if they survive"
+			},
+			addsMixedReminderToMove: {
 				moveKeys: ["strike-decisively"],
 				reminder: "You may impose one of your Hooks on the other party, if they survive"
 			},

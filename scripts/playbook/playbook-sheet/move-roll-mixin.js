@@ -179,18 +179,20 @@ export const MoveRollSheetMixin = {
 		return (!fromCarrier && this._weaponIsGuided(weapon) && "Guided") || this._guidedFromPartFor(move) || null;
 	},
 	// Pre-roll preview of the move's passive on-roll bonuses (Roll Modifiers' post-roll reminder
-	// trio — see move-grants-mixin.js's _grantedFailureReminderForMove/_grantedSuccessReminderForMove/
-	// _grantedCriticalReminderForMove), reusing those same three resolvers rather than a new data
-	// model. traitKey is deliberately omitted from the critical-reminder call — the trait isn't
-	// chosen until inside the dialog this list previews, so a requiresTrait-gated critical reminder
-	// (Sharp Tongue only, today) won't preview pre-roll; it still fires correctly post-roll via
-	// _finishMoveRoll's own already-trait-aware call, unaffected.
+	// quartet — see move-grants-mixin.js's _grantedFailureReminderForMove/_grantedSuccessReminderForMove/
+	// _grantedMixedReminderForMove/_grantedCriticalReminderForMove), reusing those same four
+	// resolvers rather than a new data model. traitKey is deliberately omitted from the
+	// critical-reminder call — the trait isn't chosen until inside the dialog this list previews, so
+	// a requiresTrait-gated critical reminder (Sharp Tongue only, today) won't preview pre-roll; it
+	// still fires correctly post-roll via _finishMoveRoll's own already-trait-aware call, unaffected.
 	_ridersForMove(move) {
 		const onFailure = this._grantedFailureReminderForMove(move);
+		const onMixed = this._grantedMixedReminderForMove(move);
 		const onSuccess = this._grantedSuccessReminderForMove(move);
 		const onCritical = this._grantedCriticalReminderForMove(move);
 		return [
 			...(onFailure ? [{ label: "On 6-", text: onFailure }] : []),
+			...(onMixed ? [{ label: "On 7-9", text: onMixed }] : []),
 			...(onSuccess ? [{ label: "On 10+", text: onSuccess }] : []),
 			...(onCritical ? [{ label: "On 12+", text: onCritical }] : [])
 		];
@@ -270,6 +272,9 @@ export const MoveRollSheetMixin = {
 		// Coordinator's own reminder (see _grantedSuccessReminderForMove) — same pass-through shape
 		// as extraFailureReminder immediately above, just surfaced on a 10+ instead of a 6-.
 		const extraSuccessReminder = this._grantedSuccessReminderForMove(move);
+		// Patch Job's own reminder (see _grantedMixedReminderForMove) — the 7-9 mirror of
+		// extraSuccessReminder immediately above.
+		const extraMixedReminder = this._grantedMixedReminderForMove(move);
 		// Indomitable/Truth-making/A Greener World/Sharp Tongue's own reminder (see
 		// _grantedCriticalReminderForMove) — the 12+ mirror of extraSuccessReminder immediately
 		// above, resolved against whichever trait this roll actually used (Sharp Tongue's own
@@ -286,6 +291,7 @@ export const MoveRollSheetMixin = {
 			...(downgrade.length && { downgrade }),
 			...(extraFailureReminder && { extraFailureReminder }),
 			...(extraSuccessReminder && { extraSuccessReminder }),
+			...(extraMixedReminder && { extraMixedReminder }),
 			...(extraCriticalReminder && { extraCriticalReminder }),
 			...(extraQuestions && { extraQuestions }),
 			// Bureaucrat's own always-applicable reminders (see quickRollsMove/move-roll.js's

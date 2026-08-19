@@ -187,7 +187,10 @@ async function handleAdvantage(message, offer, direction) {
 	const critical = isCriticalResult(total);
 	const conditions = [...rollConditions(nextState, effect), ...offer.extraConditions];
 	const reminders = [
-		...buildReminders(tier, effect, offer.extraFailureReminder, offer.extraSuccessReminder, critical, offer.extraCriticalReminder),
+		...buildReminders(
+			tier, effect, offer.extraFailureReminder, offer.extraSuccessReminder, critical, offer.extraCriticalReminder,
+			offer.extraMixedReminder
+		),
 		...(offer.extraReminders ?? [])
 	];
 

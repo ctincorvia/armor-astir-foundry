@@ -49,8 +49,15 @@ export const ASTIR_MOVE_CATALOG = [
 		traits: [],
 		// "+1 Power" against another Astir with physical harm specifically — an unenforceable
 		// precondition folded into the reminder text itself, same technique the-captain:coordinator's
-		// own addsSuccessReminderToMove already uses.
+		// own addsSuccessReminderToMove already uses. Strike Decisively's own results.mixed text
+		// ("you succeed as above, but choose 1") means its 7-9 is a success too, not just its 10+ —
+		// so this needs both addsSuccessReminderToMove and its addsMixedReminderToMove sibling, not
+		// just the one.
 		addsSuccessReminderToMove: {
+			moveKeys: ["strike-decisively"],
+			reminder: "+1 Power (against another Astir, with physical harm)"
+		},
+		addsMixedReminderToMove: {
 			moveKeys: ["strike-decisively"],
 			reminder: "+1 Power (against another Astir, with physical harm)"
 		},

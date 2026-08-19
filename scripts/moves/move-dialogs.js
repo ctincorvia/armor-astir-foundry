@@ -39,11 +39,11 @@ export const VARIABLE_DICE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates
 // checked".
 //
 // riders (see PlaybookActorSheet#_ridersForMove) is a read-only preview of the move's passive
-// on-roll bonuses — reuses the same three _grantedXReminderForMove resolvers the post-roll chat
+// on-roll bonuses — reuses the same four _grantedXReminderForMove resolvers the post-roll chat
 // card already calls, just surfaced before the player commits to rolling. Unlike rollModifiers,
 // there's nothing to check here (no key/disabled/deferred concept, just label/text pairs), and
 // unlike weaponBundles' own per-weapon fields, it's unscoped by weapon — passed once at the top
-// level rather than duplicated into every weaponBundles entry, since none of the three resolvers
+// level rather than duplicated into every weaponBundles entry, since none of the four resolvers
 // it calls take a weapon.
 //
 // rollModifiers (see PlaybookActorSheet#_rollModifiersForMove) is the Roll Modifiers section —

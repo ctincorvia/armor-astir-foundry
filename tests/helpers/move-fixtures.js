@@ -67,6 +67,14 @@ export const ALL_IN = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:all-in"
 // _moveHoldUpdatePath's "flatHold falsy, separateHold truthy" branch needs.
 export const RESHAPE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:reshape");
 
+// addsMixedReminderToMove sources (Riders section's 7-9 tier — see
+// tests/playbook-actor-sheet-roll-resolved.test.js and the-scout.js/soldier.js/the-attendant.js/
+// the-witch.js catalog entries).
+export const PATCH_JOB = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-scout:patch-job");
+export const FISHER_OF_MEN = ALL_PLAYBOOK_MOVES.find((m) => m.key === "soldier:fisher-of-men");
+export const IN_BLOOD_TERROR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-attendant:in-blood-terror");
+export const BEARER_OF_CURSES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:bearer-of-curses");
+
 // ASTIR_PART_CATALOG
 export const WEAPON_CONDUIT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:weapon-conduit");
 export const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:alchemical-suite");

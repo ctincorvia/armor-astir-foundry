@@ -522,7 +522,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Bureaucrat's quick-roll redirect to E
 	});
 });
 
-// _ridersForMove's own pre-roll preview (move-roll-mixin.js) — reuses the same three
+// _ridersForMove's own pre-roll preview (move-roll-mixin.js) — reuses the same four
 // _grantedXReminderForMove resolvers _finishMoveRoll already calls post-roll (see
 // playbook-actor-sheet-roll-resolved.test.js/playbook-actor-sheet-the-captain.test.js for those
 // resolvers' own dedicated tests), so this only needs to prove the wiring: built correctly for both
@@ -530,7 +530,10 @@ describe("PlaybookActorSheet#_onMoveRoll - Bureaucrat's quick-roll redirect to E
 // (_onMoveRoll's weaponBundles), empty when nothing is granted, and — for the array path — passed
 // once at the top level rather than duplicated into every weaponBundles entry.
 describe("PlaybookActorSheet#_rollMove - riders (_ridersForMove)", () => {
-	const manaDevourerRider = { label: "On 10+", text: "+1 Power (against another Astir, with physical harm)" };
+	const manaDevourerRiders = [
+		{ label: "On 7-9", text: "+1 Power (against another Astir, with physical harm)" },
+		{ label: "On 10+", text: "+1 Power (against another Astir, with physical harm)" }
+	];
 
 	it("passes Mana Devourer's own reminder as a rider on the single-weapon path (_onWeaponMoveRoll)", async () => {
 		const sheet = new PlaybookActorSheet();
@@ -549,7 +552,7 @@ describe("PlaybookActorSheet#_rollMove - riders (_ridersForMove)", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			STRIKE_DECISIVELY,
 			expect.any(Array),
-			expect.objectContaining({ riders: [manaDevourerRider] })
+			expect.objectContaining({ riders: manaDevourerRiders })
 		);
 	});
 
@@ -580,7 +583,7 @@ describe("PlaybookActorSheet#_rollMove - riders (_ridersForMove)", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "strike-decisively" } } });
 
 		const [, , options] = configureMoveRoll.mock.calls.at(-1);
-		expect(options.riders).toEqual([manaDevourerRider]);
+		expect(options.riders).toEqual(manaDevourerRiders);
 		for (const bundle of options.weaponBundles) {
 			expect(bundle.riders).toBeUndefined();
 		}

@@ -134,9 +134,15 @@ export const THE_SCOUT_POOL = {
 			key: "the-scout:patch-job",
 			name: "Patch Job",
 			traits: [],
-			// Extends Cool Off's own result menu with a faster/different 7-9 outcome — Cool
-			// Off's own outcomes are narrated rather than enforced, so this is prose only, the
-			// same treatment Arcane Forge (astir.js) gives the identical situation.
+			// Extends Cool Off's own result menu with a faster/different 7-9 outcome — Cool Off's own
+			// outcomes are narrated rather than enforced (same treatment Arcane Forge gets), but the
+			// substitution itself is now a real addsMixedReminderToMove grant, additive on top of Cool
+			// Off's own printed 7-9 text (basic-moves.js) rather than replacing it — same relationship
+			// addsSuccessReminderToMove/addsCriticalReminderToMove already have with their own tiers.
+			addsMixedReminderToMove: {
+				moveKeys: ["cool-off"],
+				reminder: "Instead of the usual result, you attract unwanted attention"
+			},
 			description:
 				"<p>When you cool off to remove a risk or the 'overheating' tick from an Astir, you can do " +
 				"it in a few moments rather than minutes, even while the Astir is still moving. Instead of " +

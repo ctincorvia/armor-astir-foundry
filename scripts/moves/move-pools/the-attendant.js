@@ -51,10 +51,13 @@ export const THE_ATTENDANT_POOL = {
 			requiresMoves: ["the-attendant:signed-sealed"],
 			traits: [],
 			// "You may opt to roll with disadvantage" is already the player's own free choice on the
-			// Dice select. This move's text also triggers on a 7-9, which has no reminder mechanism
-			// yet (no addsMixedReminderToMove sibling exists) — only the 10+ half is wired here;
-			// revisit the 7-9 half if/when that mechanism is built.
+			// Dice select. Fires on both the 7-9 and 10+ tiers per this move's own text, so both
+			// addsSuccessReminderToMove and its addsMixedReminderToMove sibling are needed.
 			addsSuccessReminderToMove: {
+				moveKeys: ["exchange-blows"],
+				reminder: "If you rolled with disadvantage, any other foes who witness it immediately take a risk"
+			},
+			addsMixedReminderToMove: {
 				moveKeys: ["exchange-blows"],
 				reminder: "If you rolled with disadvantage, any other foes who witness it immediately take a risk"
 			},

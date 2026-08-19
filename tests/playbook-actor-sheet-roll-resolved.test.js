@@ -11,7 +11,7 @@ import { WITCH_BOONS } from "../scripts/playbook/witch.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
 	ALCHEMICAL_SUITE, FLOURISH_COMPONENT, LEAD_A_SORTIE, PATRON, EXCHANGE_BLOWS, BITE_THE_DUST, INDOMITABLE,
-	READ_THE_ROOM, TRUTH_MAKING, WEAVE_MAGIC, A_GREENER_WORLD, SHARP_TONGUE
+	READ_THE_ROOM, TRUTH_MAKING, WEAVE_MAGIC, A_GREENER_WORLD, SHARP_TONGUE, COOL_OFF, PATCH_JOB
 } from "./helpers/move-fixtures.js";
 
 beforeEach(() => {
@@ -218,5 +218,41 @@ describe("PlaybookActorSheet#_rollMove - addsCriticalReminderToMove wiring (extr
 
 		const [, , , options] = rollMove.mock.calls.at(-1);
 		expect(options).not.toHaveProperty("extraCriticalReminder");
+	});
+});
+
+describe("PlaybookActorSheet#_rollMove - addsMixedReminderToMove wiring (extraMixedReminder)", () => {
+	it("passes Patch Job's reminder through to rollMove's options when rolling Cool Off", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { defy: { value: 0 } }, attributes: { playbookMoves: [PATCH_JOB.key] } },
+			update: vi.fn()
+		};
+		const defy = { key: "defy", label: "DEFY", value: 0 };
+		configureMoveRoll.mockResolvedValue({ trait: defy, advantage: "none", effect: "none" });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "cool-off" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor,
+			COOL_OFF,
+			defy,
+			expect.objectContaining({ extraMixedReminder: "Instead of the usual result, you attract unwanted attention" })
+		);
+	});
+
+	it("omits extraMixedReminder entirely without Patch Job picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { defy: { value: 0 } }, attributes: { playbookMoves: [] } },
+			update: vi.fn()
+		};
+		const defy = { key: "defy", label: "DEFY", value: 0 };
+		configureMoveRoll.mockResolvedValue({ trait: defy, advantage: "none", effect: "none" });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "cool-off" } } });
+
+		const [, , , options] = rollMove.mock.calls.at(-1);
+		expect(options).not.toHaveProperty("extraMixedReminder");
 	});
 });

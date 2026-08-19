@@ -40,19 +40,22 @@ const CONFIDENCE_FAILURE_REMINDER = "You may loosen a Hook";
 // has no automatic tracker for (see claude.md's "Manual trackers, not enforcement"). Only ever
 // surfaced on an actual 6-, same as the universal FAILURE_REMINDERS above. extraSuccessReminder
 // (e.g. Captain's Coordinator — see PlaybookActorSheet#_grantedSuccessReminderForMove) is the same
-// idea mirrored onto the 10+ tier. extraCriticalReminder (e.g. Soldier's Indomitable, Cantrips'
-// Truth-making, The Advocate's A Greener World, The Diplomat's Sharp Tongue — see
+// idea mirrored onto the 10+ tier. extraMixedReminder (e.g. The Scout's Patch Job — see
+// PlaybookActorSheet#_grantedMixedReminderForMove) is the same idea again, on the 7-9 tier.
+// extraCriticalReminder (e.g. Soldier's Indomitable, Cantrips' Truth-making, The Advocate's A
+// Greener World, The Diplomat's Sharp Tongue — see
 // PlaybookActorSheet#_grantedCriticalReminderForMove/moves-mixin.js) is the same idea again, but
 // layered on top of a 12+ result (`critical`, see isCriticalResult below) rather than replacing
 // the success tier's own reminder — a 12+ that also happens to carry an extraSuccessReminder shows
 // both, since `critical` is orthogonal to `tier` by design (see docs/domains/moves.md's "Adding move content").
-export function buildReminders(tier, effect, extraFailureReminder = null, extraSuccessReminder = null, critical = false, extraCriticalReminder = null) {
+export function buildReminders(tier, effect, extraFailureReminder = null, extraSuccessReminder = null, critical = false, extraCriticalReminder = null, extraMixedReminder = null) {
 	return [
 		...(tier === "failure" ? FAILURE_REMINDERS : []),
 		...(effect.key === "desperation" && tier === "success" ? [DESPERATION_SUCCESS_REMINDER] : []),
 		...(effect.key === "confidence" && tier === "failure" ? [CONFIDENCE_FAILURE_REMINDER] : []),
 		...(tier === "failure" && extraFailureReminder ? [extraFailureReminder] : []),
 		...(tier === "success" && extraSuccessReminder ? [extraSuccessReminder] : []),
+		...(tier === "mixed" && extraMixedReminder ? [extraMixedReminder] : []),
 		...(critical && extraCriticalReminder ? [extraCriticalReminder] : [])
 	];
 }

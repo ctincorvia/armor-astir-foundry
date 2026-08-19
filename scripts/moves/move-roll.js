@@ -187,7 +187,8 @@ export async function rollMove(actor, move, trait, options = {}) {
 	const showAddDisadvantage = nextAdvantageState(advantage.key, "disadvantage") !== null;
 
 	const reminders = buildReminders(
-		tier, effect, options.extraFailureReminder, options.extraSuccessReminder, critical, options.extraCriticalReminder
+		tier, effect, options.extraFailureReminder, options.extraSuccessReminder, critical, options.extraCriticalReminder,
+		options.extraMixedReminder
 	);
 	// Bureaucrat's own always-applicable reminders (see the-diplomat.js's quickRollsMove /
 	// PlaybookActorSheet#_rollMove) — unlike buildReminders' own extra*Reminder params, these
@@ -361,6 +362,8 @@ export async function rollMove(actor, move, trait, options = {}) {
 			extraFailureReminder: options.extraFailureReminder ?? null,
 			// Same idea, mirrored onto a tier flip into or out of success (Captain's Coordinator).
 			extraSuccessReminder: options.extraSuccessReminder ?? null,
+			// Same idea, mirrored onto a tier flip into or out of mixed (The Scout's Patch Job).
+			extraMixedReminder: options.extraMixedReminder ?? null,
 			// Same idea again, mirrored onto a tier flip into or out of a 12+ critical (Soldier's
 			// Indomitable, Cantrips' Truth-making, The Advocate's A Greener World, The Diplomat's
 			// Sharp Tongue — see buildReminders' own comment).

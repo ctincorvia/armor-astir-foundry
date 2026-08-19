@@ -129,11 +129,16 @@ export const THE_WITCH_POOL = {
 			// table (whether someone can use subsystems, a lasting mark, advantage on a future move
 			// against them) rather than posted as a chat prompt, unlike Facilitator/Bureaucrat's own
 			// activateChoices menus. Surfaced as a reminder on every tier of Exchange Blows alike,
-			// deliberately redundant across success/failure/critical — this move's own trigger ("when
-			// you exchange blows... for the first time in a Scene") has no tier qualifier at all, unlike
-			// Coordinator/Mana Devourer's tier-specific grants.
+			// deliberately redundant across success/mixed/failure/critical — this move's own trigger
+			// ("when you exchange blows... for the first time in a Scene") has no tier qualifier at
+			// all, unlike Coordinator/Mana Devourer's tier-specific grants.
 			traits: [],
 			addsSuccessReminderToMove: {
+				moveKeys: ["exchange-blows"],
+				reminder: "First time this Scene, choose 1: they can't use subsystems this Scene; you " +
+					"leave a lasting mark on them; or the next move against them is made with advantage"
+			},
+			addsMixedReminderToMove: {
 				moveKeys: ["exchange-blows"],
 				reminder: "First time this Scene, choose 1: they can't use subsystems this Scene; you " +
 					"leave a lasting mark on them; or the next move against them is made with advantage"
