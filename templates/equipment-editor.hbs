@@ -29,6 +29,11 @@
 				<label>Description</label>
 				<textarea name="description">{{description}}</textarea>
 			</div>
+			<div class="equipment-editor-tag-chips">
+				{{#each tagChips}}
+				<span class="equipment-editor-tag-chip" data-tag-key="{{key}}" {{#unless checked}}style="display: none;"{{/unless}}>{{label}}</span>
+				{{/each}}
+			</div>
 		</div>
 		{{#if weaponRangeOptions.length}}
 		<div class="equipment-editor-cell-range">
@@ -67,12 +72,14 @@
 					</div>
 				</details>
 				{{/each}}
-				<p class="equipment-editor-tag-total">Total: <span class="equipment-editor-tag-total-value">{{tagTotal}}</span>{{#if hasTagValueCap}} (max <span class="equipment-editor-tag-max-value">{{maxTagValue}}</span>){{/if}}</p>
-				{{#if showOverride}}
-				<div class="equipment-editor-max-override">
+				<div class="equipment-editor-tag-total-row">
+					<p class="equipment-editor-tag-total">Total: <span class="equipment-editor-tag-total-value">{{tagTotal}}</span>{{#if hasTagValueCap}} (max <span class="equipment-editor-tag-max-value">{{maxTagValue}}</span>){{/if}}</p>
+					{{#if showOverride}}
 					<button type="button" class="equipment-editor-max-override-button" data-mode="override">Override Max</button>
-					<p class="equipment-editor-max-override-reminder" {{#unless hasOverride}}style="display: none;"{{/unless}}>Max value has been increased. Don't do this unless your director says you should.</p>
+					{{/if}}
 				</div>
+				{{#if showOverride}}
+				<p class="equipment-editor-max-override-reminder" style="display: none;">Max value has been increased. Don't do this unless your director says you should.</p>
 				{{/if}}
 			</div>
 		</div>

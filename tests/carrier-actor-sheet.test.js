@@ -40,7 +40,7 @@ describe("CarrierActorSheet.defaultOptions", () => {
 			classes: ["armor-astir", "sheet", "actor", "world-actor", "carrier"],
 			template: CARRIER_SHEET_TEMPLATE,
 			width: 640,
-			height: "auto"
+			scrollY: [".window-content"]
 		});
 	});
 });

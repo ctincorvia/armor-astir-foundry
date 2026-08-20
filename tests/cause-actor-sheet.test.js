@@ -7,7 +7,7 @@ describe("CauseActorSheet.defaultOptions", () => {
 			classes: ["armor-astir", "sheet", "actor", "world-actor", "cause"],
 			template: CAUSE_SHEET_TEMPLATE,
 			width: 640,
-			height: "auto"
+			scrollY: [".window-content"]
 		});
 	});
 });

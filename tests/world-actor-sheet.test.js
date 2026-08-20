@@ -6,7 +6,7 @@ describe("WorldActorSheet.defaultOptions", () => {
 		expect(WorldActorSheet.defaultOptions).toEqual({
 			classes: ["armor-astir", "sheet", "actor", "world-actor"],
 			width: 640,
-			height: "auto"
+			scrollY: [".window-content"]
 		});
 	});
 });

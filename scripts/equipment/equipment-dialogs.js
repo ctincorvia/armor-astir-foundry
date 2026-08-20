@@ -211,8 +211,10 @@ export async function chooseEquipmentCatalogItem(kind, catalog = EQUIPMENT_CATAL
 // automatically, exactly like every other field this function resolves conditionally (`scale`,
 // `tier`). Re-opening such an entry reads `initial.maxTagValueOverride` back out (see
 // `effectiveMaxTagValue`'s own initialization below) so the dialog starts already in the overridden
-// state — raised effective cap, "(max N)" showing it, the reminder visible — without the player
-// needing to click "Override Max" again just to see where they left off.
+// state — raised effective cap, "(max N)" showing it — without the player needing to click
+// "Override Max" again just to see where they left off. The reminder itself stays hidden on open
+// regardless (see updateOverrideDisplay in the render callback below): it tracks the button's own
+// live mode, which always rests at "Override Max" on open, not whether a persisted override exists.
 export async function configureEquipment(
 	initial = null,
 	tags = EQUIPMENT_TAGS,
@@ -261,6 +263,17 @@ export async function configureEquipment(
 	// different things a locked catalog entry needs simultaneously, where an ordinary capped custom
 	// weapon (lockTags: false) only ever needed the former.
 	let catalogUnlocked = false;
+	// Hoisted so both tagGroups (grouped, for the accordion) and tagChips (flat, for the summary
+	// row under Description) reuse the exact same computed checked/label data rather than mapping
+	// pickableTags twice.
+	const pickableTagEntries = pickableTags.map((tag) => ({
+		key: tag.key,
+		label: tag.label,
+		value: tag.value,
+		description: tag.description,
+		checked: Boolean(initial?.tags?.includes(tag.key)),
+		...(tag.gearOnly && { gearOnly: true })
+	}));
 	const content = await renderTemplate(EQUIPMENT_EDITOR_TEMPLATE, {
 		note,
 		astirWeapon,
@@ -295,23 +308,15 @@ export async function configureEquipment(
 		// to exist in the DOM even when the generic caller opens on Kind = Gear, so the Kind-change
 		// listener (see the render callback) has something to show/hide live rather than nothing to find.
 		showOverride: allowOverride && (maxTagValue !== null || lockTags) && isWeapon,
-		// True when a persisted maxTagValueOverride is already active on open (effectiveMaxTagValue
-		// initialized above from initial.maxTagValueOverride, differing from the base maxTagValue) —
-		// drives the reminder's initial visibility. The button itself always starts reading "Override
-		// Max" regardless (see the doc comment above), so this has no button-label counterpart.
-		hasOverride: effectiveMaxTagValue !== maxTagValue,
 		// Grouped (see groupEquipmentTags above) rather than one flat 40-entry list — the catalog
-		// has grown too long to scan otherwise. Each group starts open only if it already holds one
-		// of `initial`'s current tags, so editing a tagged item lands with the relevant group(s)
-		// visibly expanded; a blank new item starts with every group collapsed.
-		tagGroups: groupEquipmentTags(pickableTags.map((tag) => ({
-			key: tag.key,
-			label: tag.label,
-			value: tag.value,
-			description: tag.description,
-			checked: Boolean(initial?.tags?.includes(tag.key)),
-			...(tag.gearOnly && { gearOnly: true })
-		}))).map((group) => ({ ...group, open: group.tags.some((tag) => tag.checked) })),
+		// has grown too long to scan otherwise. Every group starts closed, regardless of whether it
+		// already holds one of `initial`'s current tags — the tag-chip row below (tagChips) is what
+		// shows the current selection instead, so the accordion no longer needs to pre-expand.
+		tagGroups: groupEquipmentTags(pickableTagEntries),
+		// One chip per pickable tag, pre-rendered for every one of them but hidden in the template
+		// unless already checked — mirrors gearOnlyRows' own "pre-render every option, JS toggles
+		// visibility by selector" idiom below, rather than building/injecting HTML from JS.
+		tagChips: pickableTagEntries.map((tag) => ({ key: tag.key, label: tag.label, checked: tag.checked })),
 		// Always rendered, not gated by Kind — same "kept intentionally narrow rather than extended
 		// to every field" non-reactivity Tier already has above. Empty when the injected `tags`
 		// catalog carries no WEAPON_RANGE_GROUP entries at all (e.g. a fixture catalog in tests).
@@ -386,22 +391,32 @@ export async function configureEquipment(
 						gearOnlyRows.show();
 					}
 				};
+				// The tag-chip summary row under Description (see equipment-editor.hbs) -- pre-rendered
+				// once for every pickable tag, hidden unless checked, the same "pre-render everything,
+				// toggle visibility by selector" idiom gearOnlyRows already uses above, rather than
+				// building/injecting HTML from JS.
+				const chipsContainer = html.find(".equipment-editor-tag-chips");
+				const updateTagChips = () => {
+					const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
+					for (const tag of pickableTags) {
+						chipsContainer.find(`.equipment-editor-tag-chip[data-tag-key='${tag.key}']`).toggle(checkedKeys.includes(tag.key));
+					}
+				};
 				// "Override Max" wiring (see the doc comment above configureEquipment). Only rendered at
 				// all when showOverride is true (a numeric cap, and not carrierWeapon), so these finds
 				// are empty jQuery sets — every method below already no-ops safely on an empty set — for
 				// every out-of-scope caller (gear-only cap-less flows, Carrier weapons).
-				const overrideBlock = html.find(".equipment-editor-max-override");
 				const overrideButton = html.find(".equipment-editor-max-override-button");
 				const overrideReminder = html.find(".equipment-editor-max-override-reminder");
 				const maxValueDisplay = html.find(".equipment-editor-tag-max-value");
-				// Syncs the "(max N)" readout and the reminder's visibility to the current
-				// effectiveMaxTagValue — called after every change to it, and once more on initial
-				// render below (the template's own initial paint already matches, from hasOverride/
-				// maxTagValue, but this keeps JS the single source of truth going forward, same as
+				// Syncs the "(max N)" readout to the current effectiveMaxTagValue, and the reminder's
+				// visibility to the button's own live mode — called after every change to either, and
+				// once more on initial render below (the template's own initial paint already starts the
+				// reminder hidden, but this keeps JS the single source of truth going forward, same as
 				// updateGearOnlyVisibility's own initial call does for its own DOM state).
 				const updateOverrideDisplay = () => {
 					maxValueDisplay.text(effectiveMaxTagValue);
-					overrideReminder.toggle(effectiveMaxTagValue > maxTagValue);
+					overrideReminder.toggle(overrideButton.attr("data-mode") === "lock");
 				};
 				// Whether the override block itself is shown at all, mirroring updateGearOnlyVisibility's
 				// own forced-kind-or-live-select read immediately above -- called once unconditionally on
@@ -419,9 +434,9 @@ export async function configureEquipment(
 				const updateOverrideBlockVisibility = () => {
 					const kind = (astirWeapon || carrierWeapon || ardentWeapon) ? "weapon" : html.find("[name='kind']").val();
 					if (kind === "weapon") {
-						overrideBlock.show();
+						overrideButton.show();
 					} else {
-						overrideBlock.hide();
+						overrideButton.hide();
 						effectiveMaxTagValue = catalogUnlocked ? 0 : maxTagValue;
 						overrideButton.attr("data-mode", "override").text("Override Max");
 						updateOverrideDisplay();
@@ -481,6 +496,10 @@ export async function configureEquipment(
 						}
 					}
 					updateTotal();
+					// Recomputes the whole chip row's visibility fresh from the DOM's current checked set,
+					// rather than patching just the one changed chip -- covers both a direct toggle and any
+					// exclusiveGroup sibling this same handler just force-unchecked above.
+					updateTagChips();
 					updateSaveState();
 				});
 				// Kind is only rendered for the one caller that doesn't force it (see hideKind above) --
@@ -490,6 +509,9 @@ export async function configureEquipment(
 				if (!(astirWeapon || carrierWeapon || ardentWeapon)) {
 					html.find("[name='kind']").on("change", () => {
 						updateGearOnlyVisibility();
+						// Covers a gearOnly tag's checkbox being force-unchecked by updateGearOnlyVisibility
+						// just above, when Kind flips to Weapon.
+						updateTagChips();
 						updateTotal();
 						updateOverrideBlockVisibility();
 						updateSaveState();
@@ -510,12 +532,16 @@ export async function configureEquipment(
 				// carrierWeapon, whose block was never rendered at all) is unaffected, matching
 				// updateGearOnlyVisibility's own forced-kind read.
 				updateOverrideBlockVisibility();
-				// Confirms the "(max N)" readout and reminder visibility match effectiveMaxTagValue's
-				// starting value (the template's own first paint already agrees, from hasOverride/
-				// maxTagValue, but this keeps JS the single source of truth from here on rather than
-				// relying on that agreement holding). A no-op re-confirmation whenever the call above
-				// already ran this itself (Kind = Gear on open).
+				// Confirms the "(max N)" readout matches effectiveMaxTagValue's starting value and the
+				// reminder starts hidden (the template's own first paint already agrees with both), but
+				// this keeps JS the single source of truth from here on rather than relying on that
+				// agreement holding. A no-op re-confirmation whenever the call above already ran this
+				// itself (Kind = Gear on open).
 				updateOverrideDisplay();
+				// Confirms the chip row's visibility matches the checked checkboxes on open too (the
+				// template's own first paint already agrees) -- same "keep JS the source of truth" reason
+				// as the call above.
+				updateTagChips();
 				// Sets Save's initial disabled/enabled state on open -- a blank Add dialog opens
 				// disabled, an Edit dialog pre-filled with a valid name opens enabled.
 				updateSaveState();

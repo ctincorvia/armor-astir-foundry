@@ -74,13 +74,16 @@ function fakeEquipmentRenderHtml({ name = "", kind = "gear", weaponRange } = {})
 		overrideButtonHandlers: undefined,
 		reminderVisible: undefined,
 		maxValueDisplay: undefined,
-		unlockedDisabled: undefined
+		unlockedDisabled: undefined,
+		chipVisibility: {}
 	};
 	// The "Override Max"/"Lock Max" button's own fake, kept as one stable object reference (rather
 	// than a fresh one per .find() call) since configureEquipment's render callback chains
 	// `.attr("data-mode", ...).text(...)` off a single `overrideButton` variable captured once —
 	// `.attr(name)` (one argument) reads the current mode back, mirroring how the real DOM attribute
-	// a click handler reads its own current mode from.
+	// a click handler reads its own current mode from. `.show()`/`.hide()` are also captured here,
+	// tracked the same way as overrideBlockVisible used to be — JS now calls them directly on the
+	// button element rather than on a separate wrapper.
 	const overrideButtonFake = {
 		attr: (attrName, value) => {
 			if (value === undefined) return state.overrideButtonMode;
@@ -88,16 +91,12 @@ function fakeEquipmentRenderHtml({ name = "", kind = "gear", weaponRange } = {})
 			return overrideButtonFake;
 		},
 		text: (value) => { state.overrideButtonLabel = value; return overrideButtonFake; },
-		on: (event, handler) => { state.overrideButtonHandlers = { ...state.overrideButtonHandlers, [event]: handler }; }
+		on: (event, handler) => { state.overrideButtonHandlers = { ...state.overrideButtonHandlers, [event]: handler }; },
+		show: () => { state.overrideBlockVisible = true; },
+		hide: () => { state.overrideBlockVisible = false; }
 	};
 	state.html = {
 		find: (selector) => {
-			if (selector === ".equipment-editor-max-override") {
-				return {
-					show: () => { state.overrideBlockVisible = true; },
-					hide: () => { state.overrideBlockVisible = false; }
-				};
-			}
 			if (selector === ".equipment-editor-max-override-button") return overrideButtonFake;
 			// The catalog-unlock click handler's single combined-selector .find() call (see
 			// equipment-dialogs.js's override-button click handler) — records whatever `disabled`
@@ -167,6 +166,21 @@ function fakeEquipmentRenderHtml({ name = "", kind = "gear", weaponRange } = {})
 					}
 				};
 			}
+			// The tag-chip row's container (see equipment-editor.hbs) — updateTagChips looks up each
+			// chip by its own data-tag-key selector off this container, mirroring the gear-only fake's
+			// own per-selector .find() nesting immediately above.
+			if (selector === ".equipment-editor-tag-chips") {
+				return {
+					find: (innerSelector) => {
+						const chipMatch = innerSelector.match(/^\.equipment-editor-tag-chip\[data-tag-key='(.+)'\]$/);
+						if (chipMatch) {
+							const key = chipMatch[1];
+							return { toggle: (visible) => { state.chipVisibility[key] = visible; } };
+						}
+						return {};
+					}
+				};
+			}
 			return {};
 		}
 	};
@@ -197,23 +211,21 @@ describe("configureEquipment", () => {
 			tierMin: TIER_MIN,
 			tierMax: TIER_MAX,
 			// Grouped by value (see the groupEquipmentTags describe block below for the grouping
-			// rules themselves) — FIXTURE_TAGS has no -2 entry, so only three groups render, and
-			// every tag starts unchecked/every group starts closed since nothing is being edited.
+			// rules themselves) — FIXTURE_TAGS has no -2 entry, so only three groups render. Every
+			// group starts closed (no `open` field at all — groupEquipmentTags never sets one, and
+			// nothing here adds one back), so it's simply absent, not just false.
 			tagGroups: [
 				{
 					label: "Minor Drawbacks (-1)",
-					tags: [{ key: "fixture-negative", label: "Fixture Negative", value: -1, description: "b", checked: false }],
-					open: false
+					tags: [{ key: "fixture-negative", label: "Fixture Negative", value: -1, description: "b", checked: false }]
 				},
 				{
 					label: "Strong Benefits (+1)",
-					tags: [{ key: "fixture-spendable", label: "Fixture Spendable", value: 1, description: "c", checked: false }],
-					open: false
+					tags: [{ key: "fixture-spendable", label: "Fixture Spendable", value: 1, description: "c", checked: false }]
 				},
 				{
 					label: "Rare Benefits (+2)",
-					tags: [{ key: "fixture-positive", label: "Fixture Positive", value: 2, description: "a", checked: false }],
-					open: false
+					tags: [{ key: "fixture-positive", label: "Fixture Positive", value: 2, description: "a", checked: false }]
 				}
 			]
 		}));
@@ -331,23 +343,22 @@ describe("configureEquipment", () => {
 			description: "A long blade.",
 			isWeapon: true,
 			tier: 3,
-			// The group holding fixture-negative (already on the entry) opens; the groups holding
-			// only fixture-spendable/fixture-positive (not on the entry) stay closed.
+			// Every group starts closed regardless of whether it holds one of the entry's current
+			// tags (fixture-negative here) — the tag-chip row is what shows the current selection
+			// instead, so there's no `open` field on the rendered group at all (groupEquipmentTags
+			// never sets one).
 			tagGroups: [
 				expect.objectContaining({
 					label: "Minor Drawbacks (-1)",
-					tags: [expect.objectContaining({ key: "fixture-negative", checked: true })],
-					open: true
+					tags: [expect.objectContaining({ key: "fixture-negative", checked: true })]
 				}),
 				expect.objectContaining({
 					label: "Strong Benefits (+1)",
-					tags: [expect.objectContaining({ key: "fixture-spendable", checked: false })],
-					open: false
+					tags: [expect.objectContaining({ key: "fixture-spendable", checked: false })]
 				}),
 				expect.objectContaining({
 					label: "Rare Benefits (+2)",
-					tags: [expect.objectContaining({ key: "fixture-positive", checked: false })],
-					open: false
+					tags: [expect.objectContaining({ key: "fixture-positive", checked: false })]
 				})
 			]
 		}));
@@ -1062,8 +1073,10 @@ describe("configureEquipment", () => {
 			expect(state.overrideButtonMode).toBe("override");
 			expect(state.overrideButtonLabel).toBe("Override Max");
 			expect(state.maxValueDisplay).toBe(1);
-			// Still above the base cap of 0, so the reminder stays up.
-			expect(state.reminderVisible).toBe(true);
+			// The reminder tracks the button's own mode, not the numeric cap -- the button is back on
+			// "Override Max", so the reminder hides even though the effective cap (1) is still above
+			// the base cap of 0.
+			expect(state.reminderVisible).toBe(false);
 			expect(state.saveDisabled).toBe(false);
 
 			Dialog.mock.calls.at(-1)[0].close();
@@ -1097,7 +1110,6 @@ describe("configureEquipment", () => {
 			await Promise.resolve();
 
 			expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
-				hasOverride: true,
 				maxTagValue: 0
 			}));
 
@@ -1105,11 +1117,13 @@ describe("configureEquipment", () => {
 			Dialog.mock.calls.at(-1)[0].render(state.html);
 
 			// The button rests at "Override Max" even though a persisted override is already active
-			// (see the design note in equipment-dialogs.js) -- only the readout and reminder reflect it.
+			// (see the design note in equipment-dialogs.js) -- only the readout reflects it. The
+			// reminder tracks the button's own live mode, so it stays hidden on open too, even with a
+			// persisted override active -- it only shows once "Lock Max" is reached this session.
 			expect(state.overrideButtonMode).toBe("override");
 			expect(state.overrideButtonLabel).toBe("Override Max");
 			expect(state.maxValueDisplay).toBe(3);
-			expect(state.reminderVisible).toBe(true);
+			expect(state.reminderVisible).toBe(false);
 
 			Dialog.mock.calls.at(-1)[0].close();
 			await promise;
@@ -1551,5 +1565,111 @@ describe("configureEquipment", () => {
 		}, ["ward"]));
 
 		expect(await promise).toEqual(expect.objectContaining({ tags: ["ward"] }));
+	});
+
+	describe("tagChips", () => {
+		it("renders one chip per pickable tag, all unchecked, when creating blank", async () => {
+			const promise = configureEquipment(null, FIXTURE_TAGS);
+			await Promise.resolve();
+			await Promise.resolve();
+
+			expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+				tagChips: [
+					{ key: "fixture-positive", label: "Fixture Positive", checked: false },
+					{ key: "fixture-negative", label: "Fixture Negative", checked: false },
+					{ key: "fixture-spendable", label: "Fixture Spendable", checked: false }
+				]
+			}));
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("marks a chip checked when editing an entry that already carries that tag", async () => {
+			const entry = { id: "abc", name: "Halberd", tags: ["fixture-negative"] };
+			const promise = configureEquipment(entry, FIXTURE_TAGS);
+			await Promise.resolve();
+			await Promise.resolve();
+
+			expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+				tagChips: [
+					{ key: "fixture-positive", label: "Fixture Positive", checked: false },
+					{ key: "fixture-negative", label: "Fixture Negative", checked: true },
+					{ key: "fixture-spendable", label: "Fixture Spendable", checked: false }
+				]
+			}));
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("toggles a chip's visibility live when its checkbox is checked or unchecked", async () => {
+			const promise = configureEquipment(null, FIXTURE_TAGS);
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml();
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+
+			state.checkedTags = ["fixture-positive"];
+			state.handlers.change({ target: { value: "fixture-positive", checked: true } });
+
+			expect(state.chipVisibility["fixture-positive"]).toBe(true);
+			expect(state.chipVisibility["fixture-negative"]).toBe(false);
+			expect(state.chipVisibility["fixture-spendable"]).toBe(false);
+
+			state.checkedTags = [];
+			state.handlers.change({ target: { value: "fixture-positive", checked: false } });
+
+			expect(state.chipVisibility["fixture-positive"]).toBe(false);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("hides an exclusiveGroup sibling's chip too, when checking one force-unchecks the other", async () => {
+			const promise = configureEquipment(null, FIXTURE_EXCLUSIVE_TAGS);
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml();
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+
+			state.checkedTags = ["fixture-exclusive-b"];
+			state.handlers.change({ target: { value: "fixture-exclusive-b", checked: true } });
+
+			expect(state.chipVisibility["fixture-exclusive-b"]).toBe(true);
+			expect(state.chipVisibility["fixture-exclusive-a"]).toBe(false);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("updates chip visibility when Ward's checkbox is force-unchecked by a Kind change to weapon", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS);
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml({ name: "Ward Charm", kind: "gear" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+
+			state.checkedTags = ["ward"];
+			state.handlers.change({ target: { value: "ward", checked: true } });
+			expect(state.chipVisibility.ward).toBe(true);
+
+			state.kind = "weapon";
+			state.weaponRange = "melee";
+			// updateGearOnlyVisibility (called first in the Kind-change handler) force-unchecks Ward's
+			// checkbox in the real DOM before updateTagChips reads the fresh checked set -- the fake's
+			// gearOnlyRows stub doesn't feed back into checkedTags itself, so this mirrors that real
+			// effect directly.
+			state.checkedTags = [];
+			state.kindHandlers.change();
+
+			expect(state.chipVisibility.ward).toBe(false);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
 	});
 });

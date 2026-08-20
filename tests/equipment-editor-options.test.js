@@ -513,8 +513,7 @@ describe("configureEquipment - Override Max scope", () => {
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
-			showOverride: true,
-			hasOverride: false
+			showOverride: true
 		}));
 
 		Dialog.mock.calls.at(-1)[0].close();
@@ -586,7 +585,7 @@ describe("configureEquipment - Override Max scope", () => {
 		await promise;
 	});
 
-	it("starts already overridden (hasOverride: true) when initial.maxTagValueOverride differs from the base maxTagValue", async () => {
+	it("starts already overridden (effective cap raised) when initial.maxTagValueOverride differs from the base maxTagValue", async () => {
 		const entry = { id: "abc", name: "Lance", kind: "weapon", tags: [], maxTagValueOverride: OVERRIDE_MAX_TAG_VALUE };
 		const promise = configureEquipment(entry, EQUIPMENT_TAGS, { astirWeapon: true, maxTagValue: 0 });
 		await Promise.resolve();
@@ -594,7 +593,6 @@ describe("configureEquipment - Override Max scope", () => {
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
 			showOverride: true,
-			hasOverride: true,
 			maxTagValue: 0
 		}));
 

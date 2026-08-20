@@ -470,6 +470,28 @@
 	opacity: 0.8;
 }
 
+/* Live summary of the currently-checked Tags checkboxes, rendered under the Description box (see
+   equipment-editor.hbs) since the accordion below always starts closed and no longer expands to
+   show what's already picked. */
+.armor-astir.equipment-editor .equipment-editor-tag-chips {
+	display: flex;
+	flex-wrap: wrap;
+	gap: var(--aa-space-1);
+	margin-top: var(--aa-space-2);
+}
+
+/* Same "equipment tag rendered as a descriptive chip" look this module already uses for weapon
+   chat cards (.move-narrative-tag, move-chat.css) -- equipment tag labels are secondary-role, so
+   -secondary* tokens, not -primary* or a hardcoded gem name. */
+.armor-astir.equipment-editor .equipment-editor-tag-chip {
+	padding: 1px 6px;
+	border-radius: var(--aa-radius);
+	font-size: 11px;
+	font-weight: bold;
+	background: var(--aa-secondary-dark);
+	color: var(--aa-secondary-tint);
+}
+
 /* The Tags accordion is plain <details>/<summary>, same native open/closed behaviour as the
    playbook-move picker's own accordion (see .move-picker-section above) — no JS needed here
    either. Grouped by the tags' own value banding (see groupEquipmentTags, equipment.js) since the
@@ -487,8 +509,16 @@
 	cursor: pointer;
 }
 
-.armor-astir.equipment-editor .equipment-editor-tag-total {
+.armor-astir.equipment-editor .equipment-editor-tag-total-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--aa-space-2);
 	margin: var(--aa-space-2) 0 0;
+}
+
+.armor-astir.equipment-editor .equipment-editor-tag-total {
+	margin: 0;
 	font-weight: bold;
 }
 
@@ -496,21 +526,33 @@
 	color: var(--aa-primary-dark);
 }
 
-/* The Director escape hatch for a custom weapon's tag-value budget (see configureEquipment's own
-   doc comment) -- rendered directly under the running total/cap line. */
-.armor-astir.equipment-editor .equipment-editor-max-override {
-	margin-top: var(--aa-space-1);
-}
-
 /* Reuses this module's existing in-dialog button look (.vtt .window-app.armor-astir .dialog-button
    below) rather than inventing a second button style -- background/color/border match exactly,
-   just scoped to this one narrower control instead of every Dialog button. */
+   just scoped to this one narrower control instead of every Dialog button. Sized like
+   .icon-add-button.labeled-add-button (sheet-layout.css) -- the module's existing text-height
+   button precedent -- but can't literally share that class since labeled-add-button is scoped
+   under .armor-astir.sheet and this button lives in a Dialog scoped under
+   .armor-astir.equipment-editor. This is also the Director escape hatch for a custom weapon's
+   tag-value budget (see configureEquipment's own doc comment).
+
+   width/flex overrides are load-bearing, not decoration: Foundry core's global `button { width:
+   100%; }` (style.css) otherwise wins (this rule never previously set `width`), and as a flex item
+   of .equipment-editor-tag-total-row that stretched the button across nearly the entire row,
+   squeezing the "Total: N (max N)" text down to where the "(max N)" portion had no room left to
+   render. */
 .armor-astir.equipment-editor .equipment-editor-max-override-button {
 	background: var(--aa-primary);
 	color: white;
 	border: 0;
+	border-radius: var(--aa-radius);
 	padding: var(--aa-space-1) var(--aa-space-2);
+	font-size: 12px;
+	font-weight: bold;
+	line-height: 1;
+	white-space: nowrap;
 	cursor: pointer;
+	width: auto;
+	flex: 0 0 auto;
 }
 
 .armor-astir.equipment-editor .equipment-editor-max-override-button:hover {

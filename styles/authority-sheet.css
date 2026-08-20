@@ -84,7 +84,6 @@
    --aa-primary-dark instead of the white tokens.css's .window-header rule sets, since a rule
    directly targeting an element always wins over an inherited color regardless of specificity. */
 .armor-astir.sheet .window-content h4 {
-	margin: var(--aa-space-2) 0 var(--aa-space-1);
 	font-size: 11px;
 	font-weight: 700;
 	letter-spacing: 0.05em;

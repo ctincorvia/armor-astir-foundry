@@ -11,7 +11,10 @@ export class WorldActorSheet extends ActorSheet {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			classes: ["armor-astir", "sheet", "actor", "world-actor"],
 			width: 640,
-			height: "auto"
+			// No explicit height: falls back to ActorSheet's own numeric default (720,
+			// resizable: true) rather than "auto" — see playbook-actor-sheet.js's defaultOptions
+			// comment for why "auto" fights the resize handle.
+			scrollY: [".window-content"]
 		});
 	}
 
