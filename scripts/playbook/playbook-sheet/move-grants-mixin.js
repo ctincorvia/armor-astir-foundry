@@ -357,7 +357,7 @@ export const MoveGrantsSheetMixin = {
 	// {available, reason} rather than a plain boolean, so a disabled row in the dialog can show why
 	// (see _rollModifiersForMove/move-roll-dialog.hbs's disabledReason).
 	_rollModifierAvailability(spec, source) {
-		if (spec.requiresOverheating || spec.costsOverheating) {
+		if (spec.requiresOverheating) {
 			const available = Boolean(this._astir()?.overheating);
 			return { available, reason: available ? null : "Not overheating" };
 		}
@@ -471,9 +471,7 @@ export const MoveGrantsSheetMixin = {
 			for (const spec of source.grantsRollModifier ?? []) {
 				const key = spec.key ?? source.key;
 				if (!keys.includes(key)) continue;
-				if (spec.costsOverheating) {
-					updates["system.attributes.astir.overheating"] = false;
-				} else if (spec.costsSpotlight) {
+				if (spec.costsSpotlight) {
 					const current = this.actor.system.attributes?.spotlight?.value ?? 0;
 					updates["system.attributes.spotlight.value"] = Math.max(SPOTLIGHT_MIN, current - spec.costsSpotlight);
 				} else if (spec.costsHold) {

@@ -163,7 +163,10 @@ export const ASTIR_MOVE_CATALOG = [
 		key: "astir:branded-blades",
 		name: "Branded Blades",
 		traits: [],
-		grantsRollModifier: [{ moveKeys: ["exchange-blows", "strike-decisively"], advantage: "advantage", costsOverheating: true }],
+		// The trigger ("you untick overheating") is a past fictional event, and this module doesn't
+		// track roll ordering -- same shape as Run Them Down! below: a free, fiction-gated checkbox,
+		// not a resource spend.
+		grantsRollModifier: [{ moveKeys: ["exchange-blows", "strike-decisively"], advantage: "advantage" }],
 		description:
 			"<p>Sigils burned into an Astir's own weapons flare brighter the hotter its core runs.</p>" +
 			"<p>Untick 'overheating' on your Astir to give your next exchange blows or strike " +

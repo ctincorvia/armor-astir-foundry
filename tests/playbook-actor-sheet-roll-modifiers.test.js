@@ -157,7 +157,6 @@ describe("PlaybookActorSheet#_moveHoldUpdatePath", () => {
 // fallback.
 describe("PlaybookActorSheet#_rollModifierAvailability", () => {
 	const [manawheelsSpec] = MANAWHEELS.grantsRollModifier;
-	const [brandedBladesSpec] = BRANDED_BLADES.grantsRollModifier;
 	const [watchThisSpec] = WATCH_THIS.grantsRollModifier;
 	const [snakesSpec] = SNAKES_IN_THE_GRASS.grantsRollModifier;
 	const [identifySpec] = IDENTIFY.grantsRollModifier;
@@ -172,21 +171,6 @@ describe("PlaybookActorSheet#_rollModifierAvailability", () => {
 
 		sheet.actor.system.attributes.astir.overheating = false;
 		expect(sheet._rollModifierAvailability(manawheelsSpec, MANAWHEELS)).toEqual({
-			available: false,
-			reason: "Not overheating"
-		});
-	});
-
-	it("costsOverheating: available while overheating, unavailable while not", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { astir: { id: "a1", overheating: true } } } };
-		expect(sheet._rollModifierAvailability(brandedBladesSpec, BRANDED_BLADES)).toEqual({
-			available: true,
-			reason: null
-		});
-
-		sheet.actor.system.attributes.astir.overheating = false;
-		expect(sheet._rollModifierAvailability(brandedBladesSpec, BRANDED_BLADES)).toEqual({
 			available: false,
 			reason: "Not overheating"
 		});
@@ -587,18 +571,6 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 		await sheet._spendRollModifiers([]);
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-
-	it("costsOverheating: unticks Overheating", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { attributes: { playbookMoves: [], astir: { id: "a1", piloted: true, overheating: true, move: BRANDED_BLADES.key } } },
-			update: vi.fn()
-		};
-
-		await sheet._spendRollModifiers([BRANDED_BLADES.key]);
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.overheating": false });
 	});
 
 	it("costsSpotlight: decrements Spotlight by the cost, clamped to SPOTLIGHT_MIN", async () => {
