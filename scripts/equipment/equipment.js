@@ -1,6 +1,6 @@
 // This file is the barrel for scripts/equipment/: the leaf constants (TAG_VALUE_MIN/MAX,
-// WEAPON_RANGE_GROUP, DRAIN_GROUP, MAX_TAGS, OVERRIDE_MAX_TAG_VALUE, TIER_MIN/MAX, the two
-// template path constants, UNARMED, WEAPON_SCALES) live in equipment-constants.js, the EQUIPMENT_TAGS catalog lives in
+// WEAPON_RANGE_GROUP, DRAIN_GROUP, MOUNTED_TWO_HANDED_GROUP, MAX_TAGS, OVERRIDE_MAX_TAG_VALUE,
+// TIER_MIN/MAX, the two template path constants, UNARMED, WEAPON_SCALES) live in equipment-constants.js, the EQUIPMENT_TAGS catalog lives in
 // equipment-tags.js, the EQUIPMENT_CATALOG catalog lives in equipment-catalog.js, the small pure
 // helper functions (findCatalogEquipment, findEquipmentTag, resolveEquipmentTags, equipmentValue,
 // mergeSpentTags, rerollSpendKey(s), baseEquipmentTagKey, groupEquipmentTags, withTagLabels,
@@ -18,6 +18,7 @@ export {
 	TAG_VALUE_MAX,
 	WEAPON_RANGE_GROUP,
 	DRAIN_GROUP,
+	MOUNTED_TWO_HANDED_GROUP,
 	MAX_TAGS,
 	OVERRIDE_MAX_TAG_VALUE,
 	TIER_MIN,

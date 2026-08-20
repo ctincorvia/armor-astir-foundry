@@ -29,6 +29,16 @@ export const WEAPON_RANGE_GROUP = "weapon-range";
 // stay permanently inert.
 export const DRAIN_GROUP = "drain";
 
+// A third exclusiveGroup: Mounted and Two-Handed (see EQUIPMENT_TAGS below) render as checkboxes
+// with the same JS-enforced radio-button behavior as DRAIN_GROUP above, via the same generic
+// toggle handler in configureEquipment — unchecking every other tag sharing the same
+// exclusiveGroup when one is checked. Like DRAIN_GROUP (and unlike WEAPON_RANGE_GROUP), this
+// group is optional, not required — a weapon may carry neither tag. And because it renders as
+// ordinary checkboxes rather than WEAPON_RANGE_GROUP's native radio group, membership here does
+// NOT exempt a tag from MAX_TAGS below — Mounted and Two-Handed each still carry a real value and
+// cost one regular tag slot like any other tag.
+export const MOUNTED_TWO_HANDED_GROUP = "mounted-two-handed";
+
 // Applies to every equipment entry (weapon or gear). Melee/Ranged/Sniper never count against this
 // cap — they're a classifier, not a regular tag pick — but that's now structural rather than
 // something this cap has to account for: WEAPON_RANGE_GROUP tags are never rendered as checkboxes

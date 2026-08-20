@@ -256,7 +256,7 @@ describe("CarrierActorSheet#_onWeaponAdd", () => {
 		expect(configureEquipment).toHaveBeenCalledWith(null, undefined, {
 			carrierWeapon: true,
 			carrierWeaponTier: TIER_MAX,
-			excludedTagKeys: ["set-up", "mounted"],
+			excludedTagKeys: ["set-up", "mounted", "two-handed"],
 			maxTagValue: 2
 		});
 		expect(sheet.actor.update).toHaveBeenCalledWith({
@@ -276,7 +276,7 @@ describe("CarrierActorSheet#_onWeaponAdd", () => {
 		expect(configureEquipment).toHaveBeenCalledWith(null, undefined, {
 			carrierWeapon: true,
 			carrierWeaponTier: 3,
-			excludedTagKeys: ["mounted"],
+			excludedTagKeys: ["mounted", "two-handed"],
 			maxTagValue: 1
 		});
 		expect(sheet.actor.update).toHaveBeenCalledWith({
@@ -342,7 +342,7 @@ describe("CarrierActorSheet#_onWeaponEdit", () => {
 		expect(configureEquipment).toHaveBeenCalledWith(existing, undefined, {
 			carrierWeapon: true,
 			carrierWeaponTier: TIER_MAX,
-			excludedTagKeys: ["set-up", "mounted"],
+			excludedTagKeys: ["set-up", "mounted", "two-handed"],
 			maxTagValue: 2,
 			allowOverride: true
 		});

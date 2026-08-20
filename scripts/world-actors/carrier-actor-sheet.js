@@ -133,7 +133,7 @@ export class CarrierActorSheet extends WorldActorSheet {
 		const result = await configureEquipment(null, undefined, {
 			carrierWeapon: true,
 			carrierWeaponTier: slot.tier,
-			excludedTagKeys: slot.lockedTagKeys,
+			excludedTagKeys: [...slot.lockedTagKeys, "two-handed"],
 			maxTagValue: slot.maxTagValue
 		});
 		if (!result) return;
@@ -152,7 +152,7 @@ export class CarrierActorSheet extends WorldActorSheet {
 		const result = await configureEquipment(entry, undefined, {
 			carrierWeapon: true,
 			carrierWeaponTier: slot.tier,
-			excludedTagKeys: slot.lockedTagKeys,
+			excludedTagKeys: [...slot.lockedTagKeys, "two-handed"],
 			maxTagValue: slot.maxTagValue,
 			allowOverride: true
 		});

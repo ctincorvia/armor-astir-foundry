@@ -1,5 +1,5 @@
 import { APPROACHES } from "../core/approaches.js";
-import { DRAIN_GROUP, WEAPON_RANGE_GROUP } from "./equipment-constants.js";
+import { DRAIN_GROUP, MOUNTED_TWO_HANDED_GROUP, WEAPON_RANGE_GROUP } from "./equipment-constants.js";
 
 // The tag catalog: definitions live in code and equipment stores only tag keys, so edited rules
 // text reaches existing equipment — the same split MOVE_POOLS uses for playbook moves (see
@@ -127,7 +127,8 @@ export const EQUIPMENT_TAGS = [
 		key: "two-handed",
 		label: "2H",
 		value: -1,
-		description: "Takes both hands to use properly, though not necessarily just to carry."
+		description: "Takes both hands to use properly, though not necessarily just to carry.",
+		exclusiveGroup: MOUNTED_TWO_HANDED_GROUP
 	},
 	{
 		key: "bulky",
@@ -342,7 +343,8 @@ export const EQUIPMENT_TAGS = [
 		label: "Mounted",
 		value: 1,
 		description: "This weapon is mounted or worn in some way that frees up the hands of the user for " +
-			"other tasks. As a result, it's also difficult to disarm a target of without breaking it."
+			"other tasks. As a result, it's also difficult to disarm a target of without breaking it.",
+		exclusiveGroup: MOUNTED_TWO_HANDED_GROUP
 	},
 	{
 		key: "restraining",

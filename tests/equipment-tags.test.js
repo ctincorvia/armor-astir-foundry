@@ -5,6 +5,7 @@ import { ALL_MOVES } from "../scripts/moves/all-moves.js";
 import {
 	DRAIN_GROUP,
 	EQUIPMENT_TAGS,
+	MOUNTED_TWO_HANDED_GROUP,
 	TAG_VALUE_MAX,
 	TAG_VALUE_MIN,
 	WEAPON_RANGE_GROUP,
@@ -108,6 +109,13 @@ describe("EQUIPMENT_TAGS", () => {
 		expect(findEquipmentTag("drain-1").value).toBe(-1);
 		expect(findEquipmentTag("drain-2").value).toBe(-2);
 		expect(findEquipmentTag("drain-3").value).toBe(-3);
+	});
+
+	it("gives Two-Handed and Mounted MOUNTED_TWO_HANDED_GROUP as their exclusiveGroup", () => {
+		expect(EQUIPMENT_TAGS.filter((tag) => tag.exclusiveGroup === MOUNTED_TWO_HANDED_GROUP).map((tag) => tag.key))
+			.toEqual(["two-handed", "mounted"]);
+		expect(findEquipmentTag("two-handed").value).toBe(-1);
+		expect(findEquipmentTag("mounted").value).toBe(1);
 	});
 });
 
