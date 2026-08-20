@@ -3,6 +3,7 @@ import {
 	EQUIPMENT_CATALOG_PICKER_TEMPLATE,
 	EQUIPMENT_EDITOR_TEMPLATE,
 	MAX_TAGS,
+	OVERRIDE_MAX_TAG_VALUE,
 	TIER_MAX,
 	TIER_MIN,
 	WEAPON_RANGE_GROUP
@@ -144,6 +145,74 @@ export async function chooseEquipmentCatalogItem(kind, catalog = EQUIPMENT_CATAL
 // through every future edit too, while Name and Description stay live. `invalidReason` below
 // short-circuits to only the blank-name check when true, since nothing else can be invalid if
 // nothing else is editable.
+//
+// "Override Max" is a Director escape hatch, gated by `allowOverride` (default
+// `!carrierWeapon && !lockTags`) on top of the pre-existing `hasTagValueCap`/weapon-only gates.
+// That default means every caller that already showed the button before `allowOverride` existed
+// (the unlocked custom-weapon flows: plain Equipment-tab weapons, Astir/Ardent custom weapons —
+// none of them pass `carrierWeapon` or `lockTags`) keeps showing it with zero call-site changes,
+// while every Add-flow-shaped call for a `carrierWeapon` or a `lockTags` catalog pick is excluded
+// automatically, also with no call-site change. Only the two Edit paths for those excluded flows
+// (carrier-actor-sheet.js's `_onWeaponEdit`, and `equipment-mixin.js`'s `_onEquipmentEdit` for a
+// catalog-sourced entry) need one explicit `allowOverride: true` each to opt back in — their Add
+// counterparts (`_onWeaponAdd`, the catalog-pick flow) never pass it, so the button never appears
+// on first creation, only once there's an existing entry to edit. Starting Gear's own custom-
+// weapon flow is untouched either way — it was never `carrierWeapon` or `lockTags` to begin with.
+//
+// There are two distinct mechanisms behind the same button and label, chosen by whether the entry
+// is `lockTags` (i.e. a catalog pick) or not:
+//
+// 1. "Raise an existing numeric cap" — the original mechanism, used by unlocked custom weapons
+// (`maxTagValue: 0` today) and now also by Carrier weapons on Edit (`maxTagValue: 2`/`1` per
+// slot). `maxTagValue` (the parameter above) never changes once the dialog opens — it's what
+// "Lock Max" locks back down *to* headroom over, and what every `maxTagValueOverride` comparison
+// below is relative to. `effectiveMaxTagValue` is the *live* cap `invalidReason` and the Save
+// button actually enforce; clicking "Override Max" raises it to a flat `OVERRIDE_MAX_TAG_VALUE`,
+// and clicking the button again (now reading "Lock Max") commits it back down to whatever the
+// currently-checked tags actually total, floored at 0 — never back to the original `maxTagValue`
+// outright, since the player may have deliberately settled on something between the base cap and
+// the flat override ceiling.
+//
+// 2. "Unlock a permanently-locked catalog pick" — new, `lockTags`-only. A catalog entry has no
+// numeric `maxTagValue` at all (it's `null` — the lock, not a cap, is what makes it uneditable),
+// so raising a cap means nothing until the fields are actually unlocked first. Clicking
+// "Override Max" on such an entry both raises `effectiveMaxTagValue` to `OVERRIDE_MAX_TAG_VALUE`
+// (mechanism 1, reused) *and* flips `catalogUnlocked` from `false` to `true` (a `let`, alongside
+// `effectiveMaxTagValue`, mutated by the same click handler) and removes `disabled` from every
+// Kind/Tier/Range/Tag field this caller actually rendered. `catalogUnlocked` exists as separate
+// state from `effectiveMaxTagValue` because two different things need to happen together here —
+// "the cap is raised" and "the fields are unlocked" — where mechanism 1 alone only ever needed
+// the former. It also changes what `invalidReason` and the resting (non-override) baseline mean:
+// once true, `lockTags`'s "nothing else can be invalid" short-circuit stops applying (real
+// validation has to run, same as any other weapon), and the resting baseline effective cap becomes
+// `0` rather than the original `null` — `0` is what `_equipmentEditLockState` will hand back as
+// this entry's new base `maxTagValue` on its *next* edit, once Save persists `catalogSource:
+// false` below, converting it into an ordinary custom weapon from then on. `overrideBaseline` in
+// the Save callback captures this same `catalogUnlocked ? 0 : maxTagValue` distinction for the
+// `maxTagValueOverride` comparison there, mirroring `updateOverrideBlockVisibility`'s own resting-
+// baseline reset.
+//
+// The button always rests at "Override Max" on open (even re-editing an already-overridden entry)
+// rather than remembering "Lock Max" was last shown — it only ever reads "Lock Max" transiently,
+// between an Override-Max click and the next Lock-Max click (or Save, which performs the same lock
+// implicitly) — so a Director is never stuck mid-workflow unable to jump straight back to the flat
+// ceiling on a fresh edit.
+//
+// Persistence needs no caller-side change at all beyond the `allowOverride: true` flags above: when
+// the Save button's resolved lock value (`Math.max(currentTagTotal, 0)`) differs from
+// `overrideBaseline`, the resolved object gets a `maxTagValueOverride` field carrying that value —
+// set implicitly on Save even if "Lock Max" was never clicked, since Save already performs the same
+// lock. A catalog entry that was actually unlocked this session (`catalogUnlocked`) additionally
+// resolves `catalogSource: false`, independent of whether `maxTagValueOverride` is also present —
+// see equipment-mixin.js's `_onEquipmentEdit` for why that field has to win over the old entry's
+// `catalogSource: true` rather than being clobbered by it. Every caller that saves an edited entry
+// already spreads `...result` from this function wholesale onto the saved entry, so a present
+// `maxTagValueOverride`/`catalogSource` carries forward automatically and an absent one is dropped
+// automatically, exactly like every other field this function resolves conditionally (`scale`,
+// `tier`). Re-opening such an entry reads `initial.maxTagValueOverride` back out (see
+// `effectiveMaxTagValue`'s own initialization below) so the dialog starts already in the overridden
+// state — raised effective cap, "(max N)" showing it, the reminder visible — without the player
+// needing to click "Override Max" again just to see where they left off.
 export async function configureEquipment(
 	initial = null,
 	tags = EQUIPMENT_TAGS,
@@ -155,7 +224,8 @@ export async function configureEquipment(
 		ardentWeapon = false,
 		excludedTagKeys = [],
 		maxTagValue = null,
-		lockTags = false
+		lockTags = false,
+		allowOverride = !carrierWeapon && !lockTags
 	} = {}
 ) {
 	// Drain only means anything on an Astir weapon (see DRAIN_GROUP's doc comment) — every other
@@ -176,6 +246,21 @@ export async function configureEquipment(
 	const weaponRangeTags = tags.filter((tag) => tag.exclusiveGroup === WEAPON_RANGE_GROUP);
 	const defaultWeaponRangeKey = weaponRangeTags.find((tag) => initial?.tags?.includes(tag.key))?.key
 		?? weaponRangeTags[0]?.key;
+	const isWeapon = astirWeapon || carrierWeapon || ardentWeapon || (initial?.kind ?? "weapon") === "weapon";
+	// The live, actually-enforced cap (see "Override Max"'s own doc comment above) — starts at
+	// `initial.maxTagValueOverride` when re-opening an entry already saved in the overridden state,
+	// falling back to the base `maxTagValue` otherwise. Declared here (a `let`, mutated by the
+	// render callback's click handlers via closure) rather than down by `invalidReason`, since both
+	// that function and the render callback need to read/mutate the same live value.
+	let effectiveMaxTagValue = initial?.maxTagValueOverride ?? maxTagValue;
+	// Tracks a second, distinct override event: a previously permanently-locked catalog entry
+	// (lockTags: true) whose Override Max was clicked, unlocking Kind/Tier/Range/Tags for the rest
+	// of this dialog session and, on Save, permanently (see the Save callback's catalogSource: false
+	// below). Only ever transitions false -> true, never back — this is a separate flag from
+	// effectiveMaxTagValue because "the cap is raised" and "the fields are unlocked" are two
+	// different things a locked catalog entry needs simultaneously, where an ordinary capped custom
+	// weapon (lockTags: false) only ever needed the former.
+	let catalogUnlocked = false;
 	const content = await renderTemplate(EQUIPMENT_EDITOR_TEMPLATE, {
 		note,
 		astirWeapon,
@@ -189,7 +274,7 @@ export async function configureEquipment(
 		hideTier: !carrierWeapon,
 		name: initial?.name ?? "",
 		description: initial?.description ?? "",
-		isWeapon: astirWeapon || carrierWeapon || ardentWeapon || (initial?.kind ?? "weapon") === "weapon",
+		isWeapon,
 		tier: carrierWeapon ? carrierWeaponTier : (initial?.tier ?? TIER_MIN),
 		tierMin: TIER_MIN,
 		tierMax: TIER_MAX,
@@ -202,6 +287,19 @@ export async function configureEquipment(
 		// real, active cap that still needs to render.
 		maxTagValue,
 		hasTagValueCap: maxTagValue !== null,
+		// Gates the "Override Max" button/reminder block's presence in the DOM at all — allowOverride
+		// (see the doc comment above configureEquipment) excludes both mechanisms by default for
+		// carrierWeapon and lockTags callers, opted back in per-call-site for their Edit paths only;
+		// (maxTagValue !== null || lockTags) requires there to actually be a cap to raise or a lock to
+		// break in the first place. Kept a separate boolean from isWeapon above because the block needs
+		// to exist in the DOM even when the generic caller opens on Kind = Gear, so the Kind-change
+		// listener (see the render callback) has something to show/hide live rather than nothing to find.
+		showOverride: allowOverride && (maxTagValue !== null || lockTags) && isWeapon,
+		// True when a persisted maxTagValueOverride is already active on open (effectiveMaxTagValue
+		// initialized above from initial.maxTagValueOverride, differing from the base maxTagValue) —
+		// drives the reminder's initial visibility. The button itself always starts reading "Override
+		// Max" regardless (see the doc comment above), so this has no button-label counterpart.
+		hasOverride: effectiveMaxTagValue !== maxTagValue,
 		// Grouped (see groupEquipmentTags above) rather than one flat 40-entry list — the catalog
 		// has grown too long to scan otherwise. Each group starts open only if it already holds one
 		// of `initial`'s current tags, so editing a tagged item lands with the relevant group(s)
@@ -234,14 +332,23 @@ export async function configureEquipment(
 	// receive their own `html` argument from Foundry's Dialog.
 	//
 	// lockTags (see the doc comment above) short-circuits to just the blank-name check — nothing
-	// else is editable on a locked entry, so nothing else can be invalid.
+	// else is editable on a locked entry, so nothing else can be invalid. Once catalogUnlocked flips
+	// true (see its own doc comment above), that short-circuit stops applying — every check below
+	// now has to actually run, the same as for any other weapon.
 	const invalidReason = (html) => {
 		const name = html.find("[name='name']").val().trim();
 		if (!name) return "Equipment needs a name.";
-		if (lockTags) return null;
+		if (lockTags && !catalogUnlocked) return null;
 		const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
 		if (checkedKeys.length > MAX_TAGS) return `Equipment can have at most ${MAX_TAGS} tags, not counting Melee/Ranged/Sniper.`;
-		if (maxTagValue !== null && equipmentValue(checkedKeys, tags) > maxTagValue) return `This equipment's tags can total at most ${maxTagValue}.`;
+		// The outer null guard stays keyed off the base maxTagValue — a null base cap means no cap
+		// exists to override in the first place — but it also fires once catalogUnlocked is true,
+		// since a just-unlocked catalog entry's base maxTagValue is still null (there was never a
+		// numeric cap to begin with, only a lock) and the raised effectiveMaxTagValue would otherwise
+		// go unenforced. The comparison itself always checks the live, possibly-overridden
+		// effectiveMaxTagValue (see its own doc comment above), so a player who clicked "Override Max"
+		// can Save above the base cap while still under the raised one.
+		if ((maxTagValue !== null || catalogUnlocked) && equipmentValue(checkedKeys, tags) > effectiveMaxTagValue) return `This equipment's tags can total at most ${effectiveMaxTagValue}.`;
 		const kind = (astirWeapon || carrierWeapon || ardentWeapon) ? "weapon" : html.find("[name='kind']").val();
 		if (kind === "weapon" && !html.find("[name='weapon-range']:checked").val()) return "A weapon needs one of the Melee, Ranged or Sniper tags.";
 		if (kind === "weapon") {
@@ -279,6 +386,69 @@ export async function configureEquipment(
 						gearOnlyRows.show();
 					}
 				};
+				// "Override Max" wiring (see the doc comment above configureEquipment). Only rendered at
+				// all when showOverride is true (a numeric cap, and not carrierWeapon), so these finds
+				// are empty jQuery sets — every method below already no-ops safely on an empty set — for
+				// every out-of-scope caller (gear-only cap-less flows, Carrier weapons).
+				const overrideBlock = html.find(".equipment-editor-max-override");
+				const overrideButton = html.find(".equipment-editor-max-override-button");
+				const overrideReminder = html.find(".equipment-editor-max-override-reminder");
+				const maxValueDisplay = html.find(".equipment-editor-tag-max-value");
+				// Syncs the "(max N)" readout and the reminder's visibility to the current
+				// effectiveMaxTagValue — called after every change to it, and once more on initial
+				// render below (the template's own initial paint already matches, from hasOverride/
+				// maxTagValue, but this keeps JS the single source of truth going forward, same as
+				// updateGearOnlyVisibility's own initial call does for its own DOM state).
+				const updateOverrideDisplay = () => {
+					maxValueDisplay.text(effectiveMaxTagValue);
+					overrideReminder.toggle(effectiveMaxTagValue > maxTagValue);
+				};
+				// Whether the override block itself is shown at all, mirroring updateGearOnlyVisibility's
+				// own forced-kind-or-live-select read immediately above -- called once unconditionally on
+				// initial render below (so a dialog that opens already at Kind = Gear starts with the
+				// block hidden, not just after the user first touches Kind) and wired into the Kind-change
+				// listener further down for the one caller that renders a live Kind select at all.
+				// Toggling away from Weapon resets the effective cap back to its resting baseline --
+				// kept intentionally narrow rather than preserving override state across a Kind toggle,
+				// the same "kept intentionally narrow" precedent Tier/Scale/Range already follow (see the
+				// doc comment above configureEquipment). That resting baseline is 0, not the original
+				// base maxTagValue, once catalogUnlocked is true -- a locked catalog entry's base
+				// maxTagValue is null (there was never a numeric cap, only a lock), and 0 is what
+				// _equipmentEditLockState will hand back as the new base on the *next* edit anyway, once
+				// this Save persists catalogSource: false (see equipment-mixin.js).
+				const updateOverrideBlockVisibility = () => {
+					const kind = (astirWeapon || carrierWeapon || ardentWeapon) ? "weapon" : html.find("[name='kind']").val();
+					if (kind === "weapon") {
+						overrideBlock.show();
+					} else {
+						overrideBlock.hide();
+						effectiveMaxTagValue = catalogUnlocked ? 0 : maxTagValue;
+						overrideButton.attr("data-mode", "override").text("Override Max");
+						updateOverrideDisplay();
+					}
+				};
+				overrideButton.on("click", () => {
+					if (overrideButton.attr("data-mode") === "override") {
+						effectiveMaxTagValue = OVERRIDE_MAX_TAG_VALUE;
+						overrideButton.attr("data-mode", "lock").text("Lock Max");
+						// The catalog-unlock mechanism (see the doc comment above configureEquipment) --
+						// only relevant the first time Override Max is clicked on a still-locked entry.
+						// Unlocking every field this caller actually rendered disabled: astirWeapon/
+						// ardentWeapon callers never render name='kind' or name='tier' at all (hideKind/
+						// hideTier above), so those two finds are safe no-ops for them, the same tolerance
+						// this file already documents for weaponRangeTags.length === 0 elsewhere.
+						if (lockTags) {
+							catalogUnlocked = true;
+							html.find("[name='kind'], [name='tier'], [name='weapon-range'], [name='tag']").prop("disabled", false);
+						}
+					} else {
+						const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
+						effectiveMaxTagValue = Math.max(equipmentValue(checkedKeys, tags), 0);
+						overrideButton.attr("data-mode", "override").text("Override Max");
+					}
+					updateOverrideDisplay();
+					updateSaveState();
+				});
 				// Calls the shared invalidReason (see above) with this render's own `html`, so Save can
 				// be disabled live while the dialog is open -- Enter-to-submit invokes the Save button's
 				// callback directly (Foundry's Dialog calls the default button's callback, not a
@@ -314,11 +484,14 @@ export async function configureEquipment(
 					updateSaveState();
 				});
 				// Kind is only rendered for the one caller that doesn't force it (see hideKind above) --
-				// astirWeapon/carrierWeapon/ardentWeapon never render a Kind select to wire a listener to.
+				// astirWeapon/carrierWeapon/ardentWeapon never render a Kind select to wire a listener to,
+				// and so never need the override block's visibility to react to a Kind it never renders
+				// in the first place — it just stays visible for the life of the dialog.
 				if (!(astirWeapon || carrierWeapon || ardentWeapon)) {
 					html.find("[name='kind']").on("change", () => {
 						updateGearOnlyVisibility();
 						updateTotal();
+						updateOverrideBlockVisibility();
 						updateSaveState();
 					});
 				}
@@ -331,6 +504,18 @@ export async function configureEquipment(
 				// or editing an existing weapon) hides/unchecks Ward immediately rather than only after
 				// the user first touches the Kind select.
 				updateGearOnlyVisibility();
+				// Mirrors updateGearOnlyVisibility's own initial call, immediately above -- a dialog that
+				// opens already at Kind = Gear (the generic caller only) starts with the override block
+				// hidden, not just after the user first touches Kind; every forced-weapon caller (and
+				// carrierWeapon, whose block was never rendered at all) is unaffected, matching
+				// updateGearOnlyVisibility's own forced-kind read.
+				updateOverrideBlockVisibility();
+				// Confirms the "(max N)" readout and reminder visibility match effectiveMaxTagValue's
+				// starting value (the template's own first paint already agrees, from hasOverride/
+				// maxTagValue, but this keeps JS the single source of truth from here on rather than
+				// relying on that agreement holding). A no-op re-confirmation whenever the call above
+				// already ran this itself (Kind = Gear on open).
+				updateOverrideDisplay();
 				// Sets Save's initial disabled/enabled state on open -- a blank Add dialog opens
 				// disabled, an Edit dialog pre-filled with a valid name opens enabled.
 				updateSaveState();
@@ -354,6 +539,17 @@ export async function configureEquipment(
 						const kind = (astirWeapon || carrierWeapon || ardentWeapon) ? "weapon" : html.find("[name='kind']").val();
 						const checkedKeys = html.find("[name='tag']:checked").map((_, el) => el.value).get();
 						const weaponRangeKey = html.find("[name='weapon-range']:checked").val();
+						// The implicit "lock" every Save performs, whether or not "Lock Max" was ever
+						// clicked (see the doc comment above configureEquipment) — the same
+						// Math.max(currentTagTotal, 0) computation the button's own Lock-Max click
+						// performs, just evaluated once more here as the authoritative value to persist.
+						const lockedMaxTagValue = Math.max(equipmentValue(checkedKeys, tags), 0);
+						// The baseline lockedMaxTagValue is compared against to decide whether an override
+						// is still in effect (see the comment below) — the base maxTagValue normally, but 0
+						// once catalogUnlocked is true, since a locked catalog entry's base maxTagValue is
+						// null (there was never a numeric cap to begin with, only a lock) and comparing
+						// against null would make maxTagValueOverride persist unconditionally.
+						const overrideBaseline = catalogUnlocked ? 0 : maxTagValue;
 						resolve({
 							name,
 							description: html.find("[name='description']").val().trim(),
@@ -376,7 +572,22 @@ export async function configureEquipment(
 								// Only carrierWeapon still stores its own, fixed at carrierWeaponTier; the DOM
 								// field carrierWeapon renders is disabled, so nothing else can reach here.
 								...(carrierWeapon && { tier: carrierWeaponTier })
-							})
+							}),
+							// Persists the override only when it's still actually in effect at Save time — a
+							// player who clicked "Override Max" but ended up back at (or below) the baseline
+							// (whether via "Lock Max" or just unchecking tags) resolves no field at all here,
+							// same as a caller with no cap in the first place. See the doc comment above
+							// configureEquipment for why no caller-side change is needed for this to persist.
+							...(kind === "weapon" && overrideBaseline !== null && lockedMaxTagValue !== overrideBaseline && {
+								maxTagValueOverride: lockedMaxTagValue
+							}),
+							// Permanently converts a just-unlocked catalog entry into an ordinary custom
+							// weapon (see the doc comment above configureEquipment) — persisted whenever the
+							// player actually unlocked it this session, independent of whether the resulting
+							// tag total also needed a maxTagValueOverride above (they may have unlocked,
+							// looked around, and settled back at exactly 0 — still permanently unlocked, just
+							// with nothing to override going forward).
+							...(kind === "weapon" && catalogUnlocked && { catalogSource: false })
 						});
 					}
 				},

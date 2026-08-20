@@ -456,20 +456,26 @@ export const EquipmentSheetMixin = {
 		// or from one frame's ownership into another's. Every other entry's call is left byte-for-
 		// byte as it was before this option existed, aside from the new lockTags/maxTagValue.
 		const result = entry.astir
-			? await configureEquipment(entry, undefined, { astirWeapon: true, lockTags, maxTagValue })
+			? await configureEquipment(entry, undefined, { astirWeapon: true, lockTags, maxTagValue, allowOverride: true })
 			: entry.ardent
-				? await configureEquipment(entry, undefined, { ardentWeapon: true, lockTags, maxTagValue })
-				: await configureEquipment(entry, undefined, { lockTags, maxTagValue });
+				? await configureEquipment(entry, undefined, { ardentWeapon: true, lockTags, maxTagValue, allowOverride: true })
+				: await configureEquipment(entry, undefined, { lockTags, maxTagValue, allowOverride: true });
 		if (!result) return;
 
 		// Replaces the entry wholesale (keeping only id/spent/astir/ardent/familiar/catalogSource/
 		// startingGear/bonusDowntimeTokens) rather than merging onto the old one — editing a weapon
 		// down to Gear should drop its stale scale/tier, not leave them dangling unrendered. All of
 		// these are carried forward explicitly, last, since result never includes any of them
-		// (configureEquipment has no concept of them, only of hiding/locking fields). catalogSource
-		// is carried by presence, not truthiness — a custom Astir/Ardent weapon's explicit
-		// catalogSource: false (see _onAstirWeaponCustomAdd/_onArdentWeaponCustomAdd) must survive an
-		// edit too, not just catalogSource: true.
+		// (configureEquipment has no concept of them, only of hiding/locking fields) — except
+		// catalogSource, which configureEquipment can now resolve itself (see its own doc comment,
+		// "Unlock a permanently-locked catalog pick"): unlocking a locked entry via Override Max
+		// resolves an explicit catalogSource: false, permanently converting it into an ordinary
+		// custom weapon. catalogSource is carried by presence, not truthiness — a custom Astir/
+		// Ardent weapon's explicit catalogSource: false (see _onAstirWeaponCustomAdd/
+		// _onArdentWeaponCustomAdd) must survive an edit too, not just catalogSource: true — so the
+		// fallback below only fires when result itself carries no catalogSource at all, letting a
+		// freshly-unlocked result's own catalogSource: false win instead of being clobbered back to
+		// the old entry's true.
 		const equipment = current.map((item) => (
 			item.id === equipmentId
 				? {
@@ -480,7 +486,7 @@ export const EquipmentSheetMixin = {
 					...(item.astir && { astir: true }),
 					...(item.ardent && { ardent: item.ardent }),
 					...(item.familiar && { familiar: true }),
-					...(item.catalogSource !== undefined && { catalogSource: item.catalogSource }),
+					...(result.catalogSource === undefined && item.catalogSource !== undefined && { catalogSource: item.catalogSource }),
 					...(item.startingGear && { startingGear: true }),
 					...(item.bonusDowntimeTokens && {
 						bonusDowntimeTokens: item.bonusDowntimeTokens,

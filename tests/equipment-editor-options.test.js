@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { EQUIPMENT_TAGS, TIER_MAX, configureEquipment } from "../scripts/equipment/equipment.js";
+import { EQUIPMENT_TAGS, OVERRIDE_MAX_TAG_VALUE, TIER_MAX, configureEquipment } from "../scripts/equipment/equipment.js";
 
 // A fixture catalog independent of EQUIPMENT_TAGS's real (currently Blitz-only) content, so
 // summation/negative-value/multi-tag behavior stays covered as the shipped catalog grows —
@@ -500,6 +500,155 @@ describe("configureEquipment - ardentWeapon option", () => {
 		const { tagGroups } = renderTemplate.mock.calls.at(-1)[1];
 		const renderedKeys = tagGroups.flatMap((group) => group.tags.map((tag) => tag.key));
 		expect(renderedKeys).not.toContain("ward");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+});
+
+describe("configureEquipment - Override Max scope", () => {
+	it("shows the override block for the plain Equipment-tab weapon flow (maxTagValue: 0)", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS, { maxTagValue: 0 });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			showOverride: true,
+			hasOverride: false
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("hides the override block when maxTagValue is null (no cap), unaffected for every caller with no budget rule", async () => {
+		const promise = configureEquipment(null, FIXTURE_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			showOverride: false
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("hides the override block for carrierWeapon even though it carries its own numeric per-slot cap", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true, maxTagValue: 2 });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			showOverride: false
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("shows the override block for the astirWeapon custom-weapon flow (maxTagValue: 0)", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true, maxTagValue: 0 });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			showOverride: true
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("shows the override block for the ardentWeapon custom-weapon flow (maxTagValue: 0)", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { ardentWeapon: true, maxTagValue: 0 });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			showOverride: true
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("hides the override block for a locked, catalog-picked weapon -- lockTags implies maxTagValue: null, nothing to override", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true, lockTags: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			showOverride: false
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("starts already overridden (hasOverride: true) when initial.maxTagValueOverride differs from the base maxTagValue", async () => {
+		const entry = { id: "abc", name: "Lance", kind: "weapon", tags: [], maxTagValueOverride: OVERRIDE_MAX_TAG_VALUE };
+		const promise = configureEquipment(entry, EQUIPMENT_TAGS, { astirWeapon: true, maxTagValue: 0 });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			showOverride: true,
+			hasOverride: true,
+			maxTagValue: 0
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults allowOverride to false for a carrierWeapon caller (the Add-flow shape), unaffected for every existing caller", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true, maxTagValue: 2 });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			showOverride: false
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("shows the override block for carrierWeapon once allowOverride is explicitly true (the Edit-path opt-in)", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { carrierWeapon: true, maxTagValue: 2, allowOverride: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			showOverride: true
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("shows the override block for a locked, catalog-picked weapon once allowOverride is explicitly true (the Edit-path opt-in)", async () => {
+		const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true, lockTags: true, allowOverride: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			showOverride: true
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("still hides the override block for a locked Gear catalog pick even with allowOverride: true -- isWeapon gates it regardless", async () => {
+		const promise = configureEquipment({ kind: "gear" }, EQUIPMENT_TAGS, { lockTags: true, allowOverride: true });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+			showOverride: false
+		}));
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;

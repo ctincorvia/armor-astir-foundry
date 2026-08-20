@@ -666,7 +666,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit - Ardent weapons", () => {
 		// No catalogSource on this pre-existing Ardent weapon — defaults to locked, same reasoning as
 		// an Astir weapon's own missing-catalogSource default (see docs/domains/equipment.md's
 		// "Equipment" notes).
-		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { ardentWeapon: true, lockTags: true, maxTagValue: null });
+		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { ardentWeapon: true, lockTags: true, maxTagValue: null, allowOverride: true });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
 				{ id: "1", spent: [], disabled: false, name: "Spear II", description: "", kind: "weapon", tags: ["melee"], ardent: "ar1" }

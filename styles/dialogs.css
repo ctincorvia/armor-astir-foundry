@@ -496,6 +496,35 @@
 	color: var(--aa-primary-dark);
 }
 
+/* The Director escape hatch for a custom weapon's tag-value budget (see configureEquipment's own
+   doc comment) -- rendered directly under the running total/cap line. */
+.armor-astir.equipment-editor .equipment-editor-max-override {
+	margin-top: var(--aa-space-1);
+}
+
+/* Reuses this module's existing in-dialog button look (.vtt .window-app.armor-astir .dialog-button
+   below) rather than inventing a second button style -- background/color/border match exactly,
+   just scoped to this one narrower control instead of every Dialog button. */
+.armor-astir.equipment-editor .equipment-editor-max-override-button {
+	background: var(--aa-primary);
+	color: white;
+	border: 0;
+	padding: var(--aa-space-1) var(--aa-space-2);
+	cursor: pointer;
+}
+
+.armor-astir.equipment-editor .equipment-editor-max-override-button:hover {
+	background: var(--aa-primary-dark);
+}
+
+/* Bold + the module's danger color token, same shape as .astir-power-negative-note
+   (sheet-chrome.css) -- this codebase's existing "bold warning note under a stat" precedent. */
+.armor-astir.equipment-editor .equipment-editor-max-override-reminder {
+	margin: var(--aa-space-1) 0 0;
+	font-weight: bold;
+	color: var(--aa-danger);
+}
+
 /* pbta's own CSS (pbta.css) gives every Dialog's .dialog-buttons an unwanted flex-grow inside
    .window-content's column layout, so when a dialog's content is short — e.g. an accordion
    section still collapsed — the Add/Cancel buttons stretch to swallow the leftover vertical

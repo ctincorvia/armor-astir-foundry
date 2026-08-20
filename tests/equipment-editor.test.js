@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	EQUIPMENT_TAGS,
 	MAX_TAGS,
+	OVERRIDE_MAX_TAG_VALUE,
 	TIER_MAX,
 	TIER_MIN,
 	configureEquipment
@@ -66,10 +67,53 @@ function fakeEquipmentRenderHtml({ name = "", kind = "gear", weaponRange } = {})
 		saveDisabledClass: undefined,
 		saveGateTooltip: undefined,
 		gearOnlyHidden: undefined,
-		gearOnlyUnchecked: false
+		gearOnlyUnchecked: false,
+		overrideBlockVisible: undefined,
+		overrideButtonMode: "override",
+		overrideButtonLabel: "Override Max",
+		overrideButtonHandlers: undefined,
+		reminderVisible: undefined,
+		maxValueDisplay: undefined,
+		unlockedDisabled: undefined
+	};
+	// The "Override Max"/"Lock Max" button's own fake, kept as one stable object reference (rather
+	// than a fresh one per .find() call) since configureEquipment's render callback chains
+	// `.attr("data-mode", ...).text(...)` off a single `overrideButton` variable captured once —
+	// `.attr(name)` (one argument) reads the current mode back, mirroring how the real DOM attribute
+	// a click handler reads its own current mode from.
+	const overrideButtonFake = {
+		attr: (attrName, value) => {
+			if (value === undefined) return state.overrideButtonMode;
+			if (attrName === "data-mode") state.overrideButtonMode = value;
+			return overrideButtonFake;
+		},
+		text: (value) => { state.overrideButtonLabel = value; return overrideButtonFake; },
+		on: (event, handler) => { state.overrideButtonHandlers = { ...state.overrideButtonHandlers, [event]: handler }; }
 	};
 	state.html = {
 		find: (selector) => {
+			if (selector === ".equipment-editor-max-override") {
+				return {
+					show: () => { state.overrideBlockVisible = true; },
+					hide: () => { state.overrideBlockVisible = false; }
+				};
+			}
+			if (selector === ".equipment-editor-max-override-button") return overrideButtonFake;
+			// The catalog-unlock click handler's single combined-selector .find() call (see
+			// equipment-dialogs.js's override-button click handler) — records whatever `disabled`
+			// value it's set to, mirroring the other `.prop(name, value)` capture fakes below. Real
+			// jQuery matches whichever of Kind/Tier/Range/Tag actually exist in the DOM and no-ops on
+			// the rest; this fake can't distinguish per-field, so it only proves the call itself
+			// happened with the right value.
+			if (selector === "[name='kind'], [name='tier'], [name='weapon-range'], [name='tag']") {
+				return { prop: (name, value) => { if (name === "disabled") state.unlockedDisabled = value; } };
+			}
+			if (selector === ".equipment-editor-max-override-reminder") {
+				return { toggle: (visible) => { state.reminderVisible = visible; } };
+			}
+			if (selector === ".equipment-editor-tag-max-value") {
+				return { text: (value) => { state.maxValueDisplay = value; } };
+			}
 			if (selector === "[name='tag']") return { on: (event, handler) => { state.handlers[event] = handler; } };
 			if (selector === "[name='tag']:checked") {
 				return { map: (fn) => ({ get: () => state.checkedTags.map((value, index) => fn(index, { value })) }) };
@@ -867,6 +911,479 @@ describe("configureEquipment", () => {
 				description: "A long spear.",
 				kind: "weapon",
 				tags: ["melee", "drain-1"]
+			});
+		});
+	});
+
+	describe("Override Max option", () => {
+		it("shows the override block on initial render for a weapon flow with a numeric cap (astirWeapon)", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true, maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon", weaponRange: "melee" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+
+			expect(state.overrideBlockVisible).toBe(true);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("shows the override block on initial render for the generic caller when it opens at Kind = weapon", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml({ name: "Halberd", kind: "weapon", weaponRange: "melee" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+
+			expect(state.overrideBlockVisible).toBe(true);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("hides the override block on initial render for the generic caller when it opens at Kind = gear", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml({ name: "Rations", kind: "gear" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+
+			expect(state.overrideBlockVisible).toBe(false);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("hides the override block reactively when Kind is switched from weapon to gear, resetting the effective cap", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml({ name: "Halberd", kind: "weapon", weaponRange: "melee" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+			expect(state.overrideBlockVisible).toBe(true);
+
+			state.overrideButtonHandlers.click();
+			expect(state.maxValueDisplay).toBe(OVERRIDE_MAX_TAG_VALUE);
+
+			state.kind = "gear";
+			state.kindHandlers.change();
+
+			expect(state.overrideBlockVisible).toBe(false);
+			expect(state.overrideButtonMode).toBe("override");
+			expect(state.overrideButtonLabel).toBe("Override Max");
+			// Reset all the way back to the base cap (0 here), not left at the flat override ceiling.
+			expect(state.maxValueDisplay).toBe(0);
+			expect(state.reminderVisible).toBe(false);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("shows the override block again when Kind is switched back to weapon", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml({ name: "Rations", kind: "gear" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+			expect(state.overrideBlockVisible).toBe(false);
+
+			state.kind = "weapon";
+			state.weaponRange = "melee";
+			state.kindHandlers.change();
+
+			expect(state.overrideBlockVisible).toBe(true);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("clicking Override Max raises the effective cap to OVERRIDE_MAX_TAG_VALUE, flips the button to Lock Max, shows the reminder, and updates the max readout", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true, maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon", weaponRange: "melee" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+			expect(state.reminderVisible).toBe(false);
+			expect(state.maxValueDisplay).toBe(0);
+
+			state.overrideButtonHandlers.click();
+
+			expect(state.overrideButtonMode).toBe("lock");
+			expect(state.overrideButtonLabel).toBe("Lock Max");
+			expect(state.reminderVisible).toBe(true);
+			expect(state.maxValueDisplay).toBe(OVERRIDE_MAX_TAG_VALUE);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("allows Save once Override Max is clicked and checked tags total between the base cap and the raised ceiling (previously blocked)", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true, maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon", weaponRange: "melee" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+
+			// Blitz is worth +1 — over the base cap of 0, blocking Save until Override Max is clicked.
+			state.checkedTags = ["blitz"];
+			state.handlers.change({ target: { value: "blitz", checked: true } });
+			expect(state.saveDisabled).toBe(true);
+
+			state.overrideButtonHandlers.click();
+
+			expect(state.saveDisabled).toBe(false);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("clicking Lock Max commits the effective cap to the current tag total, floored at 0, and flips the button back to Override Max", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true, maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon", weaponRange: "melee" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+
+			state.overrideButtonHandlers.click();
+			state.checkedTags = ["blitz"];
+			state.handlers.change({ target: { value: "blitz", checked: true } });
+
+			state.overrideButtonHandlers.click();
+
+			expect(state.overrideButtonMode).toBe("override");
+			expect(state.overrideButtonLabel).toBe("Override Max");
+			expect(state.maxValueDisplay).toBe(1);
+			// Still above the base cap of 0, so the reminder stays up.
+			expect(state.reminderVisible).toBe(true);
+			expect(state.saveDisabled).toBe(false);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("hides the reminder once Lock Max commits the effective cap back down to exactly the base cap", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true, maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon", weaponRange: "melee" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+
+			state.overrideButtonHandlers.click();
+			// Nothing checked -- Lock Max should floor the total at 0, exactly the base cap.
+			state.overrideButtonHandlers.click();
+
+			expect(state.maxValueDisplay).toBe(0);
+			expect(state.reminderVisible).toBe(false);
+			expect(state.saveDisabled).toBe(false);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("starts already overridden when initial.maxTagValueOverride differs from the base maxTagValue", async () => {
+			const entry = { id: "abc", name: "Lance", kind: "weapon", tags: ["melee"], maxTagValueOverride: 3 };
+			const promise = configureEquipment(entry, EQUIPMENT_TAGS, { astirWeapon: true, maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("equipment-editor"), expect.objectContaining({
+				hasOverride: true,
+				maxTagValue: 0
+			}));
+
+			const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon", weaponRange: "melee" });
+			Dialog.mock.calls.at(-1)[0].render(state.html);
+
+			// The button rests at "Override Max" even though a persisted override is already active
+			// (see the design note in equipment-dialogs.js) -- only the readout and reminder reflect it.
+			expect(state.overrideButtonMode).toBe("override");
+			expect(state.overrideButtonLabel).toBe("Override Max");
+			expect(state.maxValueDisplay).toBe(3);
+			expect(state.reminderVisible).toBe(true);
+
+			Dialog.mock.calls.at(-1)[0].close();
+			await promise;
+		});
+
+		it("resolves maxTagValueOverride on Save when still overridden, without needing Lock Max clicked first", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true, maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const dialogOptions = Dialog.mock.calls.at(-1)[0];
+			// Raises the live effective cap via a real Override Max click first -- without it, checking
+			// Blitz (worth 1, over the base cap of 0) would make invalidReason block Save entirely,
+			// same as before this feature existed.
+			const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon", weaponRange: "melee" });
+			dialogOptions.render(state.html);
+			state.overrideButtonHandlers.click();
+
+			dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+				"[name='name']": "Lance",
+				"[name='description']": ""
+			}, ["blitz"], "melee"));
+
+			expect(await promise).toEqual(expect.objectContaining({ maxTagValueOverride: 1 }));
+		});
+
+		it("omits maxTagValueOverride on Save when never overridden", async () => {
+			const promise = configureEquipment(null, EQUIPMENT_TAGS, { astirWeapon: true, maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const dialogOptions = Dialog.mock.calls.at(-1)[0];
+			dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+				"[name='name']": "Lance",
+				"[name='description']": ""
+			}, [], "melee"));
+
+			const result = await promise;
+			expect(result).not.toBeNull();
+			expect(result).not.toHaveProperty("maxTagValueOverride");
+		});
+
+		it("omits maxTagValueOverride on Save when locked back down to exactly the base cap (no field, not maxTagValueOverride: 0)", async () => {
+			const entry = { id: "abc", name: "Lance", kind: "weapon", tags: ["melee"], maxTagValueOverride: 3 };
+			const promise = configureEquipment(entry, EQUIPMENT_TAGS, { astirWeapon: true, maxTagValue: 0 });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const dialogOptions = Dialog.mock.calls.at(-1)[0];
+			dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+				"[name='name']": "Lance",
+				"[name='description']": ""
+			}, [], "melee"));
+
+			const result = await promise;
+			expect(result).not.toHaveProperty("maxTagValueOverride");
+		});
+
+		it("behaves like the pre-existing raise-the-cap mechanism for carrierWeapon + allowOverride: true, not the catalog-unlock mechanism (never lockTags, nothing to unlock)", async () => {
+			const entry = { id: "abc", name: "Ram Cannon", kind: "weapon", tags: ["melee"] };
+			const promise = configureEquipment(entry, EQUIPMENT_TAGS, { carrierWeapon: true, maxTagValue: 2, allowOverride: true });
+			await Promise.resolve();
+			await Promise.resolve();
+
+			const dialogOptions = Dialog.mock.calls.at(-1)[0];
+			const state = fakeEquipmentRenderHtml({ name: "Ram Cannon", weaponRange: "melee" });
+			dialogOptions.render(state.html);
+
+			state.overrideButtonHandlers.click();
+			// The combined-selector unlock .find() is only ever called for a lockTags entry -- a
+			// carrierWeapon caller is never lockTags, so nothing here is unlocked, just the cap raised.
+			expect(state.unlockedDisabled).toBeUndefined();
+			expect(state.maxValueDisplay).toBe(OVERRIDE_MAX_TAG_VALUE);
+
+			state.checkedTags = ["blitz"];
+			state.handlers.change({ target: { value: "blitz", checked: true } });
+
+			state.overrideButtonHandlers.click();
+			expect(state.overrideButtonMode).toBe("override");
+			expect(state.maxValueDisplay).toBe(1);
+
+			dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+				"[name='name']": "Ram Cannon",
+				"[name='description']": "",
+				"[name='tier']": "5"
+			}, ["blitz"], "melee"));
+
+			const result = await promise;
+			expect(result).not.toHaveProperty("catalogSource");
+			expect(result).toHaveProperty("maxTagValueOverride", 1);
+		});
+
+		describe("catalog unlock (lockTags + allowOverride: true, the Edit-only escape hatch)", () => {
+			it("leaves fields locked and validation short-circuited until Override Max is actually clicked", async () => {
+				const entry = { id: "abc", name: "Lance", kind: "weapon", tags: ["melee"] };
+				const promise = configureEquipment(entry, EQUIPMENT_TAGS, { astirWeapon: true, lockTags: true, allowOverride: true });
+				await Promise.resolve();
+				await Promise.resolve();
+
+				const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon" });
+				Dialog.mock.calls.at(-1)[0].render(state.html);
+
+				// No weapon-range checked in the DOM and no tags checked -- normally invalid -- but the
+				// still-locked entry short-circuits invalidReason to just the blank-name check.
+				expect(state.saveDisabled).toBe(false);
+				expect(state.unlockedDisabled).toBeUndefined();
+
+				Dialog.mock.calls.at(-1)[0].close();
+				await promise;
+			});
+
+			it("clicking Override Max on a locked entry unlocks the disabled fields and raises the cap to OVERRIDE_MAX_TAG_VALUE", async () => {
+				const entry = { id: "abc", name: "Lance", kind: "weapon", tags: ["melee"] };
+				const promise = configureEquipment(entry, EQUIPMENT_TAGS, { astirWeapon: true, lockTags: true, allowOverride: true });
+				await Promise.resolve();
+				await Promise.resolve();
+
+				const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon", weaponRange: "melee" });
+				Dialog.mock.calls.at(-1)[0].render(state.html);
+
+				state.overrideButtonHandlers.click();
+
+				expect(state.unlockedDisabled).toBe(false);
+				expect(state.overrideButtonMode).toBe("lock");
+				expect(state.overrideButtonLabel).toBe("Lock Max");
+				expect(state.maxValueDisplay).toBe(OVERRIDE_MAX_TAG_VALUE);
+
+				Dialog.mock.calls.at(-1)[0].close();
+				await promise;
+			});
+
+			it("makes the MAX_TAGS-exceeded check actually fire once unlocked, where lockTags alone always resolved null", async () => {
+				const entry = { id: "abc", name: "Lance", kind: "weapon", tags: ["melee"] };
+				const promise = configureEquipment(entry, EQUIPMENT_TAGS, { astirWeapon: true, lockTags: true, allowOverride: true });
+				await Promise.resolve();
+				await Promise.resolve();
+
+				const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon", weaponRange: "melee" });
+				Dialog.mock.calls.at(-1)[0].render(state.html);
+
+				state.overrideButtonHandlers.click();
+				state.checkedTags = [
+					"blitz", "concealable", "impact", "infinite", "mounted", "decisive", "defensive", "distinct", "fragile"
+				];
+				state.handlers.change({ target: { value: "fragile", checked: true } });
+
+				expect(state.saveDisabled).toBe(true);
+				expect(state.saveGateTooltip).toBe(`Equipment can have at most ${MAX_TAGS} tags, not counting Melee/Ranged/Sniper.`);
+
+				Dialog.mock.calls.at(-1)[0].close();
+				await promise;
+			});
+
+			it("makes the raised-cap budget check actually fire once unlocked, blocking a total over OVERRIDE_MAX_TAG_VALUE", async () => {
+				const entry = { id: "abc", name: "Lance", kind: "weapon", tags: ["melee"] };
+				const promise = configureEquipment(entry, EQUIPMENT_TAGS, { astirWeapon: true, lockTags: true, allowOverride: true });
+				await Promise.resolve();
+				await Promise.resolve();
+
+				const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon", weaponRange: "melee" });
+				Dialog.mock.calls.at(-1)[0].render(state.html);
+
+				state.overrideButtonHandlers.click();
+				// ruin/versatile/vorpal are each worth +2 -- three of them total 6, one over the raised
+				// OVERRIDE_MAX_TAG_VALUE (5) cap.
+				state.checkedTags = ["ruin", "versatile", "vorpal"];
+				state.handlers.change({ target: { value: "vorpal", checked: true } });
+
+				expect(state.saveDisabled).toBe(true);
+				expect(state.saveGateTooltip).toBe(`This equipment's tags can total at most ${OVERRIDE_MAX_TAG_VALUE}.`);
+
+				Dialog.mock.calls.at(-1)[0].close();
+				await promise;
+			});
+
+			it("makes the missing-weapon-range check actually fire once unlocked", async () => {
+				const entry = { id: "abc", name: "Lance", kind: "weapon", tags: [] };
+				const promise = configureEquipment(entry, EQUIPMENT_TAGS, { astirWeapon: true, lockTags: true, allowOverride: true });
+				await Promise.resolve();
+				await Promise.resolve();
+
+				const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon" });
+				Dialog.mock.calls.at(-1)[0].render(state.html);
+
+				state.overrideButtonHandlers.click();
+
+				expect(state.saveDisabled).toBe(true);
+				expect(state.saveGateTooltip).toBe("A weapon needs one of the Melee, Ranged or Sniper tags.");
+
+				Dialog.mock.calls.at(-1)[0].close();
+				await promise;
+			});
+
+			it("resolves catalogSource: false plus maxTagValueOverride on Save once unlocked with a nonzero tag total", async () => {
+				const entry = { id: "abc", name: "Lance", kind: "weapon", tags: ["melee"] };
+				const promise = configureEquipment(entry, EQUIPMENT_TAGS, { astirWeapon: true, lockTags: true, allowOverride: true });
+				await Promise.resolve();
+				await Promise.resolve();
+
+				const dialogOptions = Dialog.mock.calls.at(-1)[0];
+				const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon", weaponRange: "melee" });
+				dialogOptions.render(state.html);
+				state.overrideButtonHandlers.click();
+
+				dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+					"[name='name']": "Lance",
+					"[name='description']": ""
+				}, ["blitz"], "melee"));
+
+				expect(await promise).toEqual(expect.objectContaining({ catalogSource: false, maxTagValueOverride: 1 }));
+			});
+
+			it("resolves catalogSource: false without maxTagValueOverride on Save when unlocked but settled back at exactly 0", async () => {
+				const entry = { id: "abc", name: "Lance", kind: "weapon", tags: ["melee"] };
+				const promise = configureEquipment(entry, EQUIPMENT_TAGS, { astirWeapon: true, lockTags: true, allowOverride: true });
+				await Promise.resolve();
+				await Promise.resolve();
+
+				const dialogOptions = Dialog.mock.calls.at(-1)[0];
+				const state = fakeEquipmentRenderHtml({ name: "Lance", kind: "weapon", weaponRange: "melee" });
+				dialogOptions.render(state.html);
+				state.overrideButtonHandlers.click();
+
+				dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+					"[name='name']": "Lance",
+					"[name='description']": ""
+				}, [], "melee"));
+
+				const result = await promise;
+				expect(result).toEqual(expect.objectContaining({ catalogSource: false }));
+				expect(result).not.toHaveProperty("maxTagValueOverride");
+			});
+
+			it("resolves with no catalogSource key at all on Save when Override Max is never clicked, behaving exactly as before this feature", async () => {
+				const entry = { id: "abc", name: "Lance", description: "Old text", kind: "weapon", tags: ["melee", "blitz"] };
+				const promise = configureEquipment(entry, EQUIPMENT_TAGS, { astirWeapon: true, lockTags: true, allowOverride: true });
+				await Promise.resolve();
+				await Promise.resolve();
+
+				const dialogOptions = Dialog.mock.calls.at(-1)[0];
+				// Only name/description ever change on a still-locked entry -- the fake DOM's tag/range
+				// values below mirror what the (disabled, unclickable) fields still show, same as the
+				// pre-existing "resolves the (unchanged) picked template's fields" test above.
+				dialogOptions.buttons.save.callback(fakeEquipmentHtml({
+					"[name='name']": "Lance",
+					"[name='description']": "New text"
+				}, ["blitz"], "melee"));
+
+				expect(await promise).toEqual({ name: "Lance", description: "New text", kind: "weapon", tags: ["melee", "blitz"] });
+			});
+
+			it("resets the resting effective cap to 0 (not the original null) when Kind is switched away from weapon after an unlock -- the generic caller's own locked weapon catalog pick renders a live Kind select", async () => {
+				const entry = { id: "abc", name: "Cannon", kind: "weapon", tags: ["melee"] };
+				const promise = configureEquipment(entry, EQUIPMENT_TAGS, { lockTags: true, allowOverride: true });
+				await Promise.resolve();
+				await Promise.resolve();
+
+				const state = fakeEquipmentRenderHtml({ name: "Cannon", kind: "weapon", weaponRange: "melee" });
+				Dialog.mock.calls.at(-1)[0].render(state.html);
+
+				state.overrideButtonHandlers.click();
+				expect(state.maxValueDisplay).toBe(OVERRIDE_MAX_TAG_VALUE);
+
+				state.kind = "gear";
+				state.kindHandlers.change();
+
+				// Resting baseline is 0 (what _equipmentEditLockState hands back once catalogSource:
+				// false is persisted), not the original null base maxTagValue a still-locked entry had.
+				expect(state.maxValueDisplay).toBe(0);
+				expect(state.reminderVisible).toBe(false);
+				expect(state.overrideButtonMode).toBe("override");
+
+				Dialog.mock.calls.at(-1)[0].close();
+				await promise;
 			});
 		});
 	});

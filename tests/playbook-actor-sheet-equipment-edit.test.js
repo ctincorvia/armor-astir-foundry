@@ -30,7 +30,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 		// No astir/ardent/startingGear/catalogSource flag on this entry — a plain entry with no
 		// provenance flag defaults to unlocked but now budget-capped (see docs/domains/equipment.md's
 		// "Equipment" notes).
-		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { lockTags: false, maxTagValue: 0 });
+		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { lockTags: false, maxTagValue: 0, allowOverride: true });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
 				{ id: "1", spent: ["blitz"], disabled: false, name: "Rations", description: "", kind: "gear", tags: [] },
@@ -49,7 +49,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 
 		// No catalogSource on this pre-existing Astir weapon — defaults to locked (its only prior
 		// path was a catalog pick — see docs/domains/equipment.md's "Equipment" notes).
-		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { astirWeapon: true, lockTags: true, maxTagValue: null });
+		expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { astirWeapon: true, lockTags: true, maxTagValue: null, allowOverride: true });
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.equipment": [
 				{ id: "1", spent: [], disabled: false, name: "Lance II", description: "", kind: "weapon", tags: ["melee"], astir: true }
@@ -260,7 +260,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 
 			await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
 
-			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { lockTags: true, maxTagValue: null });
+			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { lockTags: true, maxTagValue: null, allowOverride: true });
 			expect(sheet.actor.update).toHaveBeenCalledWith({
 				"system.attributes.equipment": [
 					{ id: "1", spent: [], disabled: false, name: "Rope", description: "", kind: "gear", tags: [], catalogSource: true }
@@ -278,7 +278,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 
 			await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
 
-			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { lockTags: false, maxTagValue: 0 });
+			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { lockTags: false, maxTagValue: 0, allowOverride: true });
 			expect(sheet.actor.update).toHaveBeenCalledWith({
 				"system.attributes.equipment": [
 					{
@@ -299,7 +299,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 
 			await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
 
-			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { lockTags: false, maxTagValue: null });
+			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { lockTags: false, maxTagValue: null, allowOverride: true });
 			expect(sheet.actor.update).toHaveBeenCalledWith({
 				"system.attributes.equipment": [
 					{
@@ -321,7 +321,7 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 
 			await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
 
-			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { astirWeapon: true, lockTags: false, maxTagValue: 0 });
+			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { astirWeapon: true, lockTags: false, maxTagValue: 0, allowOverride: true });
 			expect(sheet.actor.update).toHaveBeenCalledWith({
 				"system.attributes.equipment": [
 					{
@@ -340,7 +340,57 @@ describe("PlaybookActorSheet#_onEquipmentEdit", () => {
 
 			await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
 
-			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { ardentWeapon: true, lockTags: true, maxTagValue: null });
+			expect(configureEquipment).toHaveBeenCalledWith(entry, undefined, { ardentWeapon: true, lockTags: true, maxTagValue: null, allowOverride: true });
+		});
+
+		it("persists configureEquipment's own catalogSource: false (an Override-Max catalog unlock) instead of carrying the old entry's catalogSource: true forward", async () => {
+			const sheet = new PlaybookActorSheet();
+			const entry = {
+				id: "1", kind: "weapon", astir: true, catalogSource: true, name: "Lance", description: "",
+				tags: ["melee"], spent: []
+			};
+			sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+			// Simulates configureEquipment's own catalog-unlock resolution (see equipment-dialogs.js's
+			// "Unlock a permanently-locked catalog pick" mechanism) -- the entry was Override-Max
+			// unlocked and saved, so the resolved result carries an explicit catalogSource: false.
+			configureEquipment.mockResolvedValue({
+				name: "Lance", description: "", kind: "weapon", tags: ["melee", "blitz"],
+				maxTagValueOverride: 1, catalogSource: false
+			});
+
+			await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+			// Without the fix, the old entry's catalogSource: true (spread in after ...result) would
+			// clobber this back to true -- asserting catalogSource: false here is what proves the fix.
+			expect(sheet.actor.update).toHaveBeenCalledWith({
+				"system.attributes.equipment": [
+					{
+						id: "1", spent: [], disabled: false, name: "Lance", description: "", kind: "weapon",
+						tags: ["melee", "blitz"], astir: true, maxTagValueOverride: 1, catalogSource: false
+					}
+				]
+			});
+		});
+
+		it("still carries the old entry's catalogSource forward when configureEquipment's result has no catalogSource of its own (every pre-existing case, unaffected)", async () => {
+			const sheet = new PlaybookActorSheet();
+			const entry = {
+				id: "1", kind: "weapon", astir: true, catalogSource: false, name: "Custom Lance", description: "",
+				tags: ["melee"], spent: []
+			};
+			sheet.actor = { system: { attributes: { equipment: [entry] } }, update: vi.fn() };
+			configureEquipment.mockResolvedValue({ name: "Custom Lance II", description: "", kind: "weapon", tags: ["melee"] });
+
+			await sheet._onEquipmentEdit({ currentTarget: { dataset: { equipmentId: "1" } } });
+
+			expect(sheet.actor.update).toHaveBeenCalledWith({
+				"system.attributes.equipment": [
+					{
+						id: "1", spent: [], disabled: false, name: "Custom Lance II", description: "", kind: "weapon",
+						tags: ["melee"], astir: true, catalogSource: false
+					}
+				]
+			});
 		});
 	});
 });

@@ -40,6 +40,13 @@ export const MAX_TAGS = 8;
 export const TIER_MIN = 1;
 export const TIER_MAX = 5;
 
+// The flat effective cap an "Override Max" click in configureEquipment raises a weapon's tag-value
+// cap to (see its own doc comment) — a Director escape hatch for the "tags sum to 0 or less" budget
+// rule, not itself a per-caller option. 5 covers every custom-weapon budget in play today (the
+// generic Equipment tab's 0, the Astir/Ardent custom-weapon flows' 0) with headroom, without being
+// so high it stops reading as a deliberate, visible exception.
+export const OVERRIDE_MAX_TAG_VALUE = 5;
+
 export const EQUIPMENT_EDITOR_TEMPLATE = "modules/armor-astir/templates/equipment-editor.hbs";
 export const EQUIPMENT_CATALOG_PICKER_TEMPLATE = "modules/armor-astir/templates/equipment-catalog-picker.hbs";
 

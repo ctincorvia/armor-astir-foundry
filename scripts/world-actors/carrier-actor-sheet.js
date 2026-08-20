@@ -153,7 +153,8 @@ export class CarrierActorSheet extends WorldActorSheet {
 			carrierWeapon: true,
 			carrierWeaponTier: slot.tier,
 			excludedTagKeys: slot.lockedTagKeys,
-			maxTagValue: slot.maxTagValue
+			maxTagValue: slot.maxTagValue,
+			allowOverride: true
 		});
 		if (!result) return;
 

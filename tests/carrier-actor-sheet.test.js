@@ -318,6 +318,16 @@ describe("CarrierActorSheet#_onWeaponAdd", () => {
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
+
+	it("never passes allowOverride -- Override Max only ever reaches an existing weapon via Edit, never on first creation", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = { system: { attributes: { weapons: {} } }, update: vi.fn() };
+		configureEquipment.mockResolvedValue({ name: "Ram Cannon", description: "", kind: "weapon", tags: ["melee"], scale: "astir", tier: 1 });
+
+		await sheet._onWeaponAdd({ currentTarget: { dataset: { slot: "primary" } } });
+
+		expect(configureEquipment.mock.calls.at(-1)[2]).not.toHaveProperty("allowOverride");
+	});
 });
 
 describe("CarrierActorSheet#_onWeaponEdit", () => {
@@ -333,7 +343,8 @@ describe("CarrierActorSheet#_onWeaponEdit", () => {
 			carrierWeapon: true,
 			carrierWeaponTier: TIER_MAX,
 			excludedTagKeys: ["set-up", "mounted"],
-			maxTagValue: 2
+			maxTagValue: 2,
+			allowOverride: true
 		});
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.weapons.primary": {

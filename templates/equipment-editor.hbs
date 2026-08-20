@@ -67,7 +67,13 @@
 					</div>
 				</details>
 				{{/each}}
-				<p class="equipment-editor-tag-total">Total: <span class="equipment-editor-tag-total-value">{{tagTotal}}</span>{{#if hasTagValueCap}} (max {{maxTagValue}}){{/if}}</p>
+				<p class="equipment-editor-tag-total">Total: <span class="equipment-editor-tag-total-value">{{tagTotal}}</span>{{#if hasTagValueCap}} (max <span class="equipment-editor-tag-max-value">{{maxTagValue}}</span>){{/if}}</p>
+				{{#if showOverride}}
+				<div class="equipment-editor-max-override">
+					<button type="button" class="equipment-editor-max-override-button" data-mode="override">Override Max</button>
+					<p class="equipment-editor-max-override-reminder" {{#unless hasOverride}}style="display: none;"{{/unless}}>Max value has been increased. Don't do this unless your director says you should.</p>
+				</div>
+				{{/if}}
 			</div>
 		</div>
 	</div>
