@@ -18,6 +18,10 @@ Judge each exploration's complexity. When genuinely unsure, prefer `sonnet`.
 
 In practice, a brief that's purely rote (haiku-eligible) is usually also small enough to fall under the "≤3 queries → use Grep/Read directly" guidance and not need a subagent at all — so haiku-tier Explore agents will legitimately be rare. Don't force a haiku call just to exercise the tier; most real briefs mix a verbatim-lookup part with an interpretive part, and bundling both under `sonnet` in one call is correct rather than a sign the dial isn't being used.
 
+## Subagent Isolation
+
+Do not spawn subagents with `isolation: "worktree"` in this repo — it has reliably gone wrong in practice. Spawn subagents to work directly in the main working directory instead.
+
 ## Implementing Plans from Plan Mode
 
 After a plan is approved, prefer delegating the implementation to a subagent with a distilled, self-contained brief rather than continuing inline in the planning session.
