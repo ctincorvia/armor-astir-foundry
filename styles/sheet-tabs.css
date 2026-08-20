@@ -491,6 +491,70 @@
 	padding-left: 8px;
 }
 
+/* Quarters (Equipment tab, isSupport-gated — see quarters.js/quarters-mixin.js): a name, a
+   description and up to QUARTERS_BENEFIT_MAX benefit picks. The .quarters-benefit-list reset below
+   is intentionally the only rule for that class in the whole module — the Carrier's read-only
+   Quarters rollup (carrier-actor-sheet.hbs) reuses the identical class on a plain <ul>, so this one
+   rule is shared by both sheets, the same way shared chrome lives once in sheet-chrome.css/
+   sheet-layout.css (see world-actor-shared.css's file-header comment). Do not duplicate it in
+   world-actor-shared.css. */
+.armor-astir.sheet .quarters-name-input {
+	width: 100%;
+}
+
+.armor-astir.sheet .quarters-description-input {
+	width: 100%;
+	min-height: 3em;
+	margin-top: var(--aa-space-2);
+	resize: vertical;
+}
+
+.armor-astir.sheet .quarters-benefit-list {
+	margin: var(--aa-space-2) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .quarters-benefit-list li {
+	padding: 2px 0;
+	font-size: 12px;
+}
+
+.armor-astir.sheet .quarters-benefit-item label {
+	display: flex;
+	align-items: center;
+	gap: var(--aa-space-1);
+}
+
+/* Same opacity-0.6 idiom as .equipment-item-disabled/.move-disabled (sheet-tabs.css:174-177) —
+   surfaces the QUARTERS_BENEFIT_MAX-reached state the template already computes into `disabled`
+   but never visibly showed. :has() already has one precedent in this module (dialogs.css:503). */
+.armor-astir.sheet .quarters-benefit-item:has(.quarters-benefit-checkbox:disabled) {
+	opacity: 0.6;
+}
+
+/* Label-beside-select row, same shape as world-actor-shared.css's .entry-counter — kept as its own
+   copy rather than a cross-file selector, matching that file's own "own copy, no cross-file
+   dependency" convention. */
+.armor-astir.sheet .quarters-carrier-control {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-2);
+	margin-top: var(--aa-space-2);
+}
+
+.armor-astir.sheet .quarters-carrier-control label {
+	font-size: 11px;
+	font-weight: bold;
+	white-space: nowrap;
+}
+
+.armor-astir.sheet .quarters-carrier-select {
+	flex: 1 1 auto;
+	min-width: 0;
+}
+
 /* Each field (Look/Consider/Backstory/Notes) is its own labeled ProseMirror editor rather than
    one shared textarea, so each can be edited and scanned independently. */
 .armor-astir.sheet .cosmetic {

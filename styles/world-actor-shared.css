@@ -113,6 +113,19 @@
 	background: var(--aa-primary-tint);
 }
 
+/* Quarters' read-only rollup. .quarters-benefit-list's own reset lives once in sheet-tabs.css (see
+   that file's comment) — these two are the only pieces unique to this sheet's markup. */
+.armor-astir.sheet .quarters-owner {
+	font-size: 11px;
+	font-weight: normal;
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir.sheet .quarters-description {
+	margin: var(--aa-space-1) 0 0;
+	font-size: 12px;
+}
+
 .armor-astir.sheet .entry-list-row {
 	display: flex;
 	flex-direction: row;
