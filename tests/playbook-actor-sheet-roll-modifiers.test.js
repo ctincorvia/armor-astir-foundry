@@ -278,6 +278,7 @@ describe("PlaybookActorSheet#_rollModifiersForMove", () => {
 			description: FIELD_TESTING.description,
 			advantage: "advantage",
 			effect: null,
+			requiresAdvantage: null,
 			reminderOnly: false,
 			deferred: false,
 			disabled: false,
@@ -361,6 +362,7 @@ describe("PlaybookActorSheet#_rollModifiersForMove", () => {
 			description: DARK_GUARANTEES.description,
 			advantage: null,
 			effect: null,
+			requiresAdvantage: null,
 			reminderOnly: true,
 			deferred: false,
 			disabled: false,
@@ -424,6 +426,7 @@ describe("PlaybookActorSheet#_rollModifiersForMove", () => {
 			description: "Grants advantage towards a task this Artifact is designed for.",
 			advantage: "advantage",
 			effect: null,
+			requiresAdvantage: null,
 			reminderOnly: false,
 			deferred: false,
 			disabled: false,
@@ -436,25 +439,27 @@ describe("PlaybookActorSheet#_rollModifiersForMove", () => {
 		expect(expendedEntry.disabled).toBe(true);
 		expect(expendedEntry.disabledReason).toBe("Already used");
 	});
-});
 
-describe("PlaybookActorSheet#_rollStackModifier", () => {
-	it("returns null when All In hasn't been picked", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
-
-		expect(sheet._rollStackModifier()).toBeNull();
-	});
-
-	it("resolves All In's own grantsRollStack spec once picked", () => {
+	// requiresAdvantage (see roll-chain.js's resolveRollChain/chainEntryResult) is a NEW gate a spec
+	// can carry on top of any resource gate, threaded straight through onto the resolved entry so
+	// the move-roll dialog's own render callback can re-check it live -- All In (cantrips.js) is the
+	// catalog's own example.
+	it("threads a spec's own requiresAdvantage through to the resolved entry", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { playbookMoves: [ALL_IN.key] } } };
 
-		expect(sheet._rollStackModifier()).toEqual({
-			key: ALL_IN.key,
-			label: ALL_IN.name,
-			...ALL_IN.grantsRollStack
-		});
+		const [entry] = sheet._rollModifiersForMove(EXCHANGE_BLOWS, null);
+
+		expect(entry.requiresAdvantage).toEqual(["advantage"]);
+	});
+
+	it("defaults requiresAdvantage to null for a spec that doesn't carry one", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [SHARPER_KNIVES.key] } } };
+
+		const [entry] = sheet._rollModifiersForMove(READ_THE_ROOM, null);
+
+		expect(entry.requiresAdvantage).toBeNull();
 	});
 });
 
@@ -499,67 +504,6 @@ describe("PlaybookActorSheet#_availableDowngrade", () => {
 		expect(sheet._availableDowngrade(EXCHANGE_BLOWS)).toEqual([
 			{ key: EMBRACE_CHAOS.key, name: EMBRACE_CHAOS.name, amount: 1 }
 		]);
-	});
-});
-
-describe("PlaybookActorSheet#_disadvantageConversionModifier", () => {
-	it("returns null when Embrace Chaos hasn't been picked", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
-
-		expect(sheet._disadvantageConversionModifier()).toBeNull();
-	});
-
-	it("returns null once picked but unaffordable (below its own hold cost)", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 0 } } } }
-		};
-
-		expect(sheet._disadvantageConversionModifier()).toBeNull();
-	});
-
-	it("resolves the source once picked and affordable", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } } } }
-		};
-
-		expect(sheet._disadvantageConversionModifier()).toEqual({
-			key: EMBRACE_CHAOS.key,
-			label: EMBRACE_CHAOS.name,
-			...EMBRACE_CHAOS.grantsDisadvantageConversion
-		});
-	});
-});
-
-describe("PlaybookActorSheet#_spendDisadvantageConversion", () => {
-	it("decrements the source's own hold pool by the spent amount", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { attributes: { moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } } } },
-			update: vi.fn()
-		};
-
-		await sheet._spendDisadvantageConversion(EMBRACE_CHAOS.key, 1);
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.moveHold.${EMBRACE_CHAOS.key}.value`]: 0
-		});
-	});
-
-	it("clamps the spend at HOLD_MIN rather than going negative", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { attributes: { moveHold: { [EMBRACE_CHAOS.key]: { value: 0 } } } },
-			update: vi.fn()
-		};
-
-		await sheet._spendDisadvantageConversion(EMBRACE_CHAOS.key, 1);
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.moveHold.${EMBRACE_CHAOS.key}.value`]: 0
-		});
 	});
 });
 
@@ -1056,86 +1000,5 @@ describe("PlaybookActorSheet#_rollMove - pending Roll Modifier grant", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "weather-the-storm" } } });
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-});
-
-// _rollMove's wiring of configureMoveRoll's own spentDisadvantageConversion flag into
-// _spendDisadvantageConversion — mirrors the "spends every checked roll modifier" integration test
-// above, just for Embrace Chaos's own single-source spend instead of the list-shaped Roll Modifiers.
-// Deliberately a non-usesWeapon move (Read the Room, not Exchange Blows/Strike Decisively):
-// grantsDisadvantageConversion is universal, unscoped by move key, and a non-usesWeapon move keeps
-// this test on _rollMove's own single-weapon path (weapon stays undefined) rather than
-// _rollMoveWithWeaponChoice's array branch, which playbook-actor-sheet-roll-modifiers.test.js's own
-// Roll Modifiers integration tests above already cover separately.
-describe("PlaybookActorSheet#_rollMove - disadvantageConversion spend (Embrace Chaos)", () => {
-	it("spends the source's own hold once the roll dialog resolves with spentDisadvantageConversion", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { sense: { value: 0 } },
-				attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } } }
-			},
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue({
-			trait: { key: "sense", label: "SENSE", value: 0 },
-			advantage: "advantage",
-			effect: "none",
-			spentDisadvantageConversion: true
-		});
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.moveHold.${EMBRACE_CHAOS.key}.value`]: 0
-		});
-	});
-
-	it("does not spend anything when spentDisadvantageConversion wasn't set", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { sense: { value: 0 } },
-				attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } } }
-			},
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue({
-			trait: { key: "sense", label: "SENSE", value: 0 }, advantage: "none", effect: "none"
-		});
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-
-	// The array-branch counterpart (_rollMoveWithWeaponChoice) of the single-weapon-path test above
-	// — a usesWeapon move with no weapons at all still resolves through the same
-	// spentDisadvantageConversion wiring, just via its own copy of the read/spend (see
-	// move-roll-mixin.js's own comment on why the two paths mirror each other field-for-field).
-	it("spends the source's own hold through the usesWeapon (array) branch too", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { clash: { value: 0 }, talk: { value: 0 } },
-				attributes: {
-					playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } }, equipment: []
-				}
-			},
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue({
-			trait: { key: "clash", label: "CLASH", value: 0 },
-			advantage: "advantage",
-			effect: "none",
-			spentDisadvantageConversion: true,
-			weaponId: "unarmed"
-		});
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.moveHold.${EMBRACE_CHAOS.key}.value`]: 0
-		});
 	});
 });

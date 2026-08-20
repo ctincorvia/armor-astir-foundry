@@ -229,7 +229,7 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
 			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], narrativeTags: [],
-			rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			rollModifiers: [], riders: []
 		});
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz", heatUp: NO_HEAT_UP }

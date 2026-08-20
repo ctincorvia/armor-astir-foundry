@@ -222,18 +222,17 @@ export const MoveRollSheetMixin = {
 		];
 	},
 	// Shared tail of both _rollMove's single-weapon path and _rollMoveWithWeaponChoice's array
-	// path, once configureMoveRoll's dialog has resolved — everything from Guided's "Take 7-9"
+	// path, once configureMoveRoll's dialog has resolved -- everything from Guided's "Take 7-9"
 	// early return through the final rollMove call and _onMoveResolved. `weapon` is always a
-	// single, already-resolved weapon/null/undefined (never an array) — the single-weapon path
+	// single, already-resolved weapon/null/undefined (never an array) -- the single-weapon path
 	// passes its own already-known `weapon` parameter, the array path passes chosenWeapon once the
-	// weapon-select's own choice resolves. `guided`/`disadvantageConversion`/`downgrade` are each
-	// the same weapon-independent (or, for guided, already-resolved-for-the-chosen-weapon) values
-	// the caller already computed before calling configureMoveRoll, threaded through rather than
-	// recomputed here.
-	async _finishMoveRoll(move, weapon, config, { quickRoll = {}, guided = null, disadvantageConversion = null, downgrade = [] } = {}) {
-		// Guided's "Take 7-9" button resolves with nothing but this flag — no trait, dice, or
+	// weapon-select's own choice resolves. `guided`/`downgrade` are each the same weapon-independent
+	// (or, for guided, already-resolved-for-the-chosen-weapon) values the caller already computed
+	// before calling configureMoveRoll, threaded through rather than recomputed here.
+	async _finishMoveRoll(move, weapon, config, { quickRoll = {}, guided = null, downgrade = [] } = {}) {
+		// Guided's "Take 7-9" button resolves with nothing but this flag -- no trait, dice, or
 		// equipment/Astir Part spend was ever read, so there's nothing to mark spent and nothing
-		// left to roll. _onMoveResolved still runs below (Cold Company, Witch's Patron, ...) —
+		// left to roll. _onMoveResolved still runs below (Cold Company, Witch's Patron, ...) --
 		// there's just no dice to check for Flourish Component's regain-on-doubles.
 		if (config.takeSeven) {
 			await postGuidedResult(this.actor, move, {
@@ -246,16 +245,16 @@ export const MoveRollSheetMixin = {
 		}
 
 		// A weapon "borrowed" from the world's Carrier (Fire Support) lives in a different actor's
-		// own equipment array, not this actor's — so none of the spend/tag/reroll machinery below,
+		// own equipment array, not this actor's -- so none of the spend/tag/reroll machinery below,
 		// which all read or write this actor's own equipment/Astir Part state, may ever be
 		// evaluated against it. Mirrors CarrierActorSheet#_onWeaponMoveRoll's own scope cut for the
 		// Carrier's own weapon rolls: that handler never offers equipment spends, Astir Part
-		// spends, reroll or Guided either — a Carrier weapon roll is deliberately just a trait plus
+		// spends, reroll or Guided either -- a Carrier weapon roll is deliberately just a trait plus
 		// a name on the chat card, nothing more, and a Fire Support roll using one gets exactly the
 		// same treatment rather than risking a write onto an object this actor doesn't own.
 		const fromCarrier = Boolean(weapon?.fromCarrier);
 		// A forced tag (e.g. Unreliable) is marked spent right alongside whatever the player
-		// checked in the dialog — same single update, same "used this period" checkbox on the
+		// checked in the dialog -- same single update, same "used this period" checkbox on the
 		// Equipment tab (see _equipmentEntry's spendable) as a player-chosen spend.
 		const forced = fromCarrier ? null : this._forcedWeaponEffect(weapon);
 		const spends = [...(config.spentTags ?? []), ...(forced ? [{ equipmentId: weapon.id, tagKey: forced.tagKey }] : [])];
@@ -264,15 +263,10 @@ export const MoveRollSheetMixin = {
 		// (checked [name='roll-modifier']) and deferred (checked [name='pending-roll-modifier'])
 		// entries alike, since both need their resource cost actually consumed; only the deferred
 		// ones additionally write a pendingRollModifiers marker (see _spendRollModifiers itself).
+		// A checked entry's own advantage/effect grant was already folded into config.advantage/
+		// config.effect by configureMoveRoll's own live chain resolution (see roll-chain.js) before
+		// this ever runs -- this call is purely the resource-spend side.
 		if (config.spentRollModifiers?.length) await this._spendRollModifiers(config.spentRollModifiers);
-		// Embrace Chaos's own hold spend (see _disadvantageConversionModifier/
-		// _spendDisadvantageConversion) -- resolved via configureMoveRoll's own
-		// spentDisadvantageConversion flag rather than a checked-keys list, since only one such
-		// source is ever offered per roll (mirrors rollStack's own single-source shape, unlike the
-		// list-shaped spentRollModifiers immediately above).
-		if (config.spentDisadvantageConversion) {
-			await this._spendDisadvantageConversion(disadvantageConversion.key, disadvantageConversion.costsHold.amount);
-		}
 
 		// weapon undefined (not a usesWeapon move) leaves rollMove's options untouched, same as
 		// today, for every move except Exchange Blows/Strike Decisively. null (Unarmed) or a real
@@ -391,14 +385,9 @@ export const MoveRollSheetMixin = {
 		const pendingGrant = this._pendingRollModifierGrant(move);
 		const lockedTrait = this._lockedTraitFor(move, quickRoll, traits);
 		const lockedAdvantage = this._lockedAdvantageFor(move, pendingGrant);
-		const rollStack = this._rollStackModifier();
-		// Embrace Chaos's own two hold spends -- disadvantageConversion (see
-		// _disadvantageConversionModifier) is resolved unconditionally, like rollStack above, since
-		// it's a Category D mechanism the dialog itself renders live-reactively; downgrade (see
-		// _availableDowngrade) is resolved unconditionally too, but only ever offered on the chat
-		// card after a 10+ (see moves.js#rollMove), so it's folded into baseOptions the same
-		// conditional-spread way automaticSuccess already is.
-		const disadvantageConversion = this._disadvantageConversionModifier();
+		// downgrade (see _availableDowngrade) is resolved unconditionally, but only ever offered on
+		// the chat card after a 10+ (see moves.js#rollMove), so it's folded into baseOptions the
+		// same conditional-spread way automaticSuccess already is.
 		const downgrade = this._availableDowngrade(move);
 		// Riders (see _ridersForMove) — none of the three resolvers it calls take a weapon, so this
 		// is computed once here rather than per weaponBundles entry, and passed at the top level of
@@ -412,8 +401,6 @@ export const MoveRollSheetMixin = {
 		const config = await configureMoveRoll(move, traits, {
 			lockedAdvantage,
 			lockedTrait,
-			rollStack,
-			disadvantageConversion,
 			riders,
 			weaponBundles
 		});
@@ -432,7 +419,7 @@ export const MoveRollSheetMixin = {
 		const bundle = weaponBundles.find((b) => b.weaponKey === (chosenWeapon ? chosenWeapon.id : UNARMED));
 
 		await this._finishMoveRoll(move, chosenWeapon, config, {
-			quickRoll, guided: bundle.guided, disadvantageConversion, downgrade
+			quickRoll, guided: bundle.guided, downgrade
 		});
 	},
 	// Shared by _onMoveRoll (weapon resolved via the merged dialog's own weapon-select, or left
@@ -474,20 +461,14 @@ export const MoveRollSheetMixin = {
 		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
 		const narrativeTags = fromCarrier ? [] : this._narrativeWeaponTags(weapon);
 		const guided = this._guidedFor(move, weapon);
-		// The Roll Modifiers section (see move-grants-mixin.js's _rollModifiersForMove/
-		// _rollStackModifier) -- resolved unconditionally, like automaticSuccess below, rather than
-		// scoped to fromCarrier/usesWeapon: a source's own moveKeys filtering already narrows each
-		// entry to the moves it actually applies to, so there's nothing frame- or weapon-specific to
-		// additionally gate here.
+		// The Roll Modifiers section (see move-grants-mixin.js's _rollModifiersForMove) -- resolved
+		// unconditionally, like automaticSuccess below, rather than scoped to fromCarrier/usesWeapon:
+		// a source's own moveKeys filtering already narrows each entry to the moves it actually
+		// applies to, so there's nothing frame- or weapon-specific to additionally gate here.
 		const rollModifiers = this._rollModifiersForMove(move, lockedEffect);
-		const rollStack = this._rollStackModifier();
-		// Embrace Chaos's own two hold spends -- disadvantageConversion (see
-		// _disadvantageConversionModifier) is resolved unconditionally, like rollStack above, since
-		// it's a Category D mechanism the dialog itself renders live-reactively; downgrade (see
-		// _availableDowngrade) is resolved unconditionally too, but only ever offered on the chat
-		// card after a 10+ (see moves.js#rollMove), so it's folded into baseOptions below the same
-		// conditional-spread way automaticSuccess already is.
-		const disadvantageConversion = this._disadvantageConversionModifier();
+		// downgrade (see _availableDowngrade) is resolved unconditionally, but only ever offered on
+		// the chat card after a 10+ (see moves.js#rollMove), so it's folded into baseOptions below
+		// the same conditional-spread way automaticSuccess already is.
 		const downgrade = this._availableDowngrade(move);
 		const riders = this._ridersForMove(move);
 		const config = await configureMoveRoll(move, traits, {
@@ -497,8 +478,6 @@ export const MoveRollSheetMixin = {
 			equipmentSpends,
 			narrativeTags,
 			rollModifiers,
-			rollStack,
-			disadvantageConversion,
 			riders,
 			...(guided && { guided })
 		});
@@ -511,7 +490,7 @@ export const MoveRollSheetMixin = {
 		// implies).
 		if (pendingGrant) await this._clearPendingRollModifier(pendingGrant.sourceKey, pendingGrant.specKey);
 
-		await this._finishMoveRoll(move, weapon, config, { quickRoll, guided, disadvantageConversion, downgrade });
+		await this._finishMoveRoll(move, weapon, config, { quickRoll, guided, downgrade });
 	},
 	// Runs after a move resolves — whether via a real roll (dice present) or Guided's "Take 7-9"
 	// (dice null). The Witch's Patron ("offers you two boons at random whenever someone leads a

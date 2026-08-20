@@ -60,7 +60,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			DISPEL_UNCERTAINTIES,
 			[{ key: "know", label: "KNOW", value: 1 }],
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [blitzSpend], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [blitzSpend], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 
@@ -80,7 +80,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: []
 		});
 	});
 
@@ -100,7 +100,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [blitzSpend], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [blitzSpend], narrativeTags: [], rollModifiers: [], riders: []
 		});
 	});
 
@@ -120,7 +120,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: []
 		});
 	});
 
@@ -140,7 +140,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: []
 		});
 	});
 
@@ -160,7 +160,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: []
 		});
 	});
 
@@ -181,7 +181,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: []
 		});
 	});
 
@@ -205,7 +205,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], narrativeTags: [], rollModifiers: [], riders: []
 		});
 	});
 
@@ -226,7 +226,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], narrativeTags: [], rollModifiers: [], riders: []
 		});
 	});
 
@@ -246,7 +246,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: []
 		});
 	});
 
@@ -272,7 +272,7 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], {
 			lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [{ ...blitzSpend, disabled: true }], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: []
+			equipmentSpends: [{ ...blitzSpend, disabled: true }], narrativeTags: [], rollModifiers: [], riders: []
 		});
 	});
 

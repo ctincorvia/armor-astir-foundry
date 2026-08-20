@@ -803,12 +803,13 @@ describe("PlaybookActorSheet#_onMoveRoll - Roll Modifiers from a mounted Ardent"
 				description: "Grants advantage towards a task this Artifact is designed for.",
 				advantage: "advantage",
 				effect: null,
+				requiresAdvantage: null,
 				reminderOnly: false,
 				deferred: false,
 				disabled: false,
 				disabledReason: null
 			}],
-			rollStack: null, disadvantageConversion: null, riders: []
+			riders: []
 		});
 	});
 });

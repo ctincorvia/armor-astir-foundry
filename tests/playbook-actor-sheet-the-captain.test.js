@@ -490,12 +490,13 @@ describe("PlaybookActorSheet#_rollMove - fromCarrier weapon skip", () => {
 				description: "Grants advantage towards a task this Artifact is designed for.",
 				advantage: "advantage",
 				effect: null,
+				requiresAdvantage: null,
 				reminderOnly: false,
 				deferred: false,
 				disabled: false,
 				disabledReason: null
 			}],
-			rollStack: null, disadvantageConversion: null, riders: []
+			riders: []
 		});
 		// Nothing was marked spent on the gear, and nothing was checked in the Roll Modifiers section.
 		expect(sheet.actor.update).not.toHaveBeenCalled();

@@ -74,19 +74,25 @@ export const THE_WITCH_POOL = {
 			// move-chat-listeners.js's handleDowngrade). The banked hold then spends 1-for-1 on either
 			// listed option: grantsAutomaticSuccess (already the correct "succeed as if you'd rolled a
 			// 10+" mechanism, here additionally gated by requiresTier: "mixed" so this source -- unlike
-			// its five siblings -- only ever offers on a 7-9, never a failure) or
-			// grantsDisadvantageConversion, a second Category D mechanism (see docs/domains/moves.md)
-			// alongside All In's grantsRollStack -- live-reactive to the roll dialog's own Dice select
-			// rather than a fixed unconditional advantage grant.
+			// its five siblings -- only ever offers on a 7-9, never a failure) or an ordinary
+			// grantsRollModifier entry (below) that converts a disadvantage into an advantage: +2
+			// Advantage, gated to only apply while the roll's currently-resolved Advantage is
+			// "disadvantage" or "disadvantage2" (disadvantage(-1)+2=advantage(+1), disadvantage2(-2)+2=
+			// none(0) -- both of the rulebook's own "convert a disadvantage into an advantage"/"at
+			// disadvantage x2, into a flat roll" outcomes fall out of the same uniform +2 step). Chains
+			// with any other checked Roll Modifier via the roll dialog's own live chain (see
+			// roll-chain.js's resolveRollChain) -- most notably All In (cantrips.js), whose own
+			// requiresAdvantage gate this entry can satisfy once it's applied first.
 			traits: [],
 			flatHold: 1,
 			suppressActivateButton: true,
 			grantsDowngradeHold: { amount: 1 },
 			grantsAutomaticSuccess: { cost: 1, requiresTier: "mixed", buttonLabel: "Upgrade from embrace chaos" },
-			grantsDisadvantageConversion: {
-				costsHold: { amount: 1 },
-				transform: { disadvantage: "advantage", disadvantage2: "none" }
-			},
+			grantsRollModifier: [{
+				advantage: "advantage2",
+				requiresAdvantage: ["disadvantage", "disadvantage2"],
+				costsHold: { amount: 1 }
+			}],
 			description:
 				"<p>Whenever you roll a 10+, you may opt to instead take a partial success as if you had " +
 				"rolled a 7-9. If you do so, hold 1, which you may spend at any point before the end of " +

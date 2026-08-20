@@ -22,15 +22,13 @@ beforeEach(() => {
 // A usesWeapon move (Exchange Blows/Strike Decisively) with no weapons on the actor still offers
 // exactly one weaponBundles entry — Unarmed (see PlaybookActorSheet#_rollMoveWithWeaponChoice) —
 // so lockedEffect now lives on that bundle rather than at the top level, while
-// lockedAdvantage/lockedTrait/rollStack/disadvantageConversion stay weapon-independent and
-// top-level. objectContaining keeps this test file focused on the Tier/Approach signals it's
-// actually about, rather than every derived display field the bundle also carries.
+// lockedAdvantage/lockedTrait stay weapon-independent and top-level. objectContaining keeps this
+// test file focused on the Tier/Approach signals it's actually about, rather than every derived
+// display field the bundle also carries.
 function weaponRollConfig({ lockedAdvantage = null, lockedEffect = null } = {}) {
 	return {
 		lockedAdvantage,
 		lockedTrait: null,
-		rollStack: null,
-		disadvantageConversion: null,
 		riders: [],
 		weaponBundles: [expect.objectContaining({ weaponKey: UNARMED, weaponLabel: "Unarmed", lockedEffect })]
 	};
@@ -129,7 +127,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			DISPEL_UNCERTAINTIES,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
+			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 
@@ -272,7 +270,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], rollStack: null, disadvantageConversion: null, riders: [] }
+			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 });

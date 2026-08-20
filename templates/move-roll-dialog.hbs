@@ -82,28 +82,10 @@
 				{{/if}}
 				<div class="form-group move-roll-equipment move-roll-list-section">
 					<label>Roll Modifiers</label>
-					{{#if (or rollModifiers.length ../rollStack ../disadvantageConversion)}}
+					{{#if rollModifiers.length}}
 					<div class="move-roll-equipment-list">
-						{{#if ../rollStack}}
-						<div class="move-roll-equipment-spend">
-							<label class="move-roll-equipment-spend-option">
-								<input type="checkbox" name="roll-stack" disabled/>
-								<span class="move-roll-equipment-name">{{../rollStack.label}}</span>
-							</label>
-							<div class="move-roll-equipment-description">Take an additional Advantage at the cost of Desperation.</div>
-						</div>
-						{{/if}}
-						{{#if ../disadvantageConversion}}
-						<div class="move-roll-equipment-spend">
-							<label class="move-roll-equipment-spend-option">
-								<input type="checkbox" name="disadvantage-conversion" disabled/>
-								<span class="move-roll-equipment-name">{{../disadvantageConversion.label}}</span>
-							</label>
-							<div class="move-roll-equipment-description">Spend 1 hold to convert your current Disadvantage into Advantage (or, at Disadvantage x2, into a flat roll).</div>
-						</div>
-						{{/if}}
 						{{#each rollModifiers}}
-						<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
+						<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}" data-roll-modifier-row="{{key}}">
 							<label class="move-roll-equipment-spend-option">
 								{{#unless reminderOnly}}
 								<input type="checkbox" name="{{#if deferred}}pending-roll-modifier{{else}}roll-modifier{{/if}}"
@@ -113,7 +95,7 @@
 								{{#if deferred}}<span class="move-roll-modifier-deferred-note">(applies to your next qualifying roll)</span>{{/if}}
 							</label>
 							<div class="move-roll-equipment-description">{{{description}}}</div>
-							{{#if disabledReason}}<div class="move-roll-modifier-reason">{{disabledReason}}</div>{{/if}}
+							<div class="move-roll-modifier-reason" data-roll-modifier-reason>{{disabledReason}}</div>
 						</div>
 						{{/each}}
 					</div>
@@ -238,28 +220,10 @@
 			{{/if}}
 			<div class="form-group move-roll-equipment move-roll-list-section">
 				<label>Roll Modifiers</label>
-				{{#if (or rollModifiers.length rollStack disadvantageConversion)}}
+				{{#if rollModifiers.length}}
 				<div class="move-roll-equipment-list">
-					{{#if rollStack}}
-					<div class="move-roll-equipment-spend">
-						<label class="move-roll-equipment-spend-option">
-							<input type="checkbox" name="roll-stack" disabled/>
-							<span class="move-roll-equipment-name">{{rollStack.label}}</span>
-						</label>
-						<div class="move-roll-equipment-description">Take an additional Advantage at the cost of Desperation.</div>
-					</div>
-					{{/if}}
-					{{#if disadvantageConversion}}
-					<div class="move-roll-equipment-spend">
-						<label class="move-roll-equipment-spend-option">
-							<input type="checkbox" name="disadvantage-conversion" disabled/>
-							<span class="move-roll-equipment-name">{{disadvantageConversion.label}}</span>
-						</label>
-						<div class="move-roll-equipment-description">Spend 1 hold to convert your current Disadvantage into Advantage (or, at Disadvantage x2, into a flat roll).</div>
-					</div>
-					{{/if}}
 					{{#each rollModifiers}}
-					<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
+					<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}" data-roll-modifier-row="{{key}}">
 						<label class="move-roll-equipment-spend-option">
 							{{#unless reminderOnly}}
 							<input type="checkbox" name="{{#if deferred}}pending-roll-modifier{{else}}roll-modifier{{/if}}"
@@ -269,7 +233,7 @@
 							{{#if deferred}}<span class="move-roll-modifier-deferred-note">(applies to your next qualifying roll)</span>{{/if}}
 						</label>
 						<div class="move-roll-equipment-description">{{{description}}}</div>
-						{{#if disabledReason}}<div class="move-roll-modifier-reason">{{disabledReason}}</div>{{/if}}
+						<div class="move-roll-modifier-reason" data-roll-modifier-reason>{{disabledReason}}</div>
 					</div>
 					{{/each}}
 				</div>

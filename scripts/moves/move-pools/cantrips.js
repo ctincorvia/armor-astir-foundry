@@ -122,12 +122,16 @@ export const CANTRIPS_POOL = {
 		{
 			key: "cantrips:all-in",
 			name: "All In",
-			// The extra-Advantage-for-Desperation trade is a live, dialog-reactive stack on top of
-			// whatever Advantage the player already picked, not a gated actor-state spend -- see
-			// grantsRollStack's own shape (distinct from grantsRollModifier) in move-dialogs.js's
-			// configureMoveRoll, wired to the roll dialog's own Dice select via a live render callback.
+			// An ordinary grantsRollModifier entry, composable with any other checked Roll Modifier
+			// via the roll dialog's own live chain (see roll-chain.js's resolveRollChain): +1
+			// Advantage and -1 Effect, gated to only apply while the roll's currently-resolved
+			// Advantage is exactly "advantage" — the rulebook's own "when you have advantage"
+			// condition. requiresAdvantage is re-checked against the chain's *running* state each
+			// time it's this entry's turn, so checking All In after something else has already
+			// pushed Advantage past "advantage" (e.g. to "advantage2") correctly makes it
+			// inapplicable, and checking it before Advantage reaches "advantage" is inapplicable too.
 			traits: [],
-			grantsRollStack: { requiresAdvantageSelected: true, setAdvantage: "advantage2", setEffect: "desperation" },
+			grantsRollModifier: [{ advantage: "advantage", effect: "desperation", requiresAdvantage: ["advantage"] }],
 			description:
 				"<p>When you have advantage on a move, you may take an additional advantage at the cost of " +
 				"also acting in desperation.</p>"

@@ -321,7 +321,7 @@ export const MoveGrantsSheetMixin = {
 		if (this._mountedFrame()?.id !== "astir") return false;
 		return !astir.overheating;
 	},
-	// The Roll Modifiers mechanism (see astir-moves.js's §1 grantsRollModifier doc comment) — every
+	// The Roll Modifiers mechanism (see docs/domains/moves.md's grantsRollModifier entry) — every
 	// move source that can carry a spec, unioned across the two shapes that can grant one: the
 	// actor's picked playbook moves / mounted Astir Move (_grantingMoves, already the shared
 	// resolver every other single-target-move grant above uses) and every part installed on the
@@ -351,8 +351,8 @@ export const MoveGrantsSheetMixin = {
 		}
 		return "system.resources.hold.value";
 	},
-	// The resource-kind dispatcher for a single grantsRollModifier spec (see astir-moves.js's §1 doc
-	// comment for the full field list) — one branch per gate kind, mirroring
+	// The resource-kind dispatcher for a single grantsRollModifier spec (see docs/domains/moves.md
+	// for the full field list) — one branch per gate kind, mirroring
 	// _availableAutomaticSuccess's own cost/useKey/costsPeril dispatch above. Returns
 	// {available, reason} rather than a plain boolean, so a disabled row in the dialog can show why
 	// (see _rollModifiersForMove/move-roll-dialog.hbs's disabledReason).
@@ -402,6 +402,7 @@ export const MoveGrantsSheetMixin = {
 						description,
 						advantage: null,
 						effect: null,
+						requiresAdvantage: spec.requiresAdvantage ?? null,
 						reminderOnly: true,
 						deferred: false,
 						disabled: false,
@@ -418,6 +419,7 @@ export const MoveGrantsSheetMixin = {
 					description,
 					advantage: spec.advantage ?? null,
 					effect: spec.effect ?? null,
+					requiresAdvantage: spec.requiresAdvantage ?? null,
 					reminderOnly: false,
 					deferred: Boolean(spec.deferred),
 					disabled,
@@ -426,37 +428,6 @@ export const MoveGrantsSheetMixin = {
 			}
 		}
 		return entries;
-	},
-	// All In's own single grantsRollStack entry (cantrips.js), if picked — the same {key, name,
-	// ...grant} mapping shape _availableAutomaticSuccess's own map() uses above, just resolved once
-	// (this dialog offers at most one grantsRollStack source, unlike automatic success's
-	// every-qualifying-source list).
-	_rollStackModifier() {
-		const source = resolvePlaybookMoves(this._playbookMoves()).find((m) => m.grantsRollStack);
-		if (!source) return null;
-		return { key: source.key, label: source.name, ...source.grantsRollStack };
-	},
-	// Embrace Chaos's own "convert a disadvantage into an advantage" spend â€” the second Category D
-	// mechanism (see docs/domains/moves.md) alongside All In's grantsRollStack above: live-reactive
-	// to the roll dialog's own Dice-select value rather than a gated actor-state spend, so like
-	// _rollStackModifier it resolves the single currently-picked source once rather than scanning
-	// every source the way _availableAutomaticSuccess/_availableDowngrade do. Returns null (nothing
-	// to offer) once the source's own hold can't cover its cost, the same affordability gate
-	// _rollModifierAvailability's own costsHold branch already applies elsewhere.
-	_disadvantageConversionModifier() {
-		const source = resolvePlaybookMoves(this._playbookMoves()).find((m) => m.grantsDisadvantageConversion);
-		if (!source) return null;
-		const { costsHold } = source.grantsDisadvantageConversion;
-		if (this._moveHoldValue(source.key) < costsHold.amount) return null;
-		return { key: source.key, label: source.name, ...source.grantsDisadvantageConversion };
-	},
-	// The write side of _disadvantageConversionModifier above â€” spends the checked amount from the
-	// source's own hold pool, the same clamped decrement _spendRollModifiers' own costsHold branch
-	// already performs, just against a single resolved source instead of a scanned list.
-	async _spendDisadvantageConversion(sourceKey, amount) {
-		await this.actor.update({
-			[this._moveHoldUpdatePath(sourceKey)]: Math.max(HOLD_MIN, this._moveHoldValue(sourceKey) - amount)
-		});
 	},
 	// The write side of the Roll Modifiers section — mirrors _spendEquipmentTags/
 	// handleAutomaticSuccess's own per-kind write branches, one actor.update batch for every checked

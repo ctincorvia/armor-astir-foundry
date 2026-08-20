@@ -45,7 +45,7 @@ export const HELPING_HANDS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summo
 export const LIVING_DRIVE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:living-drive");
 export const ENDURING_SUPPORT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-summoner:enduring-support");
 
-// grantsRollModifier/grantsRollStack sources (Roll Modifiers section — see
+// grantsRollModifier sources (Roll Modifiers section — see
 // tests/playbook-actor-sheet-roll-modifiers.test.js and the-*.js/cantrips.js catalog entries).
 export const WATCH_THIS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-commander:watch-this");
 export const SHARPER_KNIVES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:sharper-knives");

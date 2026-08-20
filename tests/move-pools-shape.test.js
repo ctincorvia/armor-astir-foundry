@@ -267,9 +267,10 @@ describe("MOVE_POOLS", () => {
 			requiresTier: "mixed",
 			buttonLabel: "Upgrade from embrace chaos"
 		});
-		expect(embraceChaos.grantsDisadvantageConversion).toEqual({
-			costsHold: { amount: 1 },
-			transform: { disadvantage: "advantage", disadvantage2: "none" }
-		});
+		expect(embraceChaos.grantsRollModifier).toEqual([{
+			advantage: "advantage2",
+			requiresAdvantage: ["disadvantage", "disadvantage2"],
+			costsHold: { amount: 1 }
+		}]);
 	});
 });
