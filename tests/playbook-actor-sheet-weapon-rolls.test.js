@@ -131,7 +131,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 
@@ -154,7 +154,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		// see PlaybookActorSheet#_narrativeWeaponTags' own tests for the tag-inclusion cases.
 		expect(armedBundle.narrativeTags).toEqual([]);
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz", heatUp: NO_HEAT_UP }
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 
@@ -189,7 +189,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 
@@ -207,7 +207,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
 		expect(weaponBundles.map((b) => b.weaponKey)).toEqual([UNARMED]);
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, STRIKE_DECISIVELY, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+			sheet.actor, STRIKE_DECISIVELY, config.trait, { ...config, weaponLabel: "Unarmed", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 });
@@ -232,7 +232,7 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 			rollModifiers: [], riders: []
 		});
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", weaponTags: "Blitz", heatUp: NO_HEAT_UP }
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 

@@ -48,6 +48,24 @@ export function chainEntryResult(state, entry) {
 	return { advantage: nextAdvantage, effect: nextEffect };
 }
 
+// Reverses one grantsRollModifier entry's own step off the current state — the mirror image of
+// chainEntryResult's forward step, used when the entry's checkbox is unchecked (see
+// move-dialogs.js's own roll-modifier change handler). Applied per-axis and always best-effort,
+// unlike chainEntryResult's forward step: an axis that has nowhere left to go (the player has
+// since manually pushed it to an extreme, or another checked entry already has) just stays put on
+// that axis alone rather than rejecting the whole reversal — "step down one, or a no-op if there's
+// no room" per axis, not an atomic all-or-nothing undo. No requiresAdvantage gate check either:
+// unchecking retracts an effect that already applied, it doesn't need its own gate to still hold.
+export function reverseChainStep(state, entry) {
+	const advantage = entry.advantage
+		? stepAdvantage(state.advantage, -advantageOffset(entry.advantage)) ?? state.advantage
+		: state.advantage;
+	const effect = entry.effect
+		? stepEffect(state.effect, -effectOffset(entry.effect)) ?? state.effect
+		: state.effect;
+	return { advantage, effect };
+}
+
 // Folds every checked Roll Modifier, in the order the player checked them, onto the roll's base
 // Dice/Effect state — a single left-to-right pass, not a fixed-point loop: an entry that's
 // inapplicable when its turn comes is skipped and never retried later in the same pass, even if a

@@ -240,7 +240,7 @@ describe("onRenderMoveChat (Heat Up)", () => {
 			actorId: "actor1",
 			moveKey: "exchange-blows",
 			trait: { key: "clash", label: "CLASH", value: 0 },
-			options: { advantage: "none", effect: "none", weaponLabel: "Rifle", weaponTags: null },
+			options: { advantage: "none", effect: "none", weaponLabel: "Rifle", narrativeTags: [] },
 			flavorArgs: { tier: "mixed", conditions: [] }
 		};
 		const message = { flags: { "armor-astir": { heatUp } }, update: vi.fn() };

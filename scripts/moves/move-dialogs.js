@@ -6,7 +6,7 @@ import {
 	ADVANTAGE_DISPLAY_ORDER,
 	EFFECT_DISPLAY_ORDER,
 	chainEntryResult,
-	resolveRollChain
+	reverseChainStep
 } from "./roll-chain.js";
 
 export const MOVE_ROLL_DIALOG_TEMPLATE = "modules/armor-astir/templates/move-roll-dialog.hbs";
@@ -27,21 +27,12 @@ function buildNotchedSlider(displayOrder, resolveState, lockedKey) {
 	};
 }
 
-// Drives the hidden [name=<name>] input from the differently-named <name>-notch radio group (see
-// notched-slider.hbs) whenever the player directly flips a stop. configureMoveRoll's own render
-// callback binds a second, separate change handler to the same <name>-notch group (see its own
-// recompute()) that re-derives the roll's base Dice/Effect pick from the newly-selected key and
-// repaints both the hidden input and the readout from the resolved Roll Modifier chain — the two
-// handlers' writes agree whenever no modifier is checked, and recompute()'s own write is the one
-// that actually matters once one is.
-function wireNotchedSlider(html, name) {
-	const hiddenInput = html.find(`[name='${name}']`);
-	const readout = html.find(`[data-notched-slider='${name}'] [data-notched-slider-readout]`);
-	html.find(`[name='${name}-notch']`).on("change", (event) => {
-		hiddenInput.val(event.target.value);
-		readout.text(event.target.title);
-	});
-}
+// Display text for a failed requiresAdvantage gate (see the render callback's own
+// repaintAvailability()) — built from the gate's own listed states via advantageState rather than
+// a hardcoded "Requires Advantage", since a gate can name any subset of ADVANTAGE_STATES (Embrace
+// Chaos's own gate is ["disadvantage", "disadvantage2"], not advantage at all).
+const requiresAdvantageReason = (entry) =>
+	`Requires ${entry.requiresAdvantage.map((key) => advantageState(key).label).join(" or ")}`;
 
 // Opens a dialog to pick the trait to roll with (plus any Advantage/Disadvantage and
 // Confidence/Desperation) and resolves the player's choice, or null if the dialog was
@@ -55,9 +46,9 @@ function wireNotchedSlider(html, name) {
 //
 // lockedAdvantage (e.g. "advantage" for Don't Follow Me's "lead a Sortie with +DEFY & advantage"
 // — see PlaybookActorSheet#_grantedAdvantageForMove) is the same idea for the Dice select: pre-
-// selects and disables it, and seeds the Roll Modifier chain's own base state (see the render
-// callback's own recompute()) — a checked Roll Modifier steps *from* the locked value rather than
-// overriding it outright, the same step-from-base treatment lockedEffect's own base gets.
+// selects and disables it, and seeds the render callback's own currentAdvantage — a checked Roll
+// Modifier nudges *from* the locked value the one time it's checked, rather than overriding it
+// outright, the same nudge-from-current treatment lockedEffect's own currentEffect gets.
 //
 // lockedTrait (Don't Follow Me's own +DEFY half — see PlaybookActorSheet#_grantedTraitForMove) is
 // the Trait-select counterpart, but carries the full {key, label, value} option object rather
@@ -86,11 +77,13 @@ function wireNotchedSlider(html, name) {
 //
 // rollModifiers (see PlaybookActorSheet#_rollModifiersForMove) is the Roll Modifiers section —
 // every grantsRollModifier entry offered for this specific move, each carrying its own resolved
-// advantage/effect/requiresAdvantage/deferred/disabled shape. Checked entries compose live: the
-// render callback below folds every currently-checked entry onto the roll's own Dice/Effect pick,
-// in the order the player checked them, via roll-chain.js's resolveRollChain — see that module and
+// advantage/effect/requiresAdvantage/deferred/disabled shape. Checking one nudges the roll's own
+// Dice/Effect pick once, at the moment it's checked, and unchecking it steps that same nudge back
+// off (see roll-chain.js's chainEntryResult/reverseChainStep) — see that module and
 // docs/domains/moves.md for the step-offset model this replaced All In's and Embrace Chaos's old
-// bespoke Category D mechanisms with.
+// bespoke Category D mechanisms with. Between check and uncheck the player has full manual control
+// of the Dice/Effect steppers, including moving them somewhere the entry's own step/reverse-step
+// can no longer reach — see the render callback's own currentAdvantage/currentEffect below.
 //
 // guided (see PlaybookActorSheet#_rollMove) is the *source's* own label — "Guided" for the weapon
 // tag, or the granting Astir Part's name (e.g. "Spell Routines") — rather than a bare boolean.
@@ -187,35 +180,39 @@ export async function configureMoveRoll(
 			// equipment-dialogs.js's chooseEquipmentCatalogItem, whose own `render` field sits in
 			// this same spot for the same reason).
 			render: (html) => {
-				wireNotchedSlider(html, "advantage");
-				wireNotchedSlider(html, "effect");
-
 				// The weapon <select> that switches which weaponBundles panel is visible (see
 				// move-roll-dialog.hbs's own {{#if weaponBundles}} markup) — a plain synchronous
 				// class toggle, no re-render, mirroring wirePickerTabs' own tab-switch wiring
 				// (equipment-helpers.js) for the same "no TabsV2 controller inside a bare Foundry
-				// Dialog" reason. Also re-runs recompute() below — the active weapon panel is what
-				// activeRollModifiers() reads, so switching weapons can change which Roll Modifiers
-				// (and hence which chain) are in play.
+				// Dialog" reason. Also re-runs repaintAvailability() below — the active weapon panel
+				// is what activeRollModifiers() reads, so switching weapons can change which Roll
+				// Modifiers are offered — but never perturbs currentAdvantage/currentEffect, since
+				// switching panels isn't itself a player choice about the roll's Dice/Effect.
 				if (weaponBundles) {
 					html.find("[name='weapon-select']").on("change", (event) => {
 						html.find("[data-weapon-panel]").removeClass("active");
 						html.find(`[data-weapon-panel="${event.target.value}"]`).addClass("active");
-						recompute();
+						repaintAvailability();
 					});
 				}
 
-				// Live Roll Modifier chain (see roll-chain.js's resolveRollChain) — baseAdvantage/
-				// baseEffect are this roll's own Dice/Effect pick, independent of any checked
-				// modifier: whatever a lock forces it to, or "none" otherwise. Every currently-
-				// checked [name='roll-modifier'] box folds onto that base, left to right in the
-				// order it was checked, every time either the base or the checked set changes —
-				// this is what replaced All In's/Embrace Chaos's old bespoke Category D wiring
-				// (rollStack/disadvantageConversion) with an ordinary, composable grantsRollModifier
-				// entry apiece. See docs/domains/moves.md for the full model.
-				let baseAdvantage = lockedAdvantage ?? "none";
-				let baseEffect = lockedEffect ?? "none";
-				let chainOrder = [];
+				// Live Dice/Effect state (see roll-chain.js's chainEntryResult/reverseChainStep) —
+				// currentAdvantage/currentEffect start at whatever a lock forces them to, or "none"
+				// otherwise, and from there are under the player's full manual control via the notch
+				// sliders. Checking a Roll Modifier nudges them once, at the moment it's checked;
+				// unchecking it steps them back the other way, per axis, clamped to a no-op on
+				// whichever axis has since been pushed out of that step's reach (e.g. the player
+				// manually moved it to the axis's own extreme, or another checked entry already has)
+				// — never a hard failure, and never touches the *other* axis or any other checked
+				// entry. Between check and uncheck the player can freely move the steppers however
+				// the fiction demands, including stacking a countervailing disadvantage on top of a
+				// still-checked advantage grant; nothing here ever re-derives a value from scratch,
+				// and a checked modifier is never auto-unchecked regardless of whether its own gate
+				// still holds. This is what replaced All In's/Embrace Chaos's old bespoke Category D
+				// wiring (rollStack/disadvantageConversion) with an ordinary, composable
+				// grantsRollModifier entry apiece. See docs/domains/moves.md for the full model.
+				let currentAdvantage = lockedAdvantage ?? "none";
+				let currentEffect = lockedEffect ?? "none";
 
 				const rollModifierScope = () => (weaponBundles ? "[data-weapon-panel].active " : "");
 				// weaponBundles' own Roll Modifiers live one copy per panel (see this function's own
@@ -228,80 +225,91 @@ export async function configureMoveRoll(
 					return weaponBundles.find((bundle) => bundle.weaponKey === activeWeaponKey)?.rollModifiers ?? [];
 				};
 
-				const recompute = () => {
-					const scope = rollModifierScope();
-					const modifiers = activeRollModifiers();
-					const checkedKeys = html.find(`${scope}[name='roll-modifier']:checked`).map((_, el) => el.value).get();
-
-					// Preserve the order modifiers were first checked in; drop anything no longer
-					// checked; append any newly-checked key at the end. Filtering to the currently-
-					// checked set on every call is simpler, and just as correct, as push/splice
-					// bookkeeping in the checkbox's own change handler.
-					chainOrder = [
-						...chainOrder.filter((key) => checkedKeys.includes(key)),
-						...checkedKeys.filter((key) => !chainOrder.includes(key))
-					];
-
-					const entries = chainOrder.map((key) => modifiers.find((entry) => entry.key === key)).filter(Boolean);
-					const result = resolveRollChain({ advantage: baseAdvantage, effect: baseEffect }, entries);
-
-					// A checked box whose entry didn't survive the chain (its own gate failed once
-					// its turn came up) gets unchecked — the checked set must never silently drift
-					// from what the painted sliders below actually reflect.
-					for (const key of checkedKeys) {
-						if (!result.applied.includes(key)) {
-							html.find(`${scope}[name='roll-modifier'][value='${key}']`).prop("checked", false);
-						}
-					}
-
-					const advantageLabel = advantageState(result.advantage).label;
-					html.find("[name='advantage']").val(result.advantage);
-					html.find(`[name='advantage-notch'][value='${result.advantage}']`).prop("checked", true);
+				// Writes the hidden [name='advantage']/[name='effect'] input, checks the matching
+				// notch, and sets the readout — showing a "from → to" arrow only when fromValue
+				// differs from value. A direct notch click always reads plainly (it's the player's
+				// own unambiguous choice, never a transition); a Roll Modifier's check-nudge or
+				// uncheck-reverse shows the transition it just made, or reads plainly when that step
+				// was clamped to a no-op (nowhere left for that axis to go).
+				const paintAdvantage = (value, fromValue = value) => {
+					const label = advantageState(value).label;
+					html.find("[name='advantage']").val(value);
+					html.find(`[name='advantage-notch'][value='${value}']`).prop("checked", true);
 					html.find("[data-notched-slider='advantage'] [data-notched-slider-readout]").text(
-						baseAdvantage !== result.advantage
-							? `${advantageState(baseAdvantage).label} → ${advantageLabel}`
-							: advantageLabel
+						fromValue !== value ? `${advantageState(fromValue).label} → ${label}` : label
 					);
-
-					const effectLabel = effectState(result.effect).label;
-					html.find("[name='effect']").val(result.effect);
-					html.find(`[name='effect-notch'][value='${result.effect}']`).prop("checked", true);
+				};
+				const paintEffect = (value, fromValue = value) => {
+					const label = effectState(value).label;
+					html.find("[name='effect']").val(value);
+					html.find(`[name='effect-notch'][value='${value}']`).prop("checked", true);
 					html.find("[data-notched-slider='effect'] [data-notched-slider-readout]").text(
-						baseEffect !== result.effect
-							? `${effectState(baseEffect).label} → ${effectLabel}`
-							: effectLabel
+						fromValue !== value ? `${effectState(fromValue).label} → ${label}` : label
 					);
+				};
 
-					// Every row not currently part of the resolved chain gets its live applicability
-					// re-evaluated against the chain's *current* resolved state — enabling a row the
-					// moment an earlier check makes it newly reachable (e.g. All In once Advantage is
-					// picked), and disabling one a later check makes unreachable — without ever
-					// touching a row that's statically disabled for its own resource gate (see
-					// PlaybookActorSheet#_rollModifierAvailability), which stays exactly as rendered.
-					for (const entry of modifiers) {
-						if (entry.reminderOnly || entry.disabled || result.applied.includes(entry.key)) continue;
+				// Re-evaluates disabled/reason state for every *unchecked*, non-reminder,
+				// non-statically-disabled Roll Modifier row against the live currentAdvantage/
+				// currentEffect — enabling a row the moment the current state makes it newly
+				// reachable (e.g. All In once Advantage is picked), and disabling one the current
+				// state makes unreachable. A *checked* row is never touched by this loop, so it
+				// stays clickable to uncheck regardless of whether its step still "applies" to
+				// wherever the player has since moved the steppers.
+				const repaintAvailability = () => {
+					const scope = rollModifierScope();
+					for (const entry of activeRollModifiers()) {
+						if (entry.reminderOnly || entry.disabled) continue;
 						const checkboxName = entry.deferred ? "pending-roll-modifier" : "roll-modifier";
 						const rowSelector = `${scope}[data-roll-modifier-row="${entry.key}"]`;
-						const applicable = Boolean(chainEntryResult({ advantage: result.advantage, effect: result.effect }, entry));
-						html.find(`${rowSelector} [name='${checkboxName}']`).prop("disabled", !applicable);
+						const checkbox = html.find(`${rowSelector} [name='${checkboxName}']`);
+						if (checkbox.prop("checked")) continue;
+						const applicable = Boolean(chainEntryResult({ advantage: currentAdvantage, effect: currentEffect }, entry));
+						checkbox.prop("disabled", !applicable);
 						html.find(rowSelector).toggleClass("disabled", !applicable);
 						const requiresAdvantageGateFailed = !applicable
-							&& entry.requiresAdvantage && !entry.requiresAdvantage.includes(result.advantage);
-						html.find(`${rowSelector} [data-roll-modifier-reason]`).text(requiresAdvantageGateFailed ? "Requires Advantage" : "");
+							&& entry.requiresAdvantage && !entry.requiresAdvantage.includes(currentAdvantage);
+						html.find(`${rowSelector} [data-roll-modifier-reason]`).text(
+							requiresAdvantageGateFailed ? requiresAdvantageReason(entry) : ""
+						);
 					}
 				};
 
 				html.find("[name='advantage-notch']").on("change", (event) => {
-					baseAdvantage = event.target.value;
-					recompute();
+					currentAdvantage = event.target.value;
+					paintAdvantage(currentAdvantage);
+					repaintAvailability();
 				});
 				html.find("[name='effect-notch']").on("change", (event) => {
-					baseEffect = event.target.value;
-					recompute();
+					currentEffect = event.target.value;
+					paintEffect(currentEffect);
+					repaintAvailability();
 				});
-				html.find("[name='roll-modifier']").on("change", recompute);
+				html.find("[name='roll-modifier']").on("change", (event) => {
+					const fromAdvantage = currentAdvantage;
+					const fromEffect = currentEffect;
+					const entry = activeRollModifiers().find((modifier) => modifier.key === event.target.value);
+					if (entry && event.target.checked) {
+						const result = chainEntryResult({ advantage: currentAdvantage, effect: currentEffect }, entry);
+						if (result) {
+							currentAdvantage = result.advantage;
+							currentEffect = result.effect;
+						}
+					} else if (entry) {
+						// Uncheck: step the entry's own grant back off, per axis, clamped to a no-op
+						// on whichever axis has nowhere left to go — see reverseChainStep's own doc
+						// comment in roll-chain.js.
+						const result = reverseChainStep({ advantage: currentAdvantage, effect: currentEffect }, entry);
+						currentAdvantage = result.advantage;
+						currentEffect = result.effect;
+					}
+					paintAdvantage(currentAdvantage, fromAdvantage);
+					paintEffect(currentEffect, fromEffect);
+					repaintAvailability();
+				});
 
-				recompute();
+				paintAdvantage(currentAdvantage);
+				paintEffect(currentEffect);
+				repaintAvailability();
 			},
 			buttons: {
 				roll: {
@@ -347,9 +355,9 @@ export async function configureMoveRoll(
 						// A checked spend's effect (e.g. Blitz -> confidence) sets the roll's
 						// Effect directly, the same way a lockedEffect does — checking the tag IS
 						// the player choosing to act with confidence, so equipment spends stay
-						// outside the Roll Modifier chain entirely (see recompute() above) rather
-						// than composing through it. On a spend collision (two checked tags both
-						// setting Effect) the later one wins.
+						// outside the Roll Modifiers' own currentAdvantage/currentEffect nudging
+						// (see the render callback above) rather than composing through it. On a
+						// spend collision (two checked tags both setting Effect) the later one wins.
 						const spentEffect = spentTags
 							.map(({ equipmentId, tagKey }) => activeEquipmentSpends.find(
 								(spend) => spend.equipmentId === equipmentId && spend.tagKey === tagKey
@@ -358,10 +366,11 @@ export async function configureMoveRoll(
 							.at(-1)?.effect;
 						// Roll Modifiers (see PlaybookActorSheet#_rollModifiersForMove) split into two
 						// checkbox names by the template: non-deferred [name='roll-modifier'] entries
-						// apply to THIS roll — already folded into the hidden advantage/effect inputs
-						// by the render callback's own recompute() above, so nothing needs re-reading
-						// here beyond the checked keys themselves (guaranteed to equal that chain's own
-						// `applied` list, since recompute() unchecks anything that didn't survive it).
+						// apply to THIS roll — checking one already nudged the hidden advantage/effect
+						// inputs once, in the render callback above, so nothing needs re-reading here
+						// beyond the checked keys themselves. A modifier is never auto-unchecked, so
+						// its resource is spent even if the player has since moved the steppers away
+						// from what its nudge granted (see the render callback's own doc comment).
 						// Deferred [name='pending-roll-modifier'] entries never touch this roll's own
 						// Advantage/Effect, only its resource cost — both lists feed spentRollModifiers
 						// below, for PlaybookActorSheet#_spendRollModifiers to actually consume.
@@ -375,11 +384,11 @@ export async function configureMoveRoll(
 
 						resolve({
 							trait: lockedTrait ?? activeTraits.find((t) => t.key === html.find(traitSelector).val()),
-							// The render callback's own recompute() already folded every checked Roll
-							// Modifier onto the base Dice/Effect pick (lockedAdvantage/lockedEffect
-							// included) and painted the result into these two hidden inputs — see
-							// resolveRollChain (roll-chain.js) — so reading them back here resolves the
-							// roll's final Advantage/Effect without re-running the chain a second time.
+							// The render callback's own paintAdvantage/paintEffect (see chainEntryResult
+							// in roll-chain.js) already wrote these two hidden inputs — from
+							// lockedAdvantage/lockedEffect, any one-time Roll Modifier nudge, and
+							// whatever manual notch clicks the player made afterward — so reading them
+							// back here resolves the roll's final Advantage/Effect directly.
 							advantage: html.find("[name='advantage']").val(),
 							// activeLockedEffect wins outright, not just as a fallback: unlike
 							// lockedAdvantage (which a checked Roll Modifier can legitimately step the

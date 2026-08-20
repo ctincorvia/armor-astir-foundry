@@ -103,10 +103,43 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, {
-			weaponLabel: "Rifle", weaponTags: "Guided", guidedSource: "Guided"
+			weaponLabel: "Rifle", narrativeTags: [], guidedSource: "Guided"
 		});
 		expect(rollMove).not.toHaveBeenCalled();
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("suppresses narrativeTags on the Take 7-9 result for a fromCarrier weapon, even when Guided comes from an installed Astir Part", async () => {
+		const sheet = new PlaybookActorSheet();
+		// Carries a narrative Impact tag (no codified mechanic) — proves the fromCarrier scope cut
+		// suppresses it on the Guided/Take-7-9 path too, not just the normal roll path (see
+		// "PlaybookActorSheet#_rollMove - fromCarrier weapon skip" in
+		// playbook-actor-sheet-the-captain.test.js). Guided itself comes from Spell Routines here,
+		// not the weapon's own tag — a fromCarrier weapon never offers its own Guided (_guidedFor),
+		// but an installed Astir Part's grant is actor-wide and still applies regardless of which
+		// weapon is in hand.
+		const carrierWeapon = {
+			id: "carrier-w1", kind: "weapon", name: "Broadside Cannon", tags: ["impact"], spent: [], fromCarrier: true
+		};
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					equipment: [],
+					astir: { id: "a1", parts: [SPELL_ROUTINES.key], piloted: true },
+					guidedMoveChoices: { [SPELL_ROUTINES.key]: "exchange-blows" }
+				}
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ takeSeven: true });
+
+		await sheet._rollMove(EXCHANGE_BLOWS, carrierWeapon);
+
+		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, {
+			weaponLabel: "Broadside Cannon", narrativeTags: [], guidedSource: SPELL_ROUTINES.name
+		});
+		expect(rollMove).not.toHaveBeenCalled();
 	});
 
 	it("labels the guided result Unarmed when taking 7-9 with no weapon", async () => {
@@ -120,7 +153,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, {
-			weaponLabel: "Unarmed", weaponTags: null, guidedSource: null
+			weaponLabel: "Unarmed", narrativeTags: [], guidedSource: null
 		});
 	});
 });

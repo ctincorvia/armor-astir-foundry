@@ -225,7 +225,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 				advantage: options.advantage,
 				effect: options.effect,
 				weaponLabel: options.weaponLabel,
-				weaponTags: options.weaponTags
+				narrativeTags: options.narrativeTags
 			},
 			// The exact key this reroll's spend should be recorded under (see
 			// equipment.js#rerollSpendKey) — compound for a multi-move tag like Versatile so its two
@@ -268,7 +268,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 				advantage: options.advantage,
 				effect: options.effect,
 				weaponLabel: options.weaponLabel,
-				weaponTags: options.weaponTags
+				narrativeTags: options.narrativeTags
 			}
 		}
 		: null;
@@ -297,12 +297,13 @@ export async function rollMove(actor, move, trait, options = {}) {
 		// the literal string "Unarmed" — regardless of whether any of its tags were spent, so the
 		// chat card always records which weapon (if any) the roll used. null for every other move.
 		weaponLabel: options.weaponLabel ?? null,
-		// The chosen weapon's full tag list (e.g. "Melee, Decisive"), as a single comma-joined
-		// string rather than a further conditions-style badge list — this is descriptive info
-		// about the weapon itself, not "why the total is what it is" the way a spent tag or
-		// Advantage/Confidence is (see moveConditions/equipmentConditions above). null for Unarmed
-		// and for every non-usesWeapon move, same as weaponLabel.
-		weaponTags: options.weaponTags ?? null,
+		// The chosen weapon's narrative (no codified mechanic) tags — e.g. Distinct, 2H, Melee — as
+		// an array of chip-shaped entries (see PlaybookActorSheet#_narrativeWeaponTags) rather than
+		// a further conditions-style badge list: this is descriptive info about the weapon itself,
+		// not "why the total is what it is" the way a spent tag or Advantage/Confidence is (see
+		// moveConditions/equipmentConditions above). null for every non-usesWeapon move, same as
+		// weaponLabel; [] for Unarmed or a weapon with no narrative tags.
+		narrativeTags: options.narrativeTags ?? null,
 		tier,
 		critical,
 		tierLabel: critical ? MOVE_RESULT_LABELS.critical : MOVE_RESULT_LABELS[tier],
@@ -414,7 +415,7 @@ export async function postGuidedResult(actor, move, options = {}) {
 		traitLabel: null,
 		intentLabel: null,
 		weaponLabel: options.weaponLabel ?? null,
-		weaponTags: options.weaponTags ?? null,
+		narrativeTags: options.narrativeTags ?? null,
 		tier,
 		tierLabel: MOVE_RESULT_LABELS[tier],
 		resultText: move.results[tier],

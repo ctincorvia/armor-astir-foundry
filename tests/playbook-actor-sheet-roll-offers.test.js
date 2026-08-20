@@ -40,7 +40,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, {
 			...config,
 			weaponLabel: "Rifle",
-			weaponTags: "Defensive",
+			narrativeTags: [],
 			reroll: { equipmentId: "eq1", tagKey: "defensive", spendKey: "defensive" },
 			heatUp: NO_HEAT_UP
 		});
@@ -59,7 +59,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle", weaponTags: "Decisive", heatUp: NO_HEAT_UP }
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 
@@ -75,7 +75,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle", weaponTags: "Defensive", heatUp: NO_HEAT_UP }
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Rifle", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 
@@ -93,7 +93,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, STRIKE_DECISIVELY, config.trait, {
 			...config,
 			weaponLabel: "Rifle",
-			weaponTags: "Versatile",
+			narrativeTags: [],
 			reroll: { equipmentId: "eq1", tagKey: "versatile", spendKey: "versatile:strike-decisively" },
 			heatUp: NO_HEAT_UP
 		});
@@ -120,7 +120,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, STRIKE_DECISIVELY, config.trait, {
 			...config,
 			weaponLabel: "Rifle",
-			weaponTags: "Versatile",
+			narrativeTags: [],
 			reroll: { equipmentId: "eq1", tagKey: "versatile", spendKey: "versatile:strike-decisively" },
 			heatUp: NO_HEAT_UP
 		});
@@ -141,7 +141,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "strike-decisively", equipmentId: "eq1" } } });
 
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, STRIKE_DECISIVELY, config.trait, { ...config, weaponLabel: "Rifle", weaponTags: "Versatile", heatUp: NO_HEAT_UP }
+			sheet.actor, STRIKE_DECISIVELY, config.trait, { ...config, weaponLabel: "Rifle", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 
@@ -159,7 +159,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, {
 			...config,
 			weaponLabel: "Rifle",
-			weaponTags: "Defensive",
+			narrativeTags: [],
 			reroll: { equipmentId: "eq1", tagKey: "defensive", spendKey: "defensive" },
 			heatUp: NO_HEAT_UP
 		});
@@ -177,7 +177,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Fists", weaponTags: null, heatUp: NO_HEAT_UP }
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Fists", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 
@@ -192,7 +192,7 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 });
@@ -216,7 +216,7 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, config.trait, {
 			...config,
 			weaponLabel: "Unarmed",
-			weaponTags: null,
+			narrativeTags: [],
 			automaticSuccess: [{ key: "the-impostor:hot-blooded", name: "Hot-blooded", cost: 3 }],
 			heatUp: NO_HEAT_UP
 		});
@@ -236,7 +236,7 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 
@@ -251,7 +251,7 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 
@@ -314,7 +314,7 @@ describe("PlaybookActorSheet#_rollMove - automatic success offer (Hot-blooded/On
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Unarmed", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 

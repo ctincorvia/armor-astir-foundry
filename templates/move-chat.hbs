@@ -22,9 +22,16 @@
 	<div class="move-roll-result">
 		{{#if traitLabel}}<span class="move-trait">+{{traitLabel}}</span>{{/if}}
 		{{#if intentLabel}}<span class="move-intent">{{intentLabel}}</span>{{/if}}
-		{{#if weaponLabel}}<span class="move-weapon">{{weaponLabel}}{{#if weaponTags}} ({{weaponTags}}){{/if}}</span>{{/if}}
+		{{#if weaponLabel}}<span class="move-weapon">{{weaponLabel}}</span>{{/if}}
 		<span class="move-tier move-tier-{{tier}}{{#if critical}} move-tier-critical{{/if}}">{{tierLabel}}</span>
 	</div>
+	{{#if narrativeTags.length}}
+	<div class="move-narrative-tags">
+		{{#each narrativeTags}}
+		<span class="move-narrative-tag" data-info-tooltip="{{description}}">{{#if (ne equipmentName ../weaponLabel)}}{{equipmentName}} — {{/if}}{{tagLabel}}</span>
+		{{/each}}
+	</div>
+	{{/if}}
 	{{#if conditions}}
 	<div class="move-conditions">
 		{{#each conditions}}

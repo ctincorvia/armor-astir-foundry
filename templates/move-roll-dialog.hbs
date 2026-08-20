@@ -59,7 +59,7 @@
 					<label>Tags</label>
 					<div class="equipment-tags-block"><ul class="equipment-tag-list">
 						{{#each narrativeTags}}
-						<li class="equipment-tag"><span class="equipment-tag-label">{{equipmentName}} — {{tagLabel}}{{#if showValue}} ({{value}}){{/if}}</span><span class="equipment-tag-description">{{description}}</span></li>
+						<li class="equipment-tag"><span class="equipment-tag-label">{{#if (ne equipmentName ../weaponLabel)}}{{equipmentName}} — {{/if}}{{tagLabel}}{{#if showValue}} ({{value}}){{/if}}</span><span class="equipment-tag-description">{{description}}</span></li>
 						{{/each}}
 					</ul></div>
 				</div>
@@ -72,7 +72,7 @@
 						<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}">
 							<label class="move-roll-equipment-spend-option">
 								<input type="checkbox" name="equipment-tag" value="{{equipmentId}}::{{tagKey}}" {{#if disabled}}disabled{{/if}}/>
-								<span class="move-roll-equipment-name">{{equipmentName}} — {{tagLabel}}</span>
+								<span class="move-roll-equipment-name">{{#if (ne equipmentName ../weaponLabel)}}{{equipmentName}} — {{/if}}{{tagLabel}}</span>
 							</label>
 							<div class="move-roll-equipment-description">{{description}}</div>
 						</div>

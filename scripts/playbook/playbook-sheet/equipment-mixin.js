@@ -339,15 +339,6 @@ export const EquipmentSheetMixin = {
 		if (!weapon) return false;
 		return this._weaponTagKeys(weapon).some((tagKey) => findEquipmentTag(tagKey)?.guided);
 	},
-	// The chosen weapon's full tag list, comma-joined for the chat card (see moves.js#rollMove's
-	// weaponTags doc) — unlike _equipmentSpends this isn't limited to spendable tags or gated by
-	// lockedEffect, it's just descriptive: every tag currently on the weapon, spent or not. null
-	// for Unarmed/no weapon and for a weapon with no tags, matching weaponLabel's own null cases.
-	_weaponTagLabels(weapon) {
-		if (!weapon) return null;
-		const labels = resolveEquipmentTags(this._weaponTagKeys(weapon)).map((tag) => tag.label);
-		return labels.length ? labels.join(", ") : null;
-	},
 	// Marks each checked equipment spend (see configureMoveRoll's Equipment section) as spent on
 	// its entry, before the roll itself is posted — same write-then-roll order as read-the-room's
 	// hold in rollMove, so the sheet reflects a spend even if the chat render that follows fails.

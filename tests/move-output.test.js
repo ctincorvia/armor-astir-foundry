@@ -36,7 +36,7 @@ describe("postGuidedResult", () => {
 			traitLabel: null,
 			intentLabel: null,
 			weaponLabel: "Rifle",
-			weaponTags: null,
+			narrativeTags: null,
 			tier: "mixed",
 			tierLabel: MOVE_RESULT_LABELS.mixed,
 			resultText: EXCHANGE_BLOWS.results.mixed,

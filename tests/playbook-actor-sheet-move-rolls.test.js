@@ -148,7 +148,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		// "PlaybookActorSheet#_onMoveRoll - weapon choice" (playbook-actor-sheet-weapon-rolls.test.js)
 		// for the weaponBundles-driven multi-candidate paths.
 		expect(rollMove).toHaveBeenCalledWith(
-			sheet.actor, EXCHANGE_BLOWS, talk, { ...config, weaponLabel: "Unarmed", weaponTags: null, heatUp: NO_HEAT_UP }
+			sheet.actor, EXCHANGE_BLOWS, talk, { ...config, weaponLabel: "Unarmed", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 
@@ -512,7 +512,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Bureaucrat's quick-roll redirect to E
 			{
 				...config,
 				weaponLabel: "Unarmed",
-				weaponTags: null,
+				narrativeTags: [],
 				extraReminders: BUREAUCRAT.quickRollsMove.reminders,
 				heatUp: NO_HEAT_UP
 			}

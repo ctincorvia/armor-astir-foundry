@@ -141,6 +141,26 @@
 	margin-top: var(--aa-space-1);
 }
 
+/* Embrace Chaos's own mirror offer (see downgradeOffer in moves.js#rollMove) -- a secondary,
+   optional alternative to the tier just rolled, not another "take this offered resource" action
+   like Reroll/Automatic Success/Heat Up above, so it deliberately doesn't share their solid-primary
+   look. Same shape/weight as those buttons otherwise, just recolored to the secondary role and
+   given the same margin-top so it doesn't sit flush against whichever of them rendered above it. */
+.armor-astir-move-chat .move-downgrade {
+	margin-top: var(--aa-space-1);
+	padding: var(--aa-space-1) var(--aa-space-2);
+	border: 1px solid var(--aa-secondary-dark);
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-dark);
+	color: var(--aa-secondary-tint);
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.armor-astir-move-chat .move-downgrade:hover {
+	opacity: 0.85;
+}
+
 /* Side by side rather than each stretching full-width — buttons are flex containers by Foundry's
    own core style, so without a flex-row parent each one fills its own row. */
 .armor-astir-move-chat .move-advantage-controls {
@@ -215,6 +235,66 @@
    background color. */
 .armor-astir-move-chat .move-condition-blitz {
 	background: #1e6b5b;
+}
+
+/* Narrative (no codified mechanic) weapon tags — see PlaybookActorSheet#_narrativeWeaponTags.
+   Deliberately not the bold white-on-solid-color .move-condition treatment above: these are
+   descriptive info about the weapon, not "why the total is what it is", so they get a muted
+   tint/-dark outline instead, matching the equipment-tag-label convention used everywhere else
+   this shape of data appears (see sheet-tabs.css). */
+.armor-astir-move-chat .move-narrative-tags {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-1);
+	margin-top: var(--aa-space-1);
+}
+
+/* A solid -dark fill, not the tint: .dice-formula/.dice-total below hit the same problem first --
+   --aa-secondary-tint is nearly white, and Foundry's own chat card background is a pale parchment
+   texture (see public/css/style.css's .chat-message), so a tint-only fill reads as no fill at all
+   against it, even with a border added (confirmed live in-client). Text is tint-colored rather
+   than white specifically to stay visually distinct from .move-condition-confidence/-desperation
+   immediately below (also a solid -dark fill, but with white text) -- these are still descriptive
+   info about the weapon, not "why the total is what it is", so the two chip families shouldn't
+   read as identical just because both now need a dark fill to be visible. position: relative
+   anchors the hover tooltip below. */
+.armor-astir-move-chat .move-narrative-tag {
+	position: relative;
+	padding: 1px 6px;
+	border-radius: var(--aa-radius);
+	font-size: 11px;
+	font-weight: bold;
+	background: var(--aa-secondary-dark);
+	color: var(--aa-secondary-tint);
+}
+
+/* CSS-only tooltip for each chip's rules text -- same mechanics as sheet-tabs.css's
+   .weapon-move-roll.disabled[data-gate-tooltip]:hover::after, reused here because a native title
+   attribute wasn't showing a tooltip in the chat log either. Named data-info-tooltip rather than
+   data-gate-tooltip since nothing here is disabled/gated, just descriptive -- and, same reasoning
+   as data-gate-tooltip's own comment, not data-tooltip, which core's TooltipManager
+   (client/core/tooltip.js) activates its own native (differently styled) tooltip on. */
+.armor-astir-move-chat .move-narrative-tag[data-info-tooltip]:hover::after {
+	content: attr(data-info-tooltip);
+	position: absolute;
+	bottom: 100%;
+	left: 0;
+	margin-bottom: var(--aa-space-1);
+	width: max-content;
+	max-width: 200px;
+	padding: var(--aa-space-1) var(--aa-space-2);
+	background: var(--aa-primary-dark);
+	color: #fff;
+	font-size: 11px;
+	font-weight: 500;
+	line-height: 1.3;
+	text-align: center;
+	border-radius: var(--aa-radius);
+	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+	z-index: 100;
+	pointer-events: none;
+	white-space: normal;
 }
 
 .armor-astir-move-chat .move-dice {

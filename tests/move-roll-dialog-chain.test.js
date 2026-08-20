@@ -19,14 +19,12 @@ beforeEach(() => {
 });
 
 // Live-recompute DOM tests for configureMoveRoll's render callback (see move-dialogs.js and
-// roll-chain.js's resolveRollChain) -- everything this file exercises only fires when .render() is
-// actually invoked, unlike tests/move-roll-dialog.test.js's own Roll-button-callback-only tests,
-// which simulate the chain's *already-painted* result directly instead. A purpose-built fake DOM
-// (fakeChainDom below) tracks per-key checkbox/row/reason state and both notch groups' own
-// handlers, since real jQuery fires every handler bound to the same selector in registration order
-// (wireNotchedSlider's own write, then this module's own chain-recompute write) and the production
-// code re-queries live "currently checked" state on every recompute() call rather than tracking it
-// itself.
+// roll-chain.js's chainEntryResult/reverseChainStep) -- everything this file exercises only fires
+// when .render() is actually invoked, unlike tests/move-roll-dialog.test.js's own Roll-button-
+// callback-only tests, which simulate the already-painted result directly instead. A purpose-built
+// fake DOM (fakeChainDom below) tracks per-key checkbox/row/reason state and both notch groups' own
+// handlers, since the production code re-queries live "currently checked"/current-value state on
+// every change rather than tracking it independently itself.
 function fakeChainDom({ rollModifierKeys = [], weaponSelectValue = undefined, scoped = false } = {}) {
 	const scope = scoped ? "[data-weapon-panel].active " : "";
 	const state = {
@@ -141,12 +139,12 @@ function fakeChainDom({ rollModifierKeys = [], weaponSelectValue = undefined, sc
 
 function checkRollModifier(dom, key) {
 	dom.state.checked.add(key);
-	for (const handler of dom.state.handlers.rollModifier) handler();
+	for (const handler of dom.state.handlers.rollModifier) handler({ target: { value: key, checked: true } });
 }
 
 function uncheckRollModifier(dom, key) {
 	dom.state.checked.delete(key);
-	for (const handler of dom.state.handlers.rollModifier) handler();
+	for (const handler of dom.state.handlers.rollModifier) handler({ target: { value: key, checked: false } });
 }
 
 function pickNotch(dom, axis, key, title) {
@@ -179,6 +177,11 @@ describe("configureMoveRoll - live chain recompute", () => {
 	const advantageOnlyEntry = {
 		key: "the-diplomat:sharper-knives", label: "Sharper Knives", description: "d",
 		advantage: "advantage", effect: null, requiresAdvantage: null,
+		reminderOnly: false, deferred: false, disabled: false, disabledReason: null
+	};
+	const effectOnlyEntry = {
+		key: "the-scout:field-scout", label: "Field Scout", description: "d",
+		advantage: null, effect: "confidence", requiresAdvantage: null,
 		reminderOnly: false, deferred: false, disabled: false, disabledReason: null
 	};
 
@@ -222,7 +225,7 @@ describe("configureMoveRoll - live chain recompute", () => {
 		dialogOptions.close();
 	});
 
-	it("reverses cleanly on uncheck, recomputing from scratch rather than undoing incrementally", async () => {
+	it("reverses a checked entry's own nudge on uncheck, showing the reverse transition in the readout", async () => {
 		const { dialogOptions } = await openDialog({ rollModifiers: [advantageOnlyEntry] });
 		const dom = fakeChainDom({ rollModifierKeys: [advantageOnlyEntry.key] });
 
@@ -231,7 +234,76 @@ describe("configureMoveRoll - live chain recompute", () => {
 		uncheckRollModifier(dom, advantageOnlyEntry.key);
 
 		expect(dom.state.advantageHiddenValue).toBe("none");
-		expect(dom.state.advantageReadout).toBe("None");
+		expect(dom.state.advantageReadout).toBe("Advantage → None");
+
+		dialogOptions.close();
+	});
+
+	it("clamps an uncheck's reversal to a no-op on an axis pushed out of the entry's own reach", async () => {
+		const { dialogOptions } = await openDialog({
+			lockedAdvantage: "disadvantage2",
+			rollModifiers: [embraceChaosEntry]
+		});
+		const dom = fakeChainDom({ rollModifierKeys: [embraceChaosEntry.key] });
+
+		dialogOptions.render(dom.html);
+		checkRollModifier(dom, embraceChaosEntry.key);
+		expect(dom.state.advantageHiddenValue).toBe("none");
+
+		// The player manually moves back down to the bottom of the axis -- somewhere Embrace
+		// Chaos's own +2 step can no longer reach back down from.
+		pickNotch(dom, "advantage", "disadvantage2", "Disadvantage x2");
+		expect(dom.state.advantageHiddenValue).toBe("disadvantage2");
+
+		uncheckRollModifier(dom, embraceChaosEntry.key);
+
+		// Reversing Embrace Chaos's own +2 step from "disadvantage2" would run off the bottom of
+		// the axis -- reverseChainStep clamps that to a no-op rather than failing outright, and the
+		// checkbox itself still unchecks normally.
+		expect(dom.state.advantageHiddenValue).toBe("disadvantage2");
+		expect(dom.state.advantageReadout).toBe("Disadvantage x2");
+		expect(dom.state.checked.has(embraceChaosEntry.key)).toBe(false);
+
+		dialogOptions.close();
+	});
+
+	it("reverses an Effect-only entry's own nudge on uncheck without touching Advantage", async () => {
+		const { dialogOptions } = await openDialog({ rollModifiers: [effectOnlyEntry] });
+		const dom = fakeChainDom({ rollModifierKeys: [effectOnlyEntry.key] });
+
+		dialogOptions.render(dom.html);
+		checkRollModifier(dom, effectOnlyEntry.key);
+		expect(dom.state.effectHiddenValue).toBe("confidence");
+
+		uncheckRollModifier(dom, effectOnlyEntry.key);
+
+		expect(dom.state.effectHiddenValue).toBe("none");
+		expect(dom.state.advantageHiddenValue).toBe("none");
+
+		dialogOptions.close();
+	});
+
+	it("clamps an Effect-only entry's reversal to a no-op on the Effect axis, leaving Advantage untouched", async () => {
+		const { dialogOptions } = await openDialog({
+			lockedEffect: "desperation",
+			rollModifiers: [effectOnlyEntry]
+		});
+		const dom = fakeChainDom({ rollModifierKeys: [effectOnlyEntry.key] });
+
+		dialogOptions.render(dom.html);
+		checkRollModifier(dom, effectOnlyEntry.key);
+		expect(dom.state.effectHiddenValue).toBe("none");
+
+		// The player manually moves back down to the bottom of the Effect axis -- somewhere Field
+		// Scout's own +1 step can no longer reach back down from.
+		pickNotch(dom, "effect", "desperation", "Desperation");
+		expect(dom.state.effectHiddenValue).toBe("desperation");
+
+		uncheckRollModifier(dom, effectOnlyEntry.key);
+
+		expect(dom.state.effectHiddenValue).toBe("desperation");
+		expect(dom.state.effectReadout).toBe("Desperation");
+		expect(dom.state.advantageHiddenValue).toBe("none");
 
 		dialogOptions.close();
 	});
@@ -265,11 +337,11 @@ describe("configureMoveRoll - live chain recompute", () => {
 	});
 
 	// The inverse check order: All In is checked while its own requiresAdvantage gate isn't
-	// satisfied yet (base is disadvantage2), so recompute() unchecks it immediately -- exercising
-	// move-dialogs.js's own "a checked box whose entry didn't survive the chain gets unchecked"
-	// branch. Embrace Chaos checked afterward still applies on its own, but All In stays unchecked
-	// since a single left-to-right pass never retries a skipped entry.
-	it("unchecks a checked entry whose gate isn't satisfied yet, and never retries it later in the same pass", async () => {
+	// satisfied yet (base is disadvantage2), so chainEntryResult returns null and the nudge is
+	// skipped -- but per the new model a modifier is never auto-unchecked, so All In stays checked
+	// and simply contributes nothing to the current Advantage. Embrace Chaos checked afterward
+	// still nudges on its own.
+	it("stays checked even when its own gate isn't satisfied, contributing nothing to the current value", async () => {
 		const { dialogOptions } = await openDialog({
 			lockedAdvantage: "disadvantage2",
 			rollModifiers: [allInEntry, embraceChaosEntry]
@@ -279,13 +351,13 @@ describe("configureMoveRoll - live chain recompute", () => {
 		dialogOptions.render(dom.html);
 		checkRollModifier(dom, allInEntry.key);
 
-		expect(dom.state.checked.has(allInEntry.key)).toBe(false);
+		expect(dom.state.checked.has(allInEntry.key)).toBe(true);
 		expect(dom.state.advantageHiddenValue).toBe("disadvantage2");
 
 		checkRollModifier(dom, embraceChaosEntry.key);
 
 		expect(dom.state.checked.has(embraceChaosEntry.key)).toBe(true);
-		expect(dom.state.checked.has(allInEntry.key)).toBe(false);
+		expect(dom.state.checked.has(allInEntry.key)).toBe(true);
 		expect(dom.state.advantageHiddenValue).toBe("none");
 
 		dialogOptions.close();
@@ -401,9 +473,9 @@ describe("configureMoveRoll - live chain recompute", () => {
 	});
 
 	// A deferred, unchecked entry (Snakes in the Grass-shaped) still goes through the same live
-	// applicability re-check as an immediate entry -- see recompute()'s own deferred ? "pending-
-	// roll-modifier" : "roll-modifier" checkbox-name branch -- even though it never joins the chain
-	// itself (only [name='roll-modifier'] boxes are read into checkedKeys).
+	// applicability re-check as an immediate entry -- see repaintAvailability()'s own deferred ?
+	// "pending-roll-modifier" : "roll-modifier" checkbox-name branch -- even though it never nudges
+	// currentAdvantage/currentEffect itself (only a checked [name='roll-modifier'] does that).
 	it("re-evaluates a deferred entry's own live applicability against the [name='pending-roll-modifier'] checkbox name", async () => {
 		const deferredEntry = {
 			key: "the-adrift:snakes-in-the-grass", label: "Snakes In The Grass", description: "d",
@@ -417,6 +489,82 @@ describe("configureMoveRoll - live chain recompute", () => {
 
 		expect(dom.state.disabled[deferredEntry.key]).toBe(true);
 		expect(dom.state.reasons[deferredEntry.key]).toBe("Requires Advantage");
+
+		dialogOptions.close();
+	});
+
+	// The reported regression: checking a modifier that nudges None -> Advantage, then clicking the
+	// "None" notch, used to be silently absorbed -- the whole-chain recompute() would re-derive
+	// Advantage back to "advantage" (since the checked box was still checked) and force the notch
+	// back to where it started, so the click never visibly moved the stepper. Under the new model a
+	// direct notch click always wins outright, and the checked modifier is left checked rather than
+	// being reconciled against it.
+	it("does not snap back when the None notch is clicked after a checked modifier nudged away from it (regression)", async () => {
+		const { dialogOptions } = await openDialog({ rollModifiers: [advantageOnlyEntry] });
+		const dom = fakeChainDom({ rollModifierKeys: [advantageOnlyEntry.key] });
+
+		dialogOptions.render(dom.html);
+		checkRollModifier(dom, advantageOnlyEntry.key);
+		pickNotch(dom, "advantage", "none", "None");
+
+		expect(dom.state.checked.has(advantageOnlyEntry.key)).toBe(true);
+		expect(dom.state.advantageHiddenValue).toBe("none");
+		expect(dom.state.advantageReadout).toBe("None");
+
+		dialogOptions.close();
+	});
+
+	it("still spends a checked modifier's resource even after its nudge is overridden back away by the player", async () => {
+		const { dialogOptions, promise } = await openDialog({ rollModifiers: [advantageOnlyEntry] });
+		const dom = fakeChainDom({ rollModifierKeys: [advantageOnlyEntry.key] });
+
+		dialogOptions.render(dom.html);
+		checkRollModifier(dom, advantageOnlyEntry.key);
+		pickNotch(dom, "advantage", "none", "None");
+
+		dialogOptions.buttons.roll.callback(dom.html);
+
+		const result = await promise;
+		expect(result.advantage).toBe("none");
+		expect(result.spentRollModifiers).toEqual([advantageOnlyEntry.key]);
+	});
+
+	it("stacks a newly checked modifier on top of a manual override, keeping both modifiers checked", async () => {
+		const { dialogOptions } = await openDialog({
+			rollModifiers: [advantageOnlyEntry, embraceChaosEntry]
+		});
+		const dom = fakeChainDom({ rollModifierKeys: [advantageOnlyEntry.key, embraceChaosEntry.key] });
+
+		dialogOptions.render(dom.html);
+		checkRollModifier(dom, advantageOnlyEntry.key);
+		expect(dom.state.advantageHiddenValue).toBe("advantage");
+
+		pickNotch(dom, "advantage", "disadvantage", "Disadvantage");
+		expect(dom.state.advantageHiddenValue).toBe("disadvantage");
+
+		// Embrace Chaos's own requiresAdvantage gate is satisfied by the manually-picked
+		// Disadvantage, and its own +2 step applies from *that* current value, not from wherever
+		// advantageOnlyEntry's own earlier nudge originally landed.
+		checkRollModifier(dom, embraceChaosEntry.key);
+
+		expect(dom.state.advantageHiddenValue).toBe("advantage");
+		expect(dom.state.checked.has(advantageOnlyEntry.key)).toBe(true);
+		expect(dom.state.checked.has(embraceChaosEntry.key)).toBe(true);
+
+		dialogOptions.close();
+	});
+
+	// Bug 2: the reason text for a failed requiresAdvantage gate used to hardcode "Requires
+	// Advantage" regardless of what the gate actually named -- wrong for Embrace Chaos, whose own
+	// gate requires Disadvantage (or Disadvantage x2), not Advantage.
+	it("labels a failed requiresAdvantage gate from the gate's own contents, not a hardcoded 'Requires Advantage' (bug 2)", async () => {
+		const { dialogOptions } = await openDialog({ rollModifiers: [embraceChaosEntry] });
+		const dom = fakeChainDom({ rollModifierKeys: [embraceChaosEntry.key] });
+
+		dialogOptions.render(dom.html);
+
+		expect(dom.state.disabled[embraceChaosEntry.key]).toBe(true);
+		expect(dom.state.reasons[embraceChaosEntry.key]).toBe("Requires Disadvantage or Disadvantage x2");
 
 		dialogOptions.close();
 	});

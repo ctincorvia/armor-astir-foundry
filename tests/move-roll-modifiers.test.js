@@ -424,11 +424,15 @@ describe("rollMove - heat up (Astir Overheating reroll)", () => {
 		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
 		mockRoll({ dice });
 
+		const narrativeTags = [{
+			equipmentId: "eq1", equipmentName: "Halberd", tagKey: "impact", tagLabel: "Impact",
+			value: 1, showValue: true, description: "It hits hard."
+		}];
 		await rollMove(actor, EXCHANGE_BLOWS, clash, {
 			advantage: "none",
 			effect: "confidence",
 			weaponLabel: "Halberd",
-			weaponTags: "Blitz",
+			narrativeTags,
 			heatUp: true
 		});
 
@@ -439,7 +443,7 @@ describe("rollMove - heat up (Astir Overheating reroll)", () => {
 			actorId: "actor1",
 			moveKey: "exchange-blows",
 			trait: clash,
-			options: { advantage: "none", effect: "confidence", weaponLabel: "Halberd", weaponTags: "Blitz" },
+			options: { advantage: "none", effect: "confidence", weaponLabel: "Halberd", narrativeTags },
 			flavorArgs: expect.any(Object)
 		});
 	});

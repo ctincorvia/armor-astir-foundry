@@ -220,8 +220,7 @@ export const ASTIR_WEAPON_CATALOG = [
 			"word. Small floating constructs that pack a surprising punch for their size, wisps are limited " +
 			"by the short lifespan on their magic. Also seen as an Assault Funnel, Fire Spirits, or Attack " +
 			"Drones. Familiar — requires a Familiar Matrix Astir Part; rolls +CHANNEL for Exchange Blows and " +
-			"Strike Decisively; perils from its loss clear automatically during Downtime (untracked by this " +
-			"module — clear them yourself).",
+			"Strike Decisively; perils from its loss clear automatically during Downtime.",
 		tags: ["ranged", "area", "limited"],
 		familiar: true,
 		requiresParts: ["astir-part:familiar-matrix"]
@@ -233,8 +232,7 @@ export const ASTIR_WEAPON_CATALOG = [
 			"against a target. Channelers tend to use them only when needed, since if shot the explosions " +
 			"tend to set off other nearby motes. Also seen as Remote Bombs, Volatile Elements, or " +
 			"Lev-Grenades. Familiar — requires a Familiar Matrix Astir Part; rolls +CHANNEL for Exchange " +
-			"Blows and Strike Decisively; perils from its loss clear automatically during Downtime " +
-			"(untracked by this module — clear them yourself).",
+			"Blows and Strike Decisively; perils from its loss clear automatically during Downtime.",
 		tags: ["sniper", "impact", "bane", "dangerous"],
 		familiar: true,
 		requiresParts: ["astir-part:familiar-matrix"]
@@ -246,7 +244,7 @@ export const ASTIR_WEAPON_CATALOG = [
 			"it comes to decisive blows, they excel at restraining and harassing foes. Also seen as a Glue " +
 			"Turret, Labour Drones, or Medusa Heads. Familiar — requires a Familiar Matrix Astir Part; rolls " +
 			"+CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear automatically " +
-			"during Downtime (untracked by this module — clear them yourself).",
+			"during Downtime.",
 		tags: ["ranged", "restraining", "weak"],
 		familiar: true,
 		requiresParts: ["astir-part:familiar-matrix"]
@@ -257,7 +255,7 @@ export const ASTIR_WEAPON_CATALOG = [
 		description: "Sharp-clawed contraptions of magic and stone, in the familiar shape of a crow. Also " +
 			"seen as Trained Wolves, Raven Ghosts, or Saw Drones. Familiar — requires a Familiar Matrix Astir " +
 			"Part; rolls +CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear " +
-			"automatically during Downtime (untracked by this module — clear them yourself).",
+			"automatically during Downtime.",
 		tags: ["ranged", "defensive", "distinct"],
 		familiar: true,
 		requiresParts: ["astir-part:familiar-matrix"]

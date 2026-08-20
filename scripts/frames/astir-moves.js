@@ -169,8 +169,8 @@ export const ASTIR_MOVE_CATALOG = [
 		grantsRollModifier: [{ moveKeys: ["exchange-blows", "strike-decisively"], advantage: "advantage" }],
 		description:
 			"<p>Sigils burned into an Astir's own weapons flare brighter the hotter its core runs.</p>" +
-			"<p>Untick 'overheating' on your Astir to give your next exchange blows or strike " +
-			"decisively advantage.</p>"
+			"<p>When you untick 'overheating' on your Astir, your next exchange blows or strike " +
+			"decisively roll gains advantage.</p>"
 	},
 	{
 		key: "astir:petrifier-core",

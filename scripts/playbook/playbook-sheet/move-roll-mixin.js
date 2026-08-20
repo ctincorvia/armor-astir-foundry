@@ -230,20 +230,6 @@ export const MoveRollSheetMixin = {
 	// (or, for guided, already-resolved-for-the-chosen-weapon) values the caller already computed
 	// before calling configureMoveRoll, threaded through rather than recomputed here.
 	async _finishMoveRoll(move, weapon, config, { quickRoll = {}, guided = null, downgrade = [] } = {}) {
-		// Guided's "Take 7-9" button resolves with nothing but this flag -- no trait, dice, or
-		// equipment/Astir Part spend was ever read, so there's nothing to mark spent and nothing
-		// left to roll. _onMoveResolved still runs below (Cold Company, Witch's Patron, ...) --
-		// there's just no dice to check for Flourish Component's regain-on-doubles.
-		if (config.takeSeven) {
-			await postGuidedResult(this.actor, move, {
-				weaponLabel: weapon ? weapon.name : "Unarmed",
-				weaponTags: this._weaponTagLabels(weapon),
-				guidedSource: guided
-			});
-			await this._onMoveResolved(move, null, "mixed");
-			return;
-		}
-
 		// A weapon "borrowed" from the world's Carrier (Fire Support) lives in a different actor's
 		// own equipment array, not this actor's -- so none of the spend/tag/reroll machinery below,
 		// which all read or write this actor's own equipment/Astir Part state, may ever be
@@ -253,6 +239,20 @@ export const MoveRollSheetMixin = {
 		// a name on the chat card, nothing more, and a Fire Support roll using one gets exactly the
 		// same treatment rather than risking a write onto an object this actor doesn't own.
 		const fromCarrier = Boolean(weapon?.fromCarrier);
+		// Guided's "Take 7-9" button resolves with nothing but this flag -- no trait, dice, or
+		// equipment/Astir Part spend was ever read, so there's nothing to mark spent and nothing
+		// left to roll. _onMoveResolved still runs below (Cold Company, Witch's Patron, ...) --
+		// there's just no dice to check for Flourish Component's regain-on-doubles.
+		if (config.takeSeven) {
+			await postGuidedResult(this.actor, move, {
+				weaponLabel: weapon ? weapon.name : "Unarmed",
+				narrativeTags: fromCarrier ? [] : this._narrativeWeaponTags(weapon),
+				guidedSource: guided
+			});
+			await this._onMoveResolved(move, null, "mixed");
+			return;
+		}
+
 		// A forced tag (e.g. Unreliable) is marked spent right alongside whatever the player
 		// checked in the dialog -- same single update, same "used this period" checkbox on the
 		// Equipment tab (see _equipmentEntry's spendable) as a player-chosen spend.
@@ -270,9 +270,9 @@ export const MoveRollSheetMixin = {
 
 		// weapon undefined (not a usesWeapon move) leaves rollMove's options untouched, same as
 		// today, for every move except Exchange Blows/Strike Decisively. null (Unarmed) or a real
-		// weapon entry both add a weaponLabel (and that weapon's tags, if any — see
-		// _weaponTagLabels), recorded on the chat card even when nothing was spent (see rollMove in
-		// moves.js). reroll is only ever attached for a usesWeapon move too — rollMove itself
+		// weapon entry both add a weaponLabel (and that weapon's narrative tags, if any — see
+		// _narrativeWeaponTags), recorded on the chat card even when nothing was spent (see rollMove
+		// in moves.js). reroll is only ever attached for a usesWeapon move too — rollMove itself
 		// decides whether to actually offer it, based on whether this attempt fails (see moves.js).
 		const reroll = fromCarrier ? null : this._availableReroll(move, weapon);
 		// The derived Trait bonus for whichever trait the player actually chose (see
@@ -327,7 +327,7 @@ export const MoveRollSheetMixin = {
 			? {
 				...baseOptions,
 				weaponLabel: weapon ? weapon.name : "Unarmed",
-				weaponTags: this._weaponTagLabels(weapon),
+				narrativeTags: fromCarrier ? [] : this._narrativeWeaponTags(weapon),
 				...(reroll && { reroll })
 			}
 			: baseOptions;
