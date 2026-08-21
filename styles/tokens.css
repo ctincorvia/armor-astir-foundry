@@ -50,12 +50,13 @@ li.chat-message:has(.armor-astir-move-chat) {
 	--aa-radius: 4px;
 	--aa-border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
 
-	/* Foundry v13+ auto-adopts the OS/browser light-dark preference (or a world-level override) and
-	   sets an ambient dark color-scheme; that's inherited CSS, so it reaches native <select> popups
-	   even inside our AppV1 windows, which never opt into v13's own themed chrome. The popup itself
-	   can't be restyled by class selectors (it's native OS/browser chrome) — only color-scheme
-	   controls it. Forcing light here is a no-op on v12, where nothing sets an ambient dark scheme. */
-	color-scheme: light;
+	/* Foundry v13+'s core CSS explicitly authors the open <select> popup's rows — not a native
+	   default, so color-scheme can't touch it: `body.game .app option, body.game .app optgroup
+	   { background: var(--color-select-option-bg); }` — resolving to a dark value under v13+'s
+	   OS/browser-driven theme. Overriding the variable here (inherited down into our own <select>s)
+	   keeps the open list the same white as pbta's own closed select box. No-op on v12, where core
+	   never declares this variable and the rule that reads it doesn't exist yet. */
+	--color-select-option-bg: white;
 }
 
 /* pbta's own global SCSS themes every Foundry window (sheet or Dialog) navy, with nothing scoping
@@ -73,7 +74,7 @@ li.chat-message:has(.armor-astir-move-chat) {
 }
 
 .window-app.armor-astir .window-header {
-	background: var(--aa-primary);
+	background: var(--aa-primary-dark);
 	color: white;
 	border-bottom-color: var(--aa-primary-dark);
 }
