@@ -325,6 +325,46 @@ describe("rollMove", () => {
 		}));
 	});
 
+	it("adds an extraCriticalReminder (e.g. Soldier's Indomitable) only on an actual 12+", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		const reminder = "You may clear a risk";
+
+		mockRoll({ dice: [6, 6] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { extraCriticalReminder: reminder });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			critical: true,
+			reminders: [reminder]
+		}));
+
+		mockRoll({ dice: [5, 5] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { extraCriticalReminder: reminder });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			critical: false,
+			reminders: null
+		}));
+	});
+
+	it("does not duplicate the reminder on a 12+ when extraSuccessReminder and extraCriticalReminder carry " +
+		"identical text (The Witch's Bearer Of Curses, whose trigger has no tier qualifier)", async () => {
+		const actor = { system: { stats: { clash: { value: 0 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		const reminder = "First time this Scene, choose 1: they can't use subsystems this Scene; you leave " +
+			"a lasting mark on them; or the next move against them is made with advantage";
+
+		mockRoll({ dice: [6, 6] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash, { extraSuccessReminder: reminder, extraCriticalReminder: reminder });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			critical: true,
+			reminders: [reminder]
+		}));
+	});
+
 	it("includes the active conditions in the chat template data", async () => {
 		const actor = { system: { stats: { clash: { value: 0 } } } };
 		const clash = TRAITS.find((t) => t.key === "clash");

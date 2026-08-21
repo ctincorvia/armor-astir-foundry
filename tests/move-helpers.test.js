@@ -172,4 +172,25 @@ describe("buildReminders", () => {
 	it("omits the extraMixedReminder slot entirely when none is passed", () => {
 		expect(buildReminders("mixed", effectState("none"))).toEqual([]);
 	});
+
+	it("includes the extraCriticalReminder only when critical is true", () => {
+		const none = effectState("none");
+		const reminder = "You may clear a risk";
+
+		expect(buildReminders("success", none, null, null, true, reminder)).toEqual([reminder]);
+		expect(buildReminders("success", none, null, null, false, reminder)).toEqual([]);
+	});
+
+	it("layers extraCriticalReminder on top of a different extraSuccessReminder on a 12+", () => {
+		const none = effectState("none");
+
+		expect(buildReminders("success", none, null, "success reminder", true, "critical reminder"))
+			.toEqual(["success reminder", "critical reminder"]);
+	});
+
+	it("does not duplicate extraCriticalReminder when it matches the already-included extraSuccessReminder", () => {
+		const none = effectState("none");
+
+		expect(buildReminders("success", none, null, "same text", true, "same text")).toEqual(["same text"]);
+	});
 });

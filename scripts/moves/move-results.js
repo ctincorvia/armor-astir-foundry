@@ -47,16 +47,26 @@ const CONFIDENCE_FAILURE_REMINDER = "You may loosen a Hook";
 // PlaybookActorSheet#_grantedCriticalReminderForMove/moves-mixin.js) is the same idea again, but
 // layered on top of a 12+ result (`critical`, see isCriticalResult below) rather than replacing
 // the success tier's own reminder — a 12+ that also happens to carry an extraSuccessReminder shows
-// both, since `critical` is orthogonal to `tier` by design (see docs/domains/moves.md's "Adding move content").
+// both, since `critical` is orthogonal to `tier` by design (see docs/domains/moves.md's "Adding move
+// content"). The one exception: if extraCriticalReminder's text is identical to a reminder tierReminders
+// already carries (only ever extraSuccessReminder in practice, since critical implies tier ===
+// "success"), it's skipped rather than shown twice — The Witch's Bearer Of Curses grants the *same*
+// text via addsSuccessReminderToMove/addsMixedReminderToMove/addsFailureReminderToMove/
+// addsCriticalReminderToMove alike (its own trigger has no tier qualifier), and without this check a
+// 12+ would post that text twice. Mirrors the pre-roll dialog's own collapse of the identical case
+// (see PlaybookActorSheet#_ridersForMove's "All Rolls:" row).
 export function buildReminders(tier, effect, extraFailureReminder = null, extraSuccessReminder = null, critical = false, extraCriticalReminder = null, extraMixedReminder = null) {
-	return [
+	const tierReminders = [
 		...(tier === "failure" ? FAILURE_REMINDERS : []),
 		...(effect.key === "desperation" && tier === "success" ? [DESPERATION_SUCCESS_REMINDER] : []),
 		...(effect.key === "confidence" && tier === "failure" ? [CONFIDENCE_FAILURE_REMINDER] : []),
 		...(tier === "failure" && extraFailureReminder ? [extraFailureReminder] : []),
 		...(tier === "success" && extraSuccessReminder ? [extraSuccessReminder] : []),
-		...(tier === "mixed" && extraMixedReminder ? [extraMixedReminder] : []),
-		...(critical && extraCriticalReminder ? [extraCriticalReminder] : [])
+		...(tier === "mixed" && extraMixedReminder ? [extraMixedReminder] : [])
+	];
+	return [
+		...tierReminders,
+		...(critical && extraCriticalReminder && !tierReminders.includes(extraCriticalReminder) ? [extraCriticalReminder] : [])
 	];
 }
 
