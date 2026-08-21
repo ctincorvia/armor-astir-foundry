@@ -1,4 +1,4 @@
-import { TAG_VALUE_GROUPS } from "./equipment-constants.js";
+import { DRAIN_GROUP, TAG_VALUE_GROUPS } from "./equipment-constants.js";
 import { EQUIPMENT_TAGS } from "./equipment-tags.js";
 import { EQUIPMENT_CATALOG } from "./equipment-catalog.js";
 
@@ -105,4 +105,121 @@ export function wirePickerTabs(html) {
 		html.find("[data-picker-tab-panel]").removeClass("active");
 		html.find(`[data-picker-tab-panel='${target}']`).addClass("active");
 	});
+}
+
+// Weapon-roll resolvers shared by PlaybookActorSheet's own equipment-mixin.js (_equipmentSpends/
+// _narrativeWeaponTags/_forcedWeaponEffect/_availableReroll/_availableRerollTag/_weaponIsGuided)
+// and CarrierActorSheet (the same six, wrapping these directly) — pulled out here as pure
+// functions of (tagKeys, entry[, ...]) rather than living only as actor-sheet instance methods, so
+// a Carrier weapon rolled either from the Carrier's own sheet or "borrowed" via Fire Support (see
+// move-roll-mixin.js's _onMoveRoll) gets identical treatment without either sheet needing to reach
+// into the other's own equipment array. Each playbook-sheet method above resolves its own
+// `this._weaponTagKeys(entry)` (its own union-with-grants variant) or, for a fromCarrier weapon,
+// carrierWeaponTagKeys' pre-merged keys, and passes that resolved list in here as `tagKeys`.
+
+// Mirrors equipment-mixin.js#_equipmentSpends' inner per-entry loop for a single already-resolved
+// entry — the frame/disabled/scoped filtering that loop also does happens one level up, since only
+// a playbook actor has a mounted frame or multiple weapons to filter between at all.
+export function resolveEquipmentSpends(tagKeys, entry, lockedEffect) {
+	const spent = entry.spent ?? [];
+	const spends = [];
+	for (const tagKey of tagKeys) {
+		if (spent.includes(tagKey)) continue;
+		const tag = findEquipmentTag(tagKey);
+		if (!tag?.spend?.effect) continue;
+		spends.push({
+			equipmentId: entry.id,
+			equipmentName: entry.name,
+			tagKey: tag.key,
+			tagLabel: tag.label,
+			description: tag.description,
+			effect: tag.spend.effect,
+			disabled: Boolean(lockedEffect)
+		});
+	}
+	return spends;
+}
+
+// Mirrors equipment-mixin.js#_narrativeWeaponTags' inner per-entry loop for a single
+// already-resolved entry.
+export function resolveNarrativeWeaponTags(tagKeys, entry) {
+	return resolveEquipmentTags(tagKeys)
+		.filter((tag) => !tag.spend && !tag.forcesEffect && !tag.reroll && !tag.guided && tag.exclusiveGroup !== DRAIN_GROUP)
+		.map((tag) => ({
+			equipmentId: entry.id,
+			equipmentName: entry.name,
+			tagKey: tag.key,
+			tagLabel: tag.label,
+			value: tag.value,
+			showValue: true,
+			description: tag.description
+		}));
+}
+
+// Mirrors equipment-mixin.js#_forcedWeaponEffect's body.
+export function resolveForcedWeaponEffect(tagKeys, entry) {
+	const spent = entry.spent ?? [];
+	for (const tagKey of tagKeys) {
+		if (spent.includes(tagKey)) continue;
+		const tag = findEquipmentTag(tagKey);
+		if (tag?.forcesEffect) return { tagKey, effect: tag.forcesEffect.effect };
+	}
+	return null;
+}
+
+// Mirrors equipment-mixin.js#_availableReroll's body, plus a spendActorId — present only when
+// `entry` is a fromCarrier-shaped weapon (see move-roll-mixin.js's _onMoveRoll), so a Fire
+// Support reroll's spend routes to the Carrier that actually owns the weapon rather than the
+// rolling playbook actor (see move-roll.js's rerollOffer/move-chat-listeners.js's handleReroll).
+export function resolveAvailableReroll(tagKeys, entry, moveKey) {
+	const spent = entry.spent ?? [];
+	for (const tagKey of tagKeys) {
+		const tag = findEquipmentTag(tagKey);
+		if (!tag?.reroll?.moves.includes(moveKey)) continue;
+		const spendKey = rerollSpendKey(tag, moveKey);
+		if (spent.includes(spendKey)) continue;
+		return { equipmentId: entry.id, tagKey, spendKey, ...(entry.fromCarrier && { spendActorId: entry.carrierActorId }) };
+	}
+	return null;
+}
+
+// Mirrors equipment-mixin.js#_availableRerollTag's body.
+export function resolveAvailableRerollTag(tagKeys, entry, moveKey) {
+	const available = resolveAvailableReroll(tagKeys, entry, moveKey);
+	if (!available) return null;
+	const tag = findEquipmentTag(available.tagKey);
+	return { tagLabel: tag.label, description: tag.description };
+}
+
+// Mirrors equipment-mixin.js#_weaponIsGuided's body.
+export function weaponTagsAreGuided(tagKeys) {
+	return tagKeys.some((tagKey) => findEquipmentTag(tagKey)?.guided);
+}
+
+// Folds a batch of {equipmentId, tagKey} spends into a Carrier's slot-keyed weapons object (see
+// docs/domains/world-actors.md's "The Carrier carries two named, fixed-role weapon slots") —
+// the slot-keyed counterpart to mergeSpentTags' array-shaped equipment, since a Carrier's weapons
+// live one per named slot rather than in a flat list. Only spendEquipmentTagsOnActor below calls
+// this directly.
+export function mergeSpentWeaponSlotTags(weapons, spentTags) {
+	const entries = Object.entries(weapons).map(([slotKey, entry]) => {
+		if (!entry) return [slotKey, entry];
+		const additions = spentTags.filter((spend) => spend.equipmentId === entry.id).map((spend) => spend.tagKey);
+		if (!additions.length) return [slotKey, entry];
+		return [slotKey, { ...entry, spent: [...new Set([...(entry.spent ?? []), ...additions])] }];
+	});
+	return Object.fromEntries(entries);
+}
+
+// Spends a batch of {equipmentId, tagKey} tags on whichever actor actually owns them — a
+// playbook actor's flat equipment array (mergeSpentTags) or a Carrier's slot-keyed weapons object
+// (mergeSpentWeaponSlotTags immediately above), branching on which shape the actor stores. Lets
+// move-chat-listeners.js's handleReroll and CarrierActorSheet's own roll handler spend against
+// either an ordinary rolling actor or a Carrier a weapon was borrowed from, without either caller
+// needing to know which shape it's writing to.
+export function spendEquipmentTagsOnActor(actor, spentTags) {
+	const weapons = actor.system.attributes?.weapons;
+	if (weapons) return actor.update({ "system.attributes.weapons": mergeSpentWeaponSlotTags(weapons, spentTags) });
+	const equipment = actor.system.attributes?.equipment ?? [];
+	return actor.update({ "system.attributes.equipment": mergeSpentTags(equipment, spentTags) });
 }

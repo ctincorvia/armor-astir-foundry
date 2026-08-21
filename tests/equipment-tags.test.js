@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { EFFECT_STATES } from "../scripts/moves/roll-effects.js";
 import { ALL_MOVES } from "../scripts/moves/all-moves.js";
@@ -15,9 +15,17 @@ import {
 	equipmentValue,
 	findEquipmentTag,
 	groupEquipmentTags,
+	mergeSpentWeaponSlotTags,
 	rerollSpendKey,
 	rerollSpendKeys,
+	resolveAvailableReroll,
+	resolveAvailableRerollTag,
+	resolveEquipmentSpends,
 	resolveEquipmentTags,
+	resolveForcedWeaponEffect,
+	resolveNarrativeWeaponTags,
+	spendEquipmentTagsOnActor,
+	weaponTagsAreGuided,
 	wirePickerTabs,
 	withTagLabels
 } from "../scripts/equipment/equipment.js";
@@ -313,6 +321,210 @@ function fakePickerTabsHtml() {
 	};
 	return state;
 }
+
+// Real catalog tags exercising each of resolveEquipmentSpends/resolveNarrativeWeaponTags/
+// resolveForcedWeaponEffect/resolveAvailableReroll/weaponTagsAreGuided's distinct branches
+// (spend-with-effect, forcesEffect, single/multi-move reroll, guided, a plain narrative tag) —
+// used directly rather than a fixture catalog since EQUIPMENT_TAGS already covers every shape
+// these resolvers need to distinguish between.
+describe("resolveEquipmentSpends", () => {
+	const entry = { id: "w1", name: "Blaster", tags: ["blitz"], spent: [] };
+
+	it("offers an unspent tag carrying a spend.effect", () => {
+		expect(resolveEquipmentSpends(["blitz"], entry, null)).toEqual([{
+			equipmentId: "w1",
+			equipmentName: "Blaster",
+			tagKey: "blitz",
+			tagLabel: "Blitz",
+			description: findEquipmentTag("blitz").description,
+			effect: "confidence",
+			disabled: false
+		}]);
+	});
+
+	it("disables the offer once a lockedEffect is already set", () => {
+		expect(resolveEquipmentSpends(["blitz"], entry, "confidence")[0].disabled).toBe(true);
+	});
+
+	it("skips a tag already recorded as spent", () => {
+		expect(resolveEquipmentSpends(["blitz"], { ...entry, spent: ["blitz"] }, null)).toEqual([]);
+	});
+
+	it("skips a spend with no effect (One-Use, Dangerous, Refresh, Vorpal)", () => {
+		expect(resolveEquipmentSpends(["one-use"], { ...entry, tags: ["one-use"] }, null)).toEqual([]);
+	});
+
+	it("skips a tag with no spend at all", () => {
+		expect(resolveEquipmentSpends(["impact"], { ...entry, tags: ["impact"] }, null)).toEqual([]);
+	});
+});
+
+describe("resolveNarrativeWeaponTags", () => {
+	const entry = { id: "w1", name: "Blaster" };
+
+	it("includes a plain descriptive tag", () => {
+		expect(resolveNarrativeWeaponTags(["impact"], entry)).toEqual([{
+			equipmentId: "w1",
+			equipmentName: "Blaster",
+			tagKey: "impact",
+			tagLabel: "Impact",
+			value: 1,
+			showValue: true,
+			description: findEquipmentTag("impact").description
+		}]);
+	});
+
+	it("excludes a spend tag", () => {
+		expect(resolveNarrativeWeaponTags(["blitz"], entry)).toEqual([]);
+	});
+
+	it("excludes a forcesEffect tag", () => {
+		expect(resolveNarrativeWeaponTags(["unreliable"], entry)).toEqual([]);
+	});
+
+	it("excludes a reroll tag", () => {
+		expect(resolveNarrativeWeaponTags(["decisive"], entry)).toEqual([]);
+	});
+
+	it("excludes a guided tag", () => {
+		expect(resolveNarrativeWeaponTags(["guided"], entry)).toEqual([]);
+	});
+
+	it("excludes a DRAIN_GROUP tag", () => {
+		expect(resolveNarrativeWeaponTags(["drain-1"], entry)).toEqual([]);
+	});
+});
+
+describe("resolveForcedWeaponEffect", () => {
+	it("resolves an unspent forcesEffect tag", () => {
+		expect(resolveForcedWeaponEffect(["unreliable"], { spent: [] })).toEqual({
+			tagKey: "unreliable",
+			effect: "desperation"
+		});
+	});
+
+	it("returns null once the tag is already spent", () => {
+		expect(resolveForcedWeaponEffect(["unreliable"], { spent: ["unreliable"] })).toBeNull();
+	});
+
+	it("returns null with no forcesEffect tag present", () => {
+		expect(resolveForcedWeaponEffect(["impact"], { spent: [] })).toBeNull();
+	});
+});
+
+describe("resolveAvailableReroll", () => {
+	const entry = { id: "w1", spent: [] };
+
+	it("resolves an unspent single-move reroll tag matching the rolled move", () => {
+		expect(resolveAvailableReroll(["decisive"], entry, "strike-decisively")).toEqual({
+			equipmentId: "w1",
+			tagKey: "decisive",
+			spendKey: "decisive"
+		});
+	});
+
+	it("returns null when the tag doesn't cover the rolled move", () => {
+		expect(resolveAvailableReroll(["decisive"], entry, "exchange-blows")).toBeNull();
+	});
+
+	it("returns null once the compound spend key is already spent (Versatile)", () => {
+		const spent = { id: "w1", spent: ["versatile:exchange-blows"] };
+		expect(resolveAvailableReroll(["versatile"], spent, "exchange-blows")).toBeNull();
+		expect(resolveAvailableReroll(["versatile"], spent, "strike-decisively")).toEqual({
+			equipmentId: "w1",
+			tagKey: "versatile",
+			spendKey: "versatile:strike-decisively"
+		});
+	});
+
+	it("omits spendActorId for a plain (non-Carrier) entry", () => {
+		expect(resolveAvailableReroll(["decisive"], entry, "strike-decisively")).not.toHaveProperty("spendActorId");
+	});
+
+	it("carries spendActorId for a fromCarrier-shaped entry", () => {
+		const carrierEntry = { id: "w1", spent: [], fromCarrier: true, carrierActorId: "carrier1" };
+		expect(resolveAvailableReroll(["decisive"], carrierEntry, "strike-decisively")).toEqual({
+			equipmentId: "w1",
+			tagKey: "decisive",
+			spendKey: "decisive",
+			spendActorId: "carrier1"
+		});
+	});
+});
+
+describe("resolveAvailableRerollTag", () => {
+	it("resolves the reroll tag's label/description for display", () => {
+		expect(resolveAvailableRerollTag(["decisive"], { id: "w1", spent: [] }, "strike-decisively")).toEqual({
+			tagLabel: "Decisive",
+			description: findEquipmentTag("decisive").description
+		});
+	});
+
+	it("returns null when no reroll is available", () => {
+		expect(resolveAvailableRerollTag(["decisive"], { id: "w1", spent: [] }, "exchange-blows")).toBeNull();
+	});
+});
+
+describe("weaponTagsAreGuided", () => {
+	it("is true when any tag key carries guided", () => {
+		expect(weaponTagsAreGuided(["impact", "guided"])).toBe(true);
+	});
+
+	it("is false with no guided tag present", () => {
+		expect(weaponTagsAreGuided(["impact"])).toBe(false);
+	});
+});
+
+describe("mergeSpentWeaponSlotTags", () => {
+	it("marks the matching slot's entry spent, leaving other slots untouched", () => {
+		const weapons = { primary: { id: "w1", spent: [] }, secondary: { id: "w2", spent: [] } };
+		expect(mergeSpentWeaponSlotTags(weapons, [{ equipmentId: "w1", tagKey: "blitz" }])).toEqual({
+			primary: { id: "w1", spent: ["blitz"] },
+			secondary: { id: "w2", spent: [] }
+		});
+	});
+
+	it("passes through a null slot untouched", () => {
+		const weapons = { primary: null, secondary: { id: "w2", spent: [] } };
+		expect(mergeSpentWeaponSlotTags(weapons, [{ equipmentId: "w1", tagKey: "blitz" }])).toEqual(weapons);
+	});
+
+	it("dedupes an already-spent tag", () => {
+		const weapons = { primary: { id: "w1", spent: ["blitz"] } };
+		expect(mergeSpentWeaponSlotTags(weapons, [{ equipmentId: "w1", tagKey: "blitz" }]).primary.spent).toEqual(["blitz"]);
+	});
+
+	it("treats a missing spent array as empty", () => {
+		const weapons = { primary: { id: "w1" } };
+		expect(mergeSpentWeaponSlotTags(weapons, [{ equipmentId: "w1", tagKey: "blitz" }]).primary.spent).toEqual(["blitz"]);
+	});
+});
+
+describe("spendEquipmentTagsOnActor", () => {
+	it("updates a slot-shaped (Carrier) actor's system.attributes.weapons", async () => {
+		const actor = {
+			system: { attributes: { weapons: { primary: { id: "w1", spent: [] }, secondary: null } } },
+			update: vi.fn().mockResolvedValue()
+		};
+		await spendEquipmentTagsOnActor(actor, [{ equipmentId: "w1", tagKey: "blitz" }]);
+
+		expect(actor.update).toHaveBeenCalledWith({
+			"system.attributes.weapons": { primary: { id: "w1", spent: ["blitz"] }, secondary: null }
+		});
+	});
+
+	it("updates an array-shaped (playbook) actor's system.attributes.equipment", async () => {
+		const actor = {
+			system: { attributes: { equipment: [{ id: "w1", spent: [] }] } },
+			update: vi.fn().mockResolvedValue()
+		};
+		await spendEquipmentTagsOnActor(actor, [{ equipmentId: "w1", tagKey: "blitz" }]);
+
+		expect(actor.update).toHaveBeenCalledWith({
+			"system.attributes.equipment": [{ id: "w1", spent: ["blitz"] }]
+		});
+	});
+});
 
 describe("wirePickerTabs", () => {
 	it("wires a click handler onto [data-picker-tab]", () => {

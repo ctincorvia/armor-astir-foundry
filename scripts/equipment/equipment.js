@@ -4,7 +4,10 @@
 // equipment-tags.js, the EQUIPMENT_CATALOG catalog lives in equipment-catalog.js, the small pure
 // helper functions (findCatalogEquipment, findEquipmentTag, resolveEquipmentTags, equipmentValue,
 // mergeSpentTags, rerollSpendKey(s), baseEquipmentTagKey, groupEquipmentTags, withTagLabels,
-// buildTagReference, wirePickerTabs) live in equipment-helpers.js, and the roll-configuration
+// buildTagReference, wirePickerTabs, plus the weapon-roll resolvers resolveEquipmentSpends/
+// resolveNarrativeWeaponTags/resolveForcedWeaponEffect/resolveAvailableReroll/
+// resolveAvailableRerollTag/weaponTagsAreGuided/mergeSpentWeaponSlotTags/spendEquipmentTagsOnActor
+// shared by PlaybookActorSheet and CarrierActorSheet) live in equipment-helpers.js, and the roll-configuration
 // dialogs (chooseEquipmentCatalogItem, configureEquipment) live in equipment-dialogs.js — the old
 // third dialog, chooseWeapon, was folded into move-dialogs.js's own configureMoveRoll as
 // weaponBundles (see docs/domains/equipment.md). Everything below is re-exported so every existing
@@ -42,7 +45,15 @@ export {
 	groupEquipmentTags,
 	withTagLabels,
 	buildTagReference,
-	wirePickerTabs
+	wirePickerTabs,
+	resolveEquipmentSpends,
+	resolveNarrativeWeaponTags,
+	resolveForcedWeaponEffect,
+	resolveAvailableReroll,
+	resolveAvailableRerollTag,
+	weaponTagsAreGuided,
+	mergeSpentWeaponSlotTags,
+	spendEquipmentTagsOnActor
 } from "./equipment-helpers.js";
 export {
 	chooseEquipmentCatalogItem,

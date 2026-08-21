@@ -69,6 +69,16 @@ export const MovesSheetMixin = {
 		const current = this._crewSupportHold();
 		return { "system.attributes.moveTrackers.crew-support.hold": Math.max(0, current - 1) };
 	},
+	// The Captain's own In Command move ("unlike when other playbooks use +CREW, you may do this
+	// any number of times" — see the-captain.js) already grants unlimited, unspent access to the
+	// exact substitution Crew Support built generically for everyone else. Rather than modeling two
+	// separate CREW-substitution mechanics, a Captain rides Crew Support's own trait-option
+	// plumbing (see move-traits-mixin.js's _moveTraits) but bypasses its hold gate/spend entirely —
+	// checked by playbook slug the same way _dangerMax's own Captain-only branch is
+	// (tracking-mixin.js), since there's no shared isCaptain-style helper reachable outside getData.
+	_hasUnlimitedCrewSupport() {
+		return this.actor.system.playbook?.slug === "the-captain";
+	},
 	// getData's moveGroups — Basic and Special moves are the same fixed list for every actor;
 	// Playbook Moves is the per-actor set picked via the "+" button, so it's the only group that
 	// renders add/remove controls (see the template's addable/removable branches). All three run

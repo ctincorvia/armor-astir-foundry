@@ -7,7 +7,12 @@ import {
 	findEquipmentTag,
 	mergeSpentTags,
 	rerollSpendKey,
-	resolveEquipmentTags
+	resolveAvailableReroll,
+	resolveEquipmentSpends,
+	resolveEquipmentTags,
+	resolveForcedWeaponEffect,
+	resolveNarrativeWeaponTags,
+	weaponTagsAreGuided
 } from "../../equipment/equipment.js";
 import {
 	CUSTOM_WEAPON_EXCLUDED_TAG_KEYS,
@@ -159,7 +164,7 @@ export const EquipmentSheetMixin = {
 				scaleLabel: (entry.astir || entry.ardent)
 					? WEAPON_SCALES.find((s) => s.key === "astir")?.label
 					: WEAPON_SCALES.find((s) => s.key === entry.scale)?.label ?? entry.scale,
-				tier: (entry.astir || entry.ardent) ? frame?.tier : this._conflictTier().base,
+				tier: (entry.astir || entry.ardent) ? frame?.tier : (entry.fromCarrier ? entry.tier : this._conflictTier().base),
 				weaponMoves: weaponMoves.map((move) => (
 					entry.disabled ? { ...move, gated: true, tooltip: move.tooltip ?? "This weapon is disabled." } : move
 				)),
@@ -196,6 +201,11 @@ export const EquipmentSheetMixin = {
 	// character can plausibly have more than one relevant piece of gear active at once, just not
 	// more than one weapon in hand.
 	_equipmentSpends(lockedEffect, weapon) {
+		// A weapon "borrowed" from the world's Carrier (Fire Support — see move-roll-mixin.js's
+		// _onMoveRoll) never appears in this actor's own equipment array, so the loop below could
+		// never resolve it structurally regardless of filtering — resolve it directly instead via
+		// the same shared resolver CarrierActorSheet itself wraps.
+		if (weapon?.fromCarrier) return resolveEquipmentSpends(this._weaponTagKeys(weapon), weapon, lockedEffect);
 		const scoped = weapon !== undefined;
 		const mountedFrameId = this._mountedFrame()?.id ?? null;
 		const spends = [];
@@ -240,6 +250,8 @@ export const EquipmentSheetMixin = {
 	// pure flavor about that weapon — it has nothing to say about a roll that never involves one.
 	// Gear stays unfiltered either way, same as _equipmentSpends.
 	_narrativeWeaponTags(weapon) {
+		// See _equipmentSpends' own comment on fromCarrier.
+		if (weapon?.fromCarrier) return resolveNarrativeWeaponTags(this._weaponTagKeys(weapon), weapon);
 		const scoped = weapon !== undefined;
 		const mountedFrameId = this._mountedFrame()?.id ?? null;
 		const tags = [];
@@ -305,6 +317,8 @@ export const EquipmentSheetMixin = {
 	// `weapon` stays undefined and short-circuits to null via the falsy check.
 	_forcedWeaponEffect(weapon) {
 		if (!weapon) return null;
+		// See _equipmentSpends' own comment on fromCarrier.
+		if (weapon.fromCarrier) return resolveForcedWeaponEffect(this._weaponTagKeys(weapon), weapon);
 		const spent = weapon.spent ?? [];
 		for (const tagKey of this._weaponTagKeys(weapon)) {
 			if (spent.includes(tagKey)) continue;
@@ -322,6 +336,8 @@ export const EquipmentSheetMixin = {
 	// has to happen first so that key can be computed before checking whether it's already spent.
 	_availableReroll(move, weapon) {
 		if (!weapon) return null;
+		// See _equipmentSpends' own comment on fromCarrier.
+		if (weapon.fromCarrier) return resolveAvailableReroll(this._weaponTagKeys(weapon), weapon, move.key);
 		const spent = weapon.spent ?? [];
 		for (const tagKey of this._weaponTagKeys(weapon)) {
 			const tag = findEquipmentTag(tagKey);
@@ -348,6 +364,8 @@ export const EquipmentSheetMixin = {
 	// — it's just always offerable as long as the weapon carries the tag.
 	_weaponIsGuided(weapon) {
 		if (!weapon) return false;
+		// See _equipmentSpends' own comment on fromCarrier.
+		if (weapon.fromCarrier) return weaponTagsAreGuided(this._weaponTagKeys(weapon));
 		return this._weaponTagKeys(weapon).some((tagKey) => findEquipmentTag(tagKey)?.guided);
 	},
 	// Marks each checked equipment spend (see configureMoveRoll's Equipment section) as spent on

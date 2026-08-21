@@ -654,3 +654,26 @@ describe("PlaybookActorSheet#_crewSupportHoldSpend", () => {
 		expect(sheet._crewSupportHoldSpend()).toEqual({ "system.attributes.moveTrackers.crew-support.hold": 0 });
 	});
 });
+
+describe("PlaybookActorSheet#_hasUnlimitedCrewSupport", () => {
+	it("is true for a Captain", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { slug: "the-captain" }, attributes: {} } };
+
+		expect(sheet._hasUnlimitedCrewSupport()).toBe(true);
+	});
+
+	it("is false for any other playbook", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { slug: "the-commander" }, attributes: {} } };
+
+		expect(sheet._hasUnlimitedCrewSupport()).toBe(false);
+	});
+
+	it("is false with no playbook selected", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._hasUnlimitedCrewSupport()).toBe(false);
+	});
+});

@@ -53,6 +53,9 @@ describe("rollMove - reroll (Decisive/Defensive/Versatile)", () => {
 						// see equipment.js#rerollSpendKey. Only a multi-move tag (Versatile) produces a
 						// compound one (see the dedicated Versatile tests below).
 						spendKey: "defensive",
+						// Defaults to the rolling actor — see move-roll.js's rerollOffer/spendActorId doc
+						// comment; only a borrowed Carrier weapon carries its own.
+						spendActorId: "actor1",
 						options: { advantage: "none", effect: "none", weaponLabel: "Halberd" },
 						flavorArgs: expect.any(Object)
 					},
@@ -108,6 +111,7 @@ describe("rollMove - reroll (Decisive/Defensive/Versatile)", () => {
 						equipmentId: "eq1",
 						tagKey: "versatile",
 						spendKey: "versatile:exchange-blows",
+						spendActorId: "actor1",
 						options: { advantage: "none", effect: "none", weaponLabel: "Rifle" },
 						flavorArgs: expect.any(Object)
 					},

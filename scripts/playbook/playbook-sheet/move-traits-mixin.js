@@ -136,9 +136,17 @@ export const MoveTraitsSheetMixin = {
 		// check below so the two options never both appear on the same roll). There's no equivalent
 		// actorTraits-side guard: "crew" is never a real TRAITS entry (see traits.js), so
 		// availableMoveTraits/the addsTraitToMove paths above can never populate actorTraits with one.
-		if (this._crewSupportHold() > 0 && !fixedTraits.some((trait) => trait.key === "crew")) {
-			return [...actorTraits, ...fixedTraits,
-				{ key: "crew-support-crew", label: "CREW (Crew Support)", value: this._crewFixedTraitValue() }];
+		// The Captain's own In Command move grants this same substitution with no hold cost at all
+		// ("you may do this any number of times" — see moves-mixin.js's _hasUnlimitedCrewSupport),
+		// so a Captain sees the option regardless of banked hold, labeled for the ability that's
+		// actually granting it rather than implying a spend that never happens.
+		const unlimitedCrew = this._hasUnlimitedCrewSupport();
+		if ((this._crewSupportHold() > 0 || unlimitedCrew) && !fixedTraits.some((trait) => trait.key === "crew")) {
+			return [...actorTraits, ...fixedTraits, {
+				key: "crew-support-crew",
+				label: unlimitedCrew ? "CREW (In Command)" : "CREW (Crew Support)",
+				value: this._crewFixedTraitValue()
+			}];
 		}
 		return [...actorTraits, ...fixedTraits];
 	},

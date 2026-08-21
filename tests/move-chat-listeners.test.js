@@ -210,6 +210,68 @@ describe("onRenderMoveChat (Decisive/Defensive/Versatile reroll)", () => {
 
 		expect(actor.update).toHaveBeenCalledWith({ "system.attributes.equipment": [] });
 	});
+
+	it("spends against reroll.spendActorId (a borrowed Carrier weapon) rather than reroll.actorId, writing to that actor's system.attributes.weapons", async () => {
+		const playbookActor = { id: "actor1", system: { attributes: { equipment: [] } }, update: vi.fn() };
+		const carrier = {
+			id: "carrier1",
+			system: { attributes: { weapons: { primary: { id: "eq1", spent: [] }, secondary: null } } },
+			update: vi.fn()
+		};
+		game.actors.get.mockImplementation((id) => (id === "actor1" ? playbookActor : id === "carrier1" ? carrier : undefined));
+		const reroll = {
+			actorId: "actor1",
+			spendActorId: "carrier1",
+			moveKey: "exchange-blows",
+			trait: { key: "crew", label: "CREW", value: 0 },
+			equipmentId: "eq1",
+			tagKey: "defensive",
+			spendKey: "defensive",
+			options: { advantage: "none", effect: "none", weaponLabel: "Carrier Cannon" },
+			flavorArgs: { tier: "failure", conditions: [] }
+		};
+		const message = { flags: { "armor-astir": { reroll } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.handler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(carrier.update).toHaveBeenCalledWith({
+			"system.attributes.weapons": { primary: { id: "eq1", spent: ["defensive"] }, secondary: null }
+		});
+		expect(playbookActor.update).not.toHaveBeenCalled();
+		expect(rollMove).toHaveBeenCalledWith(playbookActor, EXCHANGE_BLOWS, reroll.trait, reroll.options);
+	});
+
+	it("still rerolls when the borrowed weapon's own Carrier no longer exists, just without marking anything spent", async () => {
+		const playbookActor = { id: "actor1", system: { attributes: { equipment: [] } }, update: vi.fn() };
+		game.actors.get.mockImplementation((id) => (id === "actor1" ? playbookActor : undefined));
+		const reroll = {
+			actorId: "actor1",
+			spendActorId: "gone-carrier",
+			moveKey: "exchange-blows",
+			trait: { key: "crew", label: "CREW", value: 0 },
+			equipmentId: "eq1",
+			tagKey: "defensive",
+			spendKey: "defensive",
+			options: { advantage: "none", effect: "none", weaponLabel: "Carrier Cannon" },
+			flavorArgs: { tier: "failure", conditions: [] }
+		};
+		const message = { flags: { "armor-astir": { reroll } }, update: vi.fn() };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		fake.handler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(playbookActor.update).not.toHaveBeenCalled();
+		expect(rollMove).toHaveBeenCalledWith(playbookActor, EXCHANGE_BLOWS, reroll.trait, reroll.options);
+	});
 });
 
 describe("onRenderMoveChat (Heat Up)", () => {

@@ -408,6 +408,30 @@ describe("PlaybookActorSheet#_finishMoveRoll - Crew Support hold spend", () => {
 			expect.objectContaining({ "system.attributes.moveTrackers.crew-support.hold": expect.anything() })
 		);
 	});
+
+	it("does not spend Crew Support hold for a Captain, whose In Command grants the option for free", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { slug: "the-captain" },
+				stats: {},
+				attributes: { moveTrackers: { "crew-support": { hold: 2 } } }
+			},
+			update: vi.fn()
+		};
+		const config = {
+			trait: { key: "crew-support-crew", label: "CREW (In Command)", value: 0 },
+			advantage: "none",
+			effect: "none"
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "help-or-hinder" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.moveTrackers.crew-support.hold": expect.anything() })
+		);
+	});
 });
 
 // _narrativeWeaponTags is _equipmentSpends' own sibling for tags with no codified mechanic (see

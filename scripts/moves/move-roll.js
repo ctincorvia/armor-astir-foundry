@@ -216,6 +216,11 @@ export async function rollMove(actor, move, trait, options = {}) {
 			trait,
 			equipmentId: options.reroll.equipmentId,
 			tagKey: options.reroll.tagKey,
+			// Defaults to the rolling actor for every existing case (a weapon that's genuinely this
+			// actor's own) — only a borrowed Carrier weapon (see equipment.js's resolveAvailableReroll)
+			// carries its own spendActorId, routing the spend to the Carrier that actually owns it
+			// instead (see move-chat-listeners.js's handleReroll).
+			spendActorId: options.reroll.spendActorId ?? actor.id,
 			// Re-plays the same dice conditions the original attempt used — advantage/effect were
 			// the player's own choice, not something a reroll should silently change — but never
 			// carries spentTags/reroll forward: any spend already landed on the failed attempt, and

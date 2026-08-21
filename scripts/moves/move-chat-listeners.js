@@ -10,7 +10,7 @@ import {
 	rollMove
 } from "./moves.js";
 import { addDie, effectState, nextAdvantageState, removeDie, rollConditions } from "./roll-effects.js";
-import { mergeSpentTags } from "../equipment/equipment.js";
+import { spendEquipmentTagsOnActor } from "../equipment/equipment.js";
 import { ALL_MOVES } from "./all-moves.js";
 
 // Marks the reroll's tag spent (the same array/checkbox PlaybookActorSheet#_onEquipmentTagSpentToggle
@@ -26,10 +26,16 @@ async function handleReroll(message, reroll) {
 	const move = ALL_MOVES.find((m) => m.key === reroll.moveKey);
 	if (!actor || !move) return;
 
-	const equipment = actor.system.attributes?.equipment ?? [];
-	await actor.update({
-		"system.attributes.equipment": mergeSpentTags(equipment, [{ equipmentId: reroll.equipmentId, tagKey: reroll.spendKey }])
-	});
+	// Spent against reroll.spendActorId (always present — see move-roll.js's rerollOffer), NOT
+	// reroll.actorId: the roll itself (below) still rerolls against `actor`, resolved from
+	// reroll.actorId as before — only the spend target diverges, and only for a borrowed Carrier
+	// weapon (see equipment.js's resolveAvailableReroll). Guarded separately from the actor/move
+	// check above since a borrowed weapon's own Carrier can have been deleted since the original
+	// roll — the reroll itself still proceeds; there's just nothing left to mark spent.
+	const spendTarget = game.actors.get(reroll.spendActorId);
+	if (spendTarget) {
+		await spendEquipmentTagsOnActor(spendTarget, [{ equipmentId: reroll.equipmentId, tagKey: reroll.spendKey }]);
+	}
 
 	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
 		...reroll.flavorArgs,

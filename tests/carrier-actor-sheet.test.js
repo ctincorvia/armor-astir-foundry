@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	...(await importOriginal()),
 	configureMoveRoll: vi.fn(),
+	postGuidedResult: vi.fn(),
 	rollMove: vi.fn()
 }));
 
@@ -13,8 +14,8 @@ vi.mock("../scripts/equipment/equipment.js", async (importOriginal) => ({
 	configureEquipment: vi.fn()
 }));
 
-import { BASIC_MOVES, configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
-import { TIER_MAX, configureEquipment } from "../scripts/equipment/equipment.js";
+import { BASIC_MOVES, configureMoveRoll, postGuidedResult, rollMove } from "../scripts/moves/moves.js";
+import { TIER_MAX, configureEquipment, findEquipmentTag } from "../scripts/equipment/equipment.js";
 import { QUARTERS_BENEFITS } from "../scripts/playbook/quarters.js";
 import {
 	CarrierActorSheet,
@@ -30,6 +31,7 @@ const STRIKE_DECISIVELY = BASIC_MOVES.find((m) => m.key === "strike-decisively")
 
 beforeEach(() => {
 	configureMoveRoll.mockClear();
+	postGuidedResult.mockClear();
 	rollMove.mockClear();
 	configureEquipment.mockClear();
 });
@@ -187,6 +189,38 @@ describe("CarrierActorSheet#getData", () => {
 		expect(secondary.value).toBe(1);
 		expect(secondary.scaleLabel).toBe("unknown-scale");
 	});
+
+	it("marks each tag spendable/spent (mirroring equipment-mixin.js#_equipmentEntry), splitting a multi-move reroll tag (Versatile) into one row per move", () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					weapons: {
+						primary: {
+							id: "w1", name: "Ram Cannon", description: "", kind: "weapon",
+							tags: ["one-use", "versatile"], scale: "astir", spent: ["one-use"]
+						},
+						secondary: null
+					}
+				}
+			}
+		};
+
+		const data = sheet.getData({});
+		const tags = data.weaponSlots.find((slot) => slot.key === "primary").entry.tags;
+
+		expect(tags.find((tag) => tag.key === "one-use")).toMatchObject({ spendable: true, spent: true });
+
+		const versatileRows = tags.filter((tag) => tag.key.startsWith("versatile"));
+		expect(versatileRows.map((tag) => tag.key)).toEqual(["versatile:exchange-blows", "versatile:strike-decisively"]);
+		expect(versatileRows.map((tag) => tag.label)).toEqual(["Versatile — Exchange Blows", "Versatile — Strike Decisively"]);
+		expect(versatileRows.map((tag) => tag.showValue)).toEqual([true, false]);
+		expect(versatileRows.every((tag) => tag.spendable)).toBe(true);
+		expect(versatileRows.every((tag) => tag.spent === false)).toBe(true);
+
+		// A tag with no spend/forcesEffect/reroll (a slot-locked narrative tag here) is never spendable.
+		expect(tags.find((tag) => tag.key === "set-up")).toMatchObject({ spendable: false, spent: false });
+	});
 });
 
 describe("CarrierActorSheet#activateListeners", () => {
@@ -204,6 +238,7 @@ describe("CarrierActorSheet#activateListeners", () => {
 		expect(html.find).toHaveBeenCalledWith(".equipment-edit");
 		expect(html.find).toHaveBeenCalledWith(".equipment-remove");
 		expect(html.find).toHaveBeenCalledWith(".weapon-move-roll");
+		expect(html.find).toHaveBeenCalledWith(".equipment-tag-spent-checkbox");
 	});
 });
 
@@ -415,67 +450,92 @@ describe("CarrierActorSheet#_onWeaponRemove", () => {
 });
 
 describe("CarrierActorSheet#_onWeaponMoveRoll", () => {
-	it("rolls +CREW with the clicked slot's weapon, using the actor's own crew value", async () => {
+	it("rolls +CREW with the clicked slot's weapon, offering the slot's locked tags as narrative tags and no spends/lockedEffect/guided/rerollTag", async () => {
 		const sheet = new CarrierActorSheet();
 		sheet.actor = {
-			system: { stats: { crew: { value: 2 } }, attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon" } } } }
+			system: {
+				stats: { crew: { value: 2 } },
+				attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon", tags: [], spent: [] } } }
+			},
+			update: vi.fn()
 		};
 		configureMoveRoll.mockResolvedValue({ trait: { key: "crew", label: "CREW", value: 2 } });
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(
-			EXCHANGE_BLOWS,
-			[{ key: "crew", label: "CREW", value: 2 }],
-			{}
-		);
+		const call = configureMoveRoll.mock.calls.at(-1);
+		expect(call[0]).toBe(EXCHANGE_BLOWS);
+		expect(call[1]).toEqual([{ key: "crew", label: "CREW", value: 2 }]);
+		expect(call[2].lockedEffect).toBeNull();
+		expect(call[2].equipmentSpends).toEqual([]);
+		// The primary slot's own locked tags (set-up, mounted — see WEAPON_SLOTS) are narrative,
+		// so they're offered even though the entry itself never stored them.
+		expect(call[2].narrativeTags.map((tag) => tag.tagKey)).toEqual(["set-up", "mounted"]);
+		expect(call[2]).not.toHaveProperty("guided");
+		expect(call[2]).not.toHaveProperty("rerollTag");
+
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor,
 			EXCHANGE_BLOWS,
 			{ key: "crew", label: "CREW", value: 2 },
-			{ weaponLabel: "Ram Cannon" }
+			expect.objectContaining({ weaponLabel: "Ram Cannon", narrativeTags: call[2].narrativeTags })
 		);
 	});
 
 	it("works for strike-decisively too", async () => {
 		const sheet = new CarrierActorSheet();
 		sheet.actor = {
-			system: { stats: { crew: { value: 0 } }, attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon" } } } }
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon", tags: [], spent: [] } } }
+			},
+			update: vi.fn()
 		};
 		configureMoveRoll.mockResolvedValue({ trait: { key: "crew", label: "CREW", value: 0 } });
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "strike-decisively", equipmentId: "w1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(STRIKE_DECISIVELY, expect.any(Array), {});
+		expect(configureMoveRoll).toHaveBeenCalledWith(STRIKE_DECISIVELY, expect.any(Array), expect.any(Object));
 	});
 
-	it("works for the secondary slot too", async () => {
+	it("works for the secondary slot too, offering only Mounted (not Set-Up) as a locked narrative tag", async () => {
 		const sheet = new CarrierActorSheet();
 		sheet.actor = {
-			system: { stats: { crew: { value: 1 } }, attributes: { weapons: { secondary: { id: "w2", name: "Boarding Claw" } } } }
+			system: {
+				stats: { crew: { value: 1 } },
+				attributes: { weapons: { secondary: { id: "w2", name: "Boarding Claw", tags: [], spent: [] } } }
+			},
+			update: vi.fn()
 		};
 		configureMoveRoll.mockResolvedValue({ trait: { key: "crew", label: "CREW", value: 1 } });
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w2" } } });
 
+		const narrativeTags = configureMoveRoll.mock.calls.at(-1)[2].narrativeTags;
+		expect(narrativeTags.map((tag) => tag.tagKey)).toEqual(["mounted"]);
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor,
 			EXCHANGE_BLOWS,
 			{ key: "crew", label: "CREW", value: 1 },
-			{ weaponLabel: "Boarding Claw" }
+			expect.objectContaining({ weaponLabel: "Boarding Claw" })
 		);
 	});
 
 	it("does nothing when the dialog is cancelled", async () => {
 		const sheet = new CarrierActorSheet();
 		sheet.actor = {
-			system: { stats: { crew: { value: 0 } }, attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon" } } } }
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon", tags: [], spent: [] } } }
+			},
+			update: vi.fn()
 		};
 		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
 
 		expect(rollMove).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 
 	it("does nothing for an unknown id", async () => {
@@ -501,13 +561,227 @@ describe("CarrierActorSheet#_onWeaponMoveRoll", () => {
 	it("treats a missing crew value as 0", async () => {
 		const sheet = new CarrierActorSheet();
 		sheet.actor = {
-			system: { stats: {}, attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon" } } } }
+			system: { stats: {}, attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon", tags: [], spent: [] } } } }
 		};
 		configureMoveRoll.mockResolvedValue(null);
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, [{ key: "crew", label: "CREW", value: 0 }], {});
+		expect(configureMoveRoll.mock.calls.at(-1)[1]).toEqual([{ key: "crew", label: "CREW", value: 0 }]);
+	});
+
+	it("shows a weapon's narrative-only tag (Impact) in narrativeTags", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon", tags: ["impact"], spent: [] } } }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		const narrativeTags = configureMoveRoll.mock.calls.at(-1)[2].narrativeTags;
+		expect(narrativeTags.map((tag) => tag.tagKey)).toEqual(expect.arrayContaining(["impact"]));
+	});
+
+	it("offers Blitz as an equipment spend, persists it via spendEquipmentTagsOnActor once checked, and carries the resulting effect into the roll", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: {
+					weapons: { primary: { id: "w1", name: "Ram Cannon", tags: ["blitz"], spent: [] }, secondary: null }
+				}
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({
+			trait: { key: "crew", label: "CREW", value: 0 },
+			effect: "confidence",
+			spentTags: [{ equipmentId: "w1", tagKey: "blitz" }]
+		});
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		const equipmentSpends = configureMoveRoll.mock.calls.at(-1)[2].equipmentSpends;
+		expect(equipmentSpends.map((spend) => spend.tagKey)).toEqual(["blitz"]);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.weapons": {
+				primary: { id: "w1", name: "Ram Cannon", tags: ["blitz"], spent: ["blitz"] },
+				secondary: null
+			}
+		});
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor,
+			EXCHANGE_BLOWS,
+			{ key: "crew", label: "CREW", value: 0 },
+			expect.objectContaining({ effect: "confidence", weaponLabel: "Ram Cannon" })
+		);
+	});
+
+	it("locks Effect to desperation for an unspent Unreliable tag, and marks it spent after the roll", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: {
+					weapons: { primary: { id: "w1", name: "Ram Cannon", tags: ["unreliable"], spent: [] }, secondary: null }
+				}
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ trait: { key: "crew", label: "CREW", value: 0 }, effect: "desperation" });
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		expect(configureMoveRoll.mock.calls.at(-1)[2].lockedEffect).toBe("desperation");
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.weapons": {
+				primary: { id: "w1", name: "Ram Cannon", tags: ["unreliable"], spent: ["unreliable"] },
+				secondary: null
+			}
+		});
+	});
+
+	it("offers a rerollTag for a weapon carrying Decisive, scoped to the matching move", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon", tags: ["decisive"], spent: [] } } }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "strike-decisively", equipmentId: "w1" } } });
+
+		expect(configureMoveRoll.mock.calls.at(-1)[2].rerollTag).toEqual({
+			tagLabel: "Decisive",
+			description: findEquipmentTag("decisive").description
+		});
+	});
+
+	it("omits rerollTag when the weapon's reroll tag doesn't cover the rolled move", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon", tags: ["decisive"], spent: [] } } }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		expect(configureMoveRoll.mock.calls.at(-1)[2]).not.toHaveProperty("rerollTag");
+	});
+
+	it("attaches a reroll option to the rollMove call for a weapon carrying a matching reroll tag", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon", tags: ["decisive"], spent: [] } } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ trait: { key: "crew", label: "CREW", value: 0 } });
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "strike-decisively", equipmentId: "w1" } } });
+
+		expect(rollMove).toHaveBeenCalledWith(
+			sheet.actor,
+			STRIKE_DECISIVELY,
+			{ key: "crew", label: "CREW", value: 0 },
+			expect.objectContaining({ reroll: { equipmentId: "w1", tagKey: "decisive", spendKey: "decisive" } })
+		);
+	});
+
+	it("offers guided for a weapon carrying the Guided tag", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon", tags: ["guided"], spent: [] } } }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		expect(configureMoveRoll.mock.calls.at(-1)[2].guided).toBe("Guided");
+	});
+
+	it("posts a Guided result instead of rolling when the dialog resolves takeSeven", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon", tags: ["guided"], spent: [] } } }
+			},
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue({ takeSeven: true });
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, {
+			weaponLabel: "Ram Cannon",
+			narrativeTags: expect.any(Array),
+			guidedSource: "Guided"
+		});
+		expect(rollMove).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("CarrierActorSheet#_onWeaponTagSpentToggle", () => {
+	it("adds the tag key to the matching slot's spent array when checked", () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: { attributes: { weapons: { primary: { id: "w1", spent: [] }, secondary: null } } },
+			update: vi.fn()
+		};
+
+		sheet._onWeaponTagSpentToggle({ currentTarget: { dataset: { equipmentId: "w1", tag: "one-use" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.weapons.primary.spent": ["one-use"] });
+	});
+
+	it("removes the tag key from the matching slot's spent array when unchecked", () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: { attributes: { weapons: { primary: { id: "w1", spent: ["one-use"] } } } },
+			update: vi.fn()
+		};
+
+		sheet._onWeaponTagSpentToggle({ currentTarget: { dataset: { equipmentId: "w1", tag: "one-use" }, checked: false } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.weapons.primary.spent": [] });
+	});
+
+	it("does nothing for an id that doesn't match any slot", () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = { system: { attributes: { weapons: {} } }, update: vi.fn() };
+
+		sheet._onWeaponTagSpentToggle({ currentTarget: { dataset: { equipmentId: "unknown", tag: "one-use" }, checked: true } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing spent array as empty when checking a tag", () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: { attributes: { weapons: { primary: { id: "w1" } } } },
+			update: vi.fn()
+		};
+
+		sheet._onWeaponTagSpentToggle({ currentTarget: { dataset: { equipmentId: "w1", tag: "one-use" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.weapons.primary.spent": ["one-use"] });
 	});
 });
 

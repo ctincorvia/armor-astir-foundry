@@ -1,6 +1,20 @@
 import { WorldActorSheet } from "./world-actor-sheet.js";
-import { BASIC_MOVES, configureMoveRoll, rollMove } from "../moves/moves.js";
-import { TIER_MAX, configureEquipment, equipmentValue, resolveEquipmentTags, WEAPON_SCALES } from "../equipment/equipment.js";
+import { BASIC_MOVES, configureMoveRoll, postGuidedResult, rollMove } from "../moves/moves.js";
+import {
+	TIER_MAX,
+	configureEquipment,
+	equipmentValue,
+	rerollSpendKey,
+	resolveAvailableReroll,
+	resolveAvailableRerollTag,
+	resolveEquipmentSpends,
+	resolveEquipmentTags,
+	resolveForcedWeaponEffect,
+	resolveNarrativeWeaponTags,
+	spendEquipmentTagsOnActor,
+	weaponTagsAreGuided,
+	WEAPON_SCALES
+} from "../equipment/equipment.js";
 import { SUPPORT_PLAYBOOK_SLUGS, resolveQuartersBenefits } from "../playbook/quarters.js";
 
 export const CARRIER_SHEET_TEMPLATE = "modules/armor-astir/templates/carrier-actor-sheet.hbs";
@@ -12,7 +26,7 @@ const CREW_MIN = -3;
 const CREW_MAX = 3;
 
 // see docs/domains/world-actors.md, "The Carrier carries two named, fixed-role weapon slots"
-const WEAPON_SLOTS = [
+export const WEAPON_SLOTS = [
 	{ key: "primary", tier: TIER_MAX, label: "Tier V Weapon", lockedTagKeys: ["set-up", "mounted"], maxTagValue: 2 },
 	{ key: "secondary", tier: 3, label: "Tier III Weapon", lockedTagKeys: ["mounted"], maxTagValue: 1 }
 ];
@@ -21,6 +35,15 @@ const WEAPON_SLOTS = [
 // moves.js's usesWeapon) — both are always-available basic moves, so filtering BASIC_MOVES is
 // enough; there's no playbook-move equivalent that uses a weapon.
 const CARRIER_WEAPON_MOVES = BASIC_MOVES.filter((move) => move.usesWeapon);
+
+// A weapon entry's effective tag-key list: its own stored tags plus its slot's locked tags (see
+// WEAPON_SLOTS above). Exported as a standalone function (rather than only living as
+// CarrierActorSheet#_weaponTagKeys below) so move-roll-mixin.js's _onMoveRoll can pre-merge a
+// borrowed Carrier weapon's locked tags into its own weaponBundles offer for Fire Support (see
+// docs/domains/world-actors.md).
+export function carrierWeaponTagKeys(slot, entry) {
+	return [...new Set([...(entry.tags ?? []), ...slot.lockedTagKeys])];
+}
 
 // The Carrier represents the players' moving base (see claude.md, "Domain conventions"): one
 // trait (Crew), a free-text description, a roster of notable crew members, and its two weapon
@@ -48,19 +71,43 @@ export class CarrierActorSheet extends WorldActorSheet {
 
 	// see docs/domains/world-actors.md, "The Carrier carries two named, fixed-role weapon slots"
 	_weaponTagKeys(slot, entry) {
-		return [...new Set([...(entry.tags ?? []), ...slot.lockedTagKeys])];
+		return carrierWeaponTagKeys(slot, entry);
 	}
 
-	// see docs/domains/world-actors.md, "The Carrier carries two named, fixed-role weapon slots"
+	// see docs/domains/world-actors.md, "The Carrier carries two named, fixed-role weapon slots".
+	// Tag mapping mirrors equipment-mixin.js#_equipmentEntry's own flatMap — spendable/spent so the
+	// weapon card renders a "Spent" checkbox for a spend-without-effect tag (One-Use, Dangerous,
+	// Refresh, Vorpal), and a multi-move reroll tag (Versatile) splits into one row per move it can
+	// reroll, resolved against CARRIER_WEAPON_MOVES (the only two moves a Carrier weapon ever offers)
+	// rather than ALL_MOVES.
 	_weaponEntry(slot, entry) {
 		const tagKeys = this._weaponTagKeys(slot, entry);
-		const tags = resolveEquipmentTags(tagKeys).map((tag) => ({
-			key: tag.key,
-			label: tag.label,
-			value: tag.value,
-			description: tag.description,
-			showValue: true
-		}));
+		const tags = resolveEquipmentTags(tagKeys).flatMap((tag) => {
+			const spendable = Boolean(tag.spend || tag.forcesEffect || tag.reroll);
+			if (tag.reroll && tag.reroll.moves.length > 1) {
+				return tag.reroll.moves.map((moveKey, index) => {
+					const spendKey = rerollSpendKey(tag, moveKey);
+					return {
+						key: spendKey,
+						label: `${tag.label} — ${CARRIER_WEAPON_MOVES.find((m) => m.key === moveKey).name}`,
+						value: tag.value,
+						showValue: index === 0,
+						description: tag.description,
+						spendable,
+						spent: Boolean(entry.spent?.includes(spendKey))
+					};
+				});
+			}
+			return [{
+				key: tag.key,
+				label: tag.label,
+				value: tag.value,
+				showValue: true,
+				description: tag.description,
+				spendable,
+				spent: Boolean(entry.spent?.includes(tag.key))
+			}];
+		});
 		return {
 			id: entry.id,
 			name: entry.name,
@@ -71,6 +118,30 @@ export class CarrierActorSheet extends WorldActorSheet {
 			tier: slot.tier,
 			weaponMoves: CARRIER_WEAPON_MOVES.map(({ key, name }) => ({ key, name }))
 		};
+	}
+
+	_narrativeWeaponTags(slot, entry) {
+		return resolveNarrativeWeaponTags(this._weaponTagKeys(slot, entry), entry);
+	}
+
+	_equipmentSpends(slot, entry, lockedEffect) {
+		return resolveEquipmentSpends(this._weaponTagKeys(slot, entry), entry, lockedEffect);
+	}
+
+	_forcedWeaponEffect(slot, entry) {
+		return resolveForcedWeaponEffect(this._weaponTagKeys(slot, entry), entry);
+	}
+
+	_availableReroll(move, slot, entry) {
+		return resolveAvailableReroll(this._weaponTagKeys(slot, entry), entry, move.key);
+	}
+
+	_availableRerollTag(move, slot, entry) {
+		return resolveAvailableRerollTag(this._weaponTagKeys(slot, entry), entry, move.key);
+	}
+
+	_weaponIsGuided(slot, entry) {
+		return weaponTagsAreGuided(this._weaponTagKeys(slot, entry));
 	}
 
 	// Resolves an in-card button's data-equipment-id (the shared equipment-card.hbs partial
@@ -114,6 +185,7 @@ export class CarrierActorSheet extends WorldActorSheet {
 		html.find(".equipment-edit").on("click", this._onWeaponEdit.bind(this));
 		html.find(".equipment-remove").on("click", this._onWeaponRemove.bind(this));
 		html.find(".weapon-move-roll").on("click", this._onWeaponMoveRoll.bind(this));
+		html.find(".equipment-tag-spent-checkbox").on("change", this._onWeaponTagSpentToggle.bind(this));
 	}
 
 	_onCrewStep(event) {
@@ -174,8 +246,8 @@ export class CarrierActorSheet extends WorldActorSheet {
 	// claude.md) — no trait choice, no chooseWeapon prompt (clicking a specific weapon's button
 	// is the weapon choice, same as PlaybookActorSheet's per-weapon quick-roll buttons), and no
 	// Unarmed option, since a Carrier "must use the carrier weapons" — with none, there's simply
-	// no button to click. Deliberately skips equipment spends/forced-effects/reroll/Guided, all
-	// of which PlaybookActorSheet's weapon rolls support — see claude.md for that scope cut.
+	// no button to click. Full parity otherwise with PlaybookActorSheet's own weapon rolls:
+	// narrative tags, equipment spends, forced effects, reroll offers, and Guided all apply.
 	async _onWeaponMoveRoll(event) {
 		const { move: moveKey, equipmentId } = event.currentTarget.dataset;
 		const move = CARRIER_WEAPON_MOVES.find((m) => m.key === moveKey);
@@ -184,10 +256,51 @@ export class CarrierActorSheet extends WorldActorSheet {
 		const weapon = this._weapons()[slot.key];
 
 		const traits = [{ key: "crew", label: "CREW", value: this.actor.system.stats?.crew?.value ?? 0 }];
-		const config = await configureMoveRoll(move, traits, {});
+		const forced = this._forcedWeaponEffect(slot, weapon);
+		const lockedEffect = forced?.effect ?? null;
+		const equipmentSpends = this._equipmentSpends(slot, weapon, lockedEffect);
+		const narrativeTags = this._narrativeWeaponTags(slot, weapon);
+		const guided = this._weaponIsGuided(slot, weapon) ? "Guided" : null;
+		const rerollTag = this._availableRerollTag(move, slot, weapon);
+
+		const config = await configureMoveRoll(move, traits, {
+			lockedEffect,
+			equipmentSpends,
+			narrativeTags,
+			...(guided && { guided }),
+			...(rerollTag && { rerollTag })
+		});
 		if (!config) return;
 
-		await rollMove(this.actor, move, config.trait, { weaponLabel: weapon.name });
+		if (config.takeSeven) {
+			await postGuidedResult(this.actor, move, { weaponLabel: weapon.name, narrativeTags, guidedSource: guided });
+			return;
+		}
+
+		const spends = [...(config.spentTags ?? []), ...(forced ? [{ equipmentId: weapon.id, tagKey: forced.tagKey }] : [])];
+		if (spends.length) await spendEquipmentTagsOnActor(this.actor, spends);
+
+		const reroll = this._availableReroll(move, slot, weapon);
+		await rollMove(this.actor, move, config.trait, {
+			...config,
+			weaponLabel: weapon.name,
+			narrativeTags,
+			...(reroll && { reroll })
+		});
+	}
+
+	// The Carrier's own "Spent" checkbox toggle (see _weaponEntry's spendable/spent tag shape) —
+	// mirrors equipment-mixin.js#_onEquipmentTagSpentToggle, writing to the slot-keyed weapons
+	// object instead of a flat equipment array.
+	_onWeaponTagSpentToggle(event) {
+		const { equipmentId, tag: tagKey } = event.currentTarget.dataset;
+		const checked = event.currentTarget.checked;
+		const slot = this._weaponSlotForId(equipmentId);
+		if (!slot) return;
+		const entry = this._weapons()[slot.key];
+		const spent = entry.spent ?? [];
+		const nextSpent = checked ? [...new Set([...spent, tagKey])] : spent.filter((key) => key !== tagKey);
+		this.actor.update({ [`system.attributes.weapons.${slot.key}.spent`]: nextSpent });
 	}
 }
 

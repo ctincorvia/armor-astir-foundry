@@ -8,7 +8,7 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 }));
 
 import { configureMoveRoll, postGuidedResult, rollMove } from "../scripts/moves/moves.js";
-import { UNARMED } from "../scripts/equipment/equipment.js";
+import { UNARMED, findEquipmentTag } from "../scripts/equipment/equipment.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
 	EXCHANGE_BLOWS, DISPEL_UNCERTAINTIES, FLOURISH_COMPONENT, SPELL_ROUTINES
@@ -109,15 +109,14 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 
-	it("suppresses narrativeTags on the Take 7-9 result for a fromCarrier weapon, even when Guided comes from an installed Astir Part", async () => {
+	it("resolves narrativeTags on the Take 7-9 result for a fromCarrier weapon too (full parity), even when Guided comes from an installed Astir Part", async () => {
 		const sheet = new PlaybookActorSheet();
-		// Carries a narrative Impact tag (no codified mechanic) — proves the fromCarrier scope cut
-		// suppresses it on the Guided/Take-7-9 path too, not just the normal roll path (see
-		// "PlaybookActorSheet#_rollMove - fromCarrier weapon skip" in
+		// Carries a narrative Impact tag (no codified mechanic) — proves the Guided/Take-7-9 path
+		// resolves a fromCarrier weapon's own narrative tags exactly like a normal roll's (see
+		// "PlaybookActorSheet#_rollMove - fromCarrier weapon parity" in
 		// playbook-actor-sheet-the-captain.test.js). Guided itself comes from Spell Routines here,
-		// not the weapon's own tag — a fromCarrier weapon never offers its own Guided (_guidedFor),
-		// but an installed Astir Part's grant is actor-wide and still applies regardless of which
-		// weapon is in hand.
+		// not the weapon's own tag — this weapon carries no Guided tag of its own — but an installed
+		// Astir Part's grant is actor-wide and still applies regardless of which weapon is in hand.
 		const carrierWeapon = {
 			id: "carrier-w1", kind: "weapon", name: "Broadside Cannon", tags: ["impact"], spent: [], fromCarrier: true
 		};
@@ -137,7 +136,17 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 		await sheet._rollMove(EXCHANGE_BLOWS, carrierWeapon);
 
 		expect(postGuidedResult).toHaveBeenCalledWith(sheet.actor, EXCHANGE_BLOWS, {
-			weaponLabel: "Broadside Cannon", narrativeTags: [], guidedSource: SPELL_ROUTINES.name
+			weaponLabel: "Broadside Cannon",
+			narrativeTags: [{
+				equipmentId: "carrier-w1",
+				equipmentName: "Broadside Cannon",
+				tagKey: "impact",
+				tagLabel: "Impact",
+				value: 1,
+				showValue: true,
+				description: findEquipmentTag("impact").description
+			}],
+			guidedSource: SPELL_ROUTINES.name
 		});
 		expect(rollMove).not.toHaveBeenCalled();
 	});

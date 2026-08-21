@@ -1,7 +1,7 @@
 import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { chooseApproachOverride } from "../../core/approaches.js";
-import { chooseCarrier, findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
-import { UNARMED } from "../../equipment/equipment.js";
+import { WEAPON_SLOTS, carrierWeaponTagKeys, chooseCarrier, findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
+import { UNARMED, spendEquipmentTagsOnActor } from "../../equipment/equipment.js";
 import { rolledDoubles } from "../../moves/roll-effects.js";
 import {
 	BASIC_MOVES,
@@ -56,16 +56,26 @@ export const MoveRollSheetMixin = {
 			// weapons into this move's own weapon choice, on top of this actor's own. Only offered
 			// when exactly one Carrier exists in the world — zero or multiple is left unresolved here
 			// (no prompt, no throw), the same simplification _crewFixedTraitValue already makes for
-			// CREW's own display value. Each Carrier weapon is shallow-copied and flagged fromCarrier
-			// (never mutating the Carrier's own stored array) so _rollMove can skip every write path
-			// that would otherwise try to record spend/tag/uses state onto an object living in a
-			// different actor's own equipment array — see that flag's own comment there.
+			// CREW's own display value. Each Carrier weapon is shallow-copied with its slot's locked
+			// tags pre-merged into `.tags` (carrierWeaponTagKeys — see carrier-actor-sheet.js) and
+			// flagged fromCarrier/carrierActorId (never mutating the Carrier's own stored array), so
+			// equipment-mixin.js's own weapon-roll methods can resolve full parity for it (narrative
+			// tags, spends, forced effects, reroll, Guided) while every write path still routes back
+			// to the actual Carrier that owns it, not this actor's own equipment array.
 			if (this._grantsCarrierWeaponAccess(move)) {
 				const carriers = findCarrierActors();
 				if (carriers.length === 1) {
-					const carrierWeapons = Object.values(carriers[0].system.attributes?.weapons ?? {})
-						.filter(Boolean)
-						.map((w) => ({ ...w, fromCarrier: true }));
+					const carrier = carriers[0];
+					const carrierWeaponsByKey = carrier.system.attributes?.weapons ?? {};
+					const carrierWeapons = WEAPON_SLOTS
+						.map((slot) => ({ slot, entry: carrierWeaponsByKey[slot.key] }))
+						.filter(({ entry }) => Boolean(entry))
+						.map(({ slot, entry }) => ({
+							...entry,
+							tags: carrierWeaponTagKeys(slot, entry),
+							fromCarrier: true,
+							carrierActorId: carrier.id
+						}));
 					weapons = [...weapons, ...carrierWeapons];
 				}
 			}
@@ -114,12 +124,8 @@ export const MoveRollSheetMixin = {
 	// — see its own comment; Tier's own signal feeds the Advantage axis instead, independently, via
 	// _lockedAdvantageFor below) sits lowest of all: it's a passive read of the current target, so
 	// any of the above five sources — each a more specific or more deliberate lock — wins over it.
-	// A weapon "borrowed" from the world's Carrier (Fire Support — see _onMoveRoll's
-	// grantsCarrierWeaponAccess handling) lives in a different actor's own equipment array, not
-	// this actor's, so its own forcesEffect tag (if any) never applies — mirrors
-	// CarrierActorSheet#_onWeaponMoveRoll's own scope cut for the Carrier's own weapon rolls.
 	_lockedEffectFor(move, weapon, pendingGrant) {
-		const forced = weapon?.fromCarrier ? null : this._forcedWeaponEffect(weapon);
+		const forced = this._forcedWeaponEffect(weapon);
 		return (move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null)
 			?? (move.forcesDesperationOnShakenTenet && this._hasShakenTenet() ? "desperation" : null)
 			?? forced?.effect
@@ -171,12 +177,9 @@ export const MoveRollSheetMixin = {
 	// Holds the *source's* own label ("Guided" for the weapon tag, a part's name for Spell
 	// Routines) rather than a bare boolean, so the dialog's "Take 7-9" button and the resulting
 	// chat message can both name which grant actually offered it instead of always saying "Guided"
-	// — see move-dialogs.js's configureMoveRoll and move-roll.js's postGuidedResult. A weapon
-	// "borrowed" from the world's Carrier (fromCarrier) never offers its own Guided tag, same scope
-	// cut as _lockedEffectFor's own forced-tag read.
+	// — see move-dialogs.js's configureMoveRoll and move-roll.js's postGuidedResult.
 	_guidedFor(move, weapon) {
-		const fromCarrier = Boolean(weapon?.fromCarrier);
-		return (!fromCarrier && this._weaponIsGuided(weapon) && "Guided") || this._guidedFromPartFor(move) || null;
+		return (this._weaponIsGuided(weapon) && "Guided") || this._guidedFromPartFor(move) || null;
 	},
 	// Pre-roll preview of the move's passive on-roll bonuses (Roll Modifiers' post-roll reminder
 	// quartet — see move-grants-mixin.js's _grantingMoveForFailureReminder/_grantingMoveForSuccessReminder/
@@ -231,13 +234,9 @@ export const MoveRollSheetMixin = {
 	// before calling configureMoveRoll, threaded through rather than recomputed here.
 	async _finishMoveRoll(move, weapon, config, { quickRoll = {}, guided = null, downgrade = [] } = {}) {
 		// A weapon "borrowed" from the world's Carrier (Fire Support) lives in a different actor's
-		// own equipment array, not this actor's -- so none of the spend/tag/reroll machinery below,
-		// which all read or write this actor's own equipment/Astir Part state, may ever be
-		// evaluated against it. Mirrors CarrierActorSheet#_onWeaponMoveRoll's own scope cut for the
-		// Carrier's own weapon rolls: that handler never offers equipment spends, Astir Part
-		// spends, reroll or Guided either -- a Carrier weapon roll is deliberately just a trait plus
-		// a name on the chat card, nothing more, and a Fire Support roll using one gets exactly the
-		// same treatment rather than risking a write onto an object this actor doesn't own.
+		// own equipment array, not this actor's -- so any spend it incurs below has to be written
+		// back onto the actual Carrier that owns it, not this actor's own equipment array (see the
+		// spend-writing block below).
 		const fromCarrier = Boolean(weapon?.fromCarrier);
 		// Guided's "Take 7-9" button resolves with nothing but this flag -- no trait, dice, or
 		// equipment/Astir Part spend was ever read, so there's nothing to mark spent and nothing
@@ -246,7 +245,7 @@ export const MoveRollSheetMixin = {
 		if (config.takeSeven) {
 			await postGuidedResult(this.actor, move, {
 				weaponLabel: weapon ? weapon.name : "Unarmed",
-				narrativeTags: fromCarrier ? [] : this._narrativeWeaponTags(weapon),
+				narrativeTags: this._narrativeWeaponTags(weapon),
 				guidedSource: guided
 			});
 			await this._onMoveResolved(move, null, "mixed");
@@ -256,9 +255,16 @@ export const MoveRollSheetMixin = {
 		// A forced tag (e.g. Unreliable) is marked spent right alongside whatever the player
 		// checked in the dialog -- same single update, same "used this period" checkbox on the
 		// Equipment tab (see _equipmentEntry's spendable) as a player-chosen spend.
-		const forced = fromCarrier ? null : this._forcedWeaponEffect(weapon);
+		const forced = this._forcedWeaponEffect(weapon);
 		const spends = [...(config.spentTags ?? []), ...(forced ? [{ equipmentId: weapon.id, tagKey: forced.tagKey }] : [])];
-		if (spends.length) await this._spendEquipmentTags(spends);
+		if (spends.length) {
+			if (fromCarrier) {
+				const carrier = game.actors.get(weapon.carrierActorId);
+				if (carrier) await spendEquipmentTagsOnActor(carrier, spends);
+			} else {
+				await this._spendEquipmentTags(spends);
+			}
+		}
 		// See configureMoveRoll's own spentRollModifiers doc comment -- covers both immediate
 		// (checked [name='roll-modifier']) and deferred (checked [name='pending-roll-modifier'])
 		// entries alike, since both need their resource cost actually consumed; only the deferred
@@ -270,8 +276,12 @@ export const MoveRollSheetMixin = {
 		// Spends 1 Crew Support hold only when this roll actually used the Crew Support CREW
 		// substitution (see move-traits-mixin.js's _moveTraits) -- not when a move's own permanent
 		// CREW fixedTraits (Lead a Sortie) was used instead, since that has a different trait key
-		// (crew) and costs nothing.
-		if (config.trait?.key === "crew-support-crew") await this.actor.update(this._crewSupportHoldSpend());
+		// (crew) and costs nothing. A Captain rolling the same crew-support-crew option spends
+		// nothing either -- In Command grants it to them for free, any number of times (see
+		// moves-mixin.js's _hasUnlimitedCrewSupport).
+		if (config.trait?.key === "crew-support-crew" && !this._hasUnlimitedCrewSupport()) {
+			await this.actor.update(this._crewSupportHoldSpend());
+		}
 
 		// weapon undefined (not a usesWeapon move) leaves rollMove's options untouched, same as
 		// today, for every move except Exchange Blows/Strike Decisively. null (Unarmed) or a real
@@ -279,7 +289,7 @@ export const MoveRollSheetMixin = {
 		// _narrativeWeaponTags), recorded on the chat card even when nothing was spent (see rollMove
 		// in moves.js). reroll is only ever attached for a usesWeapon move too — rollMove itself
 		// decides whether to actually offer it, based on whether this attempt fails (see moves.js).
-		const reroll = fromCarrier ? null : this._availableReroll(move, weapon);
+		const reroll = this._availableReroll(move, weapon);
 		// The derived Trait bonus for whichever trait the player actually chose (see
 		// trait-bonuses.js) — moves.js#rollMove re-reads an actor trait's live stat value directly
 		// rather than trusting config.trait.value (see its own comment), so the bonus has to reach
@@ -332,7 +342,7 @@ export const MoveRollSheetMixin = {
 			? {
 				...baseOptions,
 				weaponLabel: weapon ? weapon.name : "Unarmed",
-				narrativeTags: fromCarrier ? [] : this._narrativeWeaponTags(weapon),
+				narrativeTags: this._narrativeWeaponTags(weapon),
 				...(reroll && { reroll })
 			}
 			: baseOptions;
@@ -358,13 +368,10 @@ export const MoveRollSheetMixin = {
 	_weaponRollBundle(move, weapon, { traits, pendingGrant }) {
 		const bundleTraits = this._weaponTraitsFor(move, weapon, traits);
 		const lockedEffect = this._lockedEffectFor(move, weapon, pendingGrant);
-		const fromCarrier = Boolean(weapon?.fromCarrier);
-		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
-		const narrativeTags = fromCarrier ? [] : this._narrativeWeaponTags(weapon);
+		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
+		const narrativeTags = this._narrativeWeaponTags(weapon);
 		const guided = this._guidedFor(move, weapon);
-		// A weapon "borrowed" from the Carrier (fromCarrier) never offers a reroll here either — same
-		// scope cut _finishMoveRoll's own reroll (below, post-roll) already applies.
-		const rerollTag = fromCarrier ? null : this._availableRerollTag(move, weapon);
+		const rerollTag = this._availableRerollTag(move, weapon);
 		const rollModifiers = this._rollModifiersForMove(move, lockedEffect);
 		return {
 			weaponKey: weapon ? weapon.id : UNARMED,
@@ -466,11 +473,10 @@ export const MoveRollSheetMixin = {
 		const lockedEffect = this._lockedEffectFor(move, weapon, pendingGrant);
 		const lockedTrait = this._lockedTraitFor(move, quickRoll, traits);
 		const lockedAdvantage = this._lockedAdvantageFor(move, pendingGrant);
-		const fromCarrier = Boolean(weapon?.fromCarrier);
-		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
-		const narrativeTags = fromCarrier ? [] : this._narrativeWeaponTags(weapon);
+		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
+		const narrativeTags = this._narrativeWeaponTags(weapon);
 		const guided = this._guidedFor(move, weapon);
-		const rerollTag = fromCarrier ? null : this._availableRerollTag(move, weapon);
+		const rerollTag = this._availableRerollTag(move, weapon);
 		// The Roll Modifiers section (see move-grants-mixin.js's _rollModifiersForMove) -- resolved
 		// unconditionally, like automaticSuccess below, rather than scoped to fromCarrier/usesWeapon:
 		// a source's own moveKeys filtering already narrows each entry to the moves it actually
