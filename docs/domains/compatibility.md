@@ -3,10 +3,10 @@
 # Compatibility
 
 This module targets Foundry VTT **v12, v13, and v14** from a single codebase, staying on the legacy
-AppV1 application API on purpose. `module.json` currently declares
-`"compatibility": {"minimum": "12", "verified": "12"}` — `verified` stays at `12` until a human runs
-live QA against real v13/v14 clients; bumping it is not part of this doc's own change (see "Not
-migrated" below for what else stayed out of scope).
+AppV1 application API on purpose. `module.json` declares
+`"compatibility": {"minimum": "12", "verified": "14"}` — `verified` was bumped only after live QA
+against real v13 and v14 clients passed, including the CSS issues live QA surfaced (see "CSS" below;
+see "Not migrated" for what else stayed deliberately out of scope).
 
 ## Strategy: stay on AppV1, fix only genuine breakage
 
@@ -88,11 +88,43 @@ The practical QA matrix this implies is **v12 + pbta 1.1.15.2**, **v13 + pbta 1.
 release that covers both v13 and v14, so it's the one to install for a v13 pass), and **v14 + pbta
 1.1.23 or 1.2.0**.
 
-A real, unrelated Foundry behavior worth knowing before any live QA session: v13+ deactivates any
-module whose own `verified` doesn't match the running core version. Since this module's `verified`
-stays at `12` until QA passes, **the module must be enabled by hand in Module Management** on a
-v13/v14 world before testing anything else — a tester who skips this gets a clean-looking pbta world
-and will misread it as this module being broken.
+A real, unrelated Foundry behavior worth knowing for future QA on a build with an older `verified`
+value: v13+ deactivates any module whose own `verified` doesn't match the running core version. This
+bit the QA pass that validated this work — the module had to be enabled by hand in Module Management
+before anything else was testable, and every other v13 observation up to that point was worthless
+(a clean-looking pbta-default world, easy to misread as this module being broken). Now that
+`verified` is `"14"`, a fresh install won't hit this — but reverting to an older tag, or forking this
+module without re-bumping `verified`, will reproduce it exactly.
+
+## CSS
+
+Two issues live QA found on v13/v14 that no amount of code review would have caught (CSS is invisible
+to this project's test suite — see claude.md's "Templates and CSS are invisible to the test suite").
+Both are fixed in `styles/tokens.css`.
+
+**Window frame background gap.** pbta's own SCSS paints its entire `.window-app` frame navy as a
+blanket fill (`.window-app { background: $c-navy; }`), and this module previously only overrode
+`.window-header`'s own background — never `.window-app`'s. That gap was invisible on v12, where the
+two apparently tiled edge-to-edge, but v13's window-frame redesign (visibly, the header's controls
+gained text labels — "Sheet"/"Token"/"Close" instead of icon-only) introduced a padding inset around
+the header that let pbta's raw navy show through above and below it. Fix: `.window-app.armor-astir`
+now also sets `background: var(--aa-primary-dark)`, so whatever that inset is, it now shows this
+module's own dark purple instead of pbta's navy. `.window-header`'s own background was moved to the
+same `--aa-primary-dark` value (previously the lighter `--aa-primary`) so the header and the frame
+read as one continuous surface with no seam — confirmed live on v13/v14, and a no-op change in
+appearance on v12 beyond the header shade itself.
+
+**Open `<select>` popup rows rendering gray instead of white.** Not a native-rendering issue —
+Foundry v13+'s own core CSS explicitly authors this: `body.game .app option, body.game .app optgroup
+{ background: var(--color-select-option-bg); }`, found via live devtools inspection, with
+`--color-select-option-bg` resolving to a dark value under v13+'s OS/browser-driven light-dark theme
+("Theme V2"). Because it's an explicit author-set variable rather than left to native popup
+rendering, the standard `color-scheme: light` fix for this class of problem has no effect here (tried
+first; confirmed dead on arrival by live testing) — the only thing that works is overriding the
+variable itself. Fix: `--color-select-option-bg: white;` declared on the same shared `.armor-astir`
+token root as everything else, inheriting down into every `<select>` in every sheet and dialog,
+matching pbta's own white background for the closed control. No-op on v12, where core never declares
+this variable and the rule reading it doesn't exist yet.
 
 ## Not migrated in this pass
 
