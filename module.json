@@ -22,7 +22,8 @@
 		"styles/move-chat.css",
 		"styles/dialogs.css",
 		"styles/world-actor-shared.css",
-		"styles/authority-sheet.css"
+		"styles/authority-sheet.css",
+		"styles/cause-sheet.css"
 	],
 	"documentTypes": {
 		"Actor": {

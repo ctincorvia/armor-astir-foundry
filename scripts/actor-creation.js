@@ -171,7 +171,7 @@ export const WORLD_ACTOR_KINDS = [
 		key: "cause",
 		type: "armor-astir.cause",
 		name: "Cause",
-		buildSystem: () => ({ attributes: { factions: [] } })
+		buildSystem: () => ({ attributes: { factions: [], waywardFactions: [] } })
 	},
 	{
 		key: "npc",

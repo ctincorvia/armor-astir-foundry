@@ -1,0 +1,38 @@
+<li class="entry-list-item {{#if exhausted}}faction-exhausted{{/if}}" data-entry-id="{{id}}">
+	<div class="entry-list-row">
+		<input type="text" class="entry-list-field faction-name" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Faction name"/>
+		<button type="button" class="entry-list-remove" data-list="{{listKey}}" data-entry-id="{{id}}" aria-label="Remove faction">✕</button>
+	</div>
+	<select class="entry-list-field faction-kind" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="kind">
+		{{selectOptions kindOptions selected=kind valueAttr="key" labelAttr="label" blank="— Choose —"}}
+	</select>
+	<div class="entry-counter-row">
+		<div class="entry-counter">
+			<label>Grip</label>
+			<button type="button" class="entry-list-counter-step" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="grip" data-delta="-1" data-min="0" data-max="3" aria-label="Decrease Grip">-</button>
+			<span class="trait-value">{{grip}}</span>
+			<button type="button" class="entry-list-counter-step" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="grip" data-delta="1" data-min="0" data-max="3" aria-label="Increase Grip">+</button>
+		</div>
+		<label class="faction-flag-label">
+			<input type="checkbox" class="entry-list-field" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="exhausted" {{#if exhausted}}checked{{/if}}/>
+			Exhausted
+		</label>
+		<label class="faction-flag-label">
+			<input type="checkbox" class="entry-list-field" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="seized" {{#if seized}}checked{{/if}}/>
+			Seized
+		</label>
+	</div>
+	{{#if opposesText}}
+	<div class="entry-outcome-block faction-opposes">
+		<h4>Opposes</h4>
+		<p>{{opposesText}}</p>
+	</div>
+	{{/if}}
+	{{#if outcomeText}}
+	<div class="entry-outcome-block faction-outcome">
+		<h4>Outcome</h4>
+		<p>{{outcomeText}}</p>
+	</div>
+	{{/if}}
+	<textarea class="entry-list-field faction-description" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="description" placeholder="Brief description…">{{description}}</textarea>
+</li>

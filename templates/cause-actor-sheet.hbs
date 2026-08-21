@@ -15,27 +15,20 @@
 		</div>
 		<ol class="entry-list faction-list">
 			{{#each factions}}
-			<li class="entry-list-item {{#if exhausted}}faction-exhausted{{/if}}" data-entry-id="{{id}}">
-				<div class="entry-list-row">
-					<input type="text" class="entry-list-field faction-name" data-list="factions" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Faction name"/>
-					<label class="faction-flag-label">
-						<input type="checkbox" class="entry-list-field" data-list="factions" data-entry-id="{{id}}" data-field="exhausted" {{#if exhausted}}checked{{/if}}/>
-						Exhausted
-					</label>
-					<label class="faction-flag-label">
-						<input type="checkbox" class="entry-list-field" data-list="factions" data-entry-id="{{id}}" data-field="seized" {{#if seized}}checked{{/if}}/>
-						Seized
-					</label>
-					<button type="button" class="entry-list-remove" data-list="factions" data-entry-id="{{id}}" aria-label="Remove faction">✕</button>
-				</div>
-				<div class="entry-counter">
-					<label>Grip</label>
-					<button type="button" class="entry-list-counter-step" data-list="factions" data-entry-id="{{id}}" data-field="grip" data-delta="-1" data-min="0" data-max="3" aria-label="Decrease Grip">-</button>
-					<span class="trait-value">{{grip}}</span>
-					<button type="button" class="entry-list-counter-step" data-list="factions" data-entry-id="{{id}}" data-field="grip" data-delta="1" data-min="0" data-max="3" aria-label="Increase Grip">+</button>
-				</div>
-				<textarea class="entry-list-field faction-description" data-list="factions" data-entry-id="{{id}}" data-field="description" placeholder="Brief description…">{{description}}</textarea>
-			</li>
+			{{> "modules/armor-astir/templates/cause-sheet/faction-card.hbs" listKey="factions"}}
+			{{/each}}
+		</ol>
+	</section>
+	<section class="wayward-factions">
+		<div class="section-header">
+			<h3>Wayward Factions ({{waywardFactions.length}})</h3>
+			<div class="section-header-actions">
+				<button type="button" class="entry-list-add icon-add-button" data-list="waywardFactions" title="Add Wayward Faction" aria-label="Add Wayward Faction">+</button>
+			</div>
+		</div>
+		<ol class="entry-list wayward-faction-list">
+			{{#each waywardFactions}}
+			{{> "modules/armor-astir/templates/cause-sheet/faction-card.hbs" listKey="waywardFactions"}}
 			{{/each}}
 		</ol>
 	</section>

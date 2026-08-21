@@ -430,13 +430,13 @@ describe("createWorldActor", () => {
 		);
 	});
 
-	it("creates a cause actor with an empty factions list", async () => {
+	it("creates a cause actor with empty factions and waywardFactions lists", async () => {
 		Actor.create.mockResolvedValue({ id: "new-cause" });
 
 		await createWorldActor(CAUSE_KIND);
 
 		expect(Actor.create).toHaveBeenCalledWith(
-			{ name: "Cause", type: "armor-astir.cause", folder: null, system: { attributes: { factions: [] } } },
+			{ name: "Cause", type: "armor-astir.cause", folder: null, system: { attributes: { factions: [], waywardFactions: [] } } },
 			{ renderSheet: true }
 		);
 	});

@@ -1,0 +1,46 @@
+/* Cause-only rules (see docs/domains/world-actors.md, "World actors") — Factions and Wayward
+   Factions. Depends on styles/tokens.css for var(--aa-*) and reuses the shared .entry-list/
+   .entry-counter-row/.trait-value rules from world-actor-shared.css (loaded alongside this file —
+   see module.json); only what's unique to this one sheet lives here. */
+
+/* Faction cards (regular and Wayward) now carry a kind select and up to two outcome-prose blocks
+   alongside name/counter/flags/description — too tall for a hairline-row list, so both lists lay
+   out as vertical cards, the same reasoning Authority's Division cards already established. Own
+   copy rather than folding into authority-sheet.css's card rules, same "duplicate small shared-
+   looking rules across sheets" reasoning as world-actor-shared.css's .crew-step comment. */
+.armor-astir.sheet .faction-list,
+.armor-astir.sheet .wayward-faction-list {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-3);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .faction-list > .entry-list-item,
+.armor-astir.sheet .wayward-faction-list > .entry-list-item {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+	padding: var(--aa-space-2);
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+}
+
+.armor-astir.sheet .faction-kind {
+	width: 100%;
+}
+
+/* A quiet resting surface for the catalog's read-only Opposes/Outcome text (see faction-kinds.js)
+   — tight prose margins keep its <p> content from blowing the Faction card open. */
+.armor-astir.sheet .entry-outcome-block {
+	padding: var(--aa-space-2);
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-tint);
+}
+
+.armor-astir.sheet .entry-outcome-block p {
+	margin: 0;
+}

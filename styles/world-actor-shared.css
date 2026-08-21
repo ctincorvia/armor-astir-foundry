@@ -102,14 +102,14 @@
 
 /* Same zebra-stripe/hover treatment as sheet-tabs.css's .move/.equipment-item rows — an
    interaction always reads in the primary color, a resting stripe in the quieter secondary.
-   Excludes .pillar-list/.division-list: those lay their entries out as cards (see
-   authority-sheet.css), not a vertical row list, so ":nth-child(even)" would just tint the
-   middle card instead of reading as a stripe. */
-.armor-astir.sheet .entry-list:not(.pillar-list):not(.division-list) > .entry-list-item:nth-child(even) {
+   Excludes .pillar-list/.division-list/.faction-list/.wayward-faction-list: those lay their
+   entries out as cards (see authority-sheet.css/cause-sheet.css), not a vertical row list, so
+   ":nth-child(even)" would just tint the middle card instead of reading as a stripe. */
+.armor-astir.sheet .entry-list:not(.pillar-list):not(.division-list):not(.faction-list):not(.wayward-faction-list) > .entry-list-item:nth-child(even) {
 	background: var(--aa-secondary-tint);
 }
 
-.armor-astir.sheet .entry-list:not(.pillar-list):not(.division-list) > .entry-list-item:hover {
+.armor-astir.sheet .entry-list:not(.pillar-list):not(.division-list):not(.faction-list):not(.wayward-faction-list) > .entry-list-item:hover {
 	background: var(--aa-primary-tint);
 }
 
