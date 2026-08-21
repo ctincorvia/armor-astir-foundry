@@ -22,6 +22,17 @@ export function fakeNoopJQuery() {
 	return noop;
 }
 
+// The single bundle a configureMoveRoll call made through _onWeaponMoveRoll's own weaponBundles
+// path produces (offerUnarmed: false — see move-roll-mixin.js) — every field the old single-weapon
+// configureMoveRoll options carried at the top level (lockedEffect, equipmentSpends, narrativeTags,
+// rollModifiers, guided, rerollTag, and the weapon's own Trait list) now lives on this one bundle
+// instead, since _rollMoveWithWeaponChoice always dispatches through weaponBundles once `weapon` is
+// an array. Reads the mock's most recent call, matching this file's other `.mock.calls.at(-1)` uses.
+export function soleWeaponBundle(configureMoveRollMock) {
+	const { weaponBundles } = configureMoveRollMock.mock.calls.at(-1)[2];
+	return weaponBundles[0];
+}
+
 // checkedConditions/checkedEquipmentTags/checkedAstirPartSpends/checkedRollModifiers/
 // checkedPendingRollModifiers fake the jQuery `.find("[name='...']:checked").map(...).get()`
 // chains configureMoveRoll uses to collect Help or Hinder's checkbox values, equipment spends,

@@ -3,7 +3,7 @@
 	<div class="move-roll-grid">
 		<div class="move-roll-column-1">
 			<h3 class="move-roll-column-header">Controls</h3>
-			<div class="form-group move-roll-select-group">
+			<div class="form-group move-roll-select-group{{#unless (gt weaponBundles.length 1)}} move-roll-select-group-hidden{{/unless}}">
 				<label>Weapon</label>
 				<select name="weapon-select">
 					{{#each weaponBundles}}

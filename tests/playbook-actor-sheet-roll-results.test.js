@@ -12,6 +12,7 @@ import {
 	EXCHANGE_BLOWS, STRIKE_DECISIVELY, DISPEL_UNCERTAINTIES, WEAVE_MAGIC, READ_THE_ROOM,
 	LEAD_A_SORTIE, ARCANE_AUGMENTS, LET_LOOSE, DONT_FOLLOW_ME
 } from "./helpers/move-fixtures.js";
+import { soleWeaponBundle } from "./helpers/move-test-helpers.js";
 
 beforeEach(() => {
 	configureMoveRoll.mockClear();
@@ -33,10 +34,9 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: []
-		});
+		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({
+			weaponKey: "eq1", lockedEffect: "desperation", equipmentSpends: [], narrativeTags: [], rollModifiers: []
+		}));
 	});
 
 	it("does not lock Effect when the Unreliable tag is already spent this Scene", async () => {
@@ -50,10 +50,9 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: []
-		});
+		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({
+			weaponKey: "eq1", lockedEffect: null, equipmentSpends: [], narrativeTags: [], rollModifiers: []
+		}));
 	});
 
 	it("treats a missing spent array as nothing spent yet, for a forced tag", async () => {
@@ -67,9 +66,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
-			lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null
-		}));
+		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({ lockedEffect: "desperation" }));
 	});
 
 	it("marks the forced tag spent after rolling, alongside any player-chosen spend, in one update", async () => {
@@ -83,6 +80,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 			trait: { key: "clash", label: "CLASH", value: 0 },
 			advantage: "none",
 			effect: "desperation",
+			weaponId: "eq1",
 			spentTags: [{ equipmentId: "eq1", tagKey: "blitz" }]
 		};
 		configureMoveRoll.mockResolvedValue(config);
@@ -105,9 +103,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null
-		}));
+		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({ lockedEffect: null }));
 	});
 
 	it("treats a missing tags array as no forced effect", async () => {
@@ -121,9 +117,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null
-		}));
+		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({ lockedEffect: null }));
 	});
 
 	it("never forces an effect for Unarmed", async () => {
@@ -336,11 +330,10 @@ describe("PlaybookActorSheet#_rollMove - Familiar weapons (+CHANNEL override)", 
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(
-			EXCHANGE_BLOWS,
-			[{ key: "channel", label: "CHANNEL", value: 3 }],
-			expect.any(Object)
-		);
+		// The top-level traits argument stays the weapon-independent base list (CLASH/TALK) once a
+		// move goes through weaponBundles — the per-candidate +CHANNEL swap lives on the bundle's own
+		// traits instead (see PlaybookActorSheet#_weaponRollBundle).
+		expect(soleWeaponBundle(configureMoveRoll).traits).toEqual([{ key: "channel", label: "CHANNEL", value: 3 }]);
 	});
 
 	it("rolls Strike Decisively with a Familiar weapon as +CHANNEL too", async () => {
@@ -356,11 +349,7 @@ describe("PlaybookActorSheet#_rollMove - Familiar weapons (+CHANNEL override)", 
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "strike-decisively", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(
-			STRIKE_DECISIVELY,
-			[{ key: "channel", label: "CHANNEL", value: 3 }],
-			expect.any(Object)
-		);
+		expect(soleWeaponBundle(configureMoveRoll).traits).toEqual([{ key: "channel", label: "CHANNEL", value: 3 }]);
 	});
 
 	it("defaults CHANNEL to 0 when the actor has no channel stat at all", async () => {
@@ -373,11 +362,7 @@ describe("PlaybookActorSheet#_rollMove - Familiar weapons (+CHANNEL override)", 
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(
-			EXCHANGE_BLOWS,
-			[{ key: "channel", label: "CHANNEL", value: 0 }],
-			expect.any(Object)
-		);
+		expect(soleWeaponBundle(configureMoveRoll).traits).toEqual([{ key: "channel", label: "CHANNEL", value: 0 }]);
 	});
 
 	it("leaves CLASH/TALK untouched for a non-Familiar weapon", async () => {

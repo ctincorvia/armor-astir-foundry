@@ -37,6 +37,13 @@
 	width: 100%;
 }
 
+/* The weapon <select> stays in the DOM even with nothing to choose between (_onWeaponMoveRoll's
+   single pre-known weapon) — move-dialogs.js reads its value to resolve the active weapon, so it
+   can never be removed from the markup — this just hides it visually. */
+.armor-astir.move-roll-dialog .move-roll-select-group-hidden {
+	display: none;
+}
+
 /* The Dice/Effect notched sliders (templates/shared/notched-slider.hbs) replace the old <select>s
    here — a segmented track of radio "stops" instead of a dropdown. Stacks vertically (track, then
    a small readout label) so the same markup fits both this narrow ~160px grid column and the wider

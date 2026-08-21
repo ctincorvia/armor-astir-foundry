@@ -114,9 +114,11 @@ const requiresAdvantageReason = (entry) =>
 // Equipment, Roll Modifiers) from the *active* panel instead of the dialog's single top-level
 // copy — Dice/Effect/lockedAdvantage stay top-level and unscoped either way, since none of those
 // vary by weapon (see _rollMoveWithWeaponChoice's own weapon-independent/-dependent split).
-// Left null (the default) for every non-usesWeapon move, and for _onWeaponMoveRoll's own
-// quick-roll path (the weapon is already known there, so there's nothing to choose) — both keep
-// rendering and resolving through the exact same single-column path as before this option existed.
+// _onWeaponMoveRoll's own quick-roll path now passes a single-entry weaponBundles too (its already-
+// known weapon, no Unarmed option — the <select> is hidden via CSS rather than skipped, see
+// move-roll-dialog.hbs's move-roll-select-group-hidden), so it renders the same weapon-card
+// column as the Moves tab's own picker. Left null (the default) only for a move that isn't
+// usesWeapon at all, which keeps rendering through the single-column path below.
 export async function configureMoveRoll(
 	move,
 	traits,

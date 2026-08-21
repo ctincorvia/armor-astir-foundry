@@ -270,45 +270,47 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 	const halberd = { id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: ["blitz"], spent: [], scale: "foot", tier: 1 };
 
-	it("rolls the clicked move with the clicked weapon, without offering a weapon choice", async () => {
+	it("rolls the clicked move with the clicked weapon's own single bundle, offering no weapon choice", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [halberd] } },
 			update: vi.fn()
 		};
-		const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none" };
+		const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none", weaponId: "eq1" };
 		configureMoveRoll.mockResolvedValue(config);
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], narrativeTags: [],
-			rollModifiers: [], riders: []
-		});
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
+			lockedAdvantage: null, lockedTrait: null, riders: []
+		}));
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		// No Unarmed entry, and no <select>-worth of choice — exactly the one clicked weapon's bundle.
+		expect(weaponBundles).toHaveLength(1);
+		expect(weaponBundles[0].weaponKey).toBe("eq1");
+		expect(weaponBundles[0].weaponCard).not.toBeNull();
+		expect(weaponBundles[0].equipmentSpends).toEqual([expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })]);
+		expect(weaponBundles[0].narrativeTags).toEqual([]);
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
 	});
 
-	it("passes the weapon's still-live reroll tag through configureMoveRoll's own options", async () => {
+	it("passes the weapon's still-live reroll tag through its own bundle", async () => {
 		const sheet = new PlaybookActorSheet();
 		const defensiveHalberd = { ...halberd, tags: ["blitz", "defensive"] };
 		sheet.actor = {
 			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [defensiveHalberd] } },
 			update: vi.fn()
 		};
-		const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none" };
+		const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none", weaponId: "eq1" };
 		configureMoveRoll.mockResolvedValue(config);
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], narrativeTags: [],
-			rollModifiers: [], riders: [],
-			rerollTag: { tagLabel: "Defensive", description: expect.any(String) }
-		});
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		expect(weaponBundles).toHaveLength(1);
+		expect(weaponBundles[0].rerollTag).toEqual({ tagLabel: "Defensive", description: expect.any(String) });
 	});
 
 	it("does nothing for an unrecognized move key", async () => {

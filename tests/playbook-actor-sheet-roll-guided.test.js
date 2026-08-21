@@ -13,6 +13,7 @@ import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js"
 import {
 	EXCHANGE_BLOWS, DISPEL_UNCERTAINTIES, FLOURISH_COMPONENT, SPELL_ROUTINES
 } from "./helpers/move-fixtures.js";
+import { soleWeaponBundle } from "./helpers/move-test-helpers.js";
 
 beforeEach(() => {
 	configureMoveRoll.mockClear();
@@ -36,12 +37,9 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
-			equipmentSpends: [], narrativeTags: [],
-			rollModifiers: [], riders: [],
-			guided: "Guided"
-		});
+		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({
+			weaponKey: "eq1", lockedEffect: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], guided: "Guided"
+		}));
 	});
 
 	it("omits guided from configureMoveRoll's options for a non-Guided weapon", async () => {
@@ -55,7 +53,9 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] });
+		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({
+			weaponKey: "eq1", lockedEffect: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], guided: null
+		}));
 	});
 
 	it("treats a missing tags array as not Guided", async () => {
@@ -69,7 +69,9 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), { lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] });
+		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({
+			weaponKey: "eq1", lockedEffect: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], guided: null
+		}));
 	});
 
 	it("is never Guided for Unarmed", async () => {
@@ -98,7 +100,10 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
 			update: vi.fn()
 		};
-		configureMoveRoll.mockResolvedValue({ takeSeven: true });
+		// weaponId is always included alongside takeSeven whenever weaponBundles was offered — see
+		// move-dialogs.js's own takeSeven button handler, which reads the (possibly CSS-hidden, but
+		// still present and defaulted to the sole bundle) weapon-select's value regardless.
+		configureMoveRoll.mockResolvedValue({ takeSeven: true, weaponId: "eq1" });
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 

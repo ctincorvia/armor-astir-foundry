@@ -24,7 +24,11 @@ beforeEach(() => {
 });
 
 describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versatile)", () => {
-	const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none" };
+	// weaponId resolves config.weaponId back to the clicked weapon (see move-roll-mixin.js's
+	// _rollMoveWithWeaponChoice) — every _onWeaponMoveRoll test below clicks the "eq1" weapon, and
+	// this same value harmlessly resolves to Unarmed for the one _onMoveRoll test in this block
+	// (no "eq1" weapon on that actor, so it falls through to the Unarmed bundle regardless).
+	const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none", weaponId: "eq1" };
 
 	it("offers a reroll when the weapon has an unspent reroll tag matching this move", async () => {
 		const sheet = new PlaybookActorSheet();
@@ -44,6 +48,22 @@ describe("PlaybookActorSheet#_rollMove - reroll offer (Decisive/Defensive/Versat
 			reroll: { equipmentId: "eq1", tagKey: "defensive", spendKey: "defensive" },
 			heatUp: NO_HEAT_UP
 		});
+	});
+
+	it("passes rerollTag through configureMoveRoll's own top-level options on the single-weapon path (_rollMove called directly with a real weapon, not an array)", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["defensive"], spent: [], scale: "foot", tier: 1 };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [rifle] } },
+			update: vi.fn()
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._rollMove(EXCHANGE_BLOWS, rifle);
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
+			rerollTag: { tagLabel: "Defensive", description: expect.any(String) }
+		}));
 	});
 
 	it("does not offer a reroll when the weapon's reroll tag doesn't cover this move", async () => {

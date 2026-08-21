@@ -10,6 +10,7 @@ import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { UNARMED } from "../scripts/equipment/equipment.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import { EXCHANGE_BLOWS, STRIKE_DECISIVELY, DISPEL_UNCERTAINTIES } from "./helpers/move-fixtures.js";
+import { soleWeaponBundle } from "./helpers/move-test-helpers.js";
 
 beforeEach(() => {
 	configureMoveRoll.mockClear();
@@ -267,11 +268,9 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(
-			EXCHANGE_BLOWS,
-			expect.any(Array),
-			{ lockedEffect: "desperation", lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
-		);
+		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({
+			weaponKey: "eq1", lockedEffect: "desperation", equipmentSpends: [], narrativeTags: [], rollModifiers: []
+		}));
 	});
 });
 

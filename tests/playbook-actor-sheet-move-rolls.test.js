@@ -524,10 +524,11 @@ describe("PlaybookActorSheet#_onMoveRoll - Bureaucrat's quick-roll redirect to E
 // _grantingMoveForXReminder finders the _grantedXReminderForMove resolvers _finishMoveRoll calls
 // post-roll are themselves thin wrappers over (see
 // playbook-actor-sheet-roll-resolved.test.js/playbook-actor-sheet-the-captain.test.js for those
-// resolvers' own dedicated tests), so this only needs to prove the wiring: built correctly for both
-// the single-weapon path (_onWeaponMoveRoll, weapon already known) and the array path
-// (_onMoveRoll's weaponBundles), empty when nothing is granted, and — for the array path — passed
-// once at the top level rather than duplicated into every weaponBundles entry.
+// resolvers' own dedicated tests), so this only needs to prove the wiring: built correctly through
+// both usesWeapon entry points — _onWeaponMoveRoll's already-known single weapon (offerUnarmed:
+// false) and _onMoveRoll's own weapon choice — empty when nothing is granted, and passed once at
+// the top level rather than duplicated into every weaponBundles entry, since both entry points
+// route through weaponBundles now.
 describe("PlaybookActorSheet#_rollMove - riders (_ridersForMove)", () => {
 	const manaDevourerRiders = [
 		{ label: "Mana Devourer - On Any Success", text: "+1 Power (against another Astir, with physical harm)" }

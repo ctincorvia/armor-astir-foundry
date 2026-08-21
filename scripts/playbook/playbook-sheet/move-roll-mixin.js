@@ -85,15 +85,18 @@ export const MoveRollSheetMixin = {
 		await this._rollMove(move, weapon, clicked.quickRollsMove);
 	},
 	// The weapon's own quick-roll buttons in the Equipment tab (see getData's weaponMoves) — same
-	// roll as _onMoveRoll, but the weapon is already known from which button was clicked, so
-	// there's no chooseWeapon prompt.
+	// roll as _onMoveRoll, but the weapon is already known from which button was clicked, so it's
+	// passed as a single-element array with Unarmed suppressed (offerUnarmed: false) rather than a
+	// choice of candidates — this still flows through weaponBundles/_weaponRollBundle, so the
+	// dialog shows the same weapon info card as the Moves tab's own picker, just with no <select>
+	// to choose from (see move-roll-dialog.hbs's move-roll-select-group-hidden).
 	async _onWeaponMoveRoll(event) {
 		const { move: moveKey, equipmentId } = event.currentTarget.dataset;
 		const move = ALL_MOVES.find((m) => m.key === moveKey);
 		const weapon = this._equipment().find((item) => item.id === equipmentId);
 		if (!move || !weapon || weapon.disabled) return;
 
-		await this._rollMove(move, weapon);
+		await this._rollMove(move, [weapon], {}, { offerUnarmed: false });
 	},
 	// Every field below is shared between _rollMove's single-weapon path and
 	// _rollMoveWithWeaponChoice's array path (weaponBundles), extracted so a test reaching either
@@ -391,13 +394,15 @@ export const MoveRollSheetMixin = {
 			rollModifiers
 		};
 	},
-	// The array-branch counterpart to the single-weapon _rollMove path below — reached only when
-	// _onMoveRoll resolved `weapon` to an array of candidates (a usesWeapon move, possibly with no
-	// weapons at all — "Unarmed" is still always offered). `traits` here is already the
+	// The array-branch counterpart to the single-weapon _rollMove path below — reached whenever
+	// `weapon` is an array of candidates: _onMoveRoll's usesWeapon branch (a full choice, possibly
+	// with no weapons at all — "Unarmed" is still always offered), or _onWeaponMoveRoll's own
+	// single-known-weapon call with offerUnarmed: false (no Unarmed entry, nothing to choose
+	// between). `traits` here is already the
 	// weapon-independent base list (see _rollMove's own dispatch) — the per-candidate Familiar
 	// +CHANNEL swap happens inside _weaponRollBundle instead, since which candidate is Familiar
 	// varies per bundle.
-	async _rollMoveWithWeaponChoice(move, weapons, traits, quickRoll) {
+	async _rollMoveWithWeaponChoice(move, weapons, traits, quickRoll, { offerUnarmed = true } = {}) {
 		const pendingGrant = this._pendingRollModifierGrant(move);
 		const lockedTrait = this._lockedTraitFor(move, quickRoll, traits);
 		const lockedAdvantage = this._lockedAdvantageFor(move, pendingGrant);
@@ -410,8 +415,10 @@ export const MoveRollSheetMixin = {
 		// configureMoveRoll below rather than folded into _weaponRollBundle.
 		const riders = this._ridersForMove(move);
 
-		// "Unarmed" first (see docs/domains/equipment.md's chooseWeapon precedent this replaces).
-		const weaponBundles = [null, ...weapons].map((candidate) =>
+		// "Unarmed" first (see docs/domains/equipment.md's chooseWeapon precedent this replaces) —
+		// unless offerUnarmed is false (_onWeaponMoveRoll's already-known single weapon), which
+		// omits it since there's nothing to choose between.
+		const weaponBundles = (offerUnarmed ? [null, ...weapons] : weapons).map((candidate) =>
 			this._weaponRollBundle(move, candidate, { traits, pendingGrant }));
 
 		const config = await configureMoveRoll(move, traits, {
@@ -440,10 +447,11 @@ export const MoveRollSheetMixin = {
 	},
 	// Shared by _onMoveRoll (weapon resolved via the merged dialog's own weapon-select, or left
 	// undefined for a move that isn't usesWeapon) and _onWeaponMoveRoll (weapon already known from
-	// the clicked button). `weapon` is an array of candidates only for _onMoveRoll's usesWeapon
-	// branch — every other caller still passes a single resolved weapon/null/undefined, exactly as
-	// before, and that path (below) is completely unchanged.
-	async _rollMove(move, weapon, quickRoll = {}) {
+	// the clicked button, passed as a single-element array with offerUnarmed: false). `weapon` is
+	// an array of candidates for either of those usesWeapon callers — every other caller still
+	// passes a single resolved weapon/null/undefined, exactly as before, and that path (below) is
+	// completely unchanged.
+	async _rollMove(move, weapon, quickRoll = {}, { offerUnarmed = true } = {}) {
 		let traits = this._moveTraits(move);
 		// _moveTraits already resolved CREW for the single/zero-Carrier case; with more than one
 		// Carrier in the world that's ambiguous, so ask which one before locking in the value this
@@ -463,7 +471,7 @@ export const MoveRollSheetMixin = {
 		// end of this function is the single-weapon path, untouched by weaponBundles at all.
 		if (Array.isArray(weapon)) {
 			if (!traits.length && !move.conditions) return;
-			return this._rollMoveWithWeaponChoice(move, weapon, traits, quickRoll);
+			return this._rollMoveWithWeaponChoice(move, weapon, traits, quickRoll, { offerUnarmed });
 		}
 
 		traits = this._weaponTraitsFor(move, weapon, traits);
