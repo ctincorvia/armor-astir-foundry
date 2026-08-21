@@ -1,5 +1,6 @@
 import { TRAITS } from "../core/traits.js";
 import { MOVE_POOLS } from "./move-pools/index.js";
+import { renderTemplate } from "../compat.js";
 
 export const PLAYBOOK_MOVE_PICKER_TEMPLATE = "modules/armor-astir/templates/playbook-move-picker.hbs";
 

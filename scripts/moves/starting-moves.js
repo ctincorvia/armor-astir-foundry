@@ -1,4 +1,5 @@
 import { MOVE_POOLS, pickerMove } from "./playbook-moves.js";
+import { renderTemplate } from "../compat.js";
 
 export const STARTING_MOVE_PICKER_TEMPLATE = "modules/armor-astir/templates/starting-move-picker.hbs";
 

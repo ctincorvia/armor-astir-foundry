@@ -7,6 +7,9 @@ import { addEntry, removeEntry, updateEntryField } from "./entry-list.js";
 // Fixed-slot lists (Authority's Pillars/Divisions) reuse the same field-edit handler as freeform
 // ones (Carrier's Crew Members, Cause's Factions); they just never render an add/remove control.
 export class WorldActorSheet extends ActorSheet {
+	// Matches pbta's own sheets — silences AppV1's v13+ deprecation warning with no behaviour change.
+	static _warnedAppV1 = true;
+
 	static get defaultOptions() {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			classes: ["armor-astir", "sheet", "actor", "world-actor"],

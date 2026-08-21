@@ -6,6 +6,7 @@ import { registerCauseActorSheet } from "./world-actors/cause-actor-sheet.js";
 import { registerNpcActorSheet } from "./world-actors/npc-actor-sheet.js";
 import { registerReflavorSettings, applyStoredReflavor } from "./reflavor/reflavor-settings.js";
 import { MODULE_ID } from "./module-id.js";
+import { loadTemplates } from "./compat.js";
 
 // Re-exported so every pre-existing importer of MODULE_ID from this file keeps working — the
 // constant itself lives in its own leaf module so scripts/reflavor/ (the only other code that

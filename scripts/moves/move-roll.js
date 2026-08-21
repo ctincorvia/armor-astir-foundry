@@ -17,6 +17,7 @@ import {
 	moveResultTier,
 	resolveTierValue
 } from "./move-results.js";
+import { renderTemplate } from "../compat.js";
 
 export const MOVE_CHAT_TEMPLATE = "modules/armor-astir/templates/move-chat.hbs";
 

@@ -36,6 +36,9 @@ export { mergeSpentTags };
 // playbook shares the same name/callsign/photo header, so one sheet class and template
 // serves all of them; a playbook that needs its own fields can extend this later.
 export class PlaybookActorSheet extends ActorSheet {
+	// Matches pbta's own sheets — silences AppV1's v13+ deprecation warning with no behaviour change.
+	static _warnedAppV1 = true;
+
 	static get defaultOptions() {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			classes: ["armor-astir", "sheet", "actor", "playbook"],

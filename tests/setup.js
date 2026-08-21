@@ -34,9 +34,19 @@ vi.stubGlobal("game", {
 	user: {
 		isGM: true,
 		id: "test-user"
+	},
+	// Default v12 shape so scripts/compat.js's generation()/chatRenderHook() exercise the v12 path
+	// unless a test overrides it — see tests/move-chat-listeners.test.js's registerMoveChatListeners
+	// describe block for the v13 override case.
+	release: {
+		generation: 12
 	}
 });
 
+// Deliberately has no `applications` key — this pins scripts/compat.js's shim to the bare-global
+// stub path below (renderTemplate/loadTemplates/readTextFromFile/saveDataToFile) for every test in
+// the suite. Adding foundry.applications here later would silently flip which branch the ~236
+// existing renderTemplate assertions exercise.
 vi.stubGlobal("foundry", {
 	utils: {
 		mergeObject: (...objects) => Object.assign({}, ...objects),

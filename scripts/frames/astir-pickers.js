@@ -9,6 +9,7 @@ import { ASTIR_PART_CATALOG } from "./astir-parts.js";
 import { ASTIR_MOVE_CATALOG } from "./astir-moves.js";
 import { ASTIR_WEAPON_CATALOG } from "./astir-weapons.js";
 import { findCatalogAstirWeapon, partRequirementTooltip, unmetPartRequirements } from "./astir.js";
+import { renderTemplate } from "../compat.js";
 
 // Opens the "+" picker for an Astir Part and resolves the chosen part's key, or null if dismissed
 // or nothing was selected — same promise/Dialog/resolve-null shape as choosePlaybookMove, and the

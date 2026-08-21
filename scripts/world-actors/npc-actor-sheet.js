@@ -12,6 +12,9 @@ export const NPC_ACTOR_TYPE = "armor-astir.npc";
 // Extends ActorSheet directly, not WorldActorSheet: an NPC has no entry-list at all, so inheriting
 // WorldActorSheet's list-CRUD machinery would add nothing but unused surface.
 export class NpcActorSheet extends ActorSheet {
+	// Matches pbta's own sheets — silences AppV1's v13+ deprecation warning with no behaviour change.
+	static _warnedAppV1 = true;
+
 	static get defaultOptions() {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			classes: ["armor-astir", "sheet", "actor", "npc"],

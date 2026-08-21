@@ -1,5 +1,6 @@
 import { buildTagReference, wirePickerTabs, withTagLabels } from "./equipment.js";
 import { STARTING_GEAR_POOLS } from "./starting-gear-pools.js";
+import { renderTemplate } from "../compat.js";
 
 export const STARTING_GEAR_PICKER_TEMPLATE = "modules/armor-astir/templates/starting-gear-picker.hbs";
 

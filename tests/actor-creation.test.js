@@ -496,22 +496,84 @@ describe("chooseActorKind", () => {
 });
 
 describe("registerPlaybookActorCreation", () => {
-	it("rebinds the directory's create-entry button", () => {
+	// v13+'s AppV2 ActorDirectory passes a bare HTMLElement (and pbta's own directory dispatches
+	// clicks via a delegated data-action listener, not a direct one — see actor-creation.js's own
+	// comment on registerPlaybookActorCreation), so this suite exercises real DOM nodes rather than
+	// the {find, off, on} jQuery-like fake a v12-only implementation could get away with.
+	function buildDirectoryContainer({ folderId } = {}) {
+		const container = document.createElement("div");
+		const button = document.createElement("button");
+		button.className = "create-entry";
+
+		if (folderId) {
+			const directoryItem = document.createElement("div");
+			directoryItem.className = "directory-item";
+			directoryItem.dataset.folderId = folderId;
+			directoryItem.appendChild(button);
+			container.appendChild(directoryItem);
+		} else {
+			container.appendChild(button);
+		}
+
+		return container;
+	}
+
+	// replaceWith swaps in a clone (see actor-creation.js), so the button actually wired with a
+	// listener has to be re-queried from the DOM rather than reused from before the handler ran.
+	function clickCreateEntry(container) {
+		const freshButton = container.querySelector(".create-entry");
+		freshButton.dispatchEvent(new MouseEvent("click", { bubbles: true, cancelable: true }));
+		return freshButton;
+	}
+
+	async function latestDialogOptions() {
+		const calls = await vi.waitFor(() => {
+			expect(Dialog.mock.calls.length).toBeGreaterThan(0);
+			return Dialog.mock.calls;
+		});
+		return calls.at(-1)[0];
+	}
+
+	it("rebinds the directory's create-entry button, replacing it with a clone so any direct v12-style listener is stripped", async () => {
 		registerPlaybookActorCreation();
 
 		expect(Hooks.on).toHaveBeenCalledWith("renderActorDirectory", expect.any(Function));
 
-		const off = vi.fn().mockReturnThis();
-		const on = vi.fn();
-		const button = { off, on };
-		const html = { find: vi.fn().mockReturnValue(button) };
+		const container = buildDirectoryContainer();
+		const originalButton = container.querySelector(".create-entry");
 
 		const renderCallback = Hooks.on.mock.calls.at(-1)[1];
-		renderCallback({}, html);
+		renderCallback({}, container);
 
-		expect(html.find).toHaveBeenCalledWith(".create-entry");
-		expect(off).toHaveBeenCalledWith("click");
-		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+		const freshButton = container.querySelector(".create-entry");
+		expect(freshButton).not.toBeNull();
+		expect(freshButton).not.toBe(originalButton);
+
+		clickCreateEntry(container);
+
+		const kindDialogOptions = await latestDialogOptions();
+		expect(Object.keys(kindDialogOptions.buttons)).toEqual(["playbook", "carrier", "authority", "cause", "npc"]);
+	});
+
+	it("does nothing when the directory has no create-entry button", () => {
+		registerPlaybookActorCreation();
+		const renderCallback = Hooks.on.mock.calls.at(-1)[1];
+		const container = document.createElement("div");
+
+		expect(() => renderCallback({}, container)).not.toThrow();
+		expect(Dialog).not.toHaveBeenCalled();
+	});
+
+	it("also accepts the html[0] jQuery-array shape, not just a bare HTMLElement", async () => {
+		registerPlaybookActorCreation();
+		const renderCallback = Hooks.on.mock.calls.at(-1)[1];
+		const container = buildDirectoryContainer();
+
+		renderCallback({}, [container]);
+		clickCreateEntry(container);
+
+		const kindDialogOptions = await latestDialogOptions();
+		expect(Object.keys(kindDialogOptions.buttons)).toEqual(["playbook", "carrier", "authority", "cause", "npc"]);
 	});
 
 	it("prompts for a kind, then a playbook, then creates the chosen one", async () => {
@@ -526,31 +588,21 @@ describe("registerPlaybookActorCreation", () => {
 
 		registerPlaybookActorCreation();
 		const renderCallback = Hooks.on.mock.calls.at(-1)[1];
-		const html = { find: vi.fn().mockReturnValue({ off: vi.fn().mockReturnThis(), on: vi.fn() }) };
-		renderCallback({}, html);
+		const container = buildDirectoryContainer();
+		renderCallback({}, container);
+		clickCreateEntry(container);
 
-		const clickHandler = html.find().on.mock.calls.at(-1)[1];
-		const event = {
-			preventDefault: vi.fn(),
-			stopPropagation: vi.fn(),
-			currentTarget: { closest: vi.fn().mockReturnValue(null) }
-		};
-		const clickResult = clickHandler(event);
-
-		const kindDialogOptions = Dialog.mock.calls.at(-1)[0];
+		const kindDialogOptions = await latestDialogOptions();
 		expect(Object.keys(kindDialogOptions.buttons)).toEqual(["playbook", "carrier", "authority", "cause", "npc"]);
 		kindDialogOptions.buttons.playbook.callback();
 		// The kind dialog's callback only resolves chooseActorKind's promise — onCreateEntryClick's
 		// continuation (which opens the playbook dialog) runs as a follow-up microtask.
-		await Promise.resolve();
+		await vi.waitFor(() => expect(Dialog.mock.calls.at(-1)[0].title).toBe("Choose a Playbook"));
 
 		const playbookDialogOptions = Dialog.mock.calls.at(-1)[0];
 		expect(Object.keys(playbookDialogOptions.buttons)).toEqual(PLAYBOOKS.map((p) => p.packId));
 		playbookDialogOptions.buttons[PLAYBOOKS[1].packId].callback();
-		await clickResult;
-		// The click handler fires createPlaybookActor without awaiting it (same
-		// fire-and-forget pattern Foundry event handlers use), so give its internal
-		// awaits a chance to flush before asserting on them.
+
 		await vi.waitFor(() => expect(Actor.create).toHaveBeenCalled());
 
 		expect(Actor.create).toHaveBeenCalledWith(
@@ -572,24 +624,16 @@ describe("registerPlaybookActorCreation", () => {
 
 		registerPlaybookActorCreation();
 		const renderCallback = Hooks.on.mock.calls.at(-1)[1];
-		const html = { find: vi.fn().mockReturnValue({ off: vi.fn().mockReturnThis(), on: vi.fn() }) };
-		renderCallback({}, html);
+		const container = buildDirectoryContainer({ folderId: "folder1" });
+		renderCallback({}, container);
+		clickCreateEntry(container);
 
-		const clickHandler = html.find().on.mock.calls.at(-1)[1];
-		const event = {
-			preventDefault: vi.fn(),
-			stopPropagation: vi.fn(),
-			currentTarget: { closest: vi.fn().mockReturnValue({ dataset: { folderId: "folder1" } }) }
-		};
-		const clickResult = clickHandler(event);
-
-		const kindDialogOptions = Dialog.mock.calls.at(-1)[0];
+		const kindDialogOptions = await latestDialogOptions();
 		kindDialogOptions.buttons.playbook.callback();
-		await Promise.resolve();
+		await vi.waitFor(() => expect(Dialog.mock.calls.at(-1)[0].title).toBe("Choose a Playbook"));
 
 		const playbookDialogOptions = Dialog.mock.calls.at(-1)[0];
 		playbookDialogOptions.buttons[SCOUT.packId].callback();
-		await clickResult;
 
 		await vi.waitFor(() => expect(Actor.create).toHaveBeenCalled());
 		expect(Actor.create).toHaveBeenCalledWith(
@@ -601,20 +645,14 @@ describe("registerPlaybookActorCreation", () => {
 	it("does not create anything when the kind dialog is closed without a selection", async () => {
 		registerPlaybookActorCreation();
 		const renderCallback = Hooks.on.mock.calls.at(-1)[1];
-		const html = { find: vi.fn().mockReturnValue({ off: vi.fn().mockReturnThis(), on: vi.fn() }) };
-		renderCallback({}, html);
+		const container = buildDirectoryContainer();
+		renderCallback({}, container);
+		clickCreateEntry(container);
 
-		const clickHandler = html.find().on.mock.calls.at(-1)[1];
-		const event = {
-			preventDefault: vi.fn(),
-			stopPropagation: vi.fn(),
-			currentTarget: { closest: vi.fn().mockReturnValue(null) }
-		};
-		const clickResult = clickHandler(event);
-
-		const kindDialogOptions = Dialog.mock.calls.at(-1)[0];
+		const kindDialogOptions = await latestDialogOptions();
 		kindDialogOptions.close();
-		await clickResult;
+		await Promise.resolve();
+		await Promise.resolve();
 
 		expect(Actor.create).not.toHaveBeenCalled();
 	});
@@ -628,24 +666,18 @@ describe("registerPlaybookActorCreation", () => {
 
 		registerPlaybookActorCreation();
 		const renderCallback = Hooks.on.mock.calls.at(-1)[1];
-		const html = { find: vi.fn().mockReturnValue({ off: vi.fn().mockReturnThis(), on: vi.fn() }) };
-		renderCallback({}, html);
+		const container = buildDirectoryContainer();
+		renderCallback({}, container);
+		clickCreateEntry(container);
 
-		const clickHandler = html.find().on.mock.calls.at(-1)[1];
-		const event = {
-			preventDefault: vi.fn(),
-			stopPropagation: vi.fn(),
-			currentTarget: { closest: vi.fn().mockReturnValue(null) }
-		};
-		const clickResult = clickHandler(event);
-
-		const kindDialogOptions = Dialog.mock.calls.at(-1)[0];
+		const kindDialogOptions = await latestDialogOptions();
 		kindDialogOptions.buttons.playbook.callback();
-		await Promise.resolve();
+		await vi.waitFor(() => expect(Dialog.mock.calls.at(-1)[0].title).toBe("Choose a Playbook"));
 
 		const playbookDialogOptions = Dialog.mock.calls.at(-1)[0];
 		playbookDialogOptions.close();
-		await clickResult;
+		await Promise.resolve();
+		await Promise.resolve();
 
 		expect(pack.getDocument).not.toHaveBeenCalled();
 		expect(Actor.create).not.toHaveBeenCalled();
@@ -661,20 +693,12 @@ describe("registerPlaybookActorCreation", () => {
 
 		registerPlaybookActorCreation();
 		const renderCallback = Hooks.on.mock.calls.at(-1)[1];
-		const html = { find: vi.fn().mockReturnValue({ off: vi.fn().mockReturnThis(), on: vi.fn() }) };
-		renderCallback({}, html);
+		const container = buildDirectoryContainer({ folderId: "folder1" });
+		renderCallback({}, container);
+		clickCreateEntry(container);
 
-		const clickHandler = html.find().on.mock.calls.at(-1)[1];
-		const event = {
-			preventDefault: vi.fn(),
-			stopPropagation: vi.fn(),
-			currentTarget: { closest: vi.fn().mockReturnValue({ dataset: { folderId: "folder1" } }) }
-		};
-		const clickResult = clickHandler(event);
-
-		const kindDialogOptions = Dialog.mock.calls.at(-1)[0];
+		const kindDialogOptions = await latestDialogOptions();
 		kindDialogOptions.buttons[key].callback();
-		await clickResult;
 
 		await vi.waitFor(() => expect(Actor.create).toHaveBeenCalled());
 		expect(Actor.create).toHaveBeenCalledWith(

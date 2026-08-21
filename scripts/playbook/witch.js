@@ -1,3 +1,5 @@
+import { renderTemplate } from "../compat.js";
+
 // The Witch's Boons — see moves.js's Patron move (playbook-moves.js) and patron-mixin.js, which
 // owns the actor-facing side of this domain (Influence, held Boons, the random grant, the manual
 // picker, Relinquish). Follows the same catalog-in-code / keys-on-actor split as astir.js's

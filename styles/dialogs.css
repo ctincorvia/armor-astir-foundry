@@ -597,19 +597,22 @@
    the window header above. Retheme them to the primary role here, once, for every armor-astir
    dialog rather than per dialog class.
 
-   pbta.css themes the same buttons via `.vtt .window-app .dialog-button` — three class
-   selectors, specificity (0,3,0). A plain `.armor-astir .dialog-button` (0,2,0) loses to that
-   regardless of stylesheet load order, which is why every armor-astir dialog (Exchange Blows'
-   weapon picker, the Create Actor kind picker, etc.) was still rendering pbta's navy buttons
-   despite this rule appearing to cover them. `.vtt .window-app.armor-astir .dialog-button` adds
-   a fourth class selector so it wins outright rather than relying on source-order tiebreaking. */
-.vtt .window-app.armor-astir .dialog-button {
+   pbta.css themes the same buttons two ways: `.vtt .window-app .dialog-button` (three class
+   selectors, specificity (0,3,0)) and `.vtt .window-app .dialog-buttons .dialog-button` (four
+   class selectors, (0,4,0)) — the stronger of the two, and the one actually being out-specified
+   here. A plain `.armor-astir .dialog-button` (0,2,0) loses to either regardless of stylesheet
+   load order, which is why every armor-astir dialog (Exchange Blows' weapon picker, the Create
+   Actor kind picker, etc.) was still rendering pbta's navy buttons despite this rule appearing to
+   cover them. `.vtt .window-app.armor-astir .dialog-buttons .dialog-button` reaches (0,5,0), which
+   ties neither of pbta's rules and wins outright rather than relying on source-order
+   tiebreaking. */
+.vtt .window-app.armor-astir .dialog-buttons .dialog-button {
 	background: var(--aa-primary);
 	color: white;
 	border: 0;
 }
 
-.vtt .window-app.armor-astir .dialog-button:hover {
+.vtt .window-app.armor-astir .dialog-buttons .dialog-button:hover {
 	background: var(--aa-primary-dark);
 }
 
@@ -618,7 +621,7 @@
    family, not an opacity fade -- see that rule's own comment on why faded white text on a faded
    fill goes unreadable) so a genuinely disabled dialog button reads the same way a disabled sheet
    button does. */
-.vtt .window-app.armor-astir .dialog-button.disabled {
+.vtt .window-app.armor-astir .dialog-buttons .dialog-button.disabled {
 	background: var(--aa-primary-tint);
 	border-color: var(--aa-primary-tint);
 	color: var(--aa-primary-dark);
@@ -631,11 +634,11 @@
    disabled form elements in Chromium, the engine Foundry's client runs on). Duplicated here rather
    than shared via a common class since dialogs.css and sheet-tabs.css style two different root
    scopes (.window-app.armor-astir Dialogs vs .armor-astir.sheet). */
-.vtt .window-app.armor-astir .dialog-button.disabled[data-gate-tooltip] {
+.vtt .window-app.armor-astir .dialog-buttons .dialog-button.disabled[data-gate-tooltip] {
 	position: relative;
 }
 
-.vtt .window-app.armor-astir .dialog-button.disabled[data-gate-tooltip]:hover::after {
+.vtt .window-app.armor-astir .dialog-buttons .dialog-button.disabled[data-gate-tooltip]:hover::after {
 	content: attr(data-gate-tooltip);
 	position: absolute;
 	bottom: 100%;
@@ -728,7 +731,7 @@
    the other pickers (playbook-move, weapon, equipment-catalog, starting-move) weren't reported as
    broken and haven't been checked live against this specific fix, so widening it risks an
    unverified regression there for no confirmed gain. */
-.vtt .window-app.armor-astir.equipment-editor input[type="radio"] {
+.vtt .window-app.armor-astir.equipment-editor .dialog-content input[type="radio"] {
 	margin: 0 5px 3px;
 }
 

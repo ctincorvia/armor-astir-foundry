@@ -1,5 +1,6 @@
 import { REFLAVOR_SECTIONS } from "./reflavor-schema.js";
 import { readOverridableFields } from "./reflavor-apply.js";
+import { saveDataToFile } from "../compat.js";
 
 const REFLAVOR_TEMPLATE_FILENAME = "armor-astir-reflavor-template.json";
 

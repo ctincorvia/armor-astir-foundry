@@ -215,7 +215,10 @@ export function chooseActorKind(worldActorKinds = WORLD_ACTOR_KINDS) {
 
 async function onCreateEntryClick(event) {
 	event.preventDefault();
-	event.stopPropagation();
+	// stopImmediatePropagation, not stopPropagation: v13+'s AppV2 ActorDirectory dispatches clicks
+	// via a delegated data-action listener on the application root (see registerPlaybookActorCreation
+	// below), which stopPropagation alone can't defeat.
+	event.stopImmediatePropagation();
 	const folder = event.currentTarget.closest(".directory-item")?.dataset.folderId ?? null;
 
 	const kindKey = await chooseActorKind();
@@ -234,8 +237,19 @@ async function onCreateEntryClick(event) {
 	createWorldActor(worldKind, { folder });
 }
 
+// v12's AppV1 sidebar binds .create-entry's click handler directly, so .off("click") can detach
+// it; v13+'s AppV2 ActorDirectory dispatches through a delegated data-action listener on the
+// application root instead, which .off() can't reach — without this rewrite, a v13+ click opens
+// both the armor-astir kind picker and core's own default Create Actor dialog. cloneNode+replaceWith
+// strips any direct v12-style listener the button carries; capture: true defeats the delegated
+// ancestor dispatch too (paired with onCreateEntryClick's own stopImmediatePropagation above).
 export function registerPlaybookActorCreation() {
 	Hooks.on("renderActorDirectory", (app, html) => {
-		html.find(".create-entry").off("click").on("click", onCreateEntryClick);
+		const root = html instanceof HTMLElement ? html : html?.[0];
+		const button = root?.querySelector(".create-entry");
+		if (!button) return;
+		const fresh = button.cloneNode(true);
+		button.replaceWith(fresh);
+		fresh.addEventListener("click", onCreateEntryClick, { capture: true });
 	});
 }

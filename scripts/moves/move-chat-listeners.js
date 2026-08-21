@@ -13,6 +13,7 @@ import { addDie, effectState, nextAdvantageState, removeDie, rollConditions } fr
 import { spendEquipmentTagsOnActor } from "../equipment/equipment.js";
 import { ALL_MOVES } from "./all-moves.js";
 import { resolvePlaybookMoves } from "./playbook-moves.js";
+import { chatRenderHook, renderTemplate, toJQuery } from "../compat.js";
 
 // Marks the reroll's tag spent (the same array/checkbox PlaybookActorSheet#_onEquipmentTagSpentToggle
 // drives), strikes through the original card's flavor in place to mark it superseded (see
@@ -383,6 +384,12 @@ export function onRenderMoveChat(message, html) {
 	}
 }
 
+// Wrapped in Hooks.once("init") — matching every other register* function in this codebase —
+// because this function itself runs at top-level module-import time (see main.js), before
+// game.release is guaranteed to be populated; resolving the hook name has to wait until init.
+// Registers exactly one hook name, never both: v13+ would double-bind every button otherwise.
 export function registerMoveChatListeners() {
-	Hooks.on("renderChatMessage", onRenderMoveChat);
+	Hooks.once("init", () => {
+		Hooks.on(chatRenderHook(), (message, html) => onRenderMoveChat(message, toJQuery(html)));
+	});
 }

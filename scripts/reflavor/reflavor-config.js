@@ -1,6 +1,7 @@
 import { MODULE_ID } from "../module-id.js";
 import { applyReflavor, resetToBaseline, validateReflavor } from "./reflavor-apply.js";
 import { downloadReflavorTemplate } from "./reflavor-export.js";
+import { readTextFromFile } from "../compat.js";
 
 export const REFLAVOR_CONFIG_TEMPLATE = "modules/armor-astir/templates/reflavor-config.hbs";
 
@@ -20,6 +21,9 @@ function summaryLines(overrides, warnings, errors) {
 // GM-only world config, not a transient picker launched from a sheet, which is exactly what
 // FormApplication + registerMenu's restricted: true is for.
 export class ReflavorConfig extends FormApplication {
+	// Matches pbta's own sheets — silences AppV1's v13+ deprecation warning with no behaviour change.
+	static _warnedAppV1 = true;
+
 	static get defaultOptions() {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			id: "armor-astir-reflavor-config",

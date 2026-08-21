@@ -22,6 +22,9 @@ beforeEach(() => {
 	// setup of its own — restored here in case an earlier test in this file overrode it.
 	game.user.isGM = true;
 	game.user.id = "test-user";
+	// Restored here in case the registerMoveChatListeners describe block's own generation-13 case
+	// ran first and left it overridden.
+	game.release.generation = 12;
 });
 
 function fakeChatHtml() {
@@ -68,10 +71,36 @@ function fakeChatHtml() {
 }
 
 describe("registerMoveChatListeners", () => {
-	it("registers a renderChatMessage hook wired to onRenderMoveChat", () => {
+	it("defers hook-name resolution to init, then wires renderChatMessage to onRenderMoveChat via toJQuery at generation 12", () => {
 		registerMoveChatListeners();
 
-		expect(Hooks.on).toHaveBeenCalledWith("renderChatMessage", onRenderMoveChat);
+		expect(Hooks.once).toHaveBeenCalledWith("init", expect.any(Function));
+		// game.release may not be populated at the module-import time this function itself runs at
+		// (see main.js), so the hook name is only resolved once the captured init callback fires.
+		const initCallback = Hooks.once.mock.calls.at(-1)[1];
+		initCallback();
+
+		expect(Hooks.on).toHaveBeenCalledWith("renderChatMessage", expect.any(Function));
+
+		// Exercises the wiring itself, not just the hook name: the registered callback runs
+		// onRenderMoveChat through toJQuery, which passes fakeChatHtml()'s plain-object html straight
+		// through (it isn't an HTMLElement) — a message with no offer flags at all is a safe, inert
+		// input for this.
+		const hookCallback = Hooks.on.mock.calls.at(-1)[1];
+		const fake = fakeChatHtml();
+		hookCallback({ flags: {} }, fake.html);
+
+		expect(fake.handler).toBeNull();
+	});
+
+	it("wires renderChatMessageHTML instead at generation 13", () => {
+		game.release.generation = 13;
+
+		registerMoveChatListeners();
+		const initCallback = Hooks.once.mock.calls.at(-1)[1];
+		initCallback();
+
+		expect(Hooks.on).toHaveBeenCalledWith("renderChatMessageHTML", expect.any(Function));
 	});
 });
 

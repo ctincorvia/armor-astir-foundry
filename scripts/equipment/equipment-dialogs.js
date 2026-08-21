@@ -19,6 +19,7 @@ import {
 	withTagLabels,
 	wirePickerTabs
 } from "./equipment-helpers.js";
+import { renderTemplate } from "../compat.js";
 
 // Opens the "+ Pick ... from Catalog" picker for one kind and resolves the chosen template, or
 // null if dismissed or nothing was selected. Mirrors choosePlaybookMove's promise/Dialog/

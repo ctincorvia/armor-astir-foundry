@@ -1,3 +1,4 @@
+import { renderTemplate } from "../compat.js";
 import {
 	advantageState,
 	effectState
