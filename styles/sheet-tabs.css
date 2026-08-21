@@ -160,6 +160,7 @@
 .armor-astir.sheet .move-info.disabled,
 .armor-astir.sheet .hold-step.disabled,
 .armor-astir.sheet .flat-hold-step.disabled,
+.armor-astir.sheet .move-tracker-step.disabled,
 .armor-astir.sheet .weapon-move-roll.disabled {
 	border-color: var(--aa-primary-tint);
 	color: var(--aa-primary-dark);

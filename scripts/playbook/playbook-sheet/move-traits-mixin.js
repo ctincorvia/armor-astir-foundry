@@ -126,6 +126,20 @@ export const MoveTraitsSheetMixin = {
 			if (trait.key === "familiarity") return { ...trait, value: this._familiarityValue() };
 			return trait;
 		});
+		// Crew Support's own hold-gated universal CREW option (see special-moves.js/moves-mixin.js's
+		// _crewSupportHold) — runs for every move (basic, special, playbook, Astir/Ardent alike)
+		// since this is the one shared resolver all of them go through, which is intentional: the
+		// move's own text is "spend it 1-for-1 to roll ANY move with +CREW." A distinct key
+		// (crew-support-crew, not crew) lets move-roll-mixin.js's _finishMoveRoll tell "this roll
+		// spent Crew Support's hold" apart from a move that already always offers CREW for free
+		// (Lead a Sortie's own fixedTraits entry, guarded against here via the !fixedTraits.some(...)
+		// check below so the two options never both appear on the same roll). There's no equivalent
+		// actorTraits-side guard: "crew" is never a real TRAITS entry (see traits.js), so
+		// availableMoveTraits/the addsTraitToMove paths above can never populate actorTraits with one.
+		if (this._crewSupportHold() > 0 && !fixedTraits.some((trait) => trait.key === "crew")) {
+			return [...actorTraits, ...fixedTraits,
+				{ key: "crew-support-crew", label: "CREW (Crew Support)", value: this._crewFixedTraitValue() }];
+		}
 		return [...actorTraits, ...fixedTraits];
 	},
 	// The single-Carrier case _moveTraits needs for display, and _rollMove's starting point

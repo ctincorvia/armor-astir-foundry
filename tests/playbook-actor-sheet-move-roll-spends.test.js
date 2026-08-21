@@ -345,6 +345,71 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 	});
 });
 
+// Crew Support's own hold spend (see moves-mixin.js's _crewSupportHoldSpend) — a resource spend
+// alongside _spendEquipmentTags/_spendRollModifiers above, but keyed off which trait the player
+// actually chose (config.trait.key) rather than a checked box, since the CREW-substitution option
+// is injected generically into every move's own trait list (see move-traits-mixin.js's
+// _moveTraits) rather than declared as its own spend field.
+describe("PlaybookActorSheet#_finishMoveRoll - Crew Support hold spend", () => {
+	it("spends 1 Crew Support hold when the roll used the crew-support-crew option", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: {}, attributes: { moveTrackers: { "crew-support": { hold: 2 } } } },
+			update: vi.fn()
+		};
+		const config = {
+			trait: { key: "crew-support-crew", label: "CREW (Crew Support)", value: 0 },
+			advantage: "none",
+			effect: "none"
+		};
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "help-or-hinder" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveTrackers.crew-support.hold": 1
+		});
+	});
+
+	it("does not spend Crew Support hold for an ordinary trait key", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 } },
+				attributes: { moveTrackers: { "crew-support": { hold: 2 } } }
+			},
+			update: vi.fn()
+		};
+		const config = { trait: { key: "know", label: "KNOW", value: 1 }, advantage: "none", effect: "none" };
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.moveTrackers.crew-support.hold": expect.anything() })
+		);
+	});
+
+	it("does not spend Crew Support hold for Lead a Sortie's own permanent crew fixedTraits key", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { know: { value: 1 }, defy: { value: 0 } },
+				attributes: { moveTrackers: { "crew-support": { hold: 2 } } }
+			},
+			update: vi.fn()
+		};
+		const config = { trait: { key: "crew", label: "CREW", value: 0 }, advantage: "none", effect: "none" };
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.moveTrackers.crew-support.hold": expect.anything() })
+		);
+	});
+});
+
 // _narrativeWeaponTags is _equipmentSpends' own sibling for tags with no codified mechanic (see
 // docs/domains/equipment.md's narrative-tag definition) — same frame/disabled/scoped filtering,
 // tested directly here rather than through _onMoveRoll since there's no equipmentSpends-style

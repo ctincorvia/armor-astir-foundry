@@ -622,3 +622,35 @@ describe("PlaybookActorSheet#_onMoveTrackerStep", () => {
 		});
 	});
 });
+
+describe("PlaybookActorSheet#_crewSupportHold", () => {
+	it("reads the stored hold value", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { moveTrackers: { "crew-support": { hold: 2 } } } } };
+
+		expect(sheet._crewSupportHold()).toBe(2);
+	});
+
+	it("treats a missing stored value as 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._crewSupportHold()).toBe(0);
+	});
+});
+
+describe("PlaybookActorSheet#_crewSupportHoldSpend", () => {
+	it("returns a patch that decrements the current hold by 1", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { moveTrackers: { "crew-support": { hold: 2 } } } } };
+
+		expect(sheet._crewSupportHoldSpend()).toEqual({ "system.attributes.moveTrackers.crew-support.hold": 1 });
+	});
+
+	it("floors at 0 rather than going negative", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { moveTrackers: { "crew-support": { hold: 0 } } } } };
+
+		expect(sheet._crewSupportHoldSpend()).toEqual({ "system.attributes.moveTrackers.crew-support.hold": 0 });
+	});
+});

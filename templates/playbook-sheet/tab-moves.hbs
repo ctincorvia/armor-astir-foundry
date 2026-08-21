@@ -48,9 +48,9 @@
 										{{#each trackers}}
 										<div class="move-tracker">
 											<span class="move-tracker-label">{{label}}</span>
-											<button type="button" class="move-tracker-step move-tracker-decrement" data-move="{{../key}}" data-tracker="{{key}}" data-delta="-1" data-min="{{min}}" data-max="{{max}}" aria-label="Decrease {{label}}">-</button>
+											<button type="button" class="move-tracker-step move-tracker-decrement{{#if ../gated}} disabled{{/if}}" data-move="{{../key}}" data-tracker="{{key}}" data-delta="-1" data-min="{{min}}" data-max="{{max}}" aria-label="Decrease {{label}}" {{#if ../gated}}disabled{{/if}}>-</button>
 											<span class="move-tracker-value">{{value}}</span>
-											<button type="button" class="move-tracker-step move-tracker-increment" data-move="{{../key}}" data-tracker="{{key}}" data-delta="1" data-min="{{min}}" data-max="{{max}}" aria-label="Increase {{label}}">+</button>
+											<button type="button" class="move-tracker-step move-tracker-increment{{#if ../gated}} disabled{{/if}}" data-move="{{../key}}" data-tracker="{{key}}" data-delta="1" data-min="{{min}}" data-max="{{max}}" aria-label="Increase {{label}}" {{#if ../gated}}disabled{{/if}}>+</button>
 										</div>
 										{{/each}}
 									</div>

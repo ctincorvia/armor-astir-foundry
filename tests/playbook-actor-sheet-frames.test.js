@@ -7,10 +7,19 @@ vi.mock("../scripts/frames/ardent.js", async (importOriginal) => ({
 	chooseFrame: vi.fn()
 }));
 
+// findCarrierActors defaults to no Carriers in the world, matching every other move-roll test
+// file's own convention (see playbook-actor-sheet-move-rolls.test.js) — Crew Support's own
+// _onRefreshSortie tests below override this per-test.
+vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	findCarrierActors: vi.fn(() => [])
+}));
+
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
 import { ASTIR_PART_CATALOG, astirMaxPower } from "../scripts/frames/astir.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { chooseFrame, ARDENT_FEATURE_PARTS } from "../scripts/frames/ardent.js";
+import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import { WEAPON_CONDUIT } from "./helpers/move-fixtures.js";
 
@@ -29,6 +38,8 @@ const CHROMATIC_RESERVES = ARDENT_FEATURE_PARTS.find((p) => p.key === "ardent-fe
 beforeEach(() => {
 	chooseFrame.mockClear();
 	ui.notifications.warn.mockClear();
+	findCarrierActors.mockClear();
+	findCarrierActors.mockReturnValue([]);
 });
 
 describe("PlaybookActorSheet#_onAstirPilotedToggle", () => {
@@ -732,7 +743,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
-			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
+			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
+			"system.attributes.moveTrackers.crew-support.hold": 0
 		});
 	});
 
@@ -759,7 +771,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
-			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
+			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
+			"system.attributes.moveTrackers.crew-support.hold": 0
 		});
 	});
 
@@ -791,6 +804,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
+			"system.attributes.moveTrackers.crew-support.hold": 0,
 			// The end-of-method Power reclamp against the regular-only loadout (no Extra Parts stored
 			// here) — Alchemical Suite's own -2 Power cost, already reflected before this refresh.
 			"system.attributes.astir.power": 0,
@@ -828,7 +842,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
-			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
+			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
+			"system.attributes.moveTrackers.crew-support.hold": 0
 		});
 	});
 
@@ -861,7 +876,8 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
 			"system.attributes.downtimeTokens.value": 2,
-			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3
+			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
+			"system.attributes.moveTrackers.crew-support.hold": 0
 		});
 	});
 
@@ -966,6 +982,71 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 				[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 				[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1
 			})
+		);
+	});
+
+	// Crew Support (see special-moves.js) takes its own hold from the world's Carrier's live CREW,
+	// the same "computed, not just cleared" treatment Tactical Genius's own KNOW-sourced hold gets
+	// immediately above -- but sourced from _crewFixedTraitValue rather than an actor stat.
+	it("sets Crew Support's hold to the single Carrier's live CREW value", () => {
+		findCarrierActors.mockReturnValue([{ id: "carrier1", system: { stats: { crew: { value: 2 } } } }]);
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.moveTrackers.crew-support.hold": 2 })
+		);
+	});
+
+	it("sets Crew Support's hold to 0 with no Carrier in the world", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.moveTrackers.crew-support.hold": 0 })
+		);
+	});
+
+	it("sets Crew Support's hold to 0 with more than one Carrier in the world (ambiguous, per _crewFixedTraitValue)", () => {
+		findCarrierActors.mockReturnValue([
+			{ id: "carrier1", system: { stats: { crew: { value: 2 } } } },
+			{ id: "carrier2", system: { stats: { crew: { value: 1 } } } }
+		]);
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.moveTrackers.crew-support.hold": 0 })
+		);
+	});
+
+	it("clamps Crew Support's hold to its max (3) even with a very high Carrier CREW", () => {
+		findCarrierActors.mockReturnValue([{ id: "carrier1", system: { stats: { crew: { value: 10 } } } }]);
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.moveTrackers.crew-support.hold": 3 })
+		);
+	});
+
+	it("floors Crew Support's hold at its min (0) with a negative Carrier CREW", () => {
+		findCarrierActors.mockReturnValue([{ id: "carrier1", system: { stats: { crew: { value: -3 } } } }]);
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.moveTrackers.crew-support.hold": 0 })
 		);
 	});
 

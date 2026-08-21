@@ -281,6 +281,16 @@ export const FramesSheetMixin = {
 				updates[`system.attributes.moveTrackers.${move.key}.${tracker.key}`] =
 					Math.min(tracker.max, Math.max(tracker.min, 1 + know));
 			}
+			// Crew Support (see special-moves.js) is the same "computed, not just cleared" shape as
+			// Tactical Genius immediately above -- overwrites _refreshPeriod's own generic
+			// reset-to-min with the Carrier's live CREW value instead (0 for the zero/ambiguous-
+			// Carrier case, per _crewFixedTraitValue's own contract), clamped against the tracker's
+			// own min/max.
+			if (move.key === "crew-support") {
+				const tracker = move.numericTrackers[0];
+				updates[`system.attributes.moveTrackers.${move.key}.${tracker.key}`] =
+					Math.min(tracker.max, Math.max(tracker.min, this._crewFixedTraitValue()));
+			}
 		}
 		// Alchemical Suite's "Take 1 of each Potion" (see astir-parts.js's grantsPotionsOnRefreshSortie)
 		// — this reset *is* the grant: every color goes back to unspent (false), making all three

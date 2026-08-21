@@ -57,6 +57,18 @@ export const MovesSheetMixin = {
 		}
 		return { [`system.attributes.moveUses.${move.key}.${this._nextUnusedMoveUseKey(move)}`]: true };
 	},
+	// Crew Support's own hold pool (see special-moves.js) — read by move-traits-mixin.js's
+	// _moveTraits to decide whether to offer this actor the CREW-substitution trait option on
+	// every other move.
+	_crewSupportHold() {
+		return this.actor.system.attributes?.moveTrackers?.["crew-support"]?.hold ?? 0;
+	},
+	// The actor.update fragment for spending 1 Crew Support hold — called by move-roll-mixin.js's
+	// _finishMoveRoll once a roll actually used the CREW-substitution option.
+	_crewSupportHoldSpend() {
+		const current = this._crewSupportHold();
+		return { "system.attributes.moveTrackers.crew-support.hold": Math.max(0, current - 1) };
+	},
 	// getData's moveGroups — Basic and Special moves are the same fixed list for every actor;
 	// Playbook Moves is the per-actor set picked via the "+" button, so it's the only group that
 	// renders add/remove controls (see the template's addable/removable branches). All three run
@@ -206,6 +218,11 @@ export const MovesSheetMixin = {
 			// requiresChannelDisabled) — distinct from the traits-empty gating below (Weave
 			// Magic), which never blocks reading a move's own description.
 			const channelGated = Boolean(move.requiresChannelDisabled) && !channelDisabled;
+			// True only for Crew Support (requiresCrew) — gated while the world's Carrier CREW is
+			// 0, since there's nothing this move's hold pool can draw from. _crewFixedTraitValue
+			// (move-traits-mixin.js) already resolves the zero/multiple-Carrier case to 0, so this
+			// reads the same way that display value already does.
+			const crewGated = Boolean(move.requiresCrew) && this._crewFixedTraitValue() === 0;
 			// Eidolon Drive's Summon button (Summoner — see playbook-moves.js's summonsAlly) has
 			// nothing to summon with zero bound allies, so it's disabled the same way every other
 			// gated action button in this module is, rather than left to _onEidolonDriveSummon's
@@ -283,9 +300,10 @@ export const MovesSheetMixin = {
 				// this one (Never Quite Free disabling Bite the Dust, via disabledBy above), OR
 				// Chromatic Focus/Chromatic Reserves have nothing left to spend
 				// (promptsApproachOverrideGated above), OR this move's own requiresMoves/requiresParts
-				// isn't (or is no longer) satisfied (requirementTooltip above).
-				gated: (move.traits.length > 0 && traits.length === 0) || channelGated || summonGated || approachOverrideGated
-					|| promptsApproachOverrideGated || Boolean(disabledBy) || Boolean(requirementTooltip),
+				// isn't (or is no longer) satisfied (requirementTooltip above), OR (Crew Support) the
+				// world's Carrier CREW is 0 (crewGated above).
+				gated: (move.traits.length > 0 && traits.length === 0) || channelGated || crewGated || summonGated
+					|| approachOverrideGated || promptsApproachOverrideGated || Boolean(disabledBy) || Boolean(requirementTooltip),
 				// Whether this move rolls anything at all, based on its static definition rather
 				// than the actor-filtered trait list above — a gated move (e.g. Weave Magic with
 				// Channel disabled) still shows a disabled Roll button, but a move with no traits or

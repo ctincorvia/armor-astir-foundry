@@ -1,9 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// findCarrierActors defaults to no Carriers in the world, matching every other move-roll test
+// file's own convention (see playbook-actor-sheet-move-rolls.test.js).
+vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	findCarrierActors: vi.fn(() => [])
+}));
 
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
+import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 
 const NEVER_QUITE_FREE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:never-quite-free");
+
+beforeEach(() => {
+	findCarrierActors.mockClear();
+	findCarrierActors.mockReturnValue([]);
+});
 
 describe("PlaybookActorSheet#getData - gated moves", () => {
 	it("gates weave magic's Roll button when CHANNEL is disabled", () => {
@@ -78,6 +91,34 @@ describe("PlaybookActorSheet#getData - gated moves", () => {
 		// Moves group (see _movesData) — its gating is now mount-based, not CHANNEL-based, and is
 		// covered in tests/playbook-actor-sheet-astir.test.js instead.
 		expect(specialGroup(data).moves.find((m) => m.key === "lead-a-sortie").gated).toBe(false);
+	});
+
+	it("gates Crew Support when the world's Carrier CREW is 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(specialGroup(data).moves.find((m) => m.key === "crew-support").gated).toBe(true);
+	});
+
+	it("un-gates Crew Support once the world's Carrier has nonzero CREW", () => {
+		findCarrierActors.mockReturnValue([{ id: "carrier1", system: { stats: { crew: { value: 2 } } } }]);
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(specialGroup(data).moves.find((m) => m.key === "crew-support").gated).toBe(false);
+	});
+
+	it("leaves an ordinary move (requiresCrew absent) ungated regardless of the world's Carrier CREW", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups[0].moves.find((m) => m.key === "help-or-hinder").gated).toBe(false);
 	});
 
 	it("also greys out b-plot's Description button when CHANNEL is enabled", () => {

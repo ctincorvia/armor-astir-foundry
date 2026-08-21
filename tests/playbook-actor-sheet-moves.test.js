@@ -229,6 +229,26 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						trackers: []
 					},
 					{
+						key: "crew-support",
+						name: "Crew Support",
+						traits: [],
+						// No Carrier exists in this fixture's world, so CREW reads as 0 — requiresCrew
+						// gates the move, the same "nothing to draw hold from" treatment b-plot's own
+						// CHANNEL-based gating gets above.
+						gated: true,
+						rollable: false,
+						activatable: false,
+						summonable: false,
+						descriptionGated: false,
+						trackHold: false,
+						separateHoldPool: false,
+						hold: 0,
+						uses: [],
+						traitBonusChoosable: false,
+						traitBonusChoice: "",
+						trackers: [{ key: "hold", label: "Hold", min: 0, max: 3, value: 0 }]
+					},
+					{
 						key: "b-plot",
 						name: "B-Plot",
 						traits: [],

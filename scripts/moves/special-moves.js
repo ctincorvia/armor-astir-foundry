@@ -1,9 +1,9 @@
 // Special moves sit in their own sheet section below Basic Moves (see
 // PlaybookActorSheet#getData) but share the exact same shape/handling as basic moves — the only
 // structural difference is where they're grouped. Some special moves are additionally
-// conditional on actor state via requiresChannelDisabled (see b-plot below and
-// PlaybookActorSheet's `gated` computation) rather than being available unconditionally like
-// lead-a-sortie and subsystems.
+// conditional on actor state via requiresChannelDisabled (see b-plot below) or requiresCrew (see
+// crew-support below and PlaybookActorSheet's `gated` computation) rather than being available
+// unconditionally like lead-a-sortie and subsystems.
 export const SPECIAL_MOVES = [
 	{
 		key: "lead-a-sortie",
@@ -29,6 +29,28 @@ export const SPECIAL_MOVES = [
 			mixed: "The crew stumbles, misses something important, or is unprepared for what they meet.",
 			failure: null
 		}
+	},
+	{
+		key: "crew-support",
+		name: "Crew Support",
+		traits: [],
+		// requiresCrew gates this move (see moves-mixin.js's _moveGroupMoves `gated` computation)
+		// while the world's Carrier CREW is 0 — with nothing to draw hold from, there's nothing
+		// this move can do. Unlike Lead a Sortie's own always-on `fixedTraits` CREW option, Crew
+		// Support's CREW substitution isn't declared here at all — it's conditionally injected into
+		// every OTHER move's trait list by move-traits-mixin.js's _moveTraits, gated on this move's
+		// own hold being above 0. See that file for the actual mechanism.
+		requiresCrew: true,
+		// A HOLD counter refreshed every Sortie from the Carrier's live CREW value (see
+		// frames-mixin.js's _onRefreshSortie), the same shape The Captain's Tactical Genius uses for
+		// its own KNOW-sourced hold. max: 3 is deliberate, not generous headroom like Tactical
+		// Genius's max: 6 — CREW's own range is hard-capped at -3..3 by CREW_MIN/CREW_MAX in
+		// carrier-actor-sheet.js, so 3 is the true ceiling for this pool.
+		numericTrackers: [{ key: "hold", label: "Hold", min: 0, max: 3, period: "Sortie" }],
+		description:
+			"<p>When you coordinate with your Carrier's crew to lend aid, you lever their skill into " +
+			"support for your own actions. At the start of a Sortie, take hold equal to your Carrier's " +
+			"+CREW. Spend it 1-for-1 to roll any move with +CREW instead of that move's own traits.</p>"
 	},
 	{
 		key: "subsystems",

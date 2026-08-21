@@ -267,6 +267,11 @@ export const MoveRollSheetMixin = {
 		// config.effect by configureMoveRoll's own live chain resolution (see roll-chain.js) before
 		// this ever runs -- this call is purely the resource-spend side.
 		if (config.spentRollModifiers?.length) await this._spendRollModifiers(config.spentRollModifiers);
+		// Spends 1 Crew Support hold only when this roll actually used the Crew Support CREW
+		// substitution (see move-traits-mixin.js's _moveTraits) -- not when a move's own permanent
+		// CREW fixedTraits (Lead a Sortie) was used instead, since that has a different trait key
+		// (crew) and costs nothing.
+		if (config.trait?.key === "crew-support-crew") await this.actor.update(this._crewSupportHoldSpend());
 
 		// weapon undefined (not a usesWeapon move) leaves rollMove's options untouched, same as
 		// today, for every move except Exchange Blows/Strike Decisively. null (Unarmed) or a real

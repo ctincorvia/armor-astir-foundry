@@ -320,3 +320,59 @@ describe("PlaybookActorSheet#_moveTraits", () => {
 		]);
 	});
 });
+
+describe("PlaybookActorSheet#_moveTraits - Crew Support's CREW substitution", () => {
+	it("offers a crew-support-crew option on any move once Crew Support has hold", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { sense: { value: 1 } },
+				attributes: { moveTrackers: { "crew-support": { hold: 2 } } }
+			}
+		};
+
+		expect(sheet._moveTraits({ key: "read-the-room", traits: ["sense"] })).toEqual([
+			{ key: "sense", label: "SENSE", value: 1 },
+			{ key: "crew-support-crew", label: "CREW (Crew Support)", value: 0 }
+		]);
+	});
+
+	it("does not offer the option without any Crew Support hold", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { sense: { value: 1 } }, attributes: {} } };
+
+		expect(sheet._moveTraits({ key: "read-the-room", traits: ["sense"] })).toEqual([
+			{ key: "sense", label: "SENSE", value: 1 }
+		]);
+	});
+
+	it("offers the option even on a move with no traits of its own (Help or Hinder)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: {}, attributes: { moveTrackers: { "crew-support": { hold: 1 } } } }
+		};
+
+		expect(sheet._moveTraits({ key: "help-or-hinder", traits: [] })).toEqual([
+			{ key: "crew-support-crew", label: "CREW (Crew Support)", value: 0 }
+		]);
+	});
+
+	it("does not duplicate CREW on Lead a Sortie, which already offers a real crew fixedTraits entry", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { know: { value: 0 }, defy: { value: 0 } }, attributes: { moveTrackers: { "crew-support": { hold: 1 } } } }
+		};
+		const leadASortie = {
+			key: "lead-a-sortie",
+			traits: ["know", "defy"],
+			fixedTraits: [{ key: "crew", label: "CREW", value: 0 }]
+		};
+
+		const traits = sheet._moveTraits(leadASortie);
+
+		expect(traits.filter((trait) => trait.key === "crew" || trait.key === "crew-support-crew")).toEqual([
+			{ key: "crew", label: "CREW", value: 0 }
+		]);
+	});
+
+});
