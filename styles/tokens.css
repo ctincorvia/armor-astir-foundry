@@ -49,14 +49,27 @@ li.chat-message:has(.armor-astir-move-chat) {
 	--aa-space-4: 16px;
 	--aa-radius: 4px;
 	--aa-border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+
+	/* Foundry v13+ auto-adopts the OS/browser light-dark preference (or a world-level override) and
+	   sets an ambient dark color-scheme; that's inherited CSS, so it reaches native <select> popups
+	   even inside our AppV1 windows, which never opt into v13's own themed chrome. The popup itself
+	   can't be restyled by class selectors (it's native OS/browser chrome) — only color-scheme
+	   controls it. Forcing light here is a no-op on v12, where nothing sets an ambient dark scheme. */
+	color-scheme: light;
 }
 
 /* pbta's own global SCSS themes every Foundry window (sheet or Dialog) navy, with nothing scoping
    it away from ours — retheme the chrome here so it reads as this module's palette instead. Scoped
    to the outer .window-app element itself (not .armor-astir.sheet, which only ever matches inside
-   .window-content) since that's the element carrying both "window-app" and "armor-astir". */
+   .window-content) since that's the element carrying both "window-app" and "armor-astir".
+
+   background is set here too, not just on .window-header below: pbta paints .window-app itself navy
+   (a blanket fill behind the whole frame), and v13's redesigned window chrome adds a padding inset
+   around .window-header that .window-header's own background can't reach — without this, that inset
+   shows pbta's raw navy peeking out above/below the header on v13+. */
 .window-app.armor-astir {
 	border-color: var(--aa-primary-dark);
+	background: var(--aa-primary-dark);
 }
 
 .window-app.armor-astir .window-header {
