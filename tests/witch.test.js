@@ -22,6 +22,42 @@ function fakeWitchBoonsHtml(checkedValues = []) {
 	};
 }
 
+// Fakes the jQuery `.find(selector)` chain chooseWitchBoons' own render callback uses: the bare
+// `[name='witch-boon']` selector captures the change handler updateSaveState is wired to, its
+// `:checked`-suffixed counterpart reports whatever keys the test has set in `checkedValues` at
+// call time (mirroring fakeWitchBoonsHtml's own reads), and `[data-button='add']` captures Add's
+// own disabled/class/tooltip state, mirroring tests/equipment-editor.test.js's
+// fakeEquipmentRenderHtml's `[data-button='save']` branch.
+function fakeWitchBoonsRenderHtml(checkedValues = []) {
+	const state = {
+		checkedValues,
+		changeHandler: null,
+		addDisabled: undefined,
+		addDisabledClass: undefined,
+		addGateTooltip: undefined
+	};
+	state.html = {
+		find: (selector) => {
+			if (selector === "[data-button='add']") {
+				return {
+					prop: (name, value) => { if (name === "disabled") state.addDisabled = value; },
+					toggleClass: (cls, value) => { if (cls === "disabled") state.addDisabledClass = value; },
+					attr: (attr, value) => { if (attr === "data-gate-tooltip") state.addGateTooltip = value; },
+					removeAttr: (attr) => { if (attr === "data-gate-tooltip") state.addGateTooltip = undefined; }
+				};
+			}
+			if (selector === "[name='witch-boon']:checked") {
+				return { map: (fn) => ({ get: () => state.checkedValues.map((value, index) => fn(index, { value })) }) };
+			}
+			if (selector === "[name='witch-boon']") {
+				return { on: (event, handler) => { state.changeHandler = handler; } };
+			}
+			return {};
+		}
+	};
+	return state;
+}
+
 beforeEach(() => {
 	vi.resetAllMocks();
 	Dialog.mockImplementation(function (data) {
@@ -149,7 +185,7 @@ describe("chooseWitchBoons", () => {
 		expect(await promise).toEqual(["witch-boon:b", "witch-boon:a"]);
 	});
 
-	it("truncates the checked selection to count, in checkbox order", async () => {
+	it("resolves null and warns when the checked selection exceeds count", async () => {
 		const promise = chooseWitchBoons(FIXTURE_BOONS, 2, []);
 		await Promise.resolve();
 		await Promise.resolve();
@@ -158,7 +194,77 @@ describe("chooseWitchBoons", () => {
 			fakeWitchBoonsHtml(["witch-boon:a", "witch-boon:b", "witch-boon:c"])
 		);
 
-		expect(await promise).toEqual(["witch-boon:a", "witch-boon:b"]);
+		expect(ui.notifications.warn).toHaveBeenCalledWith("You can choose at most 2 Boons (currently 3 selected).");
+		expect(await promise).toBeNull();
+	});
+
+	it("uses the singular 'Boon' in the gate-tooltip message when count is 1", async () => {
+		const promise = chooseWitchBoons(FIXTURE_BOONS, 1, []);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		Dialog.mock.calls.at(-1)[0].buttons.add.callback(
+			fakeWitchBoonsHtml(["witch-boon:a", "witch-boon:b"])
+		);
+
+		expect(ui.notifications.warn).toHaveBeenCalledWith("You can choose at most 1 Boon (currently 2 selected).");
+		expect(await promise).toBeNull();
+	});
+
+	it("starts Choose enabled when the dialog first renders with nothing checked", async () => {
+		const promise = chooseWitchBoons(FIXTURE_BOONS, 2, []);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeWitchBoonsRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.addDisabled).toBe(false);
+		expect(state.addDisabledClass).toBe(false);
+		expect(state.addGateTooltip).toBeUndefined();
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("disables Choose and sets a gate-tooltip once more than count boons are checked", async () => {
+		const promise = chooseWitchBoons(FIXTURE_BOONS, 2, []);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeWitchBoonsRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedValues = ["witch-boon:a", "witch-boon:b", "witch-boon:c"];
+		state.changeHandler();
+
+		expect(state.addDisabledClass).toBe(true);
+		expect(state.addGateTooltip).toBe("You can choose at most 2 Boons (currently 3 selected).");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("re-enables Choose and clears the tooltip once unchecked back down within count", async () => {
+		const promise = chooseWitchBoons(FIXTURE_BOONS, 2, []);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeWitchBoonsRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedValues = ["witch-boon:a", "witch-boon:b", "witch-boon:c"];
+		state.changeHandler();
+		expect(state.addDisabledClass).toBe(true);
+
+		state.checkedValues = ["witch-boon:a", "witch-boon:b"];
+		state.changeHandler();
+
+		expect(state.addDisabledClass).toBe(false);
+		expect(state.addGateTooltip).toBeUndefined();
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
 	});
 
 	it("drops a checked value that doesn't match a real catalog key", async () => {

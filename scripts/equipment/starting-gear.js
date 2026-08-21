@@ -19,25 +19,24 @@ export function findStartingGearPool(playbookName, pools = STARTING_GEAR_POOLS) 
 
 // Opens the "+ Choose Starting Gear" picker for one playbook's pool and resolves the picked
 // items' full definitions (not bare keys — the caller turns each straight into an equipment
-// entry, same as a catalog pick), or null if the dialog was dismissed. Mirrors
-// chooseEquipmentCatalogItem's promise/Dialog shape (equipment.js).
+// entry, same as a catalog pick), or null if the dialog was dismissed or Add was clicked over
+// budget. Mirrors chooseEquipmentCatalogItem's promise/Dialog shape (equipment.js).
 //
-// Each group's checked selection is truncated to its own chooseCount before resolving, in
-// checkbox order — the hard-cap enforcement point, applied independently per group so (e.g.) The
-// Diplomat's 1 weapon and 3 gear budgets can't bleed into each other. Checkbox `name` is
-// group-scoped (see starting-gear-picker.hbs) so one group's checked boxes never leak into
-// another's count. This mirrors configureEquipment's existing tier-clamp idiom (normalize the
-// result rather than reject the dialog) instead of blocking Add or disabling checkboxes live,
-// which would need the kind of reactive-form wiring claude.md notes this module's Dialogs have no
-// precedent for.
+// Each group's checked count is validated against its own chooseCount independently — so (e.g.)
+// The Diplomat's 1 weapon and 3 gear budgets can't bleed into each other — via the same
+// invalidReason/updateSaveState/authoritative-recheck idiom configureEquipment's Save button uses
+// (equipment-dialogs.js): Add is disabled live with a CSS gate-tooltip explaining which group is
+// over, and the callback re-checks and warns rather than trusting the DOM's disabled attribute,
+// which Enter-to-submit can bypass. Checkbox `name` is group-scoped (see starting-gear-picker.hbs)
+// so one group's checked boxes never leak into another's count.
 export async function chooseStartingGear(playbookName, pools = STARTING_GEAR_POOLS) {
 	const pool = findStartingGearPool(playbookName, pools);
 	if (!pool) return null;
 
 	// buildTagReference and the per-item tagLabels annotations below are both computed off the
 	// raw pool data — pool.grantedItems/pool.groups themselves are never reassigned, so the Add
-	// callback's own truncation/clamping logic (which reads pool.groups directly) can't
-	// accidentally resolve against a tag-labeled clone.
+	// callback's own picked-items lookup (which reads pool.groups directly) can't accidentally
+	// resolve against a tag-labeled clone.
 	const { tagGroups, hasTags } = buildTagReference([...pool.grantedItems, ...pool.groups.flatMap((group) => group.items)]);
 	const content = await renderTemplate(STARTING_GEAR_PICKER_TEMPLATE, {
 		grantedItems: pool.grantedItems.map((item) => withTagLabels(item)),
@@ -47,6 +46,20 @@ export async function chooseStartingGear(playbookName, pools = STARTING_GEAR_POO
 		hasTags
 	});
 
+	// The single source of truth for "why can't this be added right now" — shared by the render
+	// callback's live Add-button state and the Add button's own authoritative recheck, mirroring
+	// configureEquipment's own invalidReason (equipment-dialogs.js).
+	const invalidReason = (html) => {
+		for (const group of pool.groups) {
+			const checkedCount = html.find(`[name='starting-gear-item-${group.key}']:checked`)
+				.map((_, el) => el.value).get().length;
+			if (checkedCount > group.chooseCount) {
+				return `You can pick at most ${group.chooseCount} for "${group.label}" (currently ${checkedCount} selected).`;
+			}
+		}
+		return null;
+	};
+
 	return new Promise((resolve) => {
 		new Dialog({
 			title: "Choose Starting Gear",
@@ -54,16 +67,37 @@ export async function chooseStartingGear(playbookName, pools = STARTING_GEAR_POO
 			// Foundry's Dialog only ever invokes data.render, not options.render (see
 			// client/ui/dialog.js's `this.data.render(...)` call) — this is the DialogData
 			// argument, same as configureEquipment's own tag-total wiring (equipment.js).
-			render: wirePickerTabs,
+			render: (html) => {
+				wirePickerTabs(html);
+				const updateSaveState = () => {
+					const reason = invalidReason(html);
+					const addButton = html.find("[data-button='add']");
+					addButton.prop("disabled", Boolean(reason));
+					addButton.toggleClass("disabled", Boolean(reason));
+					if (reason) addButton.attr("data-gate-tooltip", reason);
+					else addButton.removeAttr("data-gate-tooltip");
+				};
+				for (const group of pool.groups) {
+					html.find(`[name='starting-gear-item-${group.key}']`).on("change", updateSaveState);
+				}
+				updateSaveState();
+			},
 			buttons: {
 				add: {
 					label: "Add",
 					callback: (html) => {
+						// The authoritative gate — see invalidReason's own doc comment above on why this
+						// can't just trust the DOM's live disabled attribute (Enter-to-submit bypasses it).
+						const reason = invalidReason(html);
+						if (reason) {
+							ui.notifications.warn(reason);
+							resolve(null);
+							return;
+						}
 						const picked = pool.groups.flatMap((group) => {
 							const checkedKeys = html.find(`[name='starting-gear-item-${group.key}']:checked`)
 								.map((_, el) => el.value).get();
 							return checkedKeys
-								.slice(0, group.chooseCount)
 								.map((key) => group.items.find((item) => item.key === key))
 								.filter(Boolean);
 						});

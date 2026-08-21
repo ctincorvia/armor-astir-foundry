@@ -55,8 +55,8 @@
 			"description": "Short (for an Astir) blades fitted with a high-frequency vibro-edge, vibroblades are good for when you find yourself up close and personal. Also mounted as a throwing glaive, charged hatchet, or serrated combat knives."
 		},
 		"force-repeater": {
-			"name": "Autocannon",
-			"description": "A simple mechanism that rapidly fires short bursts of kinetic rounds, serving as an effective reserve weapon. Also mounted as a sidearm, mining laser, or point-defense turret."
+			"name": "Heavy Machine Gun",
+			"description": "A fully automatic, large caliber machine gun firing kinetic rounds, serving as an effective weapon. Also mounted as a sidearm, mining laser, or point-defense turret."
 		},
 		"rayrifle": {
 			"name": "Beam Rifle",
@@ -88,7 +88,7 @@
 		},
 		"overcharged-bolts": {
 			"name": "Gauss Cannon",
-			"description": "If you need something punchier, you can take a very standard piece of Astir hardware—a simple slug thrower, for example—and simply feed it far, far more current than expected. Also mounted as a Gatling gun, beam rifle, or overcharged railgun."
+			"description": "A high-powered energy weapon that fires charged projectiles with immense velocity. Also mounted as a Gatling gun, beam rifle, or overcharged railgun."
 		},
 		"chaos-revolver": {
 			"name": "Fusion Pistol",
@@ -158,7 +158,7 @@
 		},
 		"bloodletter-i": {
 			"name": "Piercer",
-			"description": "The rank-and-file of the Faces Of Progress carry these sinister spears, mundane in nature but engineered specifically to punch through armour plating and flesh alike. Those not of the rank-and-file, it turns out, have an unquenchable thirst."
+			"description": "The rank-and-file of the Faces Of Progress carry these sinister spears, mundane in nature but engineered specifically to punch through armour plating and flesh alike."
 		},
 		"little-shark-ii": {
 			"name": "Cryo Harpoon",
@@ -174,7 +174,7 @@
 		},
 		"colossus-repeater-iii": {
 			"name": "Autocannon Repeater",
-			"description": "Using the same mechanism as a common autoloader, Colossus Repeaters are designed to fire armour-piercing rounds for maximum penetration. In a pinch, a talented gunner can work the reloading mechanism quickly enough for multiple follow-up shots."
+			"description": "Using a sophisticated autoloader, Autocannon Repeaters fire armour-piercing rounds for maximum penetration."
 		},
 		"wayward-skull-i": {
 			"name": "Salvaged AI Core",

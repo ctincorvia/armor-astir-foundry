@@ -237,10 +237,14 @@ export function startingMovePickerData(pool, movePools = MOVE_POOLS) {
 }
 
 // Opens the one-time "+ Choose Starting Moves" picker for a playbook's pool and resolves the
-// chosen move keys — the pickOne radio's key (if any was checked) followed by up to chooseCount
-// checked Additional Move keys, in checkbox order — or null if the dialog was dismissed. Mirrors
-// chooseStartingGear's promise/Dialog shape and its "normalize rather than reject" clamp on
-// chooseCount.
+// chosen move keys — the pickOne radio's key (if any was checked) followed by the checked
+// Additional Move keys, in checkbox order — or null if the dialog was dismissed or Add was
+// clicked with more than chooseCount Additional Moves checked (the pickOne radio can never be
+// over-selected). Mirrors chooseStartingGear's promise/Dialog shape and its invalidReason/
+// updateSaveState/authoritative-recheck idiom (equipment-dialogs.js's configureEquipment is the
+// original pattern both mirror): Add is disabled live with a CSS gate-tooltip once the cap is
+// exceeded, and the callback re-checks and warns rather than trusting the DOM's disabled
+// attribute, which Enter-to-submit can bypass.
 export async function chooseStartingMoves(playbookName, pools = STARTING_MOVE_POOLS, movePools = MOVE_POOLS) {
 	const pool = findStartingMovePool(playbookName, pools);
 	if (!pool) return null;
@@ -248,14 +252,45 @@ export async function chooseStartingMoves(playbookName, pools = STARTING_MOVE_PO
 	const { grantedMoves, pickOneMoves, additionalMoves, chooseCount } = startingMovePickerData(pool, movePools);
 	const content = await renderTemplate(STARTING_MOVE_PICKER_TEMPLATE, { grantedMoves, pickOneMoves, additionalMoves, chooseCount });
 
+	// The single source of truth for "why can't this be added right now" — shared by the render
+	// callback's live Add-button state and the Add button's own authoritative recheck, mirroring
+	// configureEquipment's own invalidReason (equipment-dialogs.js).
+	const invalidReason = (html) => {
+		const checkedCount = html.find("[name='starting-move-additional']:checked").map((_, el) => el.value).get().length;
+		if (checkedCount > chooseCount) {
+			return `You can pick at most ${chooseCount} Additional Move${chooseCount === 1 ? "" : "s"} (currently ${checkedCount} selected).`;
+		}
+		return null;
+	};
+
 	return new Promise((resolve) => {
 		new Dialog({
 			title: "Choose Starting Moves",
 			content,
+			render: (html) => {
+				const updateSaveState = () => {
+					const reason = invalidReason(html);
+					const addButton = html.find("[data-button='add']");
+					addButton.prop("disabled", Boolean(reason));
+					addButton.toggleClass("disabled", Boolean(reason));
+					if (reason) addButton.attr("data-gate-tooltip", reason);
+					else addButton.removeAttr("data-gate-tooltip");
+				};
+				html.find("[name='starting-move-additional']").on("change", updateSaveState);
+				updateSaveState();
+			},
 			buttons: {
 				add: {
 					label: "Add",
 					callback: (html) => {
+						// The authoritative gate — see invalidReason's own doc comment above on why this
+						// can't just trust the DOM's live disabled attribute (Enter-to-submit bypasses it).
+						const reason = invalidReason(html);
+						if (reason) {
+							ui.notifications.warn(reason);
+							resolve(null);
+							return;
+						}
 						// An empty jQuery set's .val() is undefined, same as "nothing checked" reads
 						// everywhere else in this module — filtered against the real pickOneMoves so a
 						// stale/tampered value can't sneak a non-existent key into playbookMoves.
@@ -263,8 +298,7 @@ export async function chooseStartingMoves(playbookName, pools = STARTING_MOVE_PO
 						const pickOneKey = pickOneMoves.some((move) => move.key === rawPickOneKey) ? rawPickOneKey : undefined;
 
 						const additionalKeys = html.find("[name='starting-move-additional']:checked").map((_, el) => el.value).get()
-							.filter((key) => additionalMoves.some((move) => move.key === key))
-							.slice(0, chooseCount);
+							.filter((key) => additionalMoves.some((move) => move.key === key));
 
 						resolve([pickOneKey, ...additionalKeys].filter(Boolean));
 					}

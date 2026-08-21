@@ -7,7 +7,7 @@ import {
 	chooseStartingGear,
 	findStartingGearPool
 } from "../scripts/equipment/starting-gear.js";
-import { findEquipmentTag, wirePickerTabs } from "../scripts/equipment/equipment.js";
+import { findEquipmentTag } from "../scripts/equipment/equipment.js";
 
 // A fixture pool set independent of the real STARTING_GEAR_POOLS (currently Scout/Impostor
 // content), mirroring the injectable `pools`/`playbooks` pattern MOVE_POOLS/playbookMoveSections
@@ -72,16 +72,51 @@ function fakeStartingGearHtml(checkedByGroupKey) {
 	};
 }
 
-// Fakes the jQuery `.find(selector)` chain wirePickerTabs uses, mirroring the equivalent fake in
-// tests/equipment.test.js.
-function fakePickerTabsHtml() {
-	const state = { handler: null };
+// Fakes the jQuery `.find(selector)` chain chooseStartingGear's own render callback uses: each
+// group's bare `[name='starting-gear-item-<groupKey>']` selector captures the change handler
+// updateSaveState is wired to, its `:checked`-suffixed counterpart reports whatever keys the test
+// has set in `checkedByGroupKey` at call time (so a test can update it between renders, mirroring
+// fakeStartingGearHtml above), `[data-button='add']` captures Add's own disabled/class/tooltip
+// state (mirroring fakeEquipmentRenderHtml's `[data-button='save']` branch in
+// tests/equipment-editor.test.js), and everything else (the picker-tab selectors wirePickerTabs
+// itself uses) falls through to a generic {on, addClass, removeClass} stub, capturing the click
+// handler the same way the old dedicated fakePickerTabsHtml fixture this replaced did.
+function fakeStartingGearRenderHtml(checkedByGroupKey = {}) {
+	const state = {
+		checkedByGroupKey,
+		groupChangeHandlers: {},
+		pickerTabHandler: null,
+		addDisabled: undefined,
+		addDisabledClass: undefined,
+		addGateTooltip: undefined
+	};
 	state.html = {
-		find: () => ({
-			on: (event, handler) => { state.handler = handler; },
-			addClass: () => {},
-			removeClass: () => {}
-		})
+		find: (selector) => {
+			if (selector === "[data-button='add']") {
+				return {
+					prop: (name, value) => { if (name === "disabled") state.addDisabled = value; },
+					toggleClass: (cls, value) => { if (cls === "disabled") state.addDisabledClass = value; },
+					attr: (attr, value) => { if (attr === "data-gate-tooltip") state.addGateTooltip = value; },
+					removeAttr: (attr) => { if (attr === "data-gate-tooltip") state.addGateTooltip = undefined; }
+				};
+			}
+			const checkedMatch = /^\[name='starting-gear-item-(.+)'\]:checked$/.exec(selector);
+			if (checkedMatch) {
+				const groupKey = checkedMatch[1];
+				const checkedKeys = state.checkedByGroupKey[groupKey] ?? [];
+				return { map: (fn) => ({ get: () => checkedKeys.map((value, index) => fn(index, { value })) }) };
+			}
+			const bareMatch = /^\[name='starting-gear-item-(.+)'\]$/.exec(selector);
+			if (bareMatch) {
+				const groupKey = bareMatch[1];
+				return { on: (event, handler) => { state.groupChangeHandlers[groupKey] = handler; } };
+			}
+			return {
+				on: (event, handler) => { state.pickerTabHandler = handler; },
+				addClass: () => {},
+				removeClass: () => {}
+			};
+		}
 	};
 	return state;
 }
@@ -556,7 +591,7 @@ describe("chooseStartingGear", () => {
 			height: 700,
 			resizable: true
 		});
-		expect(Dialog.mock.calls.at(-1)[0].render).toBe(wirePickerTabs);
+		expect(Dialog.mock.calls.at(-1)[0].render).toEqual(expect.any(Function));
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
@@ -567,10 +602,94 @@ describe("chooseStartingGear", () => {
 		await Promise.resolve();
 		await Promise.resolve();
 
-		const state = fakePickerTabsHtml();
+		const state = fakeStartingGearRenderHtml();
 		Dialog.mock.calls.at(-1)[0].render(state.html);
 
-		expect(state.handler).toEqual(expect.any(Function));
+		expect(state.pickerTabHandler).toEqual(expect.any(Function));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("starts Add enabled when the dialog first renders with nothing checked", async () => {
+		const promise = chooseStartingGear("Fixture Playbook", FIXTURE_POOLS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeStartingGearRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.addDisabled).toBe(false);
+		expect(state.addDisabledClass).toBe(false);
+		expect(state.addGateTooltip).toBeUndefined();
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("disables Add and sets a gate-tooltip once a group's checked count exceeds its chooseCount", async () => {
+		const promise = chooseStartingGear("Fixture Playbook", FIXTURE_POOLS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeStartingGearRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedByGroupKey["fixture:group-a"] = ["fixture:alpha", "fixture:bravo", "fixture:charlie"];
+		state.groupChangeHandlers["fixture:group-a"]();
+
+		expect(state.addDisabledClass).toBe(true);
+		expect(state.addGateTooltip).toBe('You can pick at most 2 for "Choose 2." (currently 3 selected).');
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("re-enables Add and clears the tooltip once unchecked back down within the cap", async () => {
+		const promise = chooseStartingGear("Fixture Playbook", FIXTURE_POOLS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeStartingGearRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedByGroupKey["fixture:group-a"] = ["fixture:alpha", "fixture:bravo", "fixture:charlie"];
+		state.groupChangeHandlers["fixture:group-a"]();
+		expect(state.addDisabledClass).toBe(true);
+
+		state.checkedByGroupKey["fixture:group-a"] = ["fixture:alpha", "fixture:bravo"];
+		state.groupChangeHandlers["fixture:group-a"]();
+
+		expect(state.addDisabledClass).toBe(false);
+		expect(state.addGateTooltip).toBeUndefined();
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("keeps each group's cap independent, so over-selecting only one group disables Add on its own", async () => {
+		const promise = chooseStartingGear("Fixture Playbook", FIXTURE_POOLS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeStartingGearRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedByGroupKey["fixture:group-b"] = ["fixture:echo", "fixture:foxtrot"];
+		state.groupChangeHandlers["fixture:group-b"]();
+
+		expect(state.addDisabledClass).toBe(true);
+		expect(state.addGateTooltip).toBe('You can pick at most 1 for "Choose 1." (currently 2 selected).');
+
+		state.checkedByGroupKey["fixture:group-b"] = ["fixture:echo"];
+		state.groupChangeHandlers["fixture:group-b"]();
+		expect(state.addDisabledClass).toBe(false);
+
+		state.checkedByGroupKey["fixture:group-a"] = ["fixture:alpha", "fixture:bravo", "fixture:charlie"];
+		state.groupChangeHandlers["fixture:group-a"]();
+
+		expect(state.addDisabledClass).toBe(true);
+		expect(state.addGateTooltip).toBe('You can pick at most 2 for "Choose 2." (currently 3 selected).');
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;
@@ -613,7 +732,7 @@ describe("chooseStartingGear", () => {
 		expect(await promise).toEqual([groupA.items[1], groupA.items[0]]);
 	});
 
-	it("truncates each group's checked selection to its own chooseCount, in checkbox order", async () => {
+	it("resolves null and warns when a group's checked selection exceeds its chooseCount", async () => {
 		const promise = chooseStartingGear("Fixture Playbook", FIXTURE_POOLS);
 		await Promise.resolve();
 		await Promise.resolve();
@@ -622,8 +741,10 @@ describe("chooseStartingGear", () => {
 			fakeStartingGearHtml({ "fixture:group-a": ["fixture:alpha", "fixture:bravo", "fixture:charlie"] })
 		);
 
-		const [groupA] = FIXTURE_POOLS[0].groups;
-		expect(await promise).toEqual([groupA.items[0], groupA.items[1]]);
+		expect(ui.notifications.warn).toHaveBeenCalledWith(
+			'You can pick at most 2 for "Choose 2." (currently 3 selected).'
+		);
+		expect(await promise).toBeNull();
 	});
 
 	it("clamps each group independently, so one group's cap never eats into another's budget", async () => {

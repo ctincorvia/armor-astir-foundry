@@ -82,27 +82,61 @@ export function pickRandomBoons(catalog, count, heldKeys = [], random = Math.ran
 }
 
 // Whims' manual "choose your boons instead of rolling" picker — mirrors chooseStartingMoves'
-// Dialog/Promise shape (starting-moves.js) exactly: a plain checkbox list with no client-side cap,
-// the resolving callback truncating to `count` in checkbox order. Resolves the chosen boon keys
-// (or null if the dialog was dismissed), the same "keys, not objects" contract pickRandomBoons'
-// own return value carries, so both of Boons' grant paths feed _addWitchBoons identically.
+// Dialog/Promise shape (starting-moves.js) and its invalidReason/updateSaveState/authoritative-
+// recheck idiom (equipment-dialogs.js's configureEquipment is the original pattern both mirror):
+// Choose is disabled live with a CSS gate-tooltip once more than `count` boons are checked, and
+// the callback re-checks and warns rather than trusting the DOM's disabled attribute, which
+// Enter-to-submit can bypass. Resolves the chosen boon keys (or null if the dialog was dismissed
+// or Choose was clicked over count), the same "keys, not objects" contract pickRandomBoons' own
+// return value carries, so both of Boons' grant paths feed _addWitchBoons identically.
 export async function chooseWitchBoons(catalog, count, heldKeys = []) {
 	const content = await renderTemplate(WITCH_BOONS_PICKER_TEMPLATE, {
 		boons: catalog.map((boon) => ({ ...boon, held: heldKeys.includes(boon.key) })),
 		count
 	});
 
+	// The single source of truth for "why can't this be added right now" — shared by the render
+	// callback's live Choose-button state and the Choose button's own authoritative recheck,
+	// mirroring configureEquipment's own invalidReason (equipment-dialogs.js).
+	const invalidReason = (html) => {
+		const checkedCount = html.find("[name='witch-boon']:checked").map((_, el) => el.value).get().length;
+		if (checkedCount > count) {
+			return `You can choose at most ${count} Boon${count === 1 ? "" : "s"} (currently ${checkedCount} selected).`;
+		}
+		return null;
+	};
+
 	return new Promise((resolve) => {
 		new Dialog({
 			title: "Choose Boons",
 			content,
+			render: (html) => {
+				const updateSaveState = () => {
+					const reason = invalidReason(html);
+					const addButton = html.find("[data-button='add']");
+					addButton.prop("disabled", Boolean(reason));
+					addButton.toggleClass("disabled", Boolean(reason));
+					if (reason) addButton.attr("data-gate-tooltip", reason);
+					else addButton.removeAttr("data-gate-tooltip");
+				};
+				html.find("[name='witch-boon']").on("change", updateSaveState);
+				updateSaveState();
+			},
 			buttons: {
 				add: {
 					label: "Choose",
 					callback: (html) => {
+						// The authoritative gate — see invalidReason's own doc comment above on why this
+						// can't just trust the DOM's live disabled attribute (Enter-to-submit bypasses it).
+						const reason = invalidReason(html);
+						if (reason) {
+							ui.notifications.warn(reason);
+							resolve(null);
+							return;
+						}
 						const keys = html.find("[name='witch-boon']:checked").map((_, el) => el.value).get()
 							.filter((key) => catalog.some((boon) => boon.key === key));
-						resolve(keys.slice(0, count));
+						resolve(keys);
 					}
 				},
 				cancel: {

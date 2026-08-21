@@ -60,6 +60,42 @@ function fakeStartingMoveHtml(pickOneValue, additionalValues = []) {
 	};
 }
 
+// Fakes the jQuery `.find(selector)` chain chooseStartingMoves' own render callback uses: the bare
+// `[name='starting-move-additional']` selector captures the change handler updateSaveState is
+// wired to, its `:checked`-suffixed counterpart reports whatever keys the test has set in
+// `additionalValues` at call time (mirroring fakeStartingMoveHtml's own reads), and
+// `[data-button='add']` captures Add's own disabled/class/tooltip state, mirroring
+// tests/equipment-editor.test.js's fakeEquipmentRenderHtml's `[data-button='save']` branch.
+function fakeStartingMoveRenderHtml(additionalValues = []) {
+	const state = {
+		additionalValues,
+		additionalChangeHandler: null,
+		addDisabled: undefined,
+		addDisabledClass: undefined,
+		addGateTooltip: undefined
+	};
+	state.html = {
+		find: (selector) => {
+			if (selector === "[data-button='add']") {
+				return {
+					prop: (name, value) => { if (name === "disabled") state.addDisabled = value; },
+					toggleClass: (cls, value) => { if (cls === "disabled") state.addDisabledClass = value; },
+					attr: (attr, value) => { if (attr === "data-gate-tooltip") state.addGateTooltip = value; },
+					removeAttr: (attr) => { if (attr === "data-gate-tooltip") state.addGateTooltip = undefined; }
+				};
+			}
+			if (selector === "[name='starting-move-additional']:checked") {
+				return { map: (fn) => ({ get: () => state.additionalValues.map((value, index) => fn(index, { value })) }) };
+			}
+			if (selector === "[name='starting-move-additional']") {
+				return { on: (event, handler) => { state.additionalChangeHandler = handler; } };
+			}
+			return {};
+		}
+	};
+	return state;
+}
+
 beforeEach(() => {
 	vi.resetAllMocks();
 	Dialog.mockImplementation(function (data) {
@@ -356,6 +392,64 @@ describe("chooseStartingMoves", () => {
 		await promise;
 	});
 
+	it("starts Add enabled when the dialog first renders with nothing checked", async () => {
+		const promise = chooseStartingMoves("Fixture Playbook", FIXTURE_POOLS, FIXTURE_MOVE_POOLS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeStartingMoveRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.addDisabled).toBe(false);
+		expect(state.addDisabledClass).toBe(false);
+		expect(state.addGateTooltip).toBeUndefined();
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("disables Add and sets a gate-tooltip once more than chooseCount Additional Moves are checked", async () => {
+		const morePool = [{ ...FIXTURE_POOLS[0], grantedKeys: [], chooseCount: 1 }];
+		const promise = chooseStartingMoves("Fixture Playbook", morePool, FIXTURE_MOVE_POOLS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeStartingMoveRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.additionalValues = ["fixture-playbook:gamma", "fixture-playbook:delta"];
+		state.additionalChangeHandler();
+
+		expect(state.addDisabledClass).toBe(true);
+		expect(state.addGateTooltip).toBe("You can pick at most 1 Additional Move (currently 2 selected).");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("re-enables Add and clears the tooltip once unchecked back down within chooseCount", async () => {
+		const morePool = [{ ...FIXTURE_POOLS[0], grantedKeys: [], chooseCount: 1 }];
+		const promise = chooseStartingMoves("Fixture Playbook", morePool, FIXTURE_MOVE_POOLS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeStartingMoveRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.additionalValues = ["fixture-playbook:gamma", "fixture-playbook:delta"];
+		state.additionalChangeHandler();
+		expect(state.addDisabledClass).toBe(true);
+
+		state.additionalValues = ["fixture-playbook:gamma"];
+		state.additionalChangeHandler();
+
+		expect(state.addDisabledClass).toBe(false);
+		expect(state.addGateTooltip).toBeUndefined();
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
 	it("resolves the pickOne key plus the checked Additional Move keys when Add is clicked", async () => {
 		const promise = chooseStartingMoves("Fixture Playbook", FIXTURE_POOLS, FIXTURE_MOVE_POOLS);
 		await Promise.resolve();
@@ -380,7 +474,7 @@ describe("chooseStartingMoves", () => {
 		expect(await promise).toEqual([]);
 	});
 
-	it("truncates the checked Additional Move selection to chooseCount, in checkbox order", async () => {
+	it("resolves null and warns when the checked Additional Move selection exceeds chooseCount", async () => {
 		const morePool = [{ ...FIXTURE_POOLS[0], grantedKeys: [], chooseCount: 1 }];
 		const promise = chooseStartingMoves("Fixture Playbook", morePool, FIXTURE_MOVE_POOLS);
 		await Promise.resolve();
@@ -390,7 +484,25 @@ describe("chooseStartingMoves", () => {
 			fakeStartingMoveHtml(undefined, ["fixture-playbook:gamma", "fixture-playbook:delta"])
 		);
 
-		expect(await promise).toEqual(["fixture-playbook:gamma"]);
+		expect(ui.notifications.warn).toHaveBeenCalledWith(
+			"You can pick at most 1 Additional Move (currently 2 selected)."
+		);
+		expect(await promise).toBeNull();
+	});
+
+	it("pluralizes 'Additional Moves' in the gate-tooltip message when chooseCount is greater than 1", async () => {
+		const promise = chooseStartingMoves("Fixture Playbook", FIXTURE_POOLS, FIXTURE_MOVE_POOLS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		Dialog.mock.calls.at(-1)[0].buttons.add.callback(
+			fakeStartingMoveHtml(undefined, ["fixture-playbook:gamma", "fixture-playbook:delta", "fixture-playbook:extra"])
+		);
+
+		expect(ui.notifications.warn).toHaveBeenCalledWith(
+			"You can pick at most 2 Additional Moves (currently 3 selected)."
+		);
+		expect(await promise).toBeNull();
 	});
 
 	it("drops a checked pickOne value that doesn't match a real pickOneMoves key", async () => {
