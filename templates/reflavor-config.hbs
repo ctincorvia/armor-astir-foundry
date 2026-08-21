@@ -1,0 +1,22 @@
+<form class="armor-astir-reflavor-config">
+	<p class="reflavor-config-note">
+		Reflavor overrides display text only — move/Astir Part/Astir weapon results and prompts,
+		equipment and tag names/descriptions. No mechanics (traits, tags, hold, results math) are
+		ever touched.
+	</p>
+	<p class="reflavor-config-note reflavor-config-warning">
+		Equipment and weapons already saved on a character keep their original text — only the
+		pickers and future picks reflavor. Uploading mid-session can also show a mix of old and new
+		text on chat cards already posted; uploading between sessions is recommended.
+	</p>
+	<div class="form-group">
+		<label>Reflavor File</label>
+		<input type="file" name="reflavor-file" accept=".json"/>
+	</div>
+	<div class="reflavor-config-summary" data-reflavor-summary></div>
+	<div class="reflavor-config-actions">
+		<button type="button" class="reflavor-config-button" data-reflavor-download>Download Template</button>
+		<button type="button" class="reflavor-config-button" data-reflavor-clear>Clear Reflavor</button>
+		<button type="submit" class="reflavor-config-button" data-reflavor-save disabled>Save Reflavor</button>
+	</div>
+</form>

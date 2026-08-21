@@ -38,7 +38,9 @@ export default [
 				loadTemplates: "readonly",
 				renderTemplate: "readonly",
 				mergeObject: "readonly",
-				fromUuidSync: "readonly"
+				fromUuidSync: "readonly",
+				readTextFromFile: "readonly",
+				saveDataToFile: "readonly"
 			}
 		},
 		rules: {

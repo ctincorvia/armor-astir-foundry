@@ -93,3 +93,4 @@ before touching that area's code:
 - Cosmetic tab (Look/Consider/Backstory/Notes) → [docs/domains/cosmetic.md](docs/domains/cosmetic.md)
 - `styles/*.css` → [docs/domains/styling.md](docs/domains/styling.md)
 - `src/packs/`, compendium packs → [docs/domains/packs.md](docs/domains/packs.md)
+- `scripts/reflavor/` → [docs/domains/reflavor.md](docs/domains/reflavor.md)

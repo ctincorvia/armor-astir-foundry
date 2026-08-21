@@ -928,7 +928,7 @@
 }
 
 .armor-astir.equipment-catalog-picker .equipment-catalog-picker-description {
-	margin-left: 26px;
+	margin-left: 42px;
 	font-size: 12px;
 }
 
@@ -968,7 +968,7 @@
 }
 
 .armor-astir.starting-gear-picker .starting-gear-picker-description {
-	margin-left: 26px;
+	margin-left: 42px;
 	font-size: 12px;
 }
 
@@ -989,7 +989,7 @@
 	flex-direction: row;
 	flex-wrap: wrap;
 	gap: var(--aa-space-1);
-	margin-left: 26px;
+	margin-left: 42px;
 }
 
 .armor-astir.starting-gear-picker .starting-gear-picker-tags {
@@ -997,7 +997,7 @@
 	flex-direction: row;
 	flex-wrap: wrap;
 	gap: var(--aa-space-1);
-	margin-left: 26px;
+	margin-left: 42px;
 }
 
 /* Shared "tabs inside a Dialog" chrome — equipment-catalog-picker.hbs and starting-gear-picker.hbs
@@ -1079,4 +1079,100 @@
 	margin-top: 2px;
 	font-size: 12px;
 	opacity: 0.8;
+}
+
+/* ReflavorConfig (scripts/reflavor/reflavor-config.js) — the repo's first FormApplication, a
+   persistent GM-only world config rather than a transient picker (see docs/domains/reflavor.md), so
+   it's scoped by its own id rather than a second dialog-class the way every Dialog-based picker
+   above is (defaultOptions only adds "armor-astir" to classes). */
+/* Same stacked label/input treatment as .armor-astir.equipment-editor .form-group above, extended
+   to this dialog's own root scope since it carries no second dialog-class to key off of. */
+.armor-astir#armor-astir-reflavor-config .form-group {
+	display: flex;
+	flex-direction: column;
+	align-items: stretch;
+	gap: 2px;
+	margin-bottom: var(--aa-space-2);
+}
+
+.armor-astir#armor-astir-reflavor-config .form-group > label {
+	line-height: 1;
+	font-weight: 700;
+	color: var(--aa-primary-dark);
+	padding-bottom: var(--aa-space-1);
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-config-note {
+	margin: 0 0 var(--aa-space-2);
+	font-size: 12px;
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-config-warning {
+	font-weight: bold;
+	color: var(--aa-danger);
+}
+
+/* Populated by activateListeners' file-change handler; :empty hides it before any file has been
+   picked, the same "no code needed for the empty state" trick .move-roll-modifier-reason:empty
+   uses above. */
+.armor-astir#armor-astir-reflavor-config .reflavor-config-summary {
+	margin: var(--aa-space-2) 0;
+	padding: var(--aa-space-2);
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: var(--aa-primary-tint);
+	font-size: 12px;
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-config-summary:empty {
+	display: none;
+	margin: 0;
+	padding: 0;
+	border: none;
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-config-summary p {
+	margin: 2px 0;
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-config-actions {
+	display: flex;
+	flex-direction: row;
+	flex-wrap: wrap;
+	gap: var(--aa-space-2);
+	margin-top: var(--aa-space-2);
+}
+
+/* Same look as .equipment-editor-max-override-button above (background/color/border/padding/
+   width/flex) — this file's established in-dialog button pattern, reused verbatim rather than
+   inventing a second button style. width: auto + flex: 0 0 auto is load-bearing here too, per
+   docs/domains/styling.md's button-sizing gotcha: these three buttons share .reflavor-config-actions
+   as a flex row. */
+.armor-astir#armor-astir-reflavor-config .reflavor-config-button {
+	background: var(--aa-primary);
+	color: white;
+	border: 0;
+	border-radius: var(--aa-radius);
+	padding: var(--aa-space-1) var(--aa-space-2);
+	font-size: 12px;
+	font-weight: bold;
+	line-height: 1;
+	white-space: nowrap;
+	cursor: pointer;
+	width: auto;
+	flex: 0 0 auto;
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-config-button:hover {
+	background: var(--aa-primary-dark);
+}
+
+/* The Save button starts disabled (see the template's own `disabled` attribute) until a clean file
+   parse enables it — same tint/dark-text/not-allowed treatment as .dialog-button.disabled above,
+   just keyed off the native :disabled pseudo-class since this is a real disabled attribute rather
+   than a class toggle. */
+.armor-astir#armor-astir-reflavor-config .reflavor-config-button:disabled {
+	background: var(--aa-primary-tint);
+	color: var(--aa-primary-dark);
+	cursor: not-allowed;
 }

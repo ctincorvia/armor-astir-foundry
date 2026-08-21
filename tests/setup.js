@@ -13,6 +13,7 @@ vi.stubGlobal("Hooks", {
 vi.stubGlobal("game", {
 	settings: {
 		register: vi.fn(),
+		registerMenu: vi.fn(),
 		get: vi.fn(),
 		set: vi.fn()
 	},
@@ -55,6 +56,22 @@ vi.stubGlobal("ActorSheet", class ActorSheet {
 	}
 
 	activateListeners() {}
+});
+
+// Legacy V1 FormApplication, mirroring the ActorSheet stub above exactly — the repo's first user is
+// ReflavorConfig (see scripts/reflavor/reflavor-config.js).
+vi.stubGlobal("FormApplication", class FormApplication {
+	static get defaultOptions() {
+		return {};
+	}
+
+	getData() {
+		return {};
+	}
+
+	activateListeners() {}
+
+	render() {}
 });
 
 vi.stubGlobal("Actors", {
@@ -100,3 +117,7 @@ vi.stubGlobal("ChatMessage", {
 
 vi.stubGlobal("renderTemplate", vi.fn().mockResolvedValue(""));
 vi.stubGlobal("loadTemplates", vi.fn().mockResolvedValue([]));
+
+// File-IO globals ReflavorConfig/reflavor-export.js are this repo's first users of.
+vi.stubGlobal("readTextFromFile", vi.fn());
+vi.stubGlobal("saveDataToFile", vi.fn());

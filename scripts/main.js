@@ -4,8 +4,13 @@ import { registerCarrierActorSheet } from "./world-actors/carrier-actor-sheet.js
 import { registerAuthorityActorSheet } from "./world-actors/authority-actor-sheet.js";
 import { registerCauseActorSheet } from "./world-actors/cause-actor-sheet.js";
 import { registerNpcActorSheet } from "./world-actors/npc-actor-sheet.js";
+import { registerReflavorSettings, applyStoredReflavor } from "./reflavor/reflavor-settings.js";
+import { MODULE_ID } from "./module-id.js";
 
-export const MODULE_ID = "armor-astir";
+// Re-exported so every pre-existing importer of MODULE_ID from this file keeps working — the
+// constant itself lives in its own leaf module so scripts/reflavor/ (the only other code that
+// needs it) can import it without an upward dependency back onto this bootstrap file.
+export { MODULE_ID };
 
 export const PLAYBOOK_SHEET_PARTIALS = [
 	"modules/armor-astir/templates/playbook-sheet/header.hbs",
@@ -39,10 +44,21 @@ export function registerInitHook() {
 	Hooks.once("init", () => {
 		console.log(`${MODULE_ID} | Initialized`);
 		loadTemplates([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS, ...CAUSE_SHEET_PARTIALS]);
+		registerReflavorSettings();
+	});
+}
+
+// Applies the stored reflavor (if any) once actor/collection data is available — settings must be
+// registered (init, above) before they can be read, and every catalog needs to be reflavored before
+// the first sheet renders. See docs/domains/reflavor.md.
+export function registerReadyHook() {
+	Hooks.once("ready", () => {
+		applyStoredReflavor();
 	});
 }
 
 registerInitHook();
+registerReadyHook();
 registerPlaybookActorSheet();
 registerPlaybookActorCreation();
 registerMoveChatListeners();
