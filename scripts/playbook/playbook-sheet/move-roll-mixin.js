@@ -357,6 +357,9 @@ export const MoveRollSheetMixin = {
 		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
 		const narrativeTags = fromCarrier ? [] : this._narrativeWeaponTags(weapon);
 		const guided = this._guidedFor(move, weapon);
+		// A weapon "borrowed" from the Carrier (fromCarrier) never offers a reroll here either — same
+		// scope cut _finishMoveRoll's own reroll (below, post-roll) already applies.
+		const rerollTag = fromCarrier ? null : this._availableRerollTag(move, weapon);
 		const rollModifiers = this._rollModifiersForMove(move, lockedEffect);
 		return {
 			weaponKey: weapon ? weapon.id : UNARMED,
@@ -372,6 +375,7 @@ export const MoveRollSheetMixin = {
 			equipmentSpends,
 			narrativeTags,
 			guided,
+			rerollTag,
 			rollModifiers
 		};
 	},
@@ -461,6 +465,7 @@ export const MoveRollSheetMixin = {
 		const equipmentSpends = fromCarrier ? [] : this._equipmentSpends(lockedEffect, weapon);
 		const narrativeTags = fromCarrier ? [] : this._narrativeWeaponTags(weapon);
 		const guided = this._guidedFor(move, weapon);
+		const rerollTag = fromCarrier ? null : this._availableRerollTag(move, weapon);
 		// The Roll Modifiers section (see move-grants-mixin.js's _rollModifiersForMove) -- resolved
 		// unconditionally, like automaticSuccess below, rather than scoped to fromCarrier/usesWeapon:
 		// a source's own moveKeys filtering already narrows each entry to the moves it actually
@@ -479,7 +484,8 @@ export const MoveRollSheetMixin = {
 			narrativeTags,
 			rollModifiers,
 			riders,
-			...(guided && { guided })
+			...(guided && { guided }),
+			...(rerollTag && { rerollTag })
 		});
 		if (!config) return;
 

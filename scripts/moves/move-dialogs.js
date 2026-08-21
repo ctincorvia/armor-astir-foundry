@@ -93,6 +93,13 @@ const requiresAdvantageReason = (entry) =>
 // of rolling, not a pre-filtered option, so every field above stays exactly as offered; picking
 // it just resolves without ever reading any of them.
 //
+// rerollTag (see PlaybookActorSheet#_availableRerollTag) is a read-only preview of the chosen
+// weapon's still-live Decisive/Defensive/Versatile reroll, if any — informational only, nothing
+// to check or resolve back out of the dialog, the same shape narrativeTags/riders already are.
+// Distinct from the *different-shaped* `reroll` PlaybookActorSheet#_finishMoveRoll attaches to
+// rollMove's own options after a failed roll (see move-roll-mixin.js) — same underlying tag,
+// two different consumers, so two different names/shapes to avoid conflating them.
+//
 // weaponBundles (see PlaybookActorSheet#_rollMoveWithWeaponChoice/_weaponRollBundle) merges the
 // old separate "which weapon" chooseWeapon prompt into this dialog for a usesWeapon move: one
 // entry per candidate weapon (plus a leading null entry for Unarmed), each carrying its own
@@ -122,6 +129,7 @@ export async function configureMoveRoll(
 		rollModifiers = [],
 		riders = [],
 		guided = null,
+		rerollTag = null,
 		weaponBundles = null
 	} = {}
 ) {
@@ -160,6 +168,7 @@ export async function configureMoveRoll(
 		rollModifiers,
 		riders,
 		guided,
+		rerollTag,
 		// Each bundle's own lockedEffectLabel is resolved here, the same effectState lookup as the
 		// top-level lockedEffect above — kept out of PlaybookActorSheet#_weaponRollBundle so that
 		// method (and every test asserting its return shape) doesn't need its own roll-effects.js

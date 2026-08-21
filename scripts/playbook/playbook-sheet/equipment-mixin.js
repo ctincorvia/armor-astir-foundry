@@ -332,6 +332,17 @@ export const EquipmentSheetMixin = {
 		}
 		return null;
 	},
+	// The chosen weapon's still-live reroll tag as a read-only display (see _availableReroll's own
+	// spend-shaped lookup above) — reroll tags are deliberately excluded from _narrativeWeaponTags
+	// (see docs/domains/equipment.md's "narrative tag" definition), so nothing else tells the player
+	// they have one available before they commit to the roll; this is purely informational, so it
+	// carries only what the dialog needs to display, not the equipmentId/spendKey a later spend needs.
+	_availableRerollTag(move, weapon) {
+		const available = this._availableReroll(move, weapon);
+		if (!available) return null;
+		const tag = findEquipmentTag(available.tagKey);
+		return { tagLabel: tag.label, description: tag.description };
+	},
 	// Whether the chosen weapon has a live Guided tag (see equipment.js's EQUIPMENT_TAGS comment).
 	// Unlike a spend or a reroll, Guided has no "once per period" limit and nothing to mark spent
 	// — it's just always offerable as long as the weapon carries the tag.

@@ -175,6 +175,61 @@ describe("PlaybookActorSheet#_onMoveRoll - weapon choice", () => {
 		]);
 	});
 
+	it("carries the chosen weapon's still-live reroll tag on its own bundle (Defensive, Exchange Blows)", async () => {
+		const sheet = new PlaybookActorSheet();
+		const armed = { ...halberd, tags: ["defensive"] };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [armed, sidearm] } }
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		const armedBundle = weaponBundles.find((b) => b.weaponKey === armed.id);
+		expect(armedBundle.rerollTag).toEqual({
+			tagLabel: "Defensive",
+			description: "Defensive weaponry is excellent for keeping foes at a distance, parrying their blows, " +
+				"or suppressing them. Once per Scene, you may reroll a failed exchange blows when using it."
+		});
+	});
+
+	it.each([
+		["exchange-blows"],
+		["strike-decisively"]
+	])("carries a Versatile-tagged weapon's reroll tag on its %s bundle too", async (moveKey) => {
+		const sheet = new PlaybookActorSheet();
+		const armed = { ...halberd, tags: ["versatile"] };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [armed, sidearm] } }
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: moveKey } } });
+
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		const armedBundle = weaponBundles.find((b) => b.weaponKey === armed.id);
+		expect(armedBundle.rerollTag).toEqual({
+			tagLabel: "Versatile",
+			description: "This tag combines the effects of decisive and defensive."
+		});
+	});
+
+	it("carries no reroll tag on Exchange Blows for a Decisive-tagged weapon, since Decisive only covers Strike Decisively", async () => {
+		const sheet = new PlaybookActorSheet();
+		const armed = { ...halberd, tags: ["decisive"] };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [armed, sidearm] } }
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
+		const armedBundle = weaponBundles.find((b) => b.weaponKey === armed.id);
+		expect(armedBundle.rerollTag).toBeNull();
+	});
+
 	it("treats a weaponId configureMoveRoll resolved that no longer matches any weapon as Unarmed", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
@@ -234,6 +289,26 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 		expect(rollMove).toHaveBeenCalledWith(
 			sheet.actor, EXCHANGE_BLOWS, config.trait, { ...config, weaponLabel: "Halberd", narrativeTags: [], heatUp: NO_HEAT_UP }
 		);
+	});
+
+	it("passes the weapon's still-live reroll tag through configureMoveRoll's own options", async () => {
+		const sheet = new PlaybookActorSheet();
+		const defensiveHalberd = { ...halberd, tags: ["blitz", "defensive"] };
+		sheet.actor = {
+			system: { stats: { clash: { value: 0 }, talk: { value: 0 } }, attributes: { equipment: [defensiveHalberd] } },
+			update: vi.fn()
+		};
+		const config = { trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "none", effect: "none" };
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
+			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
+			equipmentSpends: [expect.objectContaining({ equipmentId: "eq1", tagKey: "blitz" })], narrativeTags: [],
+			rollModifiers: [], riders: [],
+			rerollTag: { tagLabel: "Defensive", description: expect.any(String) }
+		});
 	});
 
 	it("does nothing for an unrecognized move key", async () => {

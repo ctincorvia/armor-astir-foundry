@@ -633,6 +633,37 @@ describe("configureMoveRoll - guided", () => {
 	});
 });
 
+describe("configureMoveRoll - reroll tag", () => {
+	const clash = CLASH_TRAIT;
+
+	it("passes rerollTag through to the dialog template", async () => {
+		const rerollTag = { tagLabel: "Defensive", description: "Some reroll text." };
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rerollTag });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			rerollTag
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("defaults rerollTag to null", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			rerollTag: null
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+});
+
 // Riders (see PlaybookActorSheet#_ridersForMove) — a read-only preview of the move's passive
 // on-roll bonuses, passed through to the template unscoped by weapon (see the field's own doc
 // comment above configureMoveRoll). No Roll-button/callback wiring to test here, unlike

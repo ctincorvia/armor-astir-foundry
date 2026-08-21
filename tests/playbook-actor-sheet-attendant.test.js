@@ -27,6 +27,7 @@ import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js"
 const SIGNED_SEALED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-attendant:signed-sealed");
 const MASTER_SERVANT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-attendant:master-servant");
 const STRIKE_DECISIVELY = BASIC_MOVES.find((m) => m.key === "strike-decisively");
+const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 const CLASSICAL_SPELLCASTING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:classical-spellcasting");
 const ADVANCED_EVOCATION = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:advanced-evocation");
 
@@ -224,5 +225,55 @@ describe("PlaybookActorSheet#_availableReroll - Signed & Sealed's granted Decisi
 		};
 
 		expect(sheet._availableReroll(STRIKE_DECISIVELY, weapon)).toBeNull();
+	});
+});
+
+describe("PlaybookActorSheet#_availableRerollTag", () => {
+	it("resolves the tag's label and description when a reroll is available", () => {
+		const sheet = new PlaybookActorSheet();
+		const weapon = { id: "w1", kind: "weapon", name: "Riot Shield", tags: ["defensive"] };
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [], equipment: [weapon] } }
+		};
+
+		expect(sheet._availableRerollTag(EXCHANGE_BLOWS, weapon)).toEqual({
+			tagLabel: "Defensive",
+			description: "Defensive weaponry is excellent for keeping foes at a distance, parrying their blows, " +
+				"or suppressing them. Once per Scene, you may reroll a failed exchange blows when using it."
+		});
+	});
+
+	it("returns null when no reroll tag is available", () => {
+		const sheet = new PlaybookActorSheet();
+		const weapon = { id: "w1", kind: "weapon", name: "Fists", tags: ["blitz"] };
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [], equipment: [weapon] } }
+		};
+
+		expect(sheet._availableRerollTag(EXCHANGE_BLOWS, weapon)).toBeNull();
+	});
+
+	it("returns null once the weapon's reroll tag is already spent", () => {
+		const sheet = new PlaybookActorSheet();
+		const weapon = { id: "w1", kind: "weapon", name: "Riot Shield", tags: ["defensive"], spent: ["defensive"] };
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [], equipment: [weapon] } }
+		};
+
+		expect(sheet._availableRerollTag(EXCHANGE_BLOWS, weapon)).toBeNull();
+	});
+
+	it("resolves Signed & Sealed's granted Decisive tag correctly", () => {
+		const sheet = new PlaybookActorSheet();
+		const weapon = { id: "w1", kind: "weapon", name: "Fists", tags: ["melee"] };
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [SIGNED_SEALED.key], equipment: [weapon] } }
+		};
+
+		expect(sheet._availableRerollTag(STRIKE_DECISIVELY, weapon)).toEqual({
+			tagLabel: "Decisive",
+			description: "Decisive weaponry is precise and powerful, excellent for ending fights. Once per " +
+				"Scene, you may reroll a failed strike decisively when using it."
+		});
 	});
 });

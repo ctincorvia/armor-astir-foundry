@@ -8,10 +8,6 @@
 	min-width: 480px;
 }
 
-.armor-astir.sheet.world-actor section {
-	margin-bottom: var(--aa-space-4);
-}
-
 /* Carrier's Crew stepper — same visual language as sheet-chrome.css's consolidated trait-step/
    power-step/hold-step/... rule, kept as its own copy rather than joining that selector so this
    stylesheet has no reason to touch sheet-chrome.css. */
