@@ -466,6 +466,11 @@
 	margin: var(--aa-space-2) 0 var(--aa-space-3);
 }
 
+.armor-astir.sheet .astir-identity-fields .form-group > label {
+	font-weight: 700;
+	padding-right: var(--aa-space-1);
+}
+
 /* The Astir's own portrait, edited the same way as the actor's own header portrait (core Foundry's
    img[data-edit] convention — see playbook-actor-sheet.js's getData/astir.js comments). Sized and
    scoped to itself rather than touching .section-header, since that class is shared by every
