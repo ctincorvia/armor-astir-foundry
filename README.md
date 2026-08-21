@@ -1,8 +1,10 @@
 # armor-astir-foundry
 
-A [Foundry VTT](https://foundryvtt.com/) module implementing character sheets and mechanics for **Armor Astir: Advent**, a PBTA TRPG. Built on top of the [pbta](https://github.com/asacolips-projects/pbta) system (v1.1.15+, Foundry v12).
+A [Foundry VTT](https://foundryvtt.com/) module implementing character sheets and mechanics for [**Armor Astir: Advent**](https://royalrabbit.itch.io/armour-astir), a PBTA TRPG. Built on top of the [pbta](https://github.com/asacolips-projects/pbta) system (v1.1.15+, Foundry v12).
 
 > **Disclaimer:** This is an unofficial, fan-made module. It is not developed, endorsed, or supported by Briar Sovereign, Armor Astir's system author.
+>
+> This module's code was developed with AI assistance. Its written content — moves, playbook text, and other rules copy — was not AI-generated; it's transcribed from the official Armor Astir: Advent rulebook.
 
 ## What it does
 
@@ -10,7 +12,7 @@ A [Foundry VTT](https://foundryvtt.com/) module implementing character sheets an
 - **World actors** — custom Actor sub-types for the Carrier (the party's mobile base), the Authority (the empire), and the Cause (the opposing factions), each with their own sheet.
 - **Astirs & Ardents** — mecha-style pilotable frames with parts, weapons, Power tracking, and move integration.
 - **Custom actor creation flow** that bypasses pbta's own dialog to support these module-defined actor types.
-- Starting compendium packs for the four basic playbooks (Scout, Commander, Impostor, Diplomat).
+- Starting compendium packs for all sixteen basic playbooks.
 
 See [claude.md](claude.md) for detailed implementation notes and conventions used throughout the codebase.
 
