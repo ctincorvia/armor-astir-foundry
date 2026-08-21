@@ -6,15 +6,15 @@
 		},
 		"astir-part:divination-codex": {
 			"name": "Tactical Databank",
-			"description": "<p>A constantly-updated archive of enemy doctrine, terrain surveys and battlefield telemetry, cross-referenced and served up to an attuned pilot in a heartbeat.</p><p>Ask 1 question from the Read the Room list.</p>"
+			"description": "<p>A constantly-updated archive of enemy doctrine, terrain surveys and battlefield telemetry, cross-referenced and served up to a networked pilot in a heartbeat.</p><p>Ask 1 question from the Read the Room list.</p>"
 		},
 		"astir-part:flourish-component": {
 			"name": "Backup Capacitor Bank",
-			"description": "<p>Where a standard reactor relies on one clean power curve, this rig keeps a second bank charged in reserve, ready to kick in the instant its diagnostics line up just right.</p><p>Regain 1 Power when you roll doubles (once per roll).</p>"
+			"description": "<p>Where a standard reactor relies on one clean power curve, this rig keeps a second bank charged in reserve, ready to catch the surplus the instant the main line spikes past spec.</p><p>Regain 1 Power when you roll doubles (once per roll).</p>"
 		},
 		"astir-part:familiar-matrix": {
 			"name": "Drone Control Bay",
-			"description": "<p>A dedicated bay and datalink rig lets one pilot store, launch and coordinate a full flight of remote units without splitting their attention.</p><p>Holds and comes with one set of Familiars of your choice.</p>"
+			"description": "<p>A dedicated bay and datalink rig lets one pilot store, launch and coordinate a full flight of remote units without splitting their attention.</p><p>Holds and comes with one set of Drones of your choice.</p>"
 		},
 		"astir-part:alchemical-suite": {
 			"name": "Combat Stim Dispenser",
@@ -25,8 +25,7 @@
 			"description": "<p>They can't hit what they can't see.</p><p>Trigger the optical camouflage field for a Scene. The next risk you take is 'revealed'.</p>"
 		},
 		"astir-part:warding": {
-			"name": "Reactive Plating",
-			"description": "<p>Anything that helps an Astir not explode is a worthwhile investment.</p><p>You may use this once per Sortie to reduce an incoming source of harm from a peril to a risk, or from a risk to nothing (+ward).</p>"
+			"name": "Reactive Plating"
 		},
 		"astir-part:resistance-charms": {
 			"name": "Hardened Systems",
@@ -48,59 +47,67 @@
 	"astirWeapons": {
 		"astir-fists": {
 			"name": "Servo Fists",
-			"description": "Every Astir can fall back on its own reinforced fists, but they don't make for graceful brawlers. Also mounted as concealed vibro-blades, close-range autocannons, or a mining drill."
+			"description": "Every Astir can fall back on its reinforced fists, but they don't make for graceful brawlers. Also seen as Concealed Vibro-Blades, Close-Range Chainguns, or a Mining Drill."
 		},
 		"forceknife": {
 			"name": "Vibroblade",
-			"description": "Short (for an Astir) blades fitted with a high-frequency vibro-edge, vibroblades are good for when you find yourself up close and personal. Also mounted as a throwing glaive, charged hatchet, or serrated combat knives."
+			"description": "Short (for an Astir) blades fitted with a high-frequency vibro-edge, vibroblades are good for when you find yourself up close and personal. Also seen as a Throwing Glaive, Charged Hatchet, or Serrated Combat Knives."
 		},
 		"force-repeater": {
 			"name": "Heavy Machine Gun",
-			"description": "A fully automatic, large caliber machine gun firing kinetic rounds, serving as an effective weapon. Also mounted as a sidearm, mining laser, or point-defense turret."
+			"description": "A fully automatic, large caliber machine gun firing kinetic rounds, serving as an effective reserve weapon. Also seen as a Sidearm, Mining Laser, or Point-Defense Turret."
 		},
 		"rayrifle": {
 			"name": "Beam Rifle",
-			"description": "Beam rifles are the workhorse of most armies when it comes to arming Astirs. A highly efficient capacitor cycle means every shot draws an almost meaningless amount of reactor power. Also mounted as a machine gun, arc cannon, or recycler rifle."
+			"description": "Beam rifles are the workhorse of most armies when it comes to arming Astirs. A highly efficient capacitor cycle means every shot draws an almost meaningless amount of reactor power. Also seen as a Service Rifle, Arc Cannon, or Recycler Rifle."
 		},
 		"titan-bow": {
 			"name": "Linear Cannon",
-			"description": "Immense, heavily-reinforced linear cannons, taller than even some Astirs. While some balk at taking a bulky single-shot weapon into the field, others point to the ability to punch a slug through Carrier hulls as a valuable upside. Also mounted as a single-shot railgun, beam sniper, or long-barrel autocannon."
+			"description": "Immense, heavily-reinforced linear cannons, taller than even some Astirs. While some baulk at taking a bulky single-shot weapon into the field, others point to the ability to punch a slug through Carrier hulls as a valuable upside. Also seen as a Single-Shot Railgun, Beam Sniper, or Anti-Materiel Rifle."
 		},
 		"warp-slinger": {
 			"name": "Gatling Turret",
-			"description": "An emplaced mount incorporating multiple linked barrels and a simple firing mechanism that can be triggered by even an untrained gunner. Also mounted as an MG turret, point-defense laser, or multi-barrel crossbow."
+			"description": "An emplaced mount incorporating multiple linked barrels and a simple firing mechanism that can be triggered by even an untrained gunner. Also seen as an MG Turret, Point-Defense Laser, or a Rotary Cannon."
 		},
 		"seeker-cluster": {
 			"name": "Guided Missile Pod",
-			"description": "Guided by a simple onboard targeting computer, this pod launches a swarm of small guided munitions to hound a particular target. Though they struggle to pierce armour, these warheads shatter on impact, scattering sharp shrapnel. Also mounted as orbiting micro-drones, a shock rod, or a command bracelet and drone."
+			"description": "Guided by a simple onboard targeting computer, this pod launches a swarm of small guided munitions to hound a particular target. Though they struggle to pierce armour, these warheads shatter on impact, scattering sharp shrapnel. Also seen as Orbiting Micro-Drones, a Shock Rod, or Command Bracelets & Drone."
 		},
 		"forceblade": {
 			"name": "Beam Saber",
-			"description": "Your typical, garden-variety sword made out of a projected energy blade. It cuts well and won't explode - what else do you want? Also mounted as a thermal cutter or a pneumatic hammer."
+			"description": "Your typical, garden-variety sword made out of a projected energy blade. It cuts well and won't explode - what else do you want? Also seen as a Thermal Cutter or a Pneumatic Hammer."
 		},
 		"blazewands": {
 			"name": "Grenade Launcher Racks",
-			"description": "Arranged in paired racks and loaded with incendiary charges, short-range launchers are a common and potent weapon when it comes to arming Astirs. Also mounted as acid pods or a plasma mortar."
+			"description": "Arranged in paired racks and loaded with incendiary charges, short-range launchers are a common and potent weapon when it comes to arming Astirs. Also seen as Acid Pods or a Plasma Mortar."
 		},
 		"novawhip": {
 			"name": "Chain Mine Whip",
-			"description": "Timed charges sit at equal intervals along this chain weapon, and violently detonate on impact. A devastating weapon in skilled hands that know how to re-arm the charges mid-battle. Also mounted as a plasma cable or a storm gauntlet."
+			"description": "Timed charges sit at equal intervals along this chain weapon, and violently detonate on impact. A devastating weapon in skilled hands that know how to re-arm the charges mid-battle. Also seen as a Plasma Cable or a Storm Gauntlet."
 		},
 		"overcharged-bolts": {
 			"name": "Gauss Cannon",
-			"description": "A high-powered energy weapon that fires charged projectiles with immense velocity. Also mounted as a Gatling gun, beam rifle, or overcharged railgun."
+			"description": "If you need something punchier, you can take perfectly standard Astir hardware—a basic railgun, for example—and simply feed it far, far more reactor power than expected. Also seen as an Ion Cannon, Gauss Rifle, or an Overcharged Railgun."
 		},
 		"chaos-revolver": {
 			"name": "Fusion Pistol",
-			"description": "A thick, metal sidearm with a revolver-style grip. The rotating chambers are loaded with unstable fusion cells, and their output is immense (and volatile). Also mounted as an acid thrower or a phase disruptor cannon."
+			"description": "A thick, metal sidearm with a revolver-style grip. The rotating chambers are loaded with unstable fusion cells, and their output is immense (and volatile). Also seen as an Acid Thrower or a Phase Disruptor Cannon."
 		},
 		"wisp-familiar": {
 			"name": "Attack Drone",
-			"description": "Attack drones are by far the most common remote combat unit, and for most pilots are the default choice. Small hovering constructs that pack a surprising punch for their size, they're limited by their short battery life. Also mounted as an assault funnel launcher, incendiary charges, or a swarm of micro-drones."
+			"description": "Attack drones are by far the most common remote combat unit, and for most pilots are the default choice. Small hovering constructs that pack a surprising punch for their size, they're limited by their short battery life. Also seen as an Assault Funnel Launcher, Incendiary Charges, or a Swarm of Micro-Drones. Drone — requires a Drone Control Bay Astir Part; rolls +CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear automatically during Downtime."
+		},
+		"mote-familiar": {
+			"name": "Blast Drone",
+			"description": "Blast drones are small guided munitions carrying a volatile incendiary charge, detonating in a fiery blast the instant they strike a target. Pilots use them sparingly — a hit can set off every other blast drone in the area in a chain detonation. Also seen as a Remote Bomb, Volatile Munition, or Frag Pod. Drone — requires a Drone Control Bay Astir Part; rolls +CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear automatically during Downtime."
 		},
 		"needle-familiar": {
 			"name": "Restraint Drone",
-			"description": "Restraint drones pin their targets in place with thin, hardened steel spikes. While lacking when it comes to decisive blows, they excel at restraining and harassing foes. Also mounted as a glue turret, labour drones, or a netting launcher."
+			"description": "Restraint drones pin their targets in place with thin, hardened steel spikes. While lacking when it comes to decisive blows, they excel at restraining and harassing foes. Also seen as a Glue Turret, Labour Drones, or a Netting Launcher. Drone — requires a Drone Control Bay Astir Part; rolls +CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear automatically during Downtime."
+		},
+		"claw-familiar": {
+			"name": "Crow Drone",
+			"description": "Sharp-clawed constructs of servo-driven metal and composite plating, built in the recognizable shape of a crow. Also seen as Hunter-Killer Units, Phantom Drones, or Saw Drones. Drone — requires a Drone Control Bay Astir Part; rolls +CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear automatically during Downtime."
 		},
 		"touch-spells": {
 			"name": "Shock Gauntlet",
@@ -122,7 +129,7 @@
 		},
 		"greatsword-i": {
 			"name": "Heavy Vibroblade",
-			"description": "A large, motor-assisted blade with good reach and weight, perfect for taking heads. Praxis-model."
+			"description": "A large, motor-assisted blade with good reach and weight, perfect for taking heads. Praxis."
 		},
 		"enchanted-blade-i": {
 			"name": "Charged Blade",
@@ -141,8 +148,7 @@
 			"description": "A heavy rifle, often using charged battery cells for a single devastating shot. Their bulk, heavy recoil and cost makes them highly uncommon, but not overly so: after all, little else hand-held will put a hole through an Astir."
 		},
 		"luxury-gift-i": {
-			"name": "Off-World Luxury Goods",
-			"description": "For good first impressions, making up for bad ones, or just plain bribery."
+			"name": "Off-World Luxury Goods"
 		},
 		"construct-sensor-i": {
 			"name": "Tactical Sensor Table",
@@ -158,7 +164,7 @@
 		},
 		"bloodletter-i": {
 			"name": "Piercer",
-			"description": "The rank-and-file of the Faces Of Progress carry these sinister spears, mundane in nature but engineered specifically to punch through armour plating and flesh alike."
+			"description": "The rank-and-file of the Faces Of Progress carry these sinister spears, engineered specifically to punch through armour plating and flesh alike. Those not of the rank-and-file, it turns out, have an unquenchable thirst."
 		},
 		"little-shark-ii": {
 			"name": "Cryo Harpoon",
@@ -166,7 +172,7 @@
 		},
 		"hewer-iii": {
 			"name": "Plasma Saw",
-			"description": "A circular saw, spun at blistering speeds by a superheated plasma injector fed by compressed coolant from the deep heart of Repose's reactor works."
+			"description": "A circular saw, spun at blistering speeds by a superheated plasma injector fed by compressed coolant from the deep heart of Repose."
 		},
 		"colour-spray-i": {
 			"name": "Dye Canister",
@@ -174,15 +180,15 @@
 		},
 		"colossus-repeater-iii": {
 			"name": "Autocannon Repeater",
-			"description": "Using a sophisticated autoloader, Autocannon Repeaters fire armour-piercing rounds for maximum penetration."
+			"description": "Using a sophisticated autoloader, Autocannon Repeaters fire armour-piercing rounds for maximum penetration. In a pinch, a talented pilot can work the reloading mechanism quickly enough for multiple follow-up shots."
 		},
 		"wayward-skull-i": {
 			"name": "Salvaged AI Core",
-			"description": "Derelict AI cores are easier to find than ever in the wreckage fields, and are often a great source of information and advice. Recover one, and all the newest rumours will find your ear. Descriptive tags: Sturdy, Chattering, Autonomous."
+			"description": "Derelict AI cores are easier to find than ever in the wreckage fields of the Kessler Drift, and are often a great source of information and advice. Recover one, and all the newest rumours will find your ear. Descriptive tags: Sturdy, Chattering, Autonomous."
 		},
 		"bestiary-array-ii": {
 			"name": "Holoprojector Array",
-			"description": "A popular weapon among salvage crews, the Holoprojector Array casts flickering holographic decoys shaped like beasts of war, hard to pin down and irritatingly effective at scrambling Astir targeting systems."
+			"description": "A popular weapon among the Hollow Ranks, the Holoprojector Array casts flickering holographic decoys shaped like beasts of war, hard to pin down and irritatingly effective at scrambling Astir targeting systems."
 		},
 		"paracausal-hook-iii": {
 			"name": "Graviton Hook",
