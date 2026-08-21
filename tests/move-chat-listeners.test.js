@@ -32,6 +32,8 @@ function fakeChatHtml() {
 		heatUpHandler: null,
 		addAdvantageHandler: null,
 		addDisadvantageHandler: null,
+		rollBonusHandler: null,
+		appended: [],
 		removed: []
 	};
 	state.html = {
@@ -52,6 +54,12 @@ function fakeChatHtml() {
 			}
 			if (selector === ".move-add-advantage, .move-add-disadvantage") {
 				return { remove: () => { state.removed.push(selector); } };
+			}
+			if (selector === ".armor-astir-move-chat") {
+				return { append: (markup) => { state.appended.push(markup); } };
+			}
+			if (selector === ".move-roll-bonus") {
+				return { on: (event, handler) => { state.rollBonusHandler = handler; } };
 			}
 			return {};
 		}
@@ -1150,5 +1158,333 @@ describe("onRenderMoveChat/handleAdvantage (Add Advantage/Add Disadvantage)", ()
 		await Promise.resolve();
 
 		expect(message.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("onRenderMoveChat/handleExternalRollBonus (Spend Inspiration)", () => {
+	const BARDIC_INSPIRATION_KEY = "the-icon:bardic-inspiration";
+	const SHOWSTOPPER_KEY = "the-icon:showstopper";
+
+	beforeEach(() => {
+		renderTemplate.mockClear();
+		renderTemplate.mockResolvedValue("<div>bonus</div>");
+		game.actors.filter.mockReset();
+		game.actors.filter.mockImplementation(() => []);
+	});
+
+	// handleExternalRollBonus chains several awaits (actor.update, dieRoll.evaluate, renderTemplate,
+	// dieRoll.toMessage) before its own caller's finally block re-enables the button — more
+	// microtask ticks than this file's other, shallower handlers need to settle, so a fixed handful
+	// of bare `await Promise.resolve()` calls isn't reliably enough. This flushes generously instead.
+	async function flushMicrotasks() {
+		for (let i = 0; i < 10; i += 1) {
+			await Promise.resolve();
+		}
+	}
+
+	// Overrides the global Roll stub's own default (see tests/setup.js) for exactly the next
+	// `new Roll(...)` call, i.e. handleExternalRollBonus's own bonus-die roll — mirrors the
+	// mockDieRoll helper in the Add Advantage/Add Disadvantage describe block above (local to that
+	// scope, so not reusable here), plus a toMessage stub since — unlike handleAdvantage's die roll,
+	// which only ever reads .total — this one is posted as its own chat message.
+	function mockBonusDieRoll(total) {
+		Roll.mockImplementationOnce(function (formula) {
+			this.formula = formula;
+			this.evaluate = vi.fn().mockResolvedValue(this);
+			this.toMessage = vi.fn().mockResolvedValue(undefined);
+			Object.defineProperty(this, "total", { get: () => total, configurable: true });
+		});
+	}
+
+	function iconActor(overrides = {}) {
+		return {
+			id: "icon1",
+			name: "Icon Player",
+			isOwner: true,
+			system: {
+				attributes: {
+					playbookMoves: [BARDIC_INSPIRATION_KEY],
+					moveHold: { [BARDIC_INSPIRATION_KEY]: { value: 3 } }
+				}
+			},
+			update: vi.fn(),
+			...overrides
+		};
+	}
+
+	function baseAdvantageOffer(overrides = {}) {
+		return {
+			actorId: "roller1",
+			moveKey: "exchange-blows",
+			value: 0,
+			effectKey: "none",
+			advantageKey: "none",
+			dice: [],
+			extraConditions: [],
+			flavorArgs: { name: "Exchange Blows", tier: "failure", conditions: [] },
+			...overrides
+		};
+	}
+
+	it("appends and wires the Spend Inspiration button when the user owns an eligible non-roller Icon actor with hold", () => {
+		const icon = iconActor();
+		game.actors.filter.mockImplementation((fn) => [icon].filter(fn));
+		const message = { flags: { "armor-astir": { advantageOffer: baseAdvantageOffer() } }, author: "author1" };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+
+		expect(fake.appended).toEqual(['<button type="button" class="move-roll-bonus">Spend Inspiration</button>']);
+		expect(fake.rollBonusHandler).toBeTypeOf("function");
+	});
+
+	it("does not append the button when every candidate is ineligible (the roller themself, a non-owned actor, an actor whose only flagged move is out of hold)", () => {
+		const rollerIcon = iconActor({ id: "roller1" });
+		const notOwned = iconActor({ id: "gm-owned-elsewhere", isOwner: false });
+		const mixedNoHold = iconActor({
+			id: "no-hold",
+			system: {
+				attributes: {
+					playbookMoves: ["the-icon:touchstone", BARDIC_INSPIRATION_KEY],
+					moveHold: { [BARDIC_INSPIRATION_KEY]: { value: 0 } }
+				}
+			}
+		});
+		game.actors.filter.mockImplementation((fn) => [rollerIcon, notOwned, mixedNoHold].filter(fn));
+		const message = { flags: { "armor-astir": { advantageOffer: baseAdvantageOffer({ actorId: "roller1" }) } }, author: "author1" };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+
+		expect(fake.appended).toEqual([]);
+		expect(fake.rollBonusHandler).toBeNull();
+	});
+
+	it("treats a missing playbookMoves array and a missing moveHold pool entry as ineligible rather than throwing", () => {
+		const noPlaybookMoves = iconActor({ id: "no-moves", system: { attributes: {} } });
+		const noMoveHoldEntry = iconActor({
+			id: "no-hold-entry",
+			system: { attributes: { playbookMoves: [BARDIC_INSPIRATION_KEY], moveHold: {} } }
+		});
+		game.actors.filter.mockImplementation((fn) => [noPlaybookMoves, noMoveHoldEntry].filter(fn));
+		const message = { flags: { "armor-astir": { advantageOffer: baseAdvantageOffer() } }, author: "author1" };
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+
+		expect(fake.appended).toEqual([]);
+		expect(fake.rollBonusHandler).toBeNull();
+	});
+
+	it("treats a missing playbookMoves array as empty when resolving a spend for a (bypassed) stale-click actor", async () => {
+		const renderTimeIcon = iconActor();
+		game.actors.filter.mockReturnValueOnce([renderTimeIcon]);
+		const message = {
+			flags: { "armor-astir": { advantageOffer: baseAdvantageOffer() } },
+			author: "author1",
+			whisper: [],
+			blind: false
+		};
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		expect(fake.rollBonusHandler).toBeTypeOf("function");
+
+		const noMovesIcon = iconActor({ id: "no-moves", system: { attributes: {} } });
+		game.actors.filter.mockReturnValueOnce([noMovesIcon]);
+		const rollCallsBefore = Roll.mock.calls.length;
+
+		fake.rollBonusHandler({ currentTarget: { disabled: false } });
+		await flushMicrotasks();
+
+		expect(noMovesIcon.update).not.toHaveBeenCalled();
+		expect(Roll.mock.calls.length).toBe(rollCallsBefore);
+	});
+
+	it("spends the chosen actor's hold 1-for-1, rolls the bonus die, and posts the result as its own announcement mirroring the original roll's whisper/blind", async () => {
+		const icon = iconActor();
+		game.actors.filter.mockImplementation((fn) => [icon].filter(fn));
+		const offer = baseAdvantageOffer();
+		const message = {
+			flags: { "armor-astir": { advantageOffer: offer } },
+			author: "author1",
+			whisper: ["gm1"],
+			blind: true
+		};
+		const fake = fakeChatHtml();
+		mockBonusDieRoll(3);
+
+		onRenderMoveChat(message, fake.html);
+		const button = { disabled: false };
+		fake.rollBonusHandler({ currentTarget: button });
+		await flushMicrotasks();
+
+		// Re-enabled once the async handler finishes — unlike every other button in this file, this
+		// one isn't single-use, since an Icon can spend multiple hold points across multiple clicks.
+		expect(button.disabled).toBe(false);
+		expect(icon.update).toHaveBeenCalledWith({ [`system.attributes.moveHold.${BARDIC_INSPIRATION_KEY}.value`]: 2 });
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, {
+			name: "Bardic Inspiration",
+			description: "<p>Icon Player spends Bardic Inspiration to add a bonus d4 to Exchange Blows.</p>"
+		});
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor: icon });
+		const dieRollInstance = Roll.mock.results.at(-1).value;
+		expect(dieRollInstance.formula).toBe("1d4");
+		expect(dieRollInstance.toMessage).toHaveBeenCalledWith({
+			speaker: undefined,
+			flavor: "<div>bonus</div>",
+			whisper: ["gm1"],
+			blind: true
+		});
+	});
+
+	it("upgrades the bonus die to d6 when the spending actor has also picked Showstopper", async () => {
+		const icon = iconActor({
+			system: {
+				attributes: {
+					playbookMoves: [BARDIC_INSPIRATION_KEY, SHOWSTOPPER_KEY],
+					moveHold: { [BARDIC_INSPIRATION_KEY]: { value: 3 } }
+				}
+			}
+		});
+		game.actors.filter.mockImplementation((fn) => [icon].filter(fn));
+		const message = {
+			flags: { "armor-astir": { advantageOffer: baseAdvantageOffer() } },
+			author: "author1",
+			whisper: [],
+			blind: false
+		};
+		const fake = fakeChatHtml();
+		mockBonusDieRoll(5);
+
+		onRenderMoveChat(message, fake.html);
+		fake.rollBonusHandler({ currentTarget: { disabled: false } });
+		await flushMicrotasks();
+
+		const dieRollInstance = Roll.mock.results.at(-1).value;
+		expect(dieRollInstance.formula).toBe("1d6");
+		expect(icon.update).toHaveBeenCalledWith({ [`system.attributes.moveHold.${BARDIC_INSPIRATION_KEY}.value`]: 2 });
+	});
+
+	it("clamps the spend at HOLD_MIN rather than going negative", async () => {
+		const icon = iconActor({
+			system: {
+				attributes: {
+					playbookMoves: [BARDIC_INSPIRATION_KEY],
+					moveHold: { [BARDIC_INSPIRATION_KEY]: { value: 1 } }
+				}
+			}
+		});
+		game.actors.filter.mockImplementation((fn) => [icon].filter(fn));
+		const message = {
+			flags: { "armor-astir": { advantageOffer: baseAdvantageOffer() } },
+			author: "author1",
+			whisper: [],
+			blind: false
+		};
+		const fake = fakeChatHtml();
+		mockBonusDieRoll(2);
+
+		onRenderMoveChat(message, fake.html);
+		fake.rollBonusHandler({ currentTarget: { disabled: false } });
+		await flushMicrotasks();
+
+		expect(icon.update).toHaveBeenCalledWith({ [`system.attributes.moveHold.${BARDIC_INSPIRATION_KEY}.value`]: 0 });
+	});
+
+	it("picks randomly among 2+ eligible actors, spending only the chosen one's hold", async () => {
+		const iconA = iconActor({ id: "iconA", name: "Icon A" });
+		const iconB = iconActor({
+			id: "iconB",
+			name: "Icon B",
+			system: {
+				attributes: {
+					playbookMoves: [BARDIC_INSPIRATION_KEY],
+					moveHold: { [BARDIC_INSPIRATION_KEY]: { value: 2 } }
+				}
+			}
+		});
+		game.actors.filter.mockImplementation((fn) => [iconA, iconB].filter(fn));
+		const message = {
+			flags: { "armor-astir": { advantageOffer: baseAdvantageOffer() } },
+			author: "author1",
+			whisper: [],
+			blind: false
+		};
+		const fake = fakeChatHtml();
+		mockBonusDieRoll(3);
+		// floor(0.9 * 2) = 1 -> picks the second eligible actor (iconB).
+		const randomSpy = vi.spyOn(Math, "random").mockReturnValue(0.9);
+
+		onRenderMoveChat(message, fake.html);
+		fake.rollBonusHandler({ currentTarget: { disabled: false } });
+		await flushMicrotasks();
+
+		expect(iconB.update).toHaveBeenCalledWith({ [`system.attributes.moveHold.${BARDIC_INSPIRATION_KEY}.value`]: 1 });
+		expect(iconA.update).not.toHaveBeenCalled();
+
+		randomSpy.mockRestore();
+	});
+
+	it("no-ops when eligibility has vanished entirely between render and click", async () => {
+		const renderTimeIcon = iconActor();
+		game.actors.filter.mockReturnValueOnce([renderTimeIcon]);
+		const message = {
+			flags: { "armor-astir": { advantageOffer: baseAdvantageOffer() } },
+			author: "author1",
+			whisper: [],
+			blind: false
+		};
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		expect(fake.rollBonusHandler).toBeTypeOf("function");
+
+		// Simulates hold running out between the card's render and the click: the handler's own
+		// fresh re-check of eligibility (rather than trusting the render-time snapshot) comes back
+		// empty this time.
+		game.actors.filter.mockReturnValueOnce([]);
+		const rollCallsBefore = Roll.mock.calls.length;
+
+		fake.rollBonusHandler({ currentTarget: { disabled: false } });
+		await flushMicrotasks();
+
+		expect(renderTimeIcon.update).not.toHaveBeenCalled();
+		expect(Roll.mock.calls.length).toBe(rollCallsBefore);
+	});
+
+	it("no-ops a stale click when the chosen actor's own hold ran out (resolveExternalRollBonus finds nothing spendable)", async () => {
+		const renderTimeIcon = iconActor();
+		game.actors.filter.mockReturnValueOnce([renderTimeIcon]);
+		const message = {
+			flags: { "armor-astir": { advantageOffer: baseAdvantageOffer() } },
+			author: "author1",
+			whisper: [],
+			blind: false
+		};
+		const fake = fakeChatHtml();
+
+		onRenderMoveChat(message, fake.html);
+		expect(fake.rollBonusHandler).toBeTypeOf("function");
+
+		// The fresh eligibility re-check still (deliberately, for this test) reports the actor as
+		// eligible, but that actor's own hold has since run out — resolveExternalRollBonus is the
+		// second, per-actor guard against exactly this staleness.
+		const staleIcon = iconActor({
+			system: {
+				attributes: {
+					playbookMoves: ["the-icon:touchstone", BARDIC_INSPIRATION_KEY],
+					moveHold: { [BARDIC_INSPIRATION_KEY]: { value: 0 } }
+				}
+			}
+		});
+		game.actors.filter.mockReturnValueOnce([staleIcon]);
+		const rollCallsBefore = Roll.mock.calls.length;
+
+		fake.rollBonusHandler({ currentTarget: { disabled: false } });
+		await flushMicrotasks();
+
+		expect(staleIcon.update).not.toHaveBeenCalled();
+		expect(Roll.mock.calls.length).toBe(rollCallsBefore);
 	});
 });

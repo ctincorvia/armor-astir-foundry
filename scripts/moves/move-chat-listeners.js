@@ -12,6 +12,7 @@ import {
 import { addDie, effectState, nextAdvantageState, removeDie, rollConditions } from "./roll-effects.js";
 import { spendEquipmentTagsOnActor } from "../equipment/equipment.js";
 import { ALL_MOVES } from "./all-moves.js";
+import { resolvePlaybookMoves } from "./playbook-moves.js";
 
 // Marks the reroll's tag spent (the same array/checkbox PlaybookActorSheet#_onEquipmentTagSpentToggle
 // drives), strikes through the original card's flavor in place to mark it superseded (see
@@ -220,6 +221,78 @@ async function handleAdvantage(message, offer, direction) {
 	});
 }
 
+// Bardic Inspiration/Showstopper (the-icon.js) — this module's first cross-actor chat mechanic:
+// every other offer in this file only ever reads/writes the rolling actor's own state, but this one
+// lets a *different* actor (the Icon) spend hold against someone else's already-posted roll.
+// Eligibility can't be baked into the flavor HTML at roll time the way every other offer's flags
+// are, since an Icon's hold (or even which moves they've picked) can change between when this card
+// posts and when someone actually clicks it — so it's recomputed live from game.actors here instead.
+// `actor.isOwner` is what makes the GM see the button for every actor, not just their own.
+function eligibleExternalRollBonusActors(rollingActorId) {
+	return game.actors.filter((actor) => {
+		if (actor.id === rollingActorId || !actor.isOwner) return false;
+		const pickedMoves = resolvePlaybookMoves(actor.system.attributes?.playbookMoves ?? []);
+		return pickedMoves.some((m) => m.grantsExternalRollBonus && (actor.system.attributes?.moveHold?.[m.key]?.value ?? 0) > 0);
+	});
+}
+
+// Finds the chosen actor's own spendable grantsExternalRollBonus source (Bardic Inspiration) and
+// applies any upgradesExternalRollBonusDie (Showstopper) picked alongside it. Returns null when
+// nothing is currently spendable — the stale-click guard for a card whose eligibility was computed
+// at an earlier render, since hold can run out between then and the actual click. Carries the
+// already-resolved `hold` value along (rather than leaving the caller to re-derive it from the
+// actor a second time) since by construction it's always the same positive number found here.
+function resolveExternalRollBonus(actor) {
+	const pickedMoves = resolvePlaybookMoves(actor.system.attributes?.playbookMoves ?? []);
+	const found = pickedMoves
+		.map((m) => ({ move: m, hold: actor.system.attributes?.moveHold?.[m.key]?.value ?? 0 }))
+		.find((entry) => entry.move.grantsExternalRollBonus && entry.hold > 0);
+	if (!found) return null;
+
+	const upgrade = pickedMoves.find((m) => m.upgradesExternalRollBonusDie?.moveKey === found.move.key);
+	return {
+		source: found.move,
+		hold: found.hold,
+		dieFaces: upgrade ? upgrade.upgradesExternalRollBonusDie.dieFaces : found.move.grantsExternalRollBonus.dieFaces
+	};
+}
+
+// Spends the chosen Icon's hold 1-for-1 and rolls the bonus die, posting the result as its own chat
+// announcement rather than editing the original card in place the way every other handler in this
+// file does — unlike those, the spending actor doesn't own the original message, and Foundry's own
+// ChatMessage#canUpdate only permits the message's own author or a GM to call .update() on it.
+// Re-runs eligibleExternalRollBonusActors fresh (rather than trusting the render-time snapshot the
+// click handler closed over) since hold may have changed since the card was rendered, and
+// resolveExternalRollBonus is a second, per-actor guard against the same staleness.
+async function handleExternalRollBonus(message, offer) {
+	const eligible = eligibleExternalRollBonusActors(offer.actorId);
+	if (!eligible.length) return;
+
+	const actor = eligible[Math.floor(Math.random() * eligible.length)];
+	const resolved = resolveExternalRollBonus(actor);
+	if (!resolved) return;
+
+	const { source, hold, dieFaces } = resolved;
+	await actor.update({ [`system.attributes.moveHold.${source.key}.value`]: Math.max(HOLD_MIN, hold - 1) });
+
+	const dieRoll = new Roll(`1d${dieFaces}`);
+	await dieRoll.evaluate();
+
+	const flavor = await renderTemplate(MOVE_CHAT_TEMPLATE, {
+		name: source.name,
+		description: `<p>${actor.name} spends ${source.name} to add a bonus d${dieFaces} to ${offer.flavorArgs.name}.</p>`
+	});
+
+	// Mirrors the original roll's own visibility — a private/whispered roll's bonus announcement
+	// should stay just as private, not leak to the whole table.
+	await dieRoll.toMessage({
+		speaker: ChatMessage.getSpeaker({ actor }),
+		flavor,
+		whisper: message.whisper,
+		blind: message.blind
+	});
+}
+
 // Reads a rendered chat message's reroll offer (see moves.js#rollMove) and wires its Reroll
 // button, if the card has one, to redo the roll. Exported as a standalone function — rather than
 // only existing as an inline Hooks.on callback — so it's callable directly from tests: Hooks.on
@@ -285,6 +358,27 @@ export function onRenderMoveChat(message, html) {
 			});
 		} else {
 			html.find(".move-add-advantage, .move-add-disadvantage").remove();
+		}
+
+		// Spend Inspiration (the-icon.js's Bardic Inspiration/Showstopper) — deliberately not gated
+		// by canAct above, which only protects message.update(); this handler never calls that, only
+		// actor.update() on an actor the clicking user owns plus Roll#toMessage/ChatMessage.create,
+		// both always permitted. Appended live rather than pre-rendered in move-chat.hbs (unlike
+		// every other button here) since eligibility depends on another actor's current hold, which
+		// can change after this card posts and so can't be baked into the flavor HTML at roll time.
+		if (eligibleExternalRollBonusActors(advantageOffer.actorId).length) {
+			html.find(".armor-astir-move-chat").append('<button type="button" class="move-roll-bonus">Spend Inspiration</button>');
+			html.find(".move-roll-bonus").on("click", async (event) => {
+				event.currentTarget.disabled = true;
+				try {
+					await handleExternalRollBonus(message, advantageOffer);
+				} finally {
+					// Unlike every other button in this file, re-enabled rather than left permanently
+					// disabled — an Icon can spend multiple hold points across multiple clicks on the
+					// same card, not just once.
+					event.currentTarget.disabled = false;
+				}
+			});
 		}
 	}
 }

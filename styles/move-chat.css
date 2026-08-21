@@ -125,7 +125,8 @@
 .armor-astir-move-chat .move-automatic-success,
 .armor-astir-move-chat .move-heatup,
 .armor-astir-move-chat .move-add-advantage,
-.armor-astir-move-chat .move-add-disadvantage {
+.armor-astir-move-chat .move-add-disadvantage,
+.armor-astir-move-chat .move-roll-bonus {
 	padding: var(--aa-space-1) var(--aa-space-2);
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
@@ -137,7 +138,8 @@
 
 .armor-astir-move-chat .move-reroll,
 .armor-astir-move-chat .move-automatic-success,
-.armor-astir-move-chat .move-heatup {
+.armor-astir-move-chat .move-heatup,
+.armor-astir-move-chat .move-roll-bonus {
 	margin-top: var(--aa-space-1);
 }
 
@@ -173,7 +175,8 @@
 .armor-astir-move-chat .move-automatic-success:hover,
 .armor-astir-move-chat .move-heatup:hover,
 .armor-astir-move-chat .move-add-advantage:hover,
-.armor-astir-move-chat .move-add-disadvantage:hover {
+.armor-astir-move-chat .move-add-disadvantage:hover,
+.armor-astir-move-chat .move-roll-bonus:hover {
 	background: var(--aa-primary-dark);
 }
 
@@ -183,7 +186,8 @@
 .armor-astir-move-chat .move-automatic-success:disabled,
 .armor-astir-move-chat .move-heatup:disabled,
 .armor-astir-move-chat .move-add-advantage:disabled,
-.armor-astir-move-chat .move-add-disadvantage:disabled {
+.armor-astir-move-chat .move-add-disadvantage:disabled,
+.armor-astir-move-chat .move-roll-bonus:disabled {
 	background: var(--aa-primary-tint);
 	border-color: var(--aa-primary-tint);
 	color: var(--aa-primary-dark);

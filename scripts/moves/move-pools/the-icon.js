@@ -50,12 +50,13 @@ export const THE_ICON_POOL = {
 			name: "Bardic Inspiration",
 			// Same flat, roll-less hold shape as B-Plot/Hot-blooded — "at the beginning of a Sortie"
 			// isn't a tracked trigger, so Activate is the player's own call for when that's happened.
-			// "Add a d4 to any roll, before or after it is made" has no hook to a specific die-face
-			// mechanic anywhere in this module (roll-modifier stacking doesn't exist — see docs/domains/moves.md's
-			// "systems that do not exist yet"), so only the hold pool itself is coded; applying the d4
-			// stays a manual, narrated adjustment.
+			// "Add a d4 to any roll, before or after it is made" is this module's first cross-actor
+			// chat mechanic (grantsExternalRollBonus — see docs/domains/moves.md's "Adding move content"):
+			// spending this hold rolls the bonus die and posts it as its own chat announcement; only
+			// actually adding the die to the total stays a manual, narrated adjustment.
 			traits: [],
 			flatHold: 3,
+			grantsExternalRollBonus: { dieFaces: 4 },
 			description:
 				"<p>At the beginning of a Sortie, hold 3. You may spend this hold 1-for-1 to add a d4 " +
 				"to any roll, before or after it is made.</p>"
@@ -119,13 +120,13 @@ export const THE_ICON_POOL = {
 			key: "the-icon:showstopper",
 			name: "Showstopper",
 			// "Requires: Bardic Inspiration" is enforced via requiresMoves, same treatment You Should
-			// See Me In A Crown's own Touchstone requirement gets above. The upgrades themselves still
-			// reference mechanics Bardic Inspiration never coded (the d4 application) or that don't
-			// exist anywhere in this module (advancing a GRAVITY clock as a move side-effect), so
-			// *those* stay prose, per docs/domains/moves.md's "systems that do not exist yet" — only the
-			// prerequisite itself is now enforced.
+			// See Me In A Crown's own Touchstone requirement gets above. The d4->d6 upgrade itself is now
+			// coded (upgradesExternalRollBonusDie — see docs/domains/moves.md's "Adding move content");
+			// only advancing a GRAVITY clock as a move side-effect stays prose, since no such system
+			// exists anywhere in this module (see docs/domains/moves.md's "systems that do not exist yet").
 			requiresMoves: ["the-icon:bardic-inspiration"],
 			traits: [],
+			upgradesExternalRollBonusDie: { moveKey: "the-icon:bardic-inspiration", dieFaces: 6 },
 			description:
 				"<p>Requires: Bardic Inspiration</p>" +
 				"<p>When you use bardic inspiration, you may increase a roll by a d6 instead of a d4. " +
