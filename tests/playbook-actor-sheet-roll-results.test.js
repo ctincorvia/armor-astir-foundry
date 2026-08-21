@@ -9,7 +9,7 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
-	EXCHANGE_BLOWS, STRIKE_DECISIVELY, DISPEL_UNCERTAINTIES, WEAVE_MAGIC, READ_THE_ROOM,
+	EXCHANGE_BLOWS, DISPEL_UNCERTAINTIES, WEAVE_MAGIC, READ_THE_ROOM,
 	LEAD_A_SORTIE, ARCANE_AUGMENTS, LET_LOOSE, DONT_FOLLOW_ME
 } from "./helpers/move-fixtures.js";
 import { soleWeaponBundle } from "./helpers/move-test-helpers.js";

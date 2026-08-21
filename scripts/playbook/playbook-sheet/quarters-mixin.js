@@ -1,4 +1,4 @@
-import { QUARTERS_BENEFITS, QUARTERS_BENEFIT_MAX, resolveQuartersBenefits } from "../quarters.js";
+import { QUARTERS_BENEFITS, QUARTERS_BENEFIT_MAX } from "../quarters.js";
 import { findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
 
 // Quarters (Equipment tab, isSupport-gated — see quarters.js) — a singleton object field on the
