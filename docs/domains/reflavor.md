@@ -119,12 +119,6 @@ because they're load-bearing joins rather than prose:
 - The `ReflavorConfig` dialog's appearance has not been visually verified in a live Foundry client —
   this repo's tooling cannot render or screenshot a Foundry sheet (see claude.md's "Templates and
   CSS are invisible to the test suite").
-- **The shipped `scifi-reskin.json` example leaves `astir:refresh-matrix` untouched.** That move
-  (`scripts/frames/astir-moves.js`) has its own prose naming "Familiar Matrix" and "Familiars"
-  directly, and since the example deliberately doesn't populate a `moves` section, that move's text
-  still reads with the old terminology even after a full application of the file. This is a scope
-  boundary of the example itself, not a limitation of the reflavor engine — `moves` can be
-  reflavored like any other section; the shipped example just doesn't exercise it.
 
 ## Testing
 

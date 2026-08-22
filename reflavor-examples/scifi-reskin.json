@@ -1,8 +1,14 @@
 {
+	"moves": {
+		"astir:refresh-matrix": {
+			"name": "Rapid Recycler",
+			"description": "<p>This Astir's Drone Bay runs on a tighter, more efficient cycle, letting each Drone re-arm faster than most.</p><p>Your Drones gain the Blitz tag, and lose the Limited tag if they carry it (today, only Attack Drone does).</p>"
+		}
+	},
 	"astirParts": {
 		"astir-part:extra-arms": {
-			"name": "Auxiliary Manipulator Arms",
-			"description": "<p>Bolting a second set of manipulator arms onto a chassis is easy. Wiring them into the pilot's own reflexes without them fighting each other is the hard part.</p><p>Two extra arms and hands.</p>"
+			"name": "Additional Arms",
+			"description": "<p>Bolting a second set of arms onto a chassis is easy. Wiring them into the pilot's own reflexes without them fighting each other is the hard part.</p><p>Two extra arms and hands.</p>"
 		},
 		"astir-part:divination-codex": {
 			"name": "Tactical Databank",
@@ -13,27 +19,27 @@
 			"description": "<p>Where a standard reactor relies on one clean power curve, this rig keeps a second bank charged in reserve, ready to catch the surplus the instant the main line spikes past spec.</p><p>Regain 1 Power when you roll doubles (once per roll).</p>"
 		},
 		"astir-part:familiar-matrix": {
-			"name": "Drone Control Bay",
+			"name": "Drone Bay",
 			"description": "<p>A dedicated bay and datalink rig lets one pilot store, launch and coordinate a full flight of remote units without splitting their attention.</p><p>Holds and comes with one set of Drones of your choice.</p>"
 		},
 		"astir-part:alchemical-suite": {
-			"name": "Combat Stim Dispenser",
-			"description": "<p>A rack of preloaded autoinjectors, synthesizing and dispensing combat compounds on demand, then venting them into the cockpit's air recycler to save time.</p><ul><li>Red: Remove a peril related to physical injury or wounds. Metallic aftertaste.</li><li>Blue: Take advantage when you next weave magic. Sharp and clean.</li><li>Yellow: Take a risk. Act with confidence when you next exchange blows or strike decisively. Bitter, with a kick.</li></ul><p>Take 1 of each Stim when someone leads a Sortie.</p>"
+			"name": "Combat Stimilation Suite",
+			"description": "<p>A rack of preformulated aerosol canisters, vented directly into the cockpit's HVAC system on demand.</p><ul><li>Red: Remove a peril related to physical injury or wounds. Metallic aftertaste.</li><li>Blue: Take advantage when you next weave magic. Sharp and clean.</li><li>Yellow: Take a risk. Act with confidence when you next exchange blows or strike decisively. Bitter, with a kick.</li></ul><p>Take 1 of each Stim when someone leads a Sortie.</p>"
 		},
 		"astir-part:chameleon-cloak": {
-			"name": "Active Camo Field",
+			"name": "Optical Camouflage",
 			"description": "<p>They can't hit what they can't see.</p><p>Trigger the optical camouflage field for a Scene. The next risk you take is 'revealed'.</p>"
 		},
 		"astir-part:warding": {
 			"name": "Reactive Plating"
 		},
 		"astir-part:resistance-charms": {
-			"name": "Hardened Systems",
+			"name": "Specialized System Hardening",
 			"description": "<p>While it's difficult to offer broad protection against every kind of damage, more specific hazards are relatively simple to harden an Astir against.</p><p>Examples:</p><ul><li>Redundant Actuators (lowers dangers from limb loss). Crawl. Climb. Rip. Tear. Many hands make light work.</li><li>Failsafe Relays (lowers dangers from comms disruption). Hear you loud and clear, 9th. Everyone else went quiet.</li><li>Grounded Conduits (lowers dangers from electricity). Don't be the fool caught out in a storm. Plan ahead.</li></ul><p>Lowers dangers from one chosen source: Peril becomes a Risk, Risk becomes Nothing.</p>"
 		},
 		"astir-part:heat-condensers": {
-			"name": "Coolant Radiators",
-			"description": "<p>Stopping to vent heat mid-fight can make you a sitting duck—it makes sense then that many pilots who'd rather not risk it invest in oversized coolant radiators.</p><p>Untick 'overheating' from your Astir.</p>"
+			"name": "Advanced Cooling System",
+			"description": "<p>Stopping to vent heat mid-fight can make you a sitting duck—it makes sense then that many pilots who'd rather not risk it invest in specialized coolant radiators.</p><p>Untick 'overheating' from your Astir.</p>"
 		},
 		"ardent-feature:armour-plating": {
 			"name": "Composite Hull Plating",
@@ -46,7 +52,7 @@
 	},
 	"astirWeapons": {
 		"astir-fists": {
-			"name": "Servo Fists",
+			"name": "Reinforced Fists",
 			"description": "Every Astir can fall back on its reinforced fists, but they don't make for graceful brawlers. Also seen as Concealed Vibro-Blades, Close-Range Chainguns, or a Mining Drill."
 		},
 		"forceknife": {
@@ -54,7 +60,7 @@
 			"description": "Short (for an Astir) blades fitted with a high-frequency vibro-edge, vibroblades are good for when you find yourself up close and personal. Also seen as a Throwing Glaive, Charged Hatchet, or Serrated Combat Knives."
 		},
 		"force-repeater": {
-			"name": "Heavy Machine Gun",
+			"name": "Auxiliary Machine Gun",
 			"description": "A fully automatic, large caliber machine gun firing kinetic rounds, serving as an effective reserve weapon. Also seen as a Sidearm, Mining Laser, or Point-Defense Turret."
 		},
 		"rayrifle": {
@@ -62,16 +68,16 @@
 			"description": "Beam rifles are the workhorse of most armies when it comes to arming Astirs. A highly efficient capacitor cycle means every shot draws an almost meaningless amount of reactor power. Also seen as a Service Rifle, Arc Cannon, or Recycler Rifle."
 		},
 		"titan-bow": {
-			"name": "Linear Cannon",
-			"description": "Immense, heavily-reinforced linear cannons, taller than even some Astirs. While some baulk at taking a bulky single-shot weapon into the field, others point to the ability to punch a slug through Carrier hulls as a valuable upside. Also seen as a Single-Shot Railgun, Beam Sniper, or Anti-Materiel Rifle."
+			"name": "Laser Cannon",
+			"description": "Immense, heavily-reinforced laser cannons, taller than even some Astirs. While some baulk at taking a bulky single-shot weapon into the field, others point to the ability to punch a hole through Carrier hulls as a valuable upside. Also seen as a Single-Shot Railgun, Beam Sniper, or Anti-Materiel Rifle."
 		},
 		"warp-slinger": {
 			"name": "Gatling Turret",
-			"description": "An emplaced mount incorporating multiple linked barrels and a simple firing mechanism that can be triggered by even an untrained gunner. Also seen as an MG Turret, Point-Defense Laser, or a Rotary Cannon."
+			"description": "A gun incorporating multiple linked barrels and a simple firing mechanism that can be triggered by even an untrained gunner. Also seen as an MG Turret, Point-Defense Laser, or a Rotary Cannon."
 		},
 		"seeker-cluster": {
 			"name": "Guided Missile Pod",
-			"description": "Guided by a simple onboard targeting computer, this pod launches a swarm of small guided munitions to hound a particular target. Though they struggle to pierce armour, these warheads shatter on impact, scattering sharp shrapnel. Also seen as Orbiting Micro-Drones, a Shock Rod, or Command Bracelets & Drone."
+			"description": "Guided by a simple onboard targeting computer, this pod launches a swarm of small guided munitions to hound a particular target. Though they struggle to pierce armour, these warheads shatter on impact, scattering sharp shrapnel. Also seen flechette guns, Shock Rod Launcher, or Micro-missiles."
 		},
 		"forceblade": {
 			"name": "Beam Saber",
@@ -82,8 +88,8 @@
 			"description": "Arranged in paired racks and loaded with incendiary charges, short-range launchers are a common and potent weapon when it comes to arming Astirs. Also seen as Acid Pods or a Plasma Mortar."
 		},
 		"novawhip": {
-			"name": "Chain Mine Whip",
-			"description": "Timed charges sit at equal intervals along this chain weapon, and violently detonate on impact. A devastating weapon in skilled hands that know how to re-arm the charges mid-battle. Also seen as a Plasma Cable or a Storm Gauntlet."
+			"name": "Nanite Whip",
+			"description": "A flexible, extendable weapon made from hardware-degrading nanomaterials. Also seen as a Plasma Cable or a Storm Gauntlet."
 		},
 		"overcharged-bolts": {
 			"name": "Gauss Cannon",
@@ -107,11 +113,11 @@
 		},
 		"claw-familiar": {
 			"name": "Crow Drone",
-			"description": "Sharp-clawed constructs of servo-driven metal and composite plating, built in the recognizable shape of a crow. Also seen as Hunter-Killer Units, Phantom Drones, or Saw Drones. Drone — requires a Drone Control Bay Astir Part; rolls +CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear automatically during Downtime."
+			"description": "Sharp-clawed constructs of servo-driven metal and composite plating.  Winged and black, their silhouettes earned them the 'Crow Drone' moniker. Also seen as Hunter-Killer Units, Phantom Drones, or Saw Drones. Drone — requires a Drone Control Bay Astir Part; rolls +CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear automatically during Downtime."
 		},
 		"touch-spells": {
 			"name": "Shock Gauntlet",
-			"description": "A charged contact plate built into the palm, discharging straight through the target the instant the gauntlet makes contact."
+			"description": "A charged contact plate built into the palm or knuckles, discharging straight through the target the instant the gauntlet makes contact."
 		},
 		"ardent-feature:bolt-sigils": {
 			"name": "EMP Edge",
@@ -129,15 +135,15 @@
 		},
 		"greatsword-i": {
 			"name": "Heavy Vibroblade",
-			"description": "A large, motor-assisted blade with good reach and weight, perfect for taking heads. Praxis."
+			"description": "A large, motor-assisted blade with good reach and weight, perfect for taking heads."
 		},
 		"enchanted-blade-i": {
 			"name": "Charged Blade",
-			"description": "What was once simple steel now carries a live electrical charge, thanks to an integrated capacitor pack."
+			"description": "What was once simple steel now carries a live electrical charge, thanks to an integrated capacitor."
 		},
 		"bow-i": {
-			"name": "Slugthrower",
-			"description": "For when you don't need anything fancy, a slugthrower is perfectly capable of doing the job for as long as you have ammunition."
+			"name": "Assault Rifle",
+			"description": "For when you don't need anything fancy, a standard-issue assault rifle is perfectly capable of doing the job for as long as you have ammunition."
 		},
 		"raypistol-i": {
 			"name": "Laser Pistol",
@@ -156,15 +162,15 @@
 		},
 		"grappling-hook-i": {
 			"name": "Grapnel Launcher",
-			"description": "Allows you to climb or grapple. A small sturdy grip attached to a barrel loaded with a steel hook, propelled by a compressed-gas charge. An attached cable can then be reeled in, allowing the holder to quickly relocate."
+			"description": "Allows you to climb or grapple. A small sturdy grip attached to a barrel loaded with a steel hook or magnetic grip, propelled by a compressed-gas charge. An attached cable can then be reeled in, allowing the holder to quickly relocate."
 		},
 		"arcane-charge-i": {
 			"name": "Demolition Charge",
 			"description": "A shaped explosive charge on a timer fuse. Stick it on an Astir, light the fuse, and run for your life."
 		},
 		"bloodletter-i": {
-			"name": "Piercer",
-			"description": "The rank-and-file of the Faces Of Progress carry these sinister spears, engineered specifically to punch through armour plating and flesh alike. Those not of the rank-and-file, it turns out, have an unquenchable thirst."
+			"name": "Pig Sticker",
+			"description": "The rank-and-file of the Faces Of Progress carry these sinister spears, engineered specifically to punch through armour plating and flesh alike."
 		},
 		"little-shark-ii": {
 			"name": "Cryo Harpoon",
@@ -189,10 +195,6 @@
 		"bestiary-array-ii": {
 			"name": "Holoprojector Array",
 			"description": "A popular weapon among the Hollow Ranks, the Holoprojector Array casts flickering holographic decoys shaped like beasts of war, hard to pin down and irritatingly effective at scrambling Astir targeting systems."
-		},
-		"paracausal-hook-iii": {
-			"name": "Graviton Hook",
-			"description": "Devised as a latch for faster-than-light applications, the graviton hook, if carefully aimed, also turned out to be remarkably effective at warping physical matter through a localized gravity well. Stand well back."
 		}
 	}
 }
