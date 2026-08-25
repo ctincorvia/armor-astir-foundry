@@ -117,14 +117,15 @@ export const THE_REVENANT_POOL = {
 			name: "Ravenous Spectre",
 			traits: [],
 			// A manual `uses` checkbox stands in for "caused a living being to be in peril" as the
-			// trigger -- nothing in this module tracks that condition automatically -- and checking it
-			// off is what the deferred grantsRollModifier entry below reads as its costsUse gate,
-			// granting Advantage to the actor's next Cool Off once spent (see
-			// move-grants-mixin.js's _pendingRollModifierGrant).
+			// trigger -- nothing in this module tracks that condition automatically -- and checking
+			// the Roll Modifier is what sets that flag true and applies advantage to that same Cool
+			// Off roll.
 			uses: [{ key: "triggered", label: "Caused a living being to be in peril" }],
-			grantsRollModifier: [{ moveKeys: ["cool-off"], advantage: "advantage", costsUse: "triggered", deferred: true }],
+			grantsRollModifier: [{ moveKeys: ["cool-off"], advantage: "advantage", costsUse: "triggered",
+				label: "Ravenous Spectre",
+				description: "Take advantage when you cool off after causing a living being to be in peril." }],
 			description:
-				"<p>When you cause a living being to be in peril, take advantage when you next cool " +
+				"<p>When you cause a living being to be in peril, take advantage when you cool " +
 				"off as you draw momentum or vigour from them.</p>"
 		},
 		{

@@ -555,7 +555,6 @@ describe("PlaybookActorSheet#_onMoveRoll - Don't Follow Me's quick-roll redirect
 						effect: null,
 						requiresAdvantage: null,
 						reminderOnly: false,
-						deferred: false,
 						disabled: false,
 						disabledReason: null,
 						forced: true

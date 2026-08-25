@@ -161,12 +161,13 @@ describe("MOVE_POOLS", () => {
 		expect(dontFollowMe.grantsAdvantageOnMove).toBeUndefined();
 	});
 
-	it("gives Bullheaded a deferred, unscoped advantage grant behind its own 'took a risk' uses checkbox", () => {
+	it("gives Bullheaded an unscoped advantage grant behind its own 'took a risk' uses checkbox", () => {
 		const bullheaded = findPlaybookMove("the-impostor:bullheaded");
 
 		expect(bullheaded.uses).toEqual([{ key: "took-risk", label: "Took a risk for this" }]);
 		expect(bullheaded.grantsRollModifier).toEqual([
-			{ advantage: "advantage", costsUse: "took-risk", deferred: true }
+			{ advantage: "advantage", costsUse: "took-risk",
+				label: "Bullheaded", description: "Take a risk to take advantage." }
 		]);
 	});
 

@@ -61,7 +61,6 @@ function fakeChainDom({ rollModifierKeys = [], weaponSelectValue = undefined, sc
 		const checkboxEl = rollModifierCheckboxEl(key);
 		selectors.set(`${scope}[name='roll-modifier'][value='${key}']`, checkboxEl);
 		selectors.set(`${scope}[data-roll-modifier-row="${key}"] [name='roll-modifier']`, checkboxEl);
-		selectors.set(`${scope}[data-roll-modifier-row="${key}"] [name='pending-roll-modifier']`, checkboxEl);
 		selectors.set(`${scope}[data-roll-modifier-row="${key}"]`, {
 			toggleClass(cls, force) { state.rowDisabled[key] = force; return this; }
 		});
@@ -75,9 +74,6 @@ function fakeChainDom({ rollModifierKeys = [], weaponSelectValue = undefined, sc
 			const values = rollModifierKeys.filter((key) => state.checked.has(key));
 			return { get: () => values.map((value, index) => fn(index, { value })) };
 		}
-	});
-	selectors.set(`${scope}[name='pending-roll-modifier']:checked`, {
-		map(fn) { return { get: () => [] }; }
 	});
 	selectors.set("[name='roll-modifier']", {
 		on(event, handler) { if (event === "change") state.handlers.rollModifier.push(handler); }
@@ -167,25 +163,25 @@ describe("configureMoveRoll - live chain recompute", () => {
 	const allInEntry = {
 		key: "cantrips:all-in", label: "All In", description: "d",
 		advantage: "advantage", effect: "desperation", requiresAdvantage: ["advantage"],
-		reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: false
+		reminderOnly: false, disabled: false, disabledReason: null, forced: false
 	};
 	const embraceChaosEntry = {
 		key: "the-witch:embrace-chaos", label: "Embrace Chaos", description: "d",
 		advantage: "advantage2", effect: null, requiresAdvantage: ["disadvantage", "disadvantage2"],
-		reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: false
+		reminderOnly: false, disabled: false, disabledReason: null, forced: false
 	};
 	const advantageOnlyEntry = {
 		key: "the-diplomat:sharper-knives", label: "Sharper Knives", description: "d",
 		advantage: "advantage", effect: null, requiresAdvantage: null,
-		reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: false
+		reminderOnly: false, disabled: false, disabledReason: null, forced: false
 	};
 	const effectOnlyEntry = {
 		key: "the-scout:field-scout", label: "Field Scout", description: "d",
 		advantage: null, effect: "confidence", requiresAdvantage: null,
-		reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: false
+		reminderOnly: false, disabled: false, disabledReason: null, forced: false
 	};
-	// A synthetic forced: true entry, standing in for whatever real source (Tier, Cold Company, a
-	// pending deferred grant, ...) would otherwise seed the base Advantage state -- there is no
+	// A synthetic forced: true entry, standing in for whatever real source (Tier, Cold Company,
+	// ...) would otherwise seed the base Advantage state -- there is no
 	// lockedAdvantage anymore (see docs/domains/moves.md), so every "starts pre-stepped" scenario
 	// below has to seed via one or more forced Roll Modifier entries folded through resolveRollChain
 	// instead. Each one nudges Advantage by exactly one step; stack two to reach disadvantage2/
@@ -197,7 +193,7 @@ describe("configureMoveRoll - live chain recompute", () => {
 		return {
 			key, label: "Seed", description: "d",
 			advantage, effect: null, requiresAdvantage: null,
-			reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: true
+			reminderOnly: false, disabled: false, disabledReason: null, forced: true
 		};
 	}
 	// The Effect-axis counterpart to seedEntry above.
@@ -205,7 +201,7 @@ describe("configureMoveRoll - live chain recompute", () => {
 		return {
 			key, label: "Seed", description: "d",
 			advantage: null, effect, requiresAdvantage: null,
-			reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: true
+			reminderOnly: false, disabled: false, disabledReason: null, forced: true
 		};
 	}
 
@@ -499,7 +495,7 @@ describe("configureMoveRoll - live chain recompute", () => {
 		const reminderOnlyEntry = {
 			key: "the-wither:dark-guarantees", label: "Dark Guarantees", description: "d",
 			advantage: null, effect: null, requiresAdvantage: null,
-			reminderOnly: true, deferred: false, disabled: false, disabledReason: null
+			reminderOnly: true, disabled: false, disabledReason: null
 		};
 		const { dialogOptions } = await openDialog({ rollModifiers: [reminderOnlyEntry] });
 		const dom = fakeChainDom({ rollModifierKeys: [] });
@@ -540,7 +536,7 @@ describe("configureMoveRoll - live chain recompute", () => {
 		dialogOptions.close();
 	});
 
-	it("only checked, non-deferred entries end up in the Roll button's own spentRollModifiers", async () => {
+	it("only checked entries end up in the Roll button's own spentRollModifiers", async () => {
 		const { dialogOptions, promise } = await openDialog({ rollModifiers: [advantageOnlyEntry] });
 		const dom = fakeChainDom({ rollModifierKeys: [advantageOnlyEntry.key] });
 
@@ -552,27 +548,6 @@ describe("configureMoveRoll - live chain recompute", () => {
 		const result = await promise;
 		expect(result.advantage).toBe("advantage");
 		expect(result.spentRollModifiers).toEqual([advantageOnlyEntry.key]);
-	});
-
-	// A deferred, unchecked entry (Snakes in the Grass-shaped) still goes through the same live
-	// applicability re-check as an immediate entry -- see repaintAvailability()'s own deferred ?
-	// "pending-roll-modifier" : "roll-modifier" checkbox-name branch -- even though it never nudges
-	// currentAdvantage/currentEffect itself (only a checked [name='roll-modifier'] does that).
-	it("re-evaluates a deferred entry's own live applicability against the [name='pending-roll-modifier'] checkbox name", async () => {
-		const deferredEntry = {
-			key: "the-adrift:snakes-in-the-grass", label: "Snakes In The Grass", description: "d",
-			advantage: "advantage", effect: null, requiresAdvantage: ["advantage"],
-			reminderOnly: false, deferred: true, disabled: false, disabledReason: null
-		};
-		const { dialogOptions } = await openDialog({ rollModifiers: [deferredEntry] });
-		const dom = fakeChainDom({ rollModifierKeys: [deferredEntry.key] });
-
-		dialogOptions.render(dom.html);
-
-		expect(dom.state.disabled[deferredEntry.key]).toBe(true);
-		expect(dom.state.reasons[deferredEntry.key]).toBe("Requires Advantage");
-
-		dialogOptions.close();
 	});
 
 	// The reported regression: checking a modifier that nudges None -> Advantage, then clicking the
@@ -682,7 +657,7 @@ describe("configureMoveRoll - live chain recompute (weaponBundles)", () => {
 	const halberdModifier = {
 		key: "the-diplomat:sharper-knives", label: "Sharper Knives", description: "d",
 		advantage: "advantage", effect: null, requiresAdvantage: null,
-		reminderOnly: false, deferred: false, disabled: false, disabledReason: null
+		reminderOnly: false, disabled: false, disabledReason: null
 	};
 	const unarmedBundle = {
 		weaponKey: UNARMED, weaponLabel: "Unarmed", weaponCard: null,
@@ -698,12 +673,12 @@ describe("configureMoveRoll - live chain recompute (weaponBundles)", () => {
 	const forcedDesperationEntry = {
 		key: "equipment:unreliable", label: "Unreliable", description: "d",
 		advantage: null, effect: "desperation", requiresAdvantage: null,
-		reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: true
+		reminderOnly: false, disabled: false, disabledReason: null, forced: true
 	};
 	const forcedConfidenceEntry = {
 		key: "approach:favorable-matchup", label: "Favorable Matchup", description: "d",
 		advantage: null, effect: "confidence", requiresAdvantage: null,
-		reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: true
+		reminderOnly: false, disabled: false, disabledReason: null, forced: true
 	};
 	const unreliableBundle = {
 		weaponKey: "eq2", weaponLabel: "Unreliable Weapon", weaponCard: null,

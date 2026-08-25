@@ -16,7 +16,6 @@ import {
 	BONDED_IN_BLOOD,
 	BRANDED_BLADES,
 	BULLHEADED,
-	COOL_OFF,
 	DARK_GUARANTEES,
 	EMBRACE_CHAOS,
 	EXCHANGE_BLOWS,
@@ -280,7 +279,6 @@ describe("PlaybookActorSheet#_rollModifiersForMove", () => {
 			effect: null,
 			requiresAdvantage: null,
 			reminderOnly: false,
-			deferred: false,
 			disabled: false,
 			disabledReason: null,
 			forced: false
@@ -365,27 +363,10 @@ describe("PlaybookActorSheet#_rollModifiersForMove", () => {
 			effect: null,
 			requiresAdvantage: null,
 			reminderOnly: true,
-			deferred: false,
 			disabled: false,
 			disabledReason: null,
 			forced: false
 		}]);
-	});
-
-	it("carries deferred through to the entry", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				attributes: {
-					playbookMoves: [SNAKES_IN_THE_GRASS.key],
-					moveHold: { [SNAKES_IN_THE_GRASS.key]: { value: 1 } }
-				}
-			}
-		};
-
-		const [entry] = sheet._rollModifiersForMove(EXCHANGE_BLOWS, null);
-
-		expect(entry.deferred).toBe(true);
 	});
 
 	it("gives Alchemical Suite's two specs off one source their own unique keys/labels/descriptions", () => {
@@ -430,7 +411,6 @@ describe("PlaybookActorSheet#_rollModifiersForMove", () => {
 			effect: null,
 			requiresAdvantage: null,
 			reminderOnly: false,
-			deferred: false,
 			disabled: false,
 			disabledReason: null,
 			forced: false
@@ -463,34 +443,6 @@ describe("PlaybookActorSheet#_rollModifiersForMove", () => {
 		const [entry] = sheet._rollModifiersForMove(READ_THE_ROOM, null);
 
 		expect(entry.requiresAdvantage).toBeNull();
-	});
-
-	// A pending deferred grant's own effect is masked the same way _targetMatchupRollModifier/
-	// _forcedWeaponRollModifier are, whenever this roll's Effect is already locked elsewhere (see
-	// _rollModifiersForMove's own filter over _pendingRollModifierEntries) -- a pending advantage-
-	// setting entry is never masked this way, since only Effect stays behind lockedEffect.
-	it("masks a pending grant's own effect when this roll's Effect is already locked, but not a pending grant's advantage", () => {
-		const sheet = new PlaybookActorSheet();
-		const fakeEffectSource = {
-			key: "fake:effect-grant", name: "Fake Effect Source", description: "fallback",
-			grantsRollModifier: [{ moveKeys: ["strike-decisively"], effect: "confidence", deferred: true }]
-		};
-		sheet._rollModifierSources = () => [fakeEffectSource, SNAKES_IN_THE_GRASS];
-		sheet.actor = {
-			system: {
-				attributes: {
-					pendingRollModifiers: {
-						[fakeEffectSource.key]: { default: true },
-						[SNAKES_IN_THE_GRASS.key]: { default: true }
-					}
-				}
-			}
-		};
-
-		const entries = sheet._rollModifiersForMove(STRIKE_DECISIVELY, "desperation");
-
-		expect(entries.some((e) => e.sourceKey === fakeEffectSource.key)).toBe(false);
-		expect(entries.some((e) => e.sourceKey === SNAKES_IN_THE_GRASS.key)).toBe(true);
 	});
 });
 
@@ -572,7 +524,7 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.spotlight.value": SPOTLIGHT_MIN });
 	});
 
-	it("costsHold (own pool) + deferred: decrements this source's own hold and writes a pendingRollModifiers marker", async () => {
+	it("costsHold (own pool, no explicit moveKey): decrements this source's own hold", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -584,12 +536,11 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 		await sheet._spendRollModifiers([SNAKES_IN_THE_GRASS.key]);
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.moveHold.${SNAKES_IN_THE_GRASS.key}.value`]: 0,
-			[`system.attributes.pendingRollModifiers.${SNAKES_IN_THE_GRASS.key}.default`]: true
+			[`system.attributes.moveHold.${SNAKES_IN_THE_GRASS.key}.value`]: 0
 		});
 	});
 
-	it("costsHold (explicit cross-move moveKey), not deferred: decrements the named move's shared pool only", async () => {
+	it("costsHold (explicit cross-move moveKey): decrements the named move's shared pool only", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { attributes: { playbookMoves: [IDENTIFY.key] }, resources: { hold: { value: 2 } } },
@@ -639,22 +590,7 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 		});
 	});
 
-	it("costsUse + deferred: marks the named use spent and writes a pendingRollModifiers marker", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { attributes: { playbookMoves: [RAVENOUS_SPECTRE.key] } },
-			update: vi.fn()
-		};
-
-		await sheet._spendRollModifiers([RAVENOUS_SPECTRE.key]);
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.moveUses.${RAVENOUS_SPECTRE.key}.triggered`]: true,
-			[`system.attributes.pendingRollModifiers.${RAVENOUS_SPECTRE.key}.default`]: true
-		});
-	});
-
-	it("costsUse, not deferred (Artifact): marks its own Expended checkbox, with no pendingRollModifiers marker", async () => {
+	it("costsUse (Artifact): marks its own Expended checkbox", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -719,174 +655,17 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 	});
 });
 
-// pendingEntry mirrors the exact ordinary-Roll-Modifier-shaped, forced: true object
-// _pendingRollModifierEntries builds (move-grants-mixin.js) -- key namespaced pending-<sourceKey>-
-// <specKey>, label/description defaulting to the source's own name/description the same way the
-// catalog loop in _rollModifiersForMove already does.
-function pendingEntry(source, { specKey = "default", label = source.name, description = source.description, advantage = null, effect = null } = {}) {
-	return {
-		key: `pending-${source.key}-${specKey}`,
-		label,
-		description,
-		advantage,
-		effect,
-		requiresAdvantage: null,
-		reminderOnly: false,
-		deferred: false,
-		disabled: false,
-		disabledReason: null,
-		forced: true,
-		sourceKey: source.key,
-		specKey
-	};
-}
-
-describe("PlaybookActorSheet#_pendingRollModifierEntries", () => {
-	it("returns an empty array when nothing is pending", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { playbookMoves: [SNAKES_IN_THE_GRASS.key] } } };
-
-		expect(sheet._pendingRollModifierEntries(EXCHANGE_BLOWS)).toEqual([]);
-	});
-
-	it("resolves an unscoped pending grant for any move", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				attributes: {
-					playbookMoves: [SNAKES_IN_THE_GRASS.key],
-					pendingRollModifiers: { [SNAKES_IN_THE_GRASS.key]: { default: true } }
-				}
-			}
-		};
-
-		expect(sheet._pendingRollModifierEntries(EXCHANGE_BLOWS)).toEqual([
-			pendingEntry(SNAKES_IN_THE_GRASS, { advantage: "advantage" })
-		]);
-	});
-
-	it("resolves a scoped pending grant only for a matching move key", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				attributes: {
-					playbookMoves: [RAVENOUS_SPECTRE.key],
-					pendingRollModifiers: { [RAVENOUS_SPECTRE.key]: { default: true } }
-				}
-			}
-		};
-
-		expect(sheet._pendingRollModifierEntries(COOL_OFF)).toEqual([
-			pendingEntry(RAVENOUS_SPECTRE, { advantage: "advantage" })
-		]);
-		expect(sheet._pendingRollModifierEntries(READ_THE_ROOM)).toEqual([]);
-	});
-
-	it("skips a non-deferred entry even when it's the only source present", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { playbookMoves: [SHARPER_KNIVES.key] } } };
-
-		expect(sheet._pendingRollModifierEntries(EXCHANGE_BLOWS)).toEqual([]);
-	});
-
-	it("resolves a spec's own explicit key, not a shared default, when a source grants more than one spec, and carries an effect-only spec's effect through", () => {
-		const sheet = new PlaybookActorSheet();
-		const fakeSource = {
-			key: "fake:multi-spec", name: "Fake Multi-Spec Source", description: "fallback",
-			grantsRollModifier: [
-				{ key: "alpha", moveKeys: ["weave-magic"], advantage: "advantage", deferred: true,
-					label: "Alpha Grant", description: "d-alpha" },
-				{ key: "beta", moveKeys: ["strike-decisively"], effect: "confidence", deferred: true,
-					label: "Beta Grant", description: "d-beta" }
-			]
-		};
-		sheet._rollModifierSources = () => [fakeSource];
-
-		sheet.actor = { system: { attributes: { pendingRollModifiers: { [fakeSource.key]: { alpha: true } } } } };
-		expect(sheet._pendingRollModifierEntries(WEAVE_MAGIC)).toEqual([
-			pendingEntry(fakeSource, { specKey: "alpha", label: "Alpha Grant", description: "d-alpha", advantage: "advantage" })
-		]);
-
-		sheet.actor = { system: { attributes: { pendingRollModifiers: { [fakeSource.key]: { beta: true } } } } };
-		expect(sheet._pendingRollModifierEntries(STRIKE_DECISIVELY)).toEqual([
-			pendingEntry(fakeSource, { specKey: "beta", label: "Beta Grant", description: "d-beta", effect: "confidence" })
-		]);
-	});
-
-	// The actual bug this rewrite fixes: the old _pendingRollModifierGrant returned only the first
-	// pending match it found across sources -- two simultaneously-pending, qualifying grants for the
-	// same move used to mean the second one silently stayed pending, unconsumed. Bullheaded and
-	// Snakes In The Grass are both unscoped and both qualify for Weave Magic here at once.
-	it("resolves every currently-pending, qualifying entry, not just the first", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				attributes: {
-					playbookMoves: [BULLHEADED.key, SNAKES_IN_THE_GRASS.key],
-					pendingRollModifiers: {
-						[BULLHEADED.key]: { default: true },
-						[SNAKES_IN_THE_GRASS.key]: { default: true }
-					}
-				}
-			}
-		};
-
-		expect(sheet._pendingRollModifierEntries(WEAVE_MAGIC)).toEqual([
-			pendingEntry(BULLHEADED, { advantage: "advantage" }),
-			pendingEntry(SNAKES_IN_THE_GRASS, { advantage: "advantage" })
-		]);
-	});
-});
-
-describe("PlaybookActorSheet#_clearPendingRollModifiers", () => {
-	it("is a no-op for an empty array, with no actor.update call at all", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { update: vi.fn() };
-
-		await sheet._clearPendingRollModifiers([]);
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-
-	it("writes false to a single entry's own path", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { update: vi.fn() };
-
-		await sheet._clearPendingRollModifiers([{ sourceKey: SNAKES_IN_THE_GRASS.key, specKey: "default" }]);
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.pendingRollModifiers.${SNAKES_IN_THE_GRASS.key}.default`]: false
-		});
-	});
-
-	it("writes both entries' paths in one batched actor.update call", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { update: vi.fn() };
-
-		await sheet._clearPendingRollModifiers([
-			{ sourceKey: BULLHEADED.key, specKey: "default" },
-			{ sourceKey: SNAKES_IN_THE_GRASS.key, specKey: "blue" }
-		]);
-
-		expect(sheet.actor.update).toHaveBeenCalledTimes(1);
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.pendingRollModifiers.${BULLHEADED.key}.default`]: false,
-			[`system.attributes.pendingRollModifiers.${SNAKES_IN_THE_GRASS.key}.blue`]: false
-		});
-	});
-});
-
-// Regression: Bonded In Blood follows the exact same unscoped-deferred-uses shape as Ravenous
-// Spectre above, just with its own use key -- one pass-through case so this catalog entry's own
-// call site isn't dead code.
+// Regression: Bonded In Blood follows the exact same unscoped-uses shape as Ravenous Spectre
+// above, just with its own use key -- one pass-through case so this catalog entry's own call site
+// isn't dead code.
 describe("PlaybookActorSheet#_rollModifiersForMove - Bonded In Blood", () => {
-	it("is unscoped, deferred, and gated on its own uses checkbox", () => {
+	it("is unscoped and gated on its own uses checkbox", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { playbookMoves: [BONDED_IN_BLOOD.key] } } };
 
 		const [entry] = sheet._rollModifiersForMove(READ_THE_ROOM, null);
 
-		expect(entry.deferred).toBe(true);
+		expect(entry.deferred).toBeUndefined();
 		expect(entry.disabled).toBe(false);
 
 		sheet.actor.system.attributes.moveUses = { [BONDED_IN_BLOOD.key]: { "took-peril": true } };
@@ -894,17 +673,17 @@ describe("PlaybookActorSheet#_rollModifiersForMove - Bonded In Blood", () => {
 	});
 });
 
-// Regression: Bullheaded (the-impostor.js) follows the same unscoped-deferred-uses shape too, just
-// with its own "took a risk" use key -- same one-pass-through-case treatment as Bonded In Blood
-// above, so this catalog entry's own call site isn't dead code either.
+// Regression: Bullheaded (the-impostor.js) follows the same unscoped-uses shape too, just with its
+// own "took a risk" use key -- same one-pass-through-case treatment as Bonded In Blood above, so
+// this catalog entry's own call site isn't dead code either.
 describe("PlaybookActorSheet#_rollModifiersForMove - Bullheaded", () => {
-	it("is unscoped, deferred, and gated on its own uses checkbox", () => {
+	it("is unscoped and gated on its own uses checkbox", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { playbookMoves: [BULLHEADED.key] } } };
 
 		const [entry] = sheet._rollModifiersForMove(READ_THE_ROOM, null);
 
-		expect(entry.deferred).toBe(true);
+		expect(entry.deferred).toBeUndefined();
 		expect(entry.disabled).toBe(false);
 
 		sheet.actor.system.attributes.moveUses = { [BULLHEADED.key]: { "took-risk": true } };
@@ -912,157 +691,10 @@ describe("PlaybookActorSheet#_rollModifiersForMove - Bullheaded", () => {
 	});
 });
 
-// The one-shot deferred mechanism's wiring into _rollMove itself (move-roll-mixin.js) — the unit
-// tests above exercise _pendingRollModifierGrant/_clearPendingRollModifier/_spendRollModifiers in
-// isolation; these confirm _rollMove actually reads/clears/spends through the real precedence
-// chain, mirroring the existing target-matchup/Cold Company integration tests (e.g.
-// playbook-actor-sheet-move-roll-targets.test.js, playbook-actor-sheet-wither.test.js).
-describe("PlaybookActorSheet#_rollMove - pending Roll Modifier grant", () => {
-	it("offers a pending grant's effect as a forced Roll Modifier when nothing else locks Effect", async () => {
-		const sheet = new PlaybookActorSheet();
-		const fakeEffectSource = {
-			key: "fake:effect-grant", name: "Fake Effect Source", description: "fallback",
-			grantsRollModifier: [{ moveKeys: ["strike-decisively"], effect: "confidence", deferred: true }]
-		};
-		sheet._rollModifierSources = () => [fakeEffectSource];
-		sheet.actor = {
-			system: {
-				stats: { clash: { value: 0 }, talk: { value: 0 } },
-				attributes: {
-					astir: { id: "a1", piloted: true, parts: [] },
-					pendingRollModifiers: { [fakeEffectSource.key]: { default: true } }
-				}
-			},
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "strike-decisively" } } });
-
-		// strike-decisively is usesWeapon, so rollModifiers now lives on the (only, Unarmed)
-		// weaponBundles entry rather than at the top level — see
-		// PlaybookActorSheet#_rollMoveWithWeaponChoice/_weaponRollBundle. lockedEffect itself is
-		// untouched (still null) -- a pending effect-shaped grant no longer feeds it.
-		expect(configureMoveRoll).toHaveBeenCalledWith(
-			expect.objectContaining({ key: "strike-decisively" }),
-			expect.any(Array),
-			expect.objectContaining({
-				weaponBundles: [expect.objectContaining({
-					lockedEffect: null,
-					rollModifiers: expect.arrayContaining([pendingEntry(fakeEffectSource, { effect: "confidence" })])
-				})]
-			})
-		);
-	});
-
-	it("offers a pending grant's advantage as a forced Roll Modifier when nothing else forces it", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: {},
-				attributes: {
-					playbookMoves: [SNAKES_IN_THE_GRASS.key],
-					pendingRollModifiers: { [SNAKES_IN_THE_GRASS.key]: { default: true } }
-				}
-			},
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "cool-off" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(
-			COOL_OFF,
-			expect.any(Array),
-			expect.objectContaining({
-				// Also includes Snakes In The Grass' own catalog entry (deferred: true, not yet
-				// pending) offering to check the same grant fresh on this roll -- an independent
-				// state from the already-pending entry this test is actually about.
-				rollModifiers: expect.arrayContaining([pendingEntry(SNAKES_IN_THE_GRASS, { advantage: "advantage" })])
-			})
-		);
-	});
-
-	it("clears the pending grant once the roll dialog resolves with a real selection", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: {},
-				attributes: {
-					playbookMoves: [SNAKES_IN_THE_GRASS.key],
-					pendingRollModifiers: { [SNAKES_IN_THE_GRASS.key]: { default: true } }
-				}
-			},
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue({ trait: undefined, advantage: "advantage", effect: "none" });
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "cool-off" } } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.pendingRollModifiers.${SNAKES_IN_THE_GRASS.key}.default`]: false
-		});
-	});
-
-	// The array-branch counterpart (_rollMoveWithWeaponChoice) of the single-weapon-path test above
-	// — a usesWeapon move's own copy of the same read-then-clear wiring (see move-roll-mixin.js's
-	// own comment on why the two paths mirror each other field-for-field).
-	it("clears the pending grant through the usesWeapon (array) branch too", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { clash: { value: 0 }, talk: { value: 0 } },
-				attributes: {
-					playbookMoves: [SNAKES_IN_THE_GRASS.key],
-					pendingRollModifiers: { [SNAKES_IN_THE_GRASS.key]: { default: true } },
-					equipment: []
-				}
-			},
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue({
-			trait: { key: "clash", label: "CLASH", value: 0 }, advantage: "advantage", effect: "none", weaponId: "unarmed"
-		});
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.pendingRollModifiers.${SNAKES_IN_THE_GRASS.key}.default`]: false
-		});
-	});
-
-	it("does not clear anything when the dialog is dismissed without a selection", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: {},
-				attributes: {
-					playbookMoves: [SNAKES_IN_THE_GRASS.key],
-					pendingRollModifiers: { [SNAKES_IN_THE_GRASS.key]: { default: true } }
-				}
-			},
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "cool-off" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-
-	it("does not clear anything when nothing was pending", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { stats: {}, attributes: { playbookMoves: [] } },
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue({ trait: undefined, advantage: "none", effect: "none" });
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "cool-off" } } });
-
-		expect(sheet.actor.update).not.toHaveBeenCalled();
-	});
-
+// _rollMove's own spentRollModifiers wiring (move-roll-mixin.js's _finishMoveRoll) -- confirms
+// _onMoveRoll actually spends every checked Roll Modifier through the real precedence chain, not
+// just in the unit-level _spendRollModifiers describe above.
+describe("PlaybookActorSheet#_rollMove - spentRollModifiers wiring", () => {
 	it("spends every checked roll modifier once the roll dialog resolves", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {

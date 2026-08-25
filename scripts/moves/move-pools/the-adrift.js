@@ -21,17 +21,17 @@ export const THE_ADRIFT_POOL = {
 			key: "the-adrift:snakes-in-the-grass",
 			name: "Snakes In The Grass",
 			// The "hold 1" resource is a plain flatHold pool like B-Plot's own (Activate adds 1, plus the
-			// usual manual stepper). "Make your next move with advantage" is now a real, deferred, unscoped
-			// grantsRollModifier entry: checking it in any roll dialog's Roll Modifiers section spends 1
-			// of this move's own hold and flags the grant pending for the next qualifying roll (see
-			// move-grants-mixin.js's _pendingRollModifierGrant) -- the payoff at 3 hold stays a
-			// Director-facing narrative beat, not something the player spends.
+			// usual manual stepper). "Make your move with advantage" is a real, unscoped grantsRollModifier
+			// entry: checking it in the roll dialog's Roll Modifiers section spends 1 of this move's own
+			// hold and applies advantage to that same roll -- the payoff at 3 hold stays a Director-facing
+			// narrative beat, not something the player spends.
 			traits: [],
 			flatHold: 1,
-			grantsRollModifier: [{ advantage: "advantage", costsHold: { amount: 1 }, deferred: true }],
+			grantsRollModifier: [{ advantage: "advantage", costsHold: { amount: 1 },
+				label: "Snakes In The Grass", description: "Spend 1 hold to take advantage." }],
 			description:
 				"<p>When you are cowed or guilted into something you have no stake in, hold 1 and make your " +
-				"next move with advantage. Once you have 3 hold, the Authority or another third party will " +
+				"move with advantage. Once you have 3 hold, the Authority or another third party will " +
 				"soon reach out to you with an unexpected offer or request.</p>"
 		},
 		{

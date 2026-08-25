@@ -33,24 +33,23 @@ export function soleWeaponBundle(configureMoveRollMock) {
 	return weaponBundles[0];
 }
 
-// checkedConditions/checkedEquipmentTags/checkedAstirPartSpends/checkedRollModifiers/
-// checkedPendingRollModifiers fake the jQuery `.find("[name='...']:checked").map(...).get()`
-// chains configureMoveRoll uses to collect Help or Hinder's checkbox values, equipment spends,
-// Astir Part spends, and (non-deferred/deferred) Roll Modifiers checkboxes.
+// checkedConditions/checkedEquipmentTags/checkedAstirPartSpends/checkedRollModifiers fake the
+// jQuery `.find("[name='...']:checked").map(...).get()` chains configureMoveRoll uses to collect
+// Help or Hinder's checkbox values, equipment spends, Astir Part spends, and Roll Modifiers
+// checkboxes.
 //
 // panelScoped (default false, so every existing caller's selector strings are unaffected) fakes
 // configureMoveRoll's weaponBundles-only rescoping (see move-dialogs.js's own doc comment) of the
-// equipment-tag/roll-modifier/pending-roll-modifier reads to `[data-weapon-panel].active
-// [name='...']` instead of the bare `[name='...']` — the trait select needs no special case here,
-// since its own read always falls through to the generic `values[selector]` branch below
-// regardless of which selector string it's keyed by.
+// equipment-tag/roll-modifier reads to `[data-weapon-panel].active [name='...']` instead of the
+// bare `[name='...']` — the trait select needs no special case here, since its own read always
+// falls through to the generic `values[selector]` branch below regardless of which selector
+// string it's keyed by.
 export function fakeRollHtml(
 	values,
 	checkedConditions = [],
 	checkedEquipmentTags = [],
 	checkedAstirPartSpends = [],
 	checkedRollModifiers = [],
-	checkedPendingRollModifiers = [],
 	panelScoped = false
 ) {
 	const scope = panelScoped ? "[data-weapon-panel].active " : "";
@@ -67,9 +66,6 @@ export function fakeRollHtml(
 			}
 			if (selector === `${scope}[name='roll-modifier']:checked`) {
 				return { map: (fn) => ({ get: () => checkedRollModifiers.map((value, index) => fn(index, { value })) }) };
-			}
-			if (selector === `${scope}[name='pending-roll-modifier']:checked`) {
-				return { map: (fn) => ({ get: () => checkedPendingRollModifiers.map((value, index) => fn(index, { value })) }) };
 			}
 			return { val: () => values[selector] };
 		}

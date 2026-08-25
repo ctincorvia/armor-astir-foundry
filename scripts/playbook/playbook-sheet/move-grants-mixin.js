@@ -153,7 +153,6 @@ export const MoveGrantsSheetMixin = {
 			effect: null,
 			requiresAdvantage: null,
 			reminderOnly: false,
-			deferred: false,
 			disabled: false,
 			disabledReason: null,
 			forced: true
@@ -178,7 +177,6 @@ export const MoveGrantsSheetMixin = {
 			effect: null,
 			requiresAdvantage: null,
 			reminderOnly: false,
-			deferred: false,
 			disabled: false,
 			disabledReason: null,
 			forced: true
@@ -199,7 +197,6 @@ export const MoveGrantsSheetMixin = {
 			effect: null,
 			requiresAdvantage: null,
 			reminderOnly: false,
-			deferred: false,
 			disabled: false,
 			disabledReason: null,
 			forced: true
@@ -219,7 +216,6 @@ export const MoveGrantsSheetMixin = {
 			effect: null,
 			requiresAdvantage: null,
 			reminderOnly: false,
-			deferred: false,
 			disabled: false,
 			disabledReason: null,
 			forced: true
@@ -242,7 +238,6 @@ export const MoveGrantsSheetMixin = {
 			effect,
 			requiresAdvantage: null,
 			reminderOnly: false,
-			deferred: false,
 			disabled: false,
 			disabledReason: null,
 			forced: true
@@ -269,7 +264,6 @@ export const MoveGrantsSheetMixin = {
 			effect: forced.effect,
 			requiresAdvantage: null,
 			reminderOnly: false,
-			deferred: false,
 			disabled: false,
 			disabledReason: null,
 			forced: true
@@ -521,11 +515,11 @@ export const MoveGrantsSheetMixin = {
 	// Dark Guarantees' reminderOnly entry (the-wither.js) is never gated or disabled -- it renders as
 	// description text only, with no checkbox at all (see the template).
 	//
-	// On top of the catalog loop, every standing/target-matchup/forced-weapon-tag/pending-deferred
+	// On top of the catalog loop, every standing/target-matchup/forced-weapon-tag
 	// source that used to feed lockedAdvantage/lockedEffect now surfaces here instead, as an ordinary
 	// forced: true entry (see docs/domains/moves.md). The four Advantage-axis sources
 	// (_grantedAdvantageRollModifier, _quickRollAdvantageModifier, _coldCompanyRollModifier,
-	// _targetTierRollModifier) -- plus every pending deferred grant whose spec sets advantage, below --
+	// _targetTierRollModifier)
 	// are pushed independently, with no masking or precedence among them: they're designed to compose
 	// (a dispelled Cold Company and a Tier advantage genuinely stack to Advantage x2). The two
 	// Effect-axis sources (_targetMatchupRollModifier, _forcedWeaponRollModifier) compose with each
@@ -553,7 +547,6 @@ export const MoveGrantsSheetMixin = {
 						effect: null,
 						requiresAdvantage: spec.requiresAdvantage ?? null,
 						reminderOnly: true,
-						deferred: false,
 						disabled: false,
 						disabledReason: null,
 						forced: false
@@ -571,7 +564,6 @@ export const MoveGrantsSheetMixin = {
 					effect: spec.effect ?? null,
 					requiresAdvantage: spec.requiresAdvantage ?? null,
 					reminderOnly: false,
-					deferred: Boolean(spec.deferred),
 					disabled,
 					disabledReason: disabled ? (available ? "Effect already set" : reason) : null,
 					forced: false
@@ -590,18 +582,11 @@ export const MoveGrantsSheetMixin = {
 		if (forcedWeapon) entries.push(forcedWeapon);
 		const approach = this._targetMatchupRollModifier(move, lockedEffect);
 		if (approach) entries.push(approach);
-		for (const entry of this._pendingRollModifierEntries(move)) {
-			if (entry.effect && lockedEffect) continue;
-			entries.push(entry);
-		}
 		return entries;
 	},
-	// The write side of the Roll Modifiers section — mirrors _spendEquipmentTags/
+	// The write side of the Roll Modifiers section -- mirrors _spendEquipmentTags/
 	// handleAutomaticSuccess's own per-kind write branches, one actor.update batch for every checked
-	// entry regardless of source. A deferred entry (Snakes in the Grass, Bonded in Blood, Alchemical
-	// Suite's two Potions) additionally writes a pendingRollModifiers marker instead of applying to
-	// this roll — see _pendingRollModifierGrant/_clearPendingRollModifier below for the read/clear
-	// side.
+	// entry regardless of source.
 	async _spendRollModifiers(keys) {
 		if (!keys?.length) return;
 		const updates = {};
@@ -621,63 +606,8 @@ export const MoveGrantsSheetMixin = {
 				} else if (spec.costsUse) {
 					updates[`system.attributes.moveUses.${source.key}.${spec.costsUse}`] = true;
 				}
-				if (spec.deferred) {
-					updates[`system.attributes.pendingRollModifiers.${source.key}.${spec.key ?? "default"}`] = true;
-				}
 			}
 		}
 		if (Object.keys(updates).length) await this.actor.update(updates);
-	},
-	// The read half of the one-shot deferred mechanism (see move-roll-mixin.js's _rollMove) — every
-	// still-pending deferred grant (across every roll-modifier source) whose moveKeys is absent or
-	// matches the move about to be rolled, as an array of ordinary Roll-Modifier-shaped, forced: true
-	// objects — not just the first match, since more than one grant can legitimately be pending and
-	// qualifying for the same roll at once (e.g. Bullheaded's unscoped grant and Blue Potion both
-	// checked on an earlier roll). Re-resolves advantage/effect fresh from the catalog every read,
-	// per claude.md's "catalog in code, keys on the actor" convention — only the boolean marker
-	// itself is persisted. `key` is namespaced (pending-<sourceKey>-<specKey>) so it never collides
-	// with the catalog spec's own key (used when offering a fresh deferred grant on a different
-	// roll); sourceKey/specKey ride along on the entry so _clearPendingRollModifiers doesn't need to
-	// re-derive them.
-	_pendingRollModifierEntries(move) {
-		const entries = [];
-		for (const source of this._rollModifierSources()) {
-			for (const spec of source.grantsRollModifier ?? []) {
-				if (!spec.deferred) continue;
-				if (spec.moveKeys && !spec.moveKeys.includes(move.key)) continue;
-				const specKey = spec.key ?? "default";
-				const pending = Boolean(this.actor.system.attributes?.pendingRollModifiers?.[source.key]?.[specKey]);
-				if (!pending) continue;
-				entries.push({
-					key: `pending-${source.key}-${specKey}`,
-					label: spec.label ?? source.name,
-					description: spec.description ?? source.description,
-					advantage: spec.advantage ?? null,
-					effect: spec.effect ?? null,
-					requiresAdvantage: null,
-					reminderOnly: false,
-					deferred: false,
-					disabled: false,
-					disabledReason: null,
-					forced: true,
-					sourceKey: source.key,
-					specKey
-				});
-			}
-		}
-		return entries;
-	},
-	// Clears every currently-pending, still-applicable grant once _rollMove has applied it to a
-	// roll — the one-shot half of the mechanism, so the same grant can't silently re-apply to a
-	// later roll too. Batched into a single actor.update() covering every entry passed in (mirrors
-	// _spendRollModifiers's own updates-object pattern), rather than one update per entry, now that
-	// more than one grant can legitimately be pending and consumed on the same roll.
-	async _clearPendingRollModifiers(entries) {
-		if (!entries.length) return;
-		const updates = {};
-		for (const entry of entries) {
-			updates[`system.attributes.pendingRollModifiers.${entry.sourceKey}.${entry.specKey}`] = false;
-		}
-		await this.actor.update(updates);
 	}
 };

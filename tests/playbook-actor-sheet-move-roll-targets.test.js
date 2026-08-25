@@ -32,7 +32,6 @@ function tierRollModifier(advantage) {
 		effect: null,
 		requiresAdvantage: null,
 		reminderOnly: false,
-		deferred: false,
 		disabled: false,
 		disabledReason: null,
 		forced: true
@@ -51,7 +50,6 @@ function approachRollModifier(effect) {
 		effect,
 		requiresAdvantage: null,
 		reminderOnly: false,
-		deferred: false,
 		disabled: false,
 		disabledReason: null,
 		forced: true
@@ -66,7 +64,6 @@ const COLD_COMPANY_HAUNTED_ROLL_MODIFIER = {
 	effect: null,
 	requiresAdvantage: null,
 	reminderOnly: false,
-	deferred: false,
 	disabled: false,
 	disabledReason: null,
 	forced: true
@@ -80,7 +77,6 @@ const UNRELIABLE_ROLL_MODIFIER = {
 	effect: "desperation",
 	requiresAdvantage: null,
 	reminderOnly: false,
-	deferred: false,
 	disabled: false,
 	disabledReason: null,
 	forced: true

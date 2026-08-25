@@ -25,7 +25,6 @@ const UNRELIABLE_ROLL_MODIFIER = {
 	effect: "desperation",
 	requiresAdvantage: null,
 	reminderOnly: false,
-	deferred: false,
 	disabled: false,
 	disabledReason: null,
 	forced: true

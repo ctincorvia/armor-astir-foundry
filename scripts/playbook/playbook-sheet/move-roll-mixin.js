@@ -123,13 +123,11 @@ export const MoveRollSheetMixin = {
 	// forcesEffect value from silently overriding either actor-state read. Field Scout's standing
 	// grantsEffectOnMove (see _grantedEffectForMove) sits next: it's a permanent grant rather than
 	// either of the other two's emergency/reactive lock, so anything already forcing an axis wins
-	// over it. Everything else that used to feed this function -- a forced weapon tag (Unreliable),
-	// the target-matchup Approach signal, and a pending deferred grant's own effect -- is now a
-	// forced Roll Modifier entry instead (see move-grants-mixin.js's _targetMatchupRollModifier/
-	// _forcedWeaponRollModifier/_rollModifiersForMove), masked as a group behind whichever of the
-	// two hard locks above applies, but composing freely with each other otherwise (see
-	// docs/domains/moves.md). `pendingGrant` no longer exists as a parameter here -- pending grants
-	// are resolved internally by _rollModifiersForMove instead.
+	// over it. Everything else that used to feed this function -- a forced weapon tag (Unreliable)
+	// and the target-matchup Approach signal -- is now a forced Roll Modifier entry instead (see
+	// move-grants-mixin.js's _targetMatchupRollModifier/_forcedWeaponRollModifier/
+	// _rollModifiersForMove), masked as a group behind whichever of the two hard locks above
+	// applies, but composing freely with each other otherwise (see docs/domains/moves.md).
 	// Shared by _lockedEffectFor/_lockedEffectSourceFor below so the branch logic above only lives
 	// in one place — returns the effect key alongside a human-readable source label (Field Scout's
 	// own move name, or a fixed "Defenseless"/"Shaken Tenet" for the two actor-state locks) for the
@@ -262,13 +260,11 @@ export const MoveRollSheetMixin = {
 				await this._spendEquipmentTags(spends);
 			}
 		}
-		// See configureMoveRoll's own spentRollModifiers doc comment -- covers both immediate
-		// (checked [name='roll-modifier']) and deferred (checked [name='pending-roll-modifier'])
-		// entries alike, since both need their resource cost actually consumed; only the deferred
-		// ones additionally write a pendingRollModifiers marker (see _spendRollModifiers itself).
-		// A checked entry's own advantage/effect grant was already folded into config.advantage/
-		// config.effect by configureMoveRoll's own live chain resolution (see roll-chain.js) before
-		// this ever runs -- this call is purely the resource-spend side.
+		// See configureMoveRoll's own spentRollModifiers doc comment -- every checked
+		// [name='roll-modifier'] entry's resource cost is consumed here. A checked entry's own
+		// advantage/effect grant was already folded into config.advantage/config.effect by
+		// configureMoveRoll's own live chain resolution (see roll-chain.js) before this ever runs --
+		// this call is purely the resource-spend side.
 		if (config.spentRollModifiers?.length) await this._spendRollModifiers(config.spentRollModifiers);
 		// Spends 1 Crew Support hold only when this roll actually used the Crew Support CREW
 		// substitution (see move-traits-mixin.js's _moveTraits) -- not when a move's own permanent
@@ -419,14 +415,6 @@ export const MoveRollSheetMixin = {
 		});
 		if (!config) return;
 
-		// Every currently-pending deferred grant (see move-grants-mixin.js's
-		// _pendingRollModifierEntries) is cleared the moment this roll's own config resolves --
-		// read-then-cleared before the roll itself, so checking a deferred entry's box *inside* this
-		// same dialog never grants it to this roll, only the next one -- unconditional on every
-		// currently-pending entry once the player actually rolls, matching this mechanism's own
-		// existing semantics.
-		await this._clearPendingRollModifiers(this._pendingRollModifierEntries(move));
-
 		const chosenWeapon = config.weaponId === UNARMED ? null : weapons.find((w) => w.id === config.weaponId) ?? null;
 		// Always resolves: chosenWeapon is either null (Unarmed, always the first bundle) or a real
 		// entry drawn from `weapons`, and every entry in `weapons` has its own bundle above.
@@ -497,14 +485,6 @@ export const MoveRollSheetMixin = {
 			...(rerollTag && { rerollTag })
 		});
 		if (!config) return;
-
-		// Every currently-pending deferred grant (see move-grants-mixin.js's
-		// _pendingRollModifierEntries) is cleared the moment this roll's own config resolves --
-		// read-then-cleared before the roll itself, so checking a deferred entry's box *inside* this
-		// same dialog never grants it to this roll, only the next one -- unconditional on every
-		// currently-pending entry once the player actually rolls, matching this mechanism's own
-		// existing semantics.
-		await this._clearPendingRollModifiers(this._pendingRollModifierEntries(move));
 
 		await this._finishMoveRoll(move, weapon, config, { quickRoll, guided, downgrade });
 	},

@@ -805,7 +805,6 @@ describe("PlaybookActorSheet#_onMoveRoll - Roll Modifiers from a mounted Ardent"
 				effect: null,
 				requiresAdvantage: null,
 				reminderOnly: false,
-				deferred: false,
 				disabled: false,
 				disabledReason: null,
 				forced: false

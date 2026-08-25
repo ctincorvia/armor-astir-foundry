@@ -45,15 +45,15 @@ const requiresAdvantageReason = (entry) =>
 // PlaybookActorSheet#_onMoveRoll) pre-selects and disables the dialog's Effect select, and is
 // forced into the resolved effect regardless of what the disabled select reports, as a
 // belt-and-suspenders match to the template's disabled attribute. Trimmed to the two true
-// "emergency" locks and Field Scout's standing grant — a target-matchup Approach signal, a forced
-// weapon tag (Unreliable), and a pending deferred grant's own effect no longer feed this at all;
-// they arrive as forced Roll Modifier entries instead (see rollModifiers below).
+// "emergency" locks and Field Scout's standing grant -- a target-matchup Approach signal and a
+// forced weapon tag (Unreliable) no longer feed this at all; they arrive as forced Roll Modifier
+// entries instead (see rollModifiers below).
 //
 // There is no lockedAdvantage anymore. Every source that used to feed it (the shared
-// grantsAdvantageOnMove grant, Cold Company, Tier, a pending deferred grant's own advantage) is
-// now a forced Roll Modifier entry too, and none of them mask each other — they all compose
-// unconditionally, seeded into the render callback's own currentAdvantage below via
-// resolveRollChain rather than a locked starting value (see docs/domains/moves.md).
+// grantsAdvantageOnMove grant, Cold Company, Tier) is now a forced Roll Modifier entry too, and
+// none of them mask each other -- they all compose unconditionally, seeded into the render
+// callback's own currentAdvantage below via resolveRollChain rather than a locked starting value
+// (see docs/domains/moves.md).
 //
 // lockedTrait (a quick-roll button's own forced trait, e.g. Don't Follow Me's +DEFY — see
 // PlaybookActorSheet#_lockedTraitFor) is the Trait-select counterpart, but carries the full
@@ -76,14 +76,14 @@ const requiresAdvantageReason = (entry) =>
 // riders (see PlaybookActorSheet#_ridersForMove) is a read-only preview of the move's passive
 // on-roll bonuses — reuses the same four _grantedXReminderForMove resolvers the post-roll chat
 // card already calls, just surfaced before the player commits to rolling. Unlike rollModifiers,
-// there's nothing to check here (no key/disabled/deferred concept, just label/text pairs), and
+// there's nothing to check here (no key/disabled concept, just label/text pairs), and
 // unlike weaponBundles' own per-weapon fields, it's unscoped by weapon — passed once at the top
 // level rather than duplicated into every weaponBundles entry, since none of the four resolvers
 // it calls take a weapon.
 //
 // rollModifiers (see PlaybookActorSheet#_rollModifiersForMove) is the Roll Modifiers section —
 // every grantsRollModifier entry offered for this specific move, each carrying its own resolved
-// advantage/effect/requiresAdvantage/deferred/disabled shape. Checking one nudges the roll's own
+// advantage/effect/requiresAdvantage/disabled shape. Checking one nudges the roll's own
 // Dice/Effect pick once, at the moment it's checked, and unchecking it steps that same nudge back
 // off (see roll-chain.js's chainEntryResult/reverseChainStep) — see that module and
 // docs/domains/moves.md for the step-offset model this replaced All In's and Embrace Chaos's old
@@ -93,10 +93,10 @@ const requiresAdvantageReason = (entry) =>
 //
 // A forced: true entry (see PlaybookActorSheet#_rollModifiersForMove) is an ordinary Roll
 // Modifier row with the same shape, but pre-checked, un-uncheckable, and already folded into the
-// render callback's own currentAdvantage/currentEffect seed at open (via resolveRollChain) —
+// render callback's own currentAdvantage/currentEffect seed at open (via resolveRollChain) --
 // every source that used to lock the Advantage/Effect sliders outright (Tier, Cold Company, the
-// shared grantsAdvantageOnMove trio, a forced weapon tag, Approach, a pending deferred grant)
-// arrives this way now, instead of as lockedAdvantage/a trimmed lockedEffect.
+// shared grantsAdvantageOnMove trio, a forced weapon tag, Approach) arrives this way now, instead
+// of as lockedAdvantage/a trimmed lockedEffect.
 //
 // guided (see PlaybookActorSheet#_rollMove) is the *source's* own label — "Guided" for the weapon
 // tag, or the granting Astir Part's name (e.g. "Spell Routines") — rather than a bare boolean.
@@ -248,7 +248,7 @@ export async function configureMoveRoll(
 				// Live Dice/Effect state (see roll-chain.js's chainEntryResult/reverseChainStep) —
 				// currentAdvantage/currentEffect start at "none"/lockedEffect, then every forced: true
 				// Roll Modifier entry (Tier, Cold Company, the shared grantsAdvantageOnMove trio, a
-				// forced weapon tag, Approach, a pending deferred grant, ...) is folded in via
+				// forced weapon tag, Approach, ...) is folded in via
 				// resolveRollChain — the same left-to-right fold an ordinary checked entry composes
 				// through, so any number of forced entries on either axis just works (e.g. Cold
 				// Company dispelled plus a Tier advantage seeds Advantage x2). From there the player
@@ -320,9 +320,8 @@ export async function configureMoveRoll(
 					const scope = rollModifierScope();
 					for (const entry of activeRollModifiers()) {
 						if (entry.reminderOnly || entry.disabled) continue;
-						const checkboxName = entry.deferred ? "pending-roll-modifier" : "roll-modifier";
 						const rowSelector = `${scope}[data-roll-modifier-row="${entry.key}"]`;
-						const checkbox = html.find(`${rowSelector} [name='${checkboxName}']`);
+						const checkbox = html.find(`${rowSelector} [name='roll-modifier']`);
 						if (checkbox.prop("checked")) continue;
 						const applicable = Boolean(chainEntryResult({ advantage: currentAdvantage, effect: currentEffect }, entry));
 						checkbox.prop("disabled", !applicable);
@@ -401,9 +400,6 @@ export async function configureMoveRoll(
 						const rollModifierSelector = weaponBundles
 							? "[data-weapon-panel].active [name='roll-modifier']:checked"
 							: "[name='roll-modifier']:checked";
-						const pendingRollModifierSelector = weaponBundles
-							? "[data-weapon-panel].active [name='pending-roll-modifier']:checked"
-							: "[name='pending-roll-modifier']:checked";
 
 						const spentTags = activeEquipmentSpends.length
 							? html.find(equipmentTagSelector).map((_, el) => el.value).get()
@@ -413,7 +409,7 @@ export async function configureMoveRoll(
 								})
 							: [];
 						// A checked spend's effect (e.g. Blitz -> confidence) sets the roll's
-						// Effect directly, the same way a lockedEffect does — checking the tag IS
+						// Effect directly, the same way a lockedEffect does -- checking the tag IS
 						// the player choosing to act with confidence, so equipment spends stay
 						// outside the Roll Modifiers' own currentAdvantage/currentEffect nudging
 						// (see the render callback above) rather than composing through it. On a
@@ -424,23 +420,16 @@ export async function configureMoveRoll(
 							))
 							.filter(Boolean)
 							.at(-1)?.effect;
-						// Roll Modifiers (see PlaybookActorSheet#_rollModifiersForMove) split into two
-						// checkbox names by the template: non-deferred [name='roll-modifier'] entries
-						// apply to THIS roll — checking one already nudged the hidden advantage/effect
-						// inputs once, in the render callback above, so nothing needs re-reading here
-						// beyond the checked keys themselves. A modifier is never auto-unchecked, so
-						// its resource is spent even if the player has since moved the steppers away
-						// from what its nudge granted (see the render callback's own doc comment).
-						// Deferred [name='pending-roll-modifier'] entries never touch this roll's own
-						// Advantage/Effect, only its resource cost — both lists feed spentRollModifiers
-						// below, for PlaybookActorSheet#_spendRollModifiers to actually consume.
-						const checkedRollModifierKeys = activeRollModifiers.length
+						// Roll Modifiers (see PlaybookActorSheet#_rollModifiersForMove) -- checking one
+						// already nudged the hidden advantage/effect inputs once, in the render callback
+						// above, so nothing needs re-reading here beyond the checked keys themselves. A
+						// modifier is never auto-unchecked, so its resource is spent even if the player
+						// has since moved the steppers away from what its nudge granted (see the render
+						// callback's own doc comment). Feeds PlaybookActorSheet#_spendRollModifiers to
+						// actually consume the resource.
+						const spentRollModifiers = activeRollModifiers.length
 							? html.find(rollModifierSelector).map((_, el) => el.value).get()
 							: [];
-						const checkedPendingRollModifierKeys = activeRollModifiers.length
-							? html.find(pendingRollModifierSelector).map((_, el) => el.value).get()
-							: [];
-						const spentRollModifiers = [...checkedRollModifierKeys, ...checkedPendingRollModifierKeys];
 
 						resolve({
 							trait: lockedTrait ?? activeTraits.find((t) => t.key === html.find(traitSelector).val()),

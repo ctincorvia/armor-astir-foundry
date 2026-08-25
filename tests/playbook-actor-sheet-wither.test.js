@@ -216,7 +216,6 @@ describe("PlaybookActorSheet#_coldCompanyMove / _coldCompanyAdvantage", () => {
 				effect: null,
 				requiresAdvantage: null,
 				reminderOnly: false,
-				deferred: false,
 				disabled: false,
 				disabledReason: null,
 				forced: true
@@ -248,7 +247,6 @@ describe("PlaybookActorSheet#_coldCompanyMove / _coldCompanyAdvantage", () => {
 				effect: null,
 				requiresAdvantage: null,
 				reminderOnly: false,
-				deferred: false,
 				disabled: false,
 				disabledReason: null,
 				forced: true

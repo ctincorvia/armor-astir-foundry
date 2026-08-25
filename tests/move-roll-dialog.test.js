@@ -129,7 +129,7 @@ describe("configureMoveRoll - notched slider states", () => {
 		const forcedEntry = {
 			key: "target-tier-matchup", label: "Tier Advantage", description: "d",
 			advantage: "advantage", effect: null, requiresAdvantage: null,
-			reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: true
+			reminderOnly: false, disabled: false, disabledReason: null, forced: true
 		};
 		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollModifiers: [forcedEntry] });
 		await Promise.resolve();
@@ -622,7 +622,7 @@ describe("configureMoveRoll - reroll tag", () => {
 // Riders (see PlaybookActorSheet#_ridersForMove) — a read-only preview of the move's passive
 // on-roll bonuses, passed through to the template unscoped by weapon (see the field's own doc
 // comment above configureMoveRoll). No Roll-button/callback wiring to test here, unlike
-// equipmentSpends/rollModifiers — riders carries no key/disabled/deferred concept for the Roll
+// equipmentSpends/rollModifiers — riders carries no key/disabled concept for the Roll
 // callback to read back.
 describe("configureMoveRoll - riders", () => {
 	const clash = CLASH_TRAIT;
@@ -683,11 +683,7 @@ describe("configureMoveRoll - roll modifiers", () => {
 	const clash = CLASH_TRAIT;
 	const advantageEntry = {
 		key: "the-diplomat:sharper-knives", label: "Sharper Knives", description: "d",
-		advantage: "advantage", effect: null, requiresAdvantage: null, reminderOnly: false, deferred: false, disabled: false, disabledReason: null
-	};
-	const deferredEntry = {
-		key: "the-adrift:snakes-in-the-grass", label: "Snakes In The Grass", description: "d",
-		advantage: "advantage", effect: null, requiresAdvantage: null, reminderOnly: false, deferred: true, disabled: false, disabledReason: null
+		advantage: "advantage", effect: null, requiresAdvantage: null, reminderOnly: false, disabled: false, disabledReason: null
 	};
 
 	it("passes the offered roll modifiers to the dialog template", async () => {
@@ -717,12 +713,12 @@ describe("configureMoveRoll - roll modifiers", () => {
 	});
 
 	// The render callback's own live chain (resolveRollChain, roll-chain.js -- see its own DOM-level
-	// coverage in tests/move-roll-dialog-chain.test.js) is what folds a checked, non-deferred Roll
-	// Modifier's advantage/effect into the roll's own hidden [name='advantage']/[name='effect']
-	// inputs *before* Roll is ever clicked. The Roll button's own callback, exercised here without
-	// ever calling .render(), just reads whatever is already sitting in those two hidden inputs --
-	// so these tests simulate the chain's already-painted state directly, the same way they always
-	// simulated a bare Dice-select value.
+	// coverage in tests/move-roll-dialog-chain.test.js) is what folds a checked Roll Modifier's
+	// advantage/effect into the roll's own hidden [name='advantage']/[name='effect'] inputs *before*
+	// Roll is ever clicked. The Roll button's own callback, exercised here without ever calling
+	// .render(), just reads whatever is already sitting in those two hidden inputs -- so these tests
+	// simulate the chain's already-painted state directly, the same way they always simulated a bare
+	// Dice-select value.
 	it("reads the roll's advantage from the (already chain-painted) hidden input, and spends the checked entry", async () => {
 		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollModifiers: [advantageEntry] });
 		await Promise.resolve();
@@ -738,38 +734,6 @@ describe("configureMoveRoll - roll modifiers", () => {
 		const result = await promise;
 		expect(result.advantage).toBe("advantage");
 		expect(result.spentRollModifiers).toEqual([advantageEntry.key]);
-	});
-
-	it("does not let a checked deferred entry touch this roll's advantage or effect, but still spends it", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollModifiers: [deferredEntry] });
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.roll.callback(fakeRollHtml({
-			"[name='trait']": "clash",
-			"[name='advantage']": "none",
-			"[name='effect']": "none"
-		}, [], [], [], [], [deferredEntry.key]));
-
-		const result = await promise;
-		expect(result.advantage).toBe("none");
-		expect(result.spentRollModifiers).toEqual([deferredEntry.key]);
-	});
-
-	it("merges checked immediate and deferred entries into spentRollModifiers together", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollModifiers: [advantageEntry, deferredEntry] });
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.roll.callback(fakeRollHtml({
-			"[name='trait']": "clash",
-			"[name='advantage']": "advantage",
-			"[name='effect']": "none"
-		}, [], [], [], [advantageEntry.key], [deferredEntry.key]));
-
-		expect((await promise).spentRollModifiers).toEqual([advantageEntry.key, deferredEntry.key]);
 	});
 
 	it("resolves an empty spentRollModifiers list, and falls back to the selects, when none were checked", async () => {
@@ -838,7 +802,7 @@ describe("configureMoveRoll - weaponBundles", () => {
 	};
 	const modifierEntry = {
 		key: "the-diplomat:sharper-knives", label: "Sharper Knives", description: "d",
-		advantage: "advantage", effect: null, reminderOnly: false, deferred: false, disabled: false, disabledReason: null
+		advantage: "advantage", effect: null, reminderOnly: false, disabled: false, disabledReason: null
 	};
 	const halberdBundle = {
 		weaponKey: "eq1",
@@ -979,7 +943,7 @@ describe("configureMoveRoll - weaponBundles", () => {
 			"[data-weapon-panel].active [name='trait']": "clash",
 			"[name='advantage']": "none",
 			"[name='effect']": "none"
-		}, [], ["eq1::blitz"], [], [], [], true));
+		}, [], ["eq1::blitz"], [], [], true));
 
 		const result = await promise;
 		expect(result.spentTags).toEqual([{ equipmentId: "eq1", tagKey: "blitz" }]);
@@ -1003,7 +967,7 @@ describe("configureMoveRoll - weaponBundles", () => {
 			"[data-weapon-panel].active [name='trait']": "clash",
 			"[name='advantage']": "advantage",
 			"[name='effect']": "none"
-		}, [], [], [], [modifierEntry.key], [], true));
+		}, [], [], [], [modifierEntry.key], true));
 
 		const result = await promise;
 		expect(result.advantage).toBe("advantage");

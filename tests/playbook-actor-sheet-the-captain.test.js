@@ -524,7 +524,6 @@ describe("PlaybookActorSheet#_rollMove - fromCarrier weapon parity", () => {
 				effect: null,
 				requiresAdvantage: null,
 				reminderOnly: false,
-				deferred: false,
 				disabled: false,
 				disabledReason: null,
 				forced: false
@@ -703,7 +702,6 @@ describe("PlaybookActorSheet#_rollModifiersForMove - Born Leader", () => {
 			effect: null,
 			requiresAdvantage: null,
 			reminderOnly: false,
-			deferred: false,
 			disabled: false,
 			disabledReason: null,
 			forced: true

@@ -126,7 +126,6 @@ describe("PlaybookActorSheet#_grantedAdvantageForMove - Legacy (Astir Move)", ()
 			effect: null,
 			requiresAdvantage: null,
 			reminderOnly: false,
-			deferred: false,
 			disabled: false,
 			disabledReason: null,
 			forced: true

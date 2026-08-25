@@ -93,11 +93,10 @@
 						<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}" data-roll-modifier-row="{{key}}">
 							<label class="move-roll-equipment-spend-option">
 								{{#unless reminderOnly}}
-								<input type="checkbox" name="{{#if deferred}}pending-roll-modifier{{else}}roll-modifier{{/if}}"
+								<input type="checkbox" name="roll-modifier"
 								       value="{{key}}" {{#if forced}}checked disabled{{else}}{{#if disabled}}disabled{{/if}}{{/if}}/>
 								{{/unless}}
 								<span class="move-roll-equipment-name">{{label}}</span>
-								{{#if deferred}}<span class="move-roll-modifier-deferred-note">(applies to your next qualifying roll)</span>{{/if}}
 								{{#if forced}}<span class="move-roll-modifier-deferred-note">(automatic)</span>{{/if}}
 							</label>
 							<div class="move-roll-equipment-description">{{{description}}}</div>
@@ -237,11 +236,10 @@
 					<div class="move-roll-equipment-spend{{#if disabled}} disabled{{/if}}" data-roll-modifier-row="{{key}}">
 						<label class="move-roll-equipment-spend-option">
 							{{#unless reminderOnly}}
-							<input type="checkbox" name="{{#if deferred}}pending-roll-modifier{{else}}roll-modifier{{/if}}"
+							<input type="checkbox" name="roll-modifier"
 							       value="{{key}}" {{#if forced}}checked disabled{{else}}{{#if disabled}}disabled{{/if}}{{/if}}/>
 							{{/unless}}
 							<span class="move-roll-equipment-name">{{label}}</span>
-							{{#if deferred}}<span class="move-roll-modifier-deferred-note">(applies to your next qualifying roll)</span>{{/if}}
 							{{#if forced}}<span class="move-roll-modifier-deferred-note">(automatic)</span>{{/if}}
 						</label>
 						<div class="move-roll-equipment-description">{{{description}}}</div>
