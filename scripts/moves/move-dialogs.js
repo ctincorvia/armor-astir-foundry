@@ -137,6 +137,7 @@ export async function configureMoveRoll(
 	traits,
 	{
 		lockedEffect = null,
+		lockedEffectSource = null,
 		lockedTrait = null,
 		equipmentSpends = [],
 		narrativeTags = [],
@@ -175,7 +176,10 @@ export async function configureMoveRoll(
 		// hardcoded in the template, since lockedEffect can now be "confidence" (Field Scout's
 		// grantsEffectOnMove — see PlaybookActorSheet#_grantedEffectForMove) as well as the
 		// original "desperation" sources (bite-the-dust at max Perils, a forced weapon tag).
-		lockedEffectLabel: lockedEffect ? effectState(lockedEffect).label : null,
+		// lockedEffectSource names why the lock exists (the granting move's name, or a fixed
+		// "Defenseless"/"Shaken Tenet"/tag label) so the note reads "Locked: Confidence from Field
+		// Scout" instead of a bare "Locked: Confidence".
+		lockedEffectLabel: lockedEffect ? `${effectState(lockedEffect).label} from ${lockedEffectSource}` : null,
 		lockedTrait,
 		equipmentSpends,
 		narrativeTags,
@@ -189,7 +193,9 @@ export async function configureMoveRoll(
 		// import just for display text.
 		weaponBundles: weaponBundles?.map((bundle) => ({
 			...bundle,
-			lockedEffectLabel: bundle.lockedEffect ? effectState(bundle.lockedEffect).label : null
+			lockedEffectLabel: bundle.lockedEffect
+				? `${effectState(bundle.lockedEffect).label} from ${bundle.lockedEffectSource}`
+				: null
 		})) ?? null
 	});
 

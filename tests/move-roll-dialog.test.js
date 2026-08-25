@@ -249,14 +249,14 @@ describe("configureMoveRoll - lockedEffect", () => {
 		await promise;
 	});
 
-	it("passes the given lockedEffect and its display label to the dialog template", async () => {
-		const promise = configureMoveRoll(BITE_THE_DUST, [clash], { lockedEffect: "desperation" });
+	it("passes the given lockedEffect and its display label, with source, to the dialog template", async () => {
+		const promise = configureMoveRoll(BITE_THE_DUST, [clash], { lockedEffect: "desperation", lockedEffectSource: "Test Source" });
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
 			lockedEffect: "desperation",
-			lockedEffectLabel: "Desperation"
+			lockedEffectLabel: "Desperation from Test Source"
 		}));
 
 		Dialog.mock.calls.at(-1)[0].close();
@@ -264,12 +264,12 @@ describe("configureMoveRoll - lockedEffect", () => {
 	});
 
 	it("labels a Confidence lockedEffect (Field Scout's grantsEffectOnMove) correctly too", async () => {
-		const promise = configureMoveRoll(BITE_THE_DUST, [clash], { lockedEffect: "confidence" });
+		const promise = configureMoveRoll(BITE_THE_DUST, [clash], { lockedEffect: "confidence", lockedEffectSource: "Field Scout" });
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
-			lockedEffectLabel: "Confidence"
+			lockedEffectLabel: "Confidence from Field Scout"
 		}));
 
 		Dialog.mock.calls.at(-1)[0].close();
@@ -847,6 +847,7 @@ describe("configureMoveRoll - weaponBundles", () => {
 		traits: [clash],
 		traitOptions: [{ key: "clash", label: "CLASH (1)" }],
 		lockedEffect: "desperation",
+		lockedEffectSource: "Test Source",
 		equipmentSpends: [blitzSpend],
 		guided: "Guided",
 		rollModifiers: [modifierEntry]
@@ -907,7 +908,7 @@ describe("configureMoveRoll - weaponBundles", () => {
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
 			weaponBundles: [
 				{ ...unarmedBundle, lockedEffectLabel: null },
-				{ ...halberdBundle, lockedEffectLabel: "Desperation" }
+				{ ...halberdBundle, lockedEffectLabel: "Desperation from Test Source" }
 			]
 		}));
 

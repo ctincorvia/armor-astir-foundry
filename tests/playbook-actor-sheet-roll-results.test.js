@@ -171,7 +171,7 @@ describe("PlaybookActorSheet#_rollMove - Field Scout's grantsEffectOnMove", () =
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(READ_THE_ROOM, expect.any(Array), expect.objectContaining({
-			lockedEffect: "confidence", lockedTrait: null
+			lockedEffect: "confidence", lockedEffectSource: "Field Scout", lockedTrait: null
 		}));
 	});
 
@@ -203,6 +203,26 @@ describe("PlaybookActorSheet#_rollMove - Field Scout's grantsEffectOnMove", () =
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), expect.objectContaining({
 			lockedEffect: null, lockedTrait: null
 		}));
+	});
+});
+
+// The thin value wrapper over _grantingMoveForEffect (see move-grants-mixin.js) — no longer called
+// by _lockedEffectEntryFor itself (which reads _grantingMoveForEffect directly so it can also
+// surface the granting move's own name as the lock's source), but kept and directly tested the
+// same way _grantedAdvantageForMove's own Advantage-axis counterpart already is.
+describe("PlaybookActorSheet#_grantedEffectForMove - Field Scout", () => {
+	it("returns Field Scout's granted effect for its target move", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: ["the-scout:field-scout"] } } };
+
+		expect(sheet._grantedEffectForMove(READ_THE_ROOM)).toBe("confidence");
+	});
+
+	it("returns null without Field Scout picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
+
+		expect(sheet._grantedEffectForMove(READ_THE_ROOM)).toBeNull();
 	});
 });
 

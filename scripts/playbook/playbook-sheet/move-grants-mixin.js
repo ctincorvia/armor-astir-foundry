@@ -56,12 +56,16 @@ export const MoveGrantsSheetMixin = {
 	// grantsEffectOnMove) — locks a specific *other* move's Effect regardless of which move is
 	// actually being rolled, so this is resolved off the actor's picked playbook moves rather than
 	// a flag on `move` itself (contrast forcesDesperationAtMaxPerils/requiresChannelDisabled, which
-	// are read straight off the move being rolled). Returns null when no picked move grants
-	// anything for this particular move key.
+	// are read straight off the move being rolled). Split into a granting-move finder plus a thin
+	// value wrapper, same shape as _grantingMoveForAdvantage/_grantedAdvantageForMove below, so
+	// move-roll-mixin.js's _lockedEffectEntryFor can also read the granting move's own name as the
+	// lock's source label.
+	_grantingMoveForEffect(move) {
+		return resolvePlaybookMoves(this._playbookMoves())
+			.find((m) => m.grantsEffectOnMove?.moveKey === move.key) ?? null;
+	},
 	_grantedEffectForMove(move) {
-		const granting = resolvePlaybookMoves(this._playbookMoves())
-			.find((m) => m.grantsEffectOnMove?.moveKey === move.key);
-		return granting?.grantsEffectOnMove.effect ?? null;
+		return this._grantingMoveForEffect(move)?.grantsEffectOnMove.effect ?? null;
 	},
 	// Every move source that can carry the grantsAdvantageOnMove/addsSuccessReminderToMove/
 	// addsCriticalReminderToMove/addsFailureReminderToMove/addsQuestionsToMove family of flags — the

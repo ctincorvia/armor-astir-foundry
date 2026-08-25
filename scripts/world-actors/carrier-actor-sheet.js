@@ -4,6 +4,7 @@ import {
 	TIER_MAX,
 	configureEquipment,
 	equipmentValue,
+	findEquipmentTag,
 	rerollSpendKey,
 	resolveAvailableReroll,
 	resolveAvailableRerollTag,
@@ -258,6 +259,7 @@ export class CarrierActorSheet extends WorldActorSheet {
 		const traits = [{ key: "crew", label: "CREW", value: this.actor.system.stats?.crew?.value ?? 0 }];
 		const forced = this._forcedWeaponEffect(slot, weapon);
 		const lockedEffect = forced?.effect ?? null;
+		const lockedEffectSource = forced ? findEquipmentTag(forced.tagKey).label : null;
 		const equipmentSpends = this._equipmentSpends(slot, weapon, lockedEffect);
 		const narrativeTags = this._narrativeWeaponTags(slot, weapon);
 		const guided = this._weaponIsGuided(slot, weapon) ? "Guided" : null;
@@ -265,6 +267,7 @@ export class CarrierActorSheet extends WorldActorSheet {
 
 		const config = await configureMoveRoll(move, traits, {
 			lockedEffect,
+			lockedEffectSource,
 			equipmentSpends,
 			narrativeTags,
 			...(guided && { guided }),

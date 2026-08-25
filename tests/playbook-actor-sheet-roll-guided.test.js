@@ -190,7 +190,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null, lockedTrait: null,
+			lockedEffect: null, lockedEffectSource: null, lockedTrait: null,
 			equipmentSpends: [], narrativeTags: [],
 			rollModifiers: [], riders: [],
 			guided: SPELL_ROUTINES.name
@@ -214,7 +214,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null, lockedTrait: null,
+			lockedEffect: null, lockedEffectSource: null, lockedTrait: null,
 			equipmentSpends: [], narrativeTags: [],
 			rollModifiers: [], riders: []
 		});
@@ -237,7 +237,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null, lockedTrait: null,
+			lockedEffect: null, lockedEffectSource: null, lockedTrait: null,
 			equipmentSpends: [], narrativeTags: [],
 			rollModifiers: [], riders: []
 		});
@@ -257,7 +257,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null, lockedTrait: null,
+			lockedEffect: null, lockedEffectSource: null, lockedTrait: null,
 			equipmentSpends: [], narrativeTags: [],
 			rollModifiers: [], riders: []
 		});

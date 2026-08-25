@@ -501,6 +501,7 @@ describe("PlaybookActorSheet#_rollMove - fromCarrier weapon parity", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null,
+			lockedEffectSource: null,
 			lockedTrait: null,
 			equipmentSpends: [{
 				equipmentId: "carrier-w1",

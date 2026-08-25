@@ -467,6 +467,7 @@ describe("CarrierActorSheet#_onWeaponMoveRoll", () => {
 		expect(call[0]).toBe(EXCHANGE_BLOWS);
 		expect(call[1]).toEqual([{ key: "crew", label: "CREW", value: 2 }]);
 		expect(call[2].lockedEffect).toBeNull();
+		expect(call[2].lockedEffectSource).toBeNull();
 		expect(call[2].equipmentSpends).toEqual([]);
 		// The primary slot's own locked tags (set-up, mounted — see WEAPON_SLOTS) are narrative,
 		// so they're offered even though the entry itself never stored them.
@@ -638,6 +639,7 @@ describe("CarrierActorSheet#_onWeaponMoveRoll", () => {
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
 
 		expect(configureMoveRoll.mock.calls.at(-1)[2].lockedEffect).toBe("desperation");
+		expect(configureMoveRoll.mock.calls.at(-1)[2].lockedEffectSource).toBe("Unreliable");
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.weapons": {
 				primary: { id: "w1", name: "Ram Cannon", tags: ["unreliable"], spent: ["unreliable"] },

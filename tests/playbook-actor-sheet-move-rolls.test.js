@@ -108,7 +108,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			I_KNOW_YOU,
 			[familiarity],
-			{ lockedEffect: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
+			{ lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, I_KNOW_YOU, familiarity, { ...config, heatUp: NO_HEAT_UP });
 	});
@@ -123,7 +123,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			BASIC_MOVES.find((m) => m.key === "help-or-hinder"),
 			[],
-			{ lockedEffect: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
+			{ lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 
@@ -183,7 +183,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
+			{ lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 
@@ -203,7 +203,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 2 }
 			],
-			{ lockedEffect: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
+			{ lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 
@@ -226,7 +226,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: -1 }
 			],
-			{ lockedEffect: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
+			{ lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 
@@ -259,7 +259,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
+			{ lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 
@@ -282,7 +282,7 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 				{ key: "defy", label: "DEFY", value: 0 },
 				{ key: "crew", label: "CREW", value: 0 }
 			],
-			{ lockedEffect: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
+			{ lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 
@@ -328,7 +328,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: "desperation", lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: "desperation", lockedEffectSource: "Defenseless", lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] });
 	});
 
 	it("does not lock Desperation when at max Dangers but the types are mixed", async () => {
@@ -349,7 +349,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] });
 	});
 
 	it("does not lock Desperation when below max Dangers, even if all are Perils", async () => {
@@ -369,7 +369,7 @@ describe("PlaybookActorSheet#_onMoveRoll - bite the dust's locked Desperation", 
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "bite-the-dust" } } });
 
-		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] });
+		expect(configureMoveRoll).toHaveBeenCalledWith(BITE_THE_DUST, [defy], { lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] });
 	});
 
 	it("never locks Desperation for a move without forcesDesperationAtMaxPerils, even at max Perils", async () => {
@@ -419,7 +419,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			WEAVE_MAGIC,
 			[{ key: "channel", label: "CHANNEL", value: 0 }],
-			{ lockedEffect: "desperation", lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
+			{ lockedEffect: "desperation", lockedEffectSource: "Shaken Tenet", lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 
@@ -440,7 +440,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			WEAVE_MAGIC,
 			[{ key: "channel", label: "CHANNEL", value: 0 }],
-			{ lockedEffect: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
+			{ lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 
@@ -454,7 +454,7 @@ describe("PlaybookActorSheet#_onMoveRoll - weave magic's locked Desperation on a
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			WEAVE_MAGIC,
 			[{ key: "channel", label: "CHANNEL", value: 0 }],
-			{ lockedEffect: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
+			{ lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 
@@ -542,6 +542,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Don't Follow Me's quick-roll redirect
 			],
 			{
 				lockedEffect: null,
+				lockedEffectSource: null,
 				lockedTrait: defy,
 				equipmentSpends: [],
 				narrativeTags: [],

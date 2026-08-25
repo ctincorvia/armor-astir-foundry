@@ -130,11 +130,25 @@ export const MoveRollSheetMixin = {
 	// two hard locks above applies, but composing freely with each other otherwise (see
 	// docs/domains/moves.md). `pendingGrant` no longer exists as a parameter here -- pending grants
 	// are resolved internally by _rollModifiersForMove instead.
+	// Shared by _lockedEffectFor/_lockedEffectSourceFor below so the branch logic above only lives
+	// in one place — returns the effect key alongside a human-readable source label (Field Scout's
+	// own move name, or a fixed "Defenseless"/"Shaken Tenet" for the two actor-state locks) for the
+	// move-roll dialog's "Locked: <Effect> from <Source>" note.
+	_lockedEffectEntryFor(move) {
+		if (move.forcesDesperationAtMaxPerils && this._allDangersArePeril()) {
+			return { effect: "desperation", source: "Defenseless" };
+		}
+		if (move.forcesDesperationOnShakenTenet && this._hasShakenTenet()) {
+			return { effect: "desperation", source: "Shaken Tenet" };
+		}
+		const granting = this._grantingMoveForEffect(move);
+		return granting ? { effect: granting.grantsEffectOnMove.effect, source: granting.name } : null;
+	},
 	_lockedEffectFor(move, weapon) {
-		return (move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null)
-			?? (move.forcesDesperationOnShakenTenet && this._hasShakenTenet() ? "desperation" : null)
-			?? this._grantedEffectForMove(move)
-			?? null;
+		return this._lockedEffectEntryFor(move)?.effect ?? null;
+	},
+	_lockedEffectSourceFor(move) {
+		return this._lockedEffectEntryFor(move)?.source ?? null;
 	},
 	// A quick-roll button's own forced trait (Bureaucrat/The Diplomat, Don't Follow Me/The Impostor
 	// -- see quickRollsMove) locks the target move's dialog to that trait. The key is resolved
@@ -348,6 +362,7 @@ export const MoveRollSheetMixin = {
 	_weaponRollBundle(move, weapon, { traits, quickRoll }) {
 		const bundleTraits = this._weaponTraitsFor(move, weapon, traits);
 		const lockedEffect = this._lockedEffectFor(move, weapon);
+		const lockedEffectSource = this._lockedEffectSourceFor(move);
 		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
 		const narrativeTags = this._narrativeWeaponTags(weapon);
 		const guided = this._guidedFor(move, weapon);
@@ -364,6 +379,7 @@ export const MoveRollSheetMixin = {
 			traits: bundleTraits,
 			traitOptions: bundleTraits.map((trait) => ({ key: trait.key, label: `${trait.label} (${trait.value})` })),
 			lockedEffect,
+			lockedEffectSource,
 			equipmentSpends,
 			narrativeTags,
 			guided,
@@ -453,6 +469,7 @@ export const MoveRollSheetMixin = {
 		if (!traits.length && !move.conditions) return;
 
 		const lockedEffect = this._lockedEffectFor(move, weapon);
+		const lockedEffectSource = this._lockedEffectSourceFor(move);
 		const lockedTrait = this._lockedTraitFor(move, quickRoll, traits);
 		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
 		const narrativeTags = this._narrativeWeaponTags(weapon);
@@ -470,6 +487,7 @@ export const MoveRollSheetMixin = {
 		const riders = this._ridersForMove(move);
 		const config = await configureMoveRoll(move, traits, {
 			lockedEffect,
+			lockedEffectSource,
 			lockedTrait,
 			equipmentSpends,
 			narrativeTags,
