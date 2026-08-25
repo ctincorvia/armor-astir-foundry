@@ -92,14 +92,6 @@ export const ASTIR_WEAPON_CATALOG = [
 		tags: ["sniper", "ruin", "reload", "two-handed"]
 	},
 	{
-		key: "baneblade",
-		name: "Baneblade",
-		description: "Most Astir pilots do not concern themselves with the scrambling of foot-soldiers. Some of " +
-			"these pilots meet very unexpected ends. Also seen as a Blowtorch, Enchanted Broadsword, or Bolt " +
-			"Gauntlets.",
-		tags: ["melee", "bane", "two-handed"]
-	},
-	{
 		key: "warp-slinger",
 		name: "Warp-Slinger",
 		description: "An emplaced device incorporating multiple wands linked to a simple firing ritual that can " +
@@ -261,10 +253,58 @@ export const ASTIR_WEAPON_CATALOG = [
 		requiresParts: ["astir-part:familiar-matrix"]
 	},
 	{
-		key: "touch-spells",
-		name: "Touch Spells",
-		description: "A focusing gesture and a whispered word, channeled straight through the caster's " +
-			"own hands into whatever — or whoever — they touch.",
-		tags: ["melee", "bane"]
+		key: "decanting-staff",
+		name: "Decanting Staff",
+		description: "A long staff, held in both hands of an Astir. A series of alchemical processes " +
+			"purify and extract magical energy from stolen blood, before turning it to violent ends.",
+		tags: ["ranged", "bane", "two-handed"]
+	},
+	{
+		key: "hewer",
+		name: "Hewer",
+		description: "A circular saw, spun at lightning speeds by the volatile reaction between distilled " +
+			"alchemical fire and permafrost from the deep heart of Repose.",
+		tags: ["melee", "bane", "drain-1"]
+	},
+	{
+		key: "cannon",
+		name: "Cannon",
+		description: "Most have little interest in non-magical weaponry, especially given the prestige of " +
+			"the Academy. That said, the cannoneers of the west have steadily been making a name for " +
+			"themselves in recent years.",
+		tags: ["sniper", "huge", "vorpal"]
+	},
+	{
+		key: "colossus-repeater",
+		name: "Colossus Repeater",
+		description: "Using the same mechanism as a common crossbow, Colossus Repeaters are designed to " +
+			"fire magically-charged bolts for maximum armour penetration. In a pinch, a talented Channeler " +
+			"can work the reloading mechanism quickly enough for multiple follow-up shots.",
+		tags: ["ranged", "blitz", "impact", "two-handed", "drain-1"]
+	},
+	{
+		key: "contact-runes",
+		name: "Contact Runes",
+		description: "Heavily charged magical runes engraved on an Astir's hands and arms make for " +
+			"volatile, if difficult to use, close-combat weaponry.",
+		tags: ["melee", "reload", "unreliable", "ruin"]
+	},
+	// gearOnly Ward on a weapon: grandfathered exception granted directly through data, same as
+	// the-icon:bodyguards-i in starting-gear-pools.js (see equipment-tags.js's Ward comment).
+	{
+		key: "strange-shield",
+		name: "Strange-Shield",
+		description: "A luminous, semi-permeable cage surrounds this piece of cursed matter, acting as a " +
+			"shield for the Astir that would hold it. Indiscriminately devouring and compacting any matter " +
+			"and most energy caught within, they are a tool best used with great care.",
+		tags: ["melee", "defensive", "ward", "infinite", "dangerous", "two-handed"]
+	},
+	{
+		key: "paracausal-hook",
+		name: "Paracausal Hook",
+		description: "Devised as a latch for hyperlight applications, the paracausal hook, if carefully " +
+			"aimed, also turned out to be remarkably effective at twisting physical matter in a way that " +
+			"displaces it into undiscovered dimensions, and vice versa. Stand well back.",
+		tags: ["melee", "ruin", "decisive", "messy", "drain-2"]
 	}
 ];

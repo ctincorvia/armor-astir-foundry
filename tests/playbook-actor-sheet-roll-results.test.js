@@ -8,11 +8,45 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 
 import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+import { findEquipmentTag } from "../scripts/equipment/equipment.js";
 import {
 	EXCHANGE_BLOWS, DISPEL_UNCERTAINTIES, WEAVE_MAGIC, READ_THE_ROOM,
 	LEAD_A_SORTIE, ARCANE_AUGMENTS, LET_LOOSE, DONT_FOLLOW_ME
 } from "./helpers/move-fixtures.js";
 import { soleWeaponBundle } from "./helpers/move-test-helpers.js";
+
+// The forced Roll Modifier entry Don't Follow Me's grantsAdvantageOnMove now surfaces as (see
+// move-grants-mixin.js's _grantedAdvantageRollModifier) — it no longer sets lockedAdvantage at all
+// (lockedAdvantage doesn't exist anymore — see docs/domains/moves.md).
+const DONT_FOLLOW_ME_ROLL_MODIFIER = {
+	key: `granted-advantage-${DONT_FOLLOW_ME.key}`,
+	label: "Don't Follow Me: Advantage",
+	description: DONT_FOLLOW_ME.description,
+	advantage: "advantage",
+	effect: null,
+	requiresAdvantage: null,
+	reminderOnly: false,
+	deferred: false,
+	disabled: false,
+	disabledReason: null,
+	forced: true
+};
+
+// The forced Roll Modifier entry Unreliable now surfaces as (see move-grants-mixin.js's
+// _forcedWeaponRollModifier) — Unreliable no longer sets lockedEffect at all.
+const UNRELIABLE_ROLL_MODIFIER = {
+	key: "forced-weapon-effect-unreliable",
+	label: findEquipmentTag("unreliable").label,
+	description: findEquipmentTag("unreliable").description,
+	advantage: null,
+	effect: "desperation",
+	requiresAdvantage: null,
+	reminderOnly: false,
+	deferred: false,
+	disabled: false,
+	disabledReason: null,
+	forced: true
+};
 
 beforeEach(() => {
 	configureMoveRoll.mockClear();
@@ -23,7 +57,7 @@ beforeEach(() => {
 });
 
 describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", () => {
-	it("locks Effect to Desperation on the first roll with an unspent Unreliable weapon this Scene", async () => {
+	it("offers a forced Desperation Roll Modifier on the first roll with an unspent Unreliable weapon this Scene", async () => {
 		const sheet = new PlaybookActorSheet();
 		const rifle = { id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["unreliable"], spent: [], scale: "foot", tier: 1 };
 		sheet.actor = {
@@ -35,7 +69,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({
-			weaponKey: "eq1", lockedEffect: "desperation", equipmentSpends: [], narrativeTags: [], rollModifiers: []
+			weaponKey: "eq1", lockedEffect: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [UNRELIABLE_ROLL_MODIFIER]
 		}));
 	});
 
@@ -66,7 +100,9 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
-		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({ lockedEffect: "desperation" }));
+		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({
+			lockedEffect: null, rollModifiers: [UNRELIABLE_ROLL_MODIFIER]
+		}));
 	});
 
 	it("marks the forced tag spent after rolling, alongside any player-chosen spend, in one update", async () => {
@@ -134,7 +170,7 @@ describe("PlaybookActorSheet#_rollMove - forced weapon effects (Unreliable)", ()
 		// own lockedEffect (not a top-level option any more — see
 		// PlaybookActorSheet#_rollMoveWithWeaponChoice/_weaponRollBundle) is null.
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
-			lockedAdvantage: null, lockedTrait: null,
+			lockedTrait: null,
 			weaponBundles: [expect.objectContaining({ lockedEffect: null })]
 		}));
 	});
@@ -152,7 +188,7 @@ describe("PlaybookActorSheet#_rollMove - Field Scout's grantsEffectOnMove", () =
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(READ_THE_ROOM, expect.any(Array), expect.objectContaining({
-			lockedEffect: "confidence", lockedAdvantage: null, lockedTrait: null
+			lockedEffect: "confidence", lockedTrait: null
 		}));
 	});
 
@@ -167,7 +203,7 @@ describe("PlaybookActorSheet#_rollMove - Field Scout's grantsEffectOnMove", () =
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "read-the-room" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(READ_THE_ROOM, expect.any(Array), expect.objectContaining({
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null
+			lockedEffect: null, lockedTrait: null
 		}));
 	});
 
@@ -182,13 +218,13 @@ describe("PlaybookActorSheet#_rollMove - Field Scout's grantsEffectOnMove", () =
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), expect.objectContaining({
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null
+			lockedEffect: null, lockedTrait: null
 		}));
 	});
 });
 
 describe("PlaybookActorSheet#_rollMove - Don't Follow Me's grantsTraitOnMove/grantsAdvantageOnMove", () => {
-	it("locks Lead a Sortie's Trait to DEFY and its Dice to Advantage when picked", async () => {
+	it("locks Lead a Sortie's Trait to DEFY and offers a forced Advantage Roll Modifier when picked", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -203,11 +239,11 @@ describe("PlaybookActorSheet#_rollMove - Don't Follow Me's grantsTraitOnMove/gra
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(LEAD_A_SORTIE, expect.any(Array), expect.objectContaining({
 			lockedTrait: { key: "defy", label: "DEFY", value: 2 },
-			lockedAdvantage: "advantage"
+			rollModifiers: [DONT_FOLLOW_ME_ROLL_MODIFIER]
 		}));
 	});
 
-	it("leaves Lead a Sortie's Trait and Dice unlocked without Don't Follow Me picked", async () => {
+	it("leaves Lead a Sortie's Trait unlocked and offers no forced Roll Modifier without Don't Follow Me picked", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { stats: { know: { value: 1 }, defy: { value: 2 } }, attributes: { playbookMoves: [] } },
@@ -219,11 +255,11 @@ describe("PlaybookActorSheet#_rollMove - Don't Follow Me's grantsTraitOnMove/gra
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(LEAD_A_SORTIE, expect.any(Array), expect.objectContaining({
 			lockedTrait: null,
-			lockedAdvantage: null
+			rollModifiers: []
 		}));
 	});
 
-	it("does not lock a different move's Trait/Dice just because Don't Follow Me is picked", async () => {
+	it("does not lock a different move's Trait or offer its forced Roll Modifier just because Don't Follow Me is picked", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { stats: { know: { value: 0 } }, attributes: { playbookMoves: [DONT_FOLLOW_ME.key] } },
@@ -235,7 +271,7 @@ describe("PlaybookActorSheet#_rollMove - Don't Follow Me's grantsTraitOnMove/gra
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), expect.objectContaining({
 			lockedTrait: null,
-			lockedAdvantage: null
+			rollModifiers: []
 		}));
 	});
 

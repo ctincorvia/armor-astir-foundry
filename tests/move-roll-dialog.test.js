@@ -121,21 +121,30 @@ describe("configureMoveRoll - notched slider states", () => {
 		await promise;
 	});
 
-	it("disables every advantageStates entry and selects the locked one when lockedAdvantage is set", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { lockedAdvantage: "advantage2" });
+	// There is no lockedAdvantage anymore (see docs/domains/moves.md) -- the Advantage slider is
+	// never disabled, regardless of what rollModifiers carries (a forced entry's own seed only ever
+	// affects the render callback's live currentAdvantage, not this template-context array, which is
+	// built before the render callback ever runs).
+	it("never disables advantageStates, even with a forced Roll Modifier entry among rollModifiers", async () => {
+		const forcedEntry = {
+			key: "target-tier-matchup", label: "Tier Advantage", description: "d",
+			advantage: "advantage", effect: null, requiresAdvantage: null,
+			reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: true
+		};
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { rollModifiers: [forcedEntry] });
 		await Promise.resolve();
 		await Promise.resolve();
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
 			advantageStates: [
-				{ key: "disadvantage2", label: "Disadvantage x2", selected: false, disabled: true },
-				{ key: "disadvantage", label: "Disadvantage", selected: false, disabled: true },
-				{ key: "none", label: "None", selected: false, disabled: true },
-				{ key: "advantage", label: "Advantage", selected: false, disabled: true },
-				{ key: "advantage2", label: "Advantage x2", selected: true, disabled: true }
+				{ key: "disadvantage2", label: "Disadvantage x2", selected: false, disabled: false },
+				{ key: "disadvantage", label: "Disadvantage", selected: false, disabled: false },
+				{ key: "none", label: "None", selected: true, disabled: false },
+				{ key: "advantage", label: "Advantage", selected: false, disabled: false },
+				{ key: "advantage2", label: "Advantage x2", selected: false, disabled: false }
 			],
-			advantageSelectedKey: "advantage2",
-			advantageSelectedLabel: "Advantage x2"
+			advantageSelectedKey: "none",
+			advantageSelectedLabel: "None"
 		}));
 
 		Dialog.mock.calls.at(-1)[0].close();
@@ -280,60 +289,6 @@ describe("configureMoveRoll - lockedEffect", () => {
 		}));
 
 		expect(await promise).toEqual({ trait: clash, advantage: "none", effect: "desperation" });
-	});
-});
-
-describe("configureMoveRoll - lockedAdvantage", () => {
-	const clash = CLASH_TRAIT;
-
-	it("passes a null lockedAdvantage and lockedAdvantageLabel to the dialog template by default", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
-		await Promise.resolve();
-		await Promise.resolve();
-
-		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
-			lockedAdvantage: null,
-			lockedAdvantageLabel: null
-		}));
-
-		Dialog.mock.calls.at(-1)[0].close();
-		await promise;
-	});
-
-	it("passes the given lockedAdvantage and its display label to the dialog template", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { lockedAdvantage: "advantage" });
-		await Promise.resolve();
-		await Promise.resolve();
-
-		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
-			lockedAdvantage: "advantage",
-			lockedAdvantageLabel: "Advantage"
-		}));
-
-		Dialog.mock.calls.at(-1)[0].close();
-		await promise;
-	});
-
-	// Unlike lockedEffect (which a checked Roll Modifier can never actually diverge from -- see the
-	// "lets lockedEffect win over a checked spend" test above), lockedAdvantage is only the chain's
-	// own *base* (see roll-chain.js's resolveRollChain): a checked Roll Modifier's own advantage can
-	// legitimately step the roll away from it, so the Roll button's own callback can't force it
-	// unconditionally the way it once did -- the render callback's own recompute() is what keeps
-	// the hidden [name='advantage'] input in sync with lockedAdvantage whenever nothing is checked,
-	// and this test simulates exactly that already-painted state.
-	it("resolves the advantage the render callback already painted from lockedAdvantage when nothing is checked", async () => {
-		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { lockedAdvantage: "advantage" });
-		await Promise.resolve();
-		await Promise.resolve();
-
-		const dialogOptions = Dialog.mock.calls.at(-1)[0];
-		dialogOptions.buttons.roll.callback(fakeRollHtml({
-			"[name='trait']": "clash",
-			"[name='advantage']": "advantage",
-			"[name='effect']": "none"
-		}));
-
-		expect((await promise).advantage).toBe("advantage");
 	});
 });
 

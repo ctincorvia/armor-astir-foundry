@@ -7,6 +7,7 @@ import {
 	ADVANTAGE_DISPLAY_ORDER,
 	EFFECT_DISPLAY_ORDER,
 	chainEntryResult,
+	resolveRollChain,
 	reverseChainStep
 } from "./roll-chain.js";
 
@@ -43,13 +44,16 @@ const requiresAdvantageReason = (entry) =>
 // lockedEffect (e.g. "desperation" for bite-the-dust at max Perils — see
 // PlaybookActorSheet#_onMoveRoll) pre-selects and disables the dialog's Effect select, and is
 // forced into the resolved effect regardless of what the disabled select reports, as a
-// belt-and-suspenders match to the template's disabled attribute.
+// belt-and-suspenders match to the template's disabled attribute. Trimmed to the two true
+// "emergency" locks and Field Scout's standing grant — a target-matchup Approach signal, a forced
+// weapon tag (Unreliable), and a pending deferred grant's own effect no longer feed this at all;
+// they arrive as forced Roll Modifier entries instead (see rollModifiers below).
 //
-// lockedAdvantage (e.g. "advantage" for Don't Follow Me's "lead a Sortie with +DEFY & advantage"
-// — see PlaybookActorSheet#_grantedAdvantageForMove) is the same idea for the Dice select: pre-
-// selects and disables it, and seeds the render callback's own currentAdvantage — a checked Roll
-// Modifier nudges *from* the locked value the one time it's checked, rather than overriding it
-// outright, the same nudge-from-current treatment lockedEffect's own currentEffect gets.
+// There is no lockedAdvantage anymore. Every source that used to feed it (the shared
+// grantsAdvantageOnMove grant, Cold Company, Tier, a pending deferred grant's own advantage) is
+// now a forced Roll Modifier entry too, and none of them mask each other — they all compose
+// unconditionally, seeded into the render callback's own currentAdvantage below via
+// resolveRollChain rather than a locked starting value (see docs/domains/moves.md).
 //
 // lockedTrait (Don't Follow Me's own +DEFY half — see PlaybookActorSheet#_grantedTraitForMove) is
 // the Trait-select counterpart, but carries the full {key, label, value} option object rather
@@ -86,6 +90,13 @@ const requiresAdvantageReason = (entry) =>
 // of the Dice/Effect steppers, including moving them somewhere the entry's own step/reverse-step
 // can no longer reach — see the render callback's own currentAdvantage/currentEffect below.
 //
+// A forced: true entry (see PlaybookActorSheet#_rollModifiersForMove) is an ordinary Roll
+// Modifier row with the same shape, but pre-checked, un-uncheckable, and already folded into the
+// render callback's own currentAdvantage/currentEffect seed at open (via resolveRollChain) —
+// every source that used to lock the Advantage/Effect sliders outright (Tier, Cold Company, the
+// shared grantsAdvantageOnMove trio, a forced weapon tag, Approach, a pending deferred grant)
+// arrives this way now, instead of as lockedAdvantage/a trimmed lockedEffect.
+//
 // guided (see PlaybookActorSheet#_rollMove) is the *source's* own label — "Guided" for the weapon
 // tag, or the granting Astir Part's name (e.g. "Spell Routines") — rather than a bare boolean.
 // The template's own move-roll-guided-note already names the source ("Spell Routines: use the
@@ -113,7 +124,7 @@ const requiresAdvantageReason = (entry) =>
 // .active on every matching element in one query without needing to know which column it's in.
 // This function's own render/Roll-button wiring below reads every weapon-dependent field (Trait,
 // Equipment, Roll Modifiers) from the *active* panel instead of the dialog's single top-level
-// copy — Dice/Effect/lockedAdvantage stay top-level and unscoped either way, since none of those
+// copy — Dice/Effect stay top-level and unscoped either way, since none of those
 // vary by weapon (see _rollMoveWithWeaponChoice's own weapon-independent/-dependent split).
 // _onWeaponMoveRoll's own quick-roll path now passes a single-entry weaponBundles too (its already-
 // known weapon, no Unarmed option — the <select> is hidden via CSS rather than skipped, see
@@ -125,7 +136,6 @@ export async function configureMoveRoll(
 	traits,
 	{
 		lockedEffect = null,
-		lockedAdvantage = null,
 		lockedTrait = null,
 		equipmentSpends = [],
 		narrativeTags = [],
@@ -136,7 +146,9 @@ export async function configureMoveRoll(
 		weaponBundles = null
 	} = {}
 ) {
-	const advantageSlider = buildNotchedSlider(ADVANTAGE_DISPLAY_ORDER, advantageState, lockedAdvantage);
+	// The Advantage slider is never locked — see the render callback's own resolveRollChain seed
+	// below for how a forced Roll Modifier's advantage reaches currentAdvantage instead.
+	const advantageSlider = buildNotchedSlider(ADVANTAGE_DISPLAY_ORDER, advantageState, null);
 	const effectSlider = buildNotchedSlider(EFFECT_DISPLAY_ORDER, effectState, lockedEffect);
 
 	const content = await renderTemplate(MOVE_ROLL_DIALOG_TEMPLATE, {
@@ -163,8 +175,6 @@ export async function configureMoveRoll(
 		// grantsEffectOnMove — see PlaybookActorSheet#_grantedEffectForMove) as well as the
 		// original "desperation" sources (bite-the-dust at max Perils, a forced weapon tag).
 		lockedEffectLabel: lockedEffect ? effectState(lockedEffect).label : null,
-		lockedAdvantage,
-		lockedAdvantageLabel: lockedAdvantage ? advantageState(lockedAdvantage).label : null,
 		lockedTrait,
 		equipmentSpends,
 		narrativeTags,
@@ -208,24 +218,10 @@ export async function configureMoveRoll(
 					});
 				}
 
-				// Live Dice/Effect state (see roll-chain.js's chainEntryResult/reverseChainStep) —
-				// currentAdvantage/currentEffect start at whatever a lock forces them to, or "none"
-				// otherwise, and from there are under the player's full manual control via the notch
-				// sliders. Checking a Roll Modifier nudges them once, at the moment it's checked;
-				// unchecking it steps them back the other way, per axis, clamped to a no-op on
-				// whichever axis has since been pushed out of that step's reach (e.g. the player
-				// manually moved it to the axis's own extreme, or another checked entry already has)
-				// — never a hard failure, and never touches the *other* axis or any other checked
-				// entry. Between check and uncheck the player can freely move the steppers however
-				// the fiction demands, including stacking a countervailing disadvantage on top of a
-				// still-checked advantage grant; nothing here ever re-derives a value from scratch,
-				// and a checked modifier is never auto-unchecked regardless of whether its own gate
-				// still holds. This is what replaced All In's/Embrace Chaos's old bespoke Category D
-				// wiring (rollStack/disadvantageConversion) with an ordinary, composable
-				// grantsRollModifier entry apiece. See docs/domains/moves.md for the full model.
-				let currentAdvantage = lockedAdvantage ?? "none";
-				let currentEffect = lockedEffect ?? "none";
-
+				// Roll Modifiers (see PlaybookActorSheet#_rollModifiersForMove) — resolved before the
+				// Dice/Effect seed below, since every forced: true entry needs to already be folded
+				// into currentAdvantage/currentEffect at open (see the resolveRollChain seed
+				// immediately below).
 				const rollModifierScope = () => (weaponBundles ? "[data-weapon-panel].active " : "");
 				// weaponBundles' own Roll Modifiers live one copy per panel (see this function's own
 				// weaponBundles doc comment) — resolved from the currently active panel's own bundle
@@ -236,6 +232,35 @@ export async function configureMoveRoll(
 					const activeWeaponKey = html.find("[name='weapon-select']").val();
 					return weaponBundles.find((bundle) => bundle.weaponKey === activeWeaponKey)?.rollModifiers ?? [];
 				};
+
+				// Live Dice/Effect state (see roll-chain.js's chainEntryResult/reverseChainStep) —
+				// currentAdvantage/currentEffect start at "none"/lockedEffect, then every forced: true
+				// Roll Modifier entry (Tier, Cold Company, the shared grantsAdvantageOnMove trio, a
+				// forced weapon tag, Approach, a pending deferred grant, ...) is folded in via
+				// resolveRollChain — the same left-to-right fold an ordinary checked entry composes
+				// through, so any number of forced entries on either axis just works (e.g. Cold
+				// Company dispelled plus a Tier advantage seeds Advantage x2). From there the player
+				// has full manual control via the notch sliders. Checking an (unforced) Roll Modifier
+				// nudges them once, at the moment it's checked; unchecking it steps them back the
+				// other way, per axis, clamped to a no-op on whichever axis has since been pushed out
+				// of that step's reach (e.g. the player manually moved it to the axis's own extreme,
+				// or another checked entry already has) — never a hard failure, and never touches the
+				// *other* axis or any other checked entry. Between check and uncheck the player can
+				// freely move the steppers however the fiction demands, including stacking a
+				// countervailing disadvantage on top of a still-checked advantage grant; nothing here
+				// ever re-derives a value from scratch, and a checked modifier is never auto-unchecked
+				// regardless of whether its own gate still holds. This is what replaced All In's/
+				// Embrace Chaos's old bespoke Category D wiring (rollStack/disadvantageConversion)
+				// with an ordinary, composable grantsRollModifier entry apiece. See
+				// docs/domains/moves.md for the full model.
+				let currentAdvantage = "none";
+				let currentEffect = lockedEffect ?? "none";
+				const forcedSeed = resolveRollChain(
+					{ advantage: currentAdvantage, effect: currentEffect },
+					activeRollModifiers().filter((entry) => entry.forced)
+				);
+				currentAdvantage = forcedSeed.advantage;
+				currentEffect = forcedSeed.effect;
 
 				// Writes the hidden [name='advantage']/[name='effect'] input, checks the matching
 				// notch, and sets the readout — showing a "from → to" arrow only when fromValue
@@ -397,15 +422,16 @@ export async function configureMoveRoll(
 						resolve({
 							trait: lockedTrait ?? activeTraits.find((t) => t.key === html.find(traitSelector).val()),
 							// The render callback's own paintAdvantage/paintEffect (see chainEntryResult
-							// in roll-chain.js) already wrote these two hidden inputs — from
-							// lockedAdvantage/lockedEffect, any one-time Roll Modifier nudge, and
+							// in roll-chain.js) already wrote these two hidden inputs — from the forced
+							// Roll Modifier seed, lockedEffect, any one-time Roll Modifier nudge, and
 							// whatever manual notch clicks the player made afterward — so reading them
 							// back here resolves the roll's final Advantage/Effect directly.
 							advantage: html.find("[name='advantage']").val(),
-							// activeLockedEffect wins outright, not just as a fallback: unlike
-							// lockedAdvantage (which a checked Roll Modifier can legitimately step the
-							// chain away from), any grantsRollModifier entry with its own `effect` is
-							// unconditionally disabled whenever lockedEffect is set (see
+							// activeLockedEffect wins outright, not just as a fallback: unlike the
+							// Advantage axis (which is never locked — every forced Roll Modifier there
+							// composes through the chain like any other entry, and a checked Roll
+							// Modifier can legitimately step it further), any grantsRollModifier entry
+							// with its own `effect` is unconditionally disabled whenever lockedEffect is set (see
 							// _rollModifiersForMove's own effectLocked gate), so the Effect axis can
 							// never actually diverge from a lock through the chain — this is
 							// belt-and-suspenders against the disabled Effect select/spend rows

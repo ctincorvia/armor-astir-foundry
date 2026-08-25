@@ -167,23 +167,47 @@ describe("configureMoveRoll - live chain recompute", () => {
 	const allInEntry = {
 		key: "cantrips:all-in", label: "All In", description: "d",
 		advantage: "advantage", effect: "desperation", requiresAdvantage: ["advantage"],
-		reminderOnly: false, deferred: false, disabled: false, disabledReason: null
+		reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: false
 	};
 	const embraceChaosEntry = {
 		key: "the-witch:embrace-chaos", label: "Embrace Chaos", description: "d",
 		advantage: "advantage2", effect: null, requiresAdvantage: ["disadvantage", "disadvantage2"],
-		reminderOnly: false, deferred: false, disabled: false, disabledReason: null
+		reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: false
 	};
 	const advantageOnlyEntry = {
 		key: "the-diplomat:sharper-knives", label: "Sharper Knives", description: "d",
 		advantage: "advantage", effect: null, requiresAdvantage: null,
-		reminderOnly: false, deferred: false, disabled: false, disabledReason: null
+		reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: false
 	};
 	const effectOnlyEntry = {
 		key: "the-scout:field-scout", label: "Field Scout", description: "d",
 		advantage: null, effect: "confidence", requiresAdvantage: null,
-		reminderOnly: false, deferred: false, disabled: false, disabledReason: null
+		reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: false
 	};
+	// A synthetic forced: true entry, standing in for whatever real source (Tier, Cold Company, a
+	// pending deferred grant, ...) would otherwise seed the base Advantage state -- there is no
+	// lockedAdvantage anymore (see docs/domains/moves.md), so every "starts pre-stepped" scenario
+	// below has to seed via one or more forced Roll Modifier entries folded through resolveRollChain
+	// instead. Each one nudges Advantage by exactly one step; stack two to reach disadvantage2/
+	// advantage2 the same way two real forced sources stacking would. Never registered in
+	// fakeChainDom's own rollModifierKeys -- repaintAvailability() finds no selector for it and reads
+	// the DOM's own noop fallback as already-checked, matching a real forced row's checked+disabled
+	// state.
+	function seedEntry(key, advantage) {
+		return {
+			key, label: "Seed", description: "d",
+			advantage, effect: null, requiresAdvantage: null,
+			reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: true
+		};
+	}
+	// The Effect-axis counterpart to seedEntry above.
+	function seedEffectEntry(key, effect) {
+		return {
+			key, label: "Seed", description: "d",
+			advantage: null, effect, requiresAdvantage: null,
+			reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: true
+		};
+	}
 
 	it("paints the Dice/Effect sliders from the base state on initial render, with no arrow when nothing composed", async () => {
 		const { dialogOptions } = await openDialog({ rollModifiers: [advantageOnlyEntry] });
@@ -199,14 +223,65 @@ describe("configureMoveRoll - live chain recompute", () => {
 		dialogOptions.close();
 	});
 
-	it("seeds the base state from lockedAdvantage/lockedEffect", async () => {
-		const { dialogOptions } = await openDialog({ lockedAdvantage: "advantage", lockedEffect: "confidence" });
+	it("seeds the base state from a forced Roll Modifier entry / lockedEffect", async () => {
+		const { dialogOptions } = await openDialog({
+			rollModifiers: [seedEntry("seed:advantage", "advantage")],
+			lockedEffect: "confidence"
+		});
 		const dom = fakeChainDom({ rollModifierKeys: [] });
 
 		dialogOptions.render(dom.html);
 
 		expect(dom.state.advantageHiddenValue).toBe("advantage");
 		expect(dom.state.effectHiddenValue).toBe("confidence");
+
+		dialogOptions.close();
+	});
+
+	// Two forced Advantage-axis entries at once (e.g. Cold Company dispelled + a Tier advantage in
+	// production) fold in sequence via the same resolveRollChain pass -- stacking to Advantage x2,
+	// with neither entry needing to be checked by the player.
+	it("stacks two forced Advantage-axis entries to advantage2 on initial render", async () => {
+		const { dialogOptions } = await openDialog({
+			rollModifiers: [seedEntry("seed:advantage-1", "advantage"), seedEntry("seed:advantage-2", "advantage")]
+		});
+		const dom = fakeChainDom({ rollModifierKeys: [] });
+
+		dialogOptions.render(dom.html);
+
+		expect(dom.state.advantageHiddenValue).toBe("advantage2");
+
+		dialogOptions.close();
+	});
+
+	// Opposite-sign forced Advantage-axis entries (e.g. Cold Company haunted + a Tier advantage)
+	// cancel to none, the same as any other chain fold.
+	it("cancels two opposite-sign forced Advantage-axis entries to none on initial render", async () => {
+		const { dialogOptions } = await openDialog({
+			rollModifiers: [seedEntry("seed:advantage", "advantage"), seedEntry("seed:disadvantage", "disadvantage")]
+		});
+		const dom = fakeChainDom({ rollModifierKeys: [] });
+
+		dialogOptions.render(dom.html);
+
+		expect(dom.state.advantageHiddenValue).toBe("none");
+
+		dialogOptions.close();
+	});
+
+	// Two forced Effect-axis entries canceling to none -- the concrete regression case for an
+	// Unreliable weapon (-1 Effect) composing with a favorable Approach match (+1 Effect) instead of
+	// one silently winning outright (see docs/domains/moves.md's "Effect axis" note and
+	// playbook-actor-sheet-move-roll-targets.test.js's own integration-level version of this).
+	it("cancels two opposite-sign forced Effect-axis entries to none on initial render", async () => {
+		const { dialogOptions } = await openDialog({
+			rollModifiers: [seedEffectEntry("seed:desperation", "desperation"), seedEffectEntry("seed:confidence", "confidence")]
+		});
+		const dom = fakeChainDom({ rollModifierKeys: [] });
+
+		dialogOptions.render(dom.html);
+
+		expect(dom.state.effectHiddenValue).toBe("none");
 
 		dialogOptions.close();
 	});
@@ -241,8 +316,11 @@ describe("configureMoveRoll - live chain recompute", () => {
 
 	it("clamps an uncheck's reversal to a no-op on an axis pushed out of the entry's own reach", async () => {
 		const { dialogOptions } = await openDialog({
-			lockedAdvantage: "disadvantage2",
-			rollModifiers: [embraceChaosEntry]
+			rollModifiers: [
+				seedEntry("seed:disadvantage-1", "disadvantage"),
+				seedEntry("seed:disadvantage-2", "disadvantage"),
+				embraceChaosEntry
+			]
 		});
 		const dom = fakeChainDom({ rollModifierKeys: [embraceChaosEntry.key] });
 
@@ -319,8 +397,7 @@ describe("configureMoveRoll - live chain recompute", () => {
 		// Advantage x2"). Disadvantage x2 resolves to None instead (-2+2=0), which would NOT satisfy
 		// All In's gate -- see the "unchecks a checked entry..." test below for that case.
 		const { dialogOptions } = await openDialog({
-			lockedAdvantage: "disadvantage",
-			rollModifiers: [allInEntry, embraceChaosEntry]
+			rollModifiers: [seedEntry("seed:disadvantage", "disadvantage"), allInEntry, embraceChaosEntry]
 		});
 		const dom = fakeChainDom({ rollModifierKeys: [allInEntry.key, embraceChaosEntry.key] });
 
@@ -343,8 +420,11 @@ describe("configureMoveRoll - live chain recompute", () => {
 	// still nudges on its own.
 	it("stays checked even when its own gate isn't satisfied, contributing nothing to the current value", async () => {
 		const { dialogOptions } = await openDialog({
-			lockedAdvantage: "disadvantage2",
-			rollModifiers: [allInEntry, embraceChaosEntry]
+			rollModifiers: [
+				seedEntry("seed:disadvantage-1", "disadvantage"),
+				seedEntry("seed:disadvantage-2", "disadvantage"),
+				allInEntry, embraceChaosEntry
+			]
 		});
 		const dom = fakeChainDom({ rollModifierKeys: [allInEntry.key, embraceChaosEntry.key] });
 
@@ -365,8 +445,11 @@ describe("configureMoveRoll - live chain recompute", () => {
 
 	it("disables an unchecked row once its own gate becomes unreachable from the current chain state, with a requiresAdvantage reason", async () => {
 		const { dialogOptions } = await openDialog({
-			lockedAdvantage: "disadvantage2",
-			rollModifiers: [allInEntry, embraceChaosEntry]
+			rollModifiers: [
+				seedEntry("seed:disadvantage-1", "disadvantage"),
+				seedEntry("seed:disadvantage-2", "disadvantage"),
+				allInEntry, embraceChaosEntry
+			]
 		});
 		const dom = fakeChainDom({ rollModifierKeys: [allInEntry.key, embraceChaosEntry.key] });
 
@@ -382,8 +465,7 @@ describe("configureMoveRoll - live chain recompute", () => {
 
 	it("re-enables a row once an earlier checked entry makes its gate reachable", async () => {
 		const { dialogOptions } = await openDialog({
-			lockedAdvantage: "disadvantage",
-			rollModifiers: [allInEntry, embraceChaosEntry]
+			rollModifiers: [seedEntry("seed:disadvantage", "disadvantage"), allInEntry, embraceChaosEntry]
 		});
 		const dom = fakeChainDom({ rollModifierKeys: [allInEntry.key, embraceChaosEntry.key] });
 
@@ -565,6 +647,32 @@ describe("configureMoveRoll - live chain recompute", () => {
 
 		expect(dom.state.disabled[embraceChaosEntry.key]).toBe(true);
 		expect(dom.state.reasons[embraceChaosEntry.key]).toBe("Requires Disadvantage or Disadvantage x2");
+
+		dialogOptions.close();
+	});
+
+	// A forced entry composes with the player's own later manual check exactly like any other
+	// already-applied step -- a forced Tier Advantage seed already puts currentAdvantage at
+	// "advantage" before the player does anything, which satisfies All In's own requiresAdvantage
+	// gate the moment it's checked, the same as if the player had picked the Advantage notch by
+	// hand. There's nothing to test for "the forced checkbox itself can't be unchecked" beyond this
+	// seeding -- the checkbox renders checked+disabled in the real template (untestable here per
+	// CLAUDE.md's renderTemplate stub), so the browser physically can't fire a change event on it;
+	// no uncheck-handling code exists for a forced row to exercise.
+	it("a forced seed composes with a manually checked ordinary entry afterward", async () => {
+		const { dialogOptions } = await openDialog({
+			rollModifiers: [seedEntry("seed:advantage", "advantage"), allInEntry]
+		});
+		const dom = fakeChainDom({ rollModifierKeys: [allInEntry.key] });
+
+		dialogOptions.render(dom.html);
+		expect(dom.state.advantageHiddenValue).toBe("advantage");
+		expect(dom.state.disabled[allInEntry.key]).toBe(false);
+
+		checkRollModifier(dom, allInEntry.key);
+
+		expect(dom.state.advantageHiddenValue).toBe("advantage2");
+		expect(dom.state.effectHiddenValue).toBe("desperation");
 
 		dialogOptions.close();
 	});

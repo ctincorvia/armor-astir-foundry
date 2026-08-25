@@ -115,10 +115,6 @@
 			"name": "Crow Drone",
 			"description": "Sharp-clawed constructs of servo-driven metal and composite plating.  Winged and black, their silhouettes earned them the 'Crow Drone' moniker. Also seen as Hunter-Killer Units, Phantom Drones, or Saw Drones. Drone — requires a Drone Control Bay Astir Part; rolls +CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear automatically during Downtime."
 		},
-		"touch-spells": {
-			"name": "Shock Gauntlet",
-			"description": "A charged contact plate built into the palm or knuckles, discharging straight through the target the instant the gauntlet makes contact."
-		},
 		"ardent-feature:bolt-sigils": {
 			"name": "EMP Edge",
 			"description": "A capacitor-lined blade, primed to discharge a disabling electromagnetic pulse on impact."
@@ -126,6 +122,14 @@
 		"ardent-feature:brimstone-pods": {
 			"name": "Incendiary Pods",
 			"description": "Pods of volatile incendiary charges, lobbed to cover a wide area — better rationed than relied on."
+		},
+		"hewer": {
+			"name": "Plasma Saw",
+			"description": "A circular saw, spun at blistering speeds by a superheated plasma injector fed by compressed coolant from the deep heart of Repose."
+		},
+		"colossus-repeater": {
+			"name": "Autocannon Repeater",
+			"description": "Using a sophisticated autoloader, Autocannon Repeaters fire armour-piercing rounds for maximum penetration. In a pinch, a talented pilot can work the reloading mechanism quickly enough for multiple follow-up shots."
 		}
 	},
 	"equipment": {
@@ -176,17 +180,9 @@
 			"name": "Cryo Harpoon",
 			"description": "When the first mariner's ardent team was dispatched to interfere with Progress reinforcements, they found their equipment lacking for undersea use. Dubbed Cryo Harpoons, these ardent-fit launchers stacked with short-range cryogenic charges provided an easy way of ruining ship hulls. Descriptive tags: Freezing."
 		},
-		"hewer-iii": {
-			"name": "Plasma Saw",
-			"description": "A circular saw, spun at blistering speeds by a superheated plasma injector fed by compressed coolant from the deep heart of Repose."
-		},
 		"colour-spray-i": {
 			"name": "Dye Canister",
 			"description": "A staple of any academy prankster: small pressurized canisters, full of industrial dye that marks any surface it touches in gaudy colour. It washes off… after a few days."
-		},
-		"colossus-repeater-iii": {
-			"name": "Autocannon Repeater",
-			"description": "Using a sophisticated autoloader, Autocannon Repeaters fire armour-piercing rounds for maximum penetration. In a pinch, a talented pilot can work the reloading mechanism quickly enough for multiple follow-up shots."
 		},
 		"wayward-skull-i": {
 			"name": "Salvaged AI Core",

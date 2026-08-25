@@ -198,7 +198,7 @@ describe("PlaybookActorSheet#_coldCompanyMove / _coldCompanyAdvantage", () => {
 		expect(sheet._coldCompanyAdvantage()).toBe("advantage");
 	});
 
-	it("passes the corresponding lockedAdvantage into configureMoveRoll when haunted", async () => {
+	it("offers a forced Cold Company: Haunted Roll Modifier into configureMoveRoll when haunted", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { stats: { know: { value: 1 } }, attributes: { playbookMoves: [COLD_COMPANY.key] } }
@@ -208,11 +208,23 @@ describe("PlaybookActorSheet#_coldCompanyMove / _coldCompanyAdvantage", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), expect.objectContaining({
-			lockedAdvantage: "disadvantage"
+			rollModifiers: [{
+				key: "cold-company-advantage",
+				label: "Cold Company: Haunted",
+				description: COLD_COMPANY.description,
+				advantage: "disadvantage",
+				effect: null,
+				requiresAdvantage: null,
+				reminderOnly: false,
+				deferred: false,
+				disabled: false,
+				disabledReason: null,
+				forced: true
+			}]
 		}));
 	});
 
-	it("passes lockedAdvantage: advantage into configureMoveRoll once dispelled", async () => {
+	it("offers a forced Cold Company: Dispelled Roll Modifier into configureMoveRoll once dispelled", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -228,11 +240,23 @@ describe("PlaybookActorSheet#_coldCompanyMove / _coldCompanyAdvantage", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), expect.objectContaining({
-			lockedAdvantage: "advantage"
+			rollModifiers: [{
+				key: "cold-company-advantage",
+				label: "Cold Company: Dispelled",
+				description: COLD_COMPANY.description,
+				advantage: "advantage",
+				effect: null,
+				requiresAdvantage: null,
+				reminderOnly: false,
+				deferred: false,
+				disabled: false,
+				disabledReason: null,
+				forced: true
+			}]
 		}));
 	});
 
-	it("leaves lockedAdvantage null for an actor without Cold Company picked", async () => {
+	it("offers no forced Roll Modifier for an actor without Cold Company picked", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: { know: { value: 1 } }, attributes: { playbookMoves: [] } } };
 		configureMoveRoll.mockResolvedValue(null);
@@ -240,8 +264,15 @@ describe("PlaybookActorSheet#_coldCompanyMove / _coldCompanyAdvantage", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), expect.objectContaining({
-			lockedAdvantage: null
+			rollModifiers: []
 		}));
+	});
+
+	it("_coldCompanyRollModifier returns null directly when nothing is picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
+
+		expect(sheet._coldCompanyRollModifier()).toBeNull();
 	});
 });
 

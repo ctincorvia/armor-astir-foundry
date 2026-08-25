@@ -795,7 +795,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Roll Modifiers from a mounted Ardent"
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
-			lockedEffect: null, lockedAdvantage: null, lockedTrait: null,
+			lockedEffect: null, lockedTrait: null,
 			equipmentSpends: [], narrativeTags: [],
 			rollModifiers: [{
 				key: ARTIFACT.key,
@@ -807,7 +807,8 @@ describe("PlaybookActorSheet#_onMoveRoll - Roll Modifiers from a mounted Ardent"
 				reminderOnly: false,
 				deferred: false,
 				disabled: false,
-				disabledReason: null
+				disabledReason: null,
+				forced: false
 			}],
 			riders: []
 		});

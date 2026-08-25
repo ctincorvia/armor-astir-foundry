@@ -1,7 +1,7 @@
 import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { findAstirMove } from "../../frames/astir.js";
 import { getTargetedNpc } from "../../moves/target-tier.js";
-import { TIER_MIN } from "../../equipment/equipment.js";
+import { TIER_MIN, findEquipmentTag } from "../../equipment/equipment.js";
 import { approachMatchupStack } from "../../moves/approach-matchup.js";
 import { ALL_MOVES } from "../../moves/all-moves.js";
 import { HOLD_MAX, HOLD_MIN } from "../../moves/moves.js";
@@ -98,14 +98,18 @@ export const MoveGrantsSheetMixin = {
 			...(astirMove && mounted ? [astirMove] : [])
 		];
 	},
-	// The Advantage-axis counterpart to _grantedEffectForMove — Don't Follow Me additionally locks
-	// the roll dialog's Dice select the same way a lockedEffect locks Effect (see
-	// PlaybookActorSheet#_rollMove/moves.js#configureMoveRoll), though an Astir Part's own reactive
-	// spend.advantage (Artifact) still wins over it.
+	// The Advantage-axis counterpart to _grantedEffectForMove — Don't Follow Me/Born Leader/Legacy's
+	// standing grant (see _grantingMoveForAdvantage, extracted the same way
+	// _grantingMoveForFailureReminder/_grantedFailureReminderForMove already are). No longer feeds a
+	// lockedAdvantage lock — _lockedAdvantageFor was removed entirely once every one of its sources
+	// became a forced Roll Modifier (see _grantedAdvantageRollModifier below and
+	// docs/domains/moves.md); this resolver itself is unchanged, still just the granting move's own
+	// advantage value.
+	_grantingMoveForAdvantage(move) {
+		return this._grantingMoves().find((m) => m.grantsAdvantageOnMove?.moveKey === move.key) ?? null;
+	},
 	_grantedAdvantageForMove(move) {
-		const granting = this._grantingMoves()
-			.find((m) => m.grantsAdvantageOnMove?.moveKey === move.key);
-		return granting?.grantsAdvantageOnMove.advantage ?? null;
+		return this._grantingMoveForAdvantage(move)?.grantsAdvantageOnMove.advantage ?? null;
 	},
 	// Tier-vs-Tier against a single targeted NPC (see docs/domains/world-actors.md's World actors / target-tier.js's
 	// getTargetedNpc) — the Advantage-axis half of the target-matchup pair, independent of Approach
@@ -141,6 +145,122 @@ export const MoveGrantsSheetMixin = {
 		if (stack === 1) return "confidence";
 		if (stack === -1) return "desperation";
 		return null;
+	},
+	// Forced Roll Modifier wrapper for the granting move trio (Don't Follow Me/Born Leader/Legacy) —
+	// see _grantingMoveForAdvantage above. No masking/precedence with the other Advantage-axis
+	// resolvers below: every one of them is pushed independently by _rollModifiersForMove, and they
+	// compose (see docs/domains/moves.md). label capitalizes the catalog's own advantage/disadvantage
+	// key rather than a ternary against a fixed pair -- every catalog grantsAdvantageOnMove entry
+	// sets "advantage" today, so a ternary's "disadvantage" branch would be permanently dead code
+	// under this module's 100%-branch-coverage gate.
+	_grantedAdvantageRollModifier(move) {
+		const granting = this._grantingMoveForAdvantage(move);
+		if (!granting) return null;
+		const advantage = granting.grantsAdvantageOnMove.advantage;
+		return {
+			key: `granted-advantage-${granting.key}`,
+			label: `${granting.name}: ${advantage.charAt(0).toUpperCase()}${advantage.slice(1)}`,
+			description: granting.description,
+			advantage,
+			effect: null,
+			requiresAdvantage: null,
+			reminderOnly: false,
+			deferred: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		};
+	},
+	// Forced Roll Modifier wrapper for Cold Company (see _coldCompanyAdvantage) — a standing,
+	// actor-wide lock on every roll, independent of any target/weapon. Composes with the other
+	// Advantage-axis sources, same as _grantedAdvantageRollModifier above.
+	_coldCompanyRollModifier() {
+		const advantage = this._coldCompanyAdvantage();
+		if (!advantage) return null;
+		const coldCompany = this._coldCompanyMove();
+		return {
+			key: "cold-company-advantage",
+			label: `Cold Company: ${advantage === "advantage" ? "Dispelled" : "Haunted"}`,
+			description: coldCompany.description,
+			advantage,
+			effect: null,
+			requiresAdvantage: null,
+			reminderOnly: false,
+			deferred: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		};
+	},
+	// Forced Roll Modifier wrapper for the Tier-vs-Tier matchup (see _targetTierAdvantage) — no
+	// masking parameter, since it's independent of the other Advantage-axis sources by design (they
+	// compose).
+	_targetTierRollModifier(move) {
+		const advantage = this._targetTierAdvantage(move);
+		if (!advantage) return null;
+		return {
+			key: "target-tier-matchup",
+			label: advantage === "advantage" ? "Tier Advantage" : "Tier Disadvantage",
+			description: "This roll's Tier advantage/disadvantage against the currently targeted NPC.",
+			advantage,
+			effect: null,
+			requiresAdvantage: null,
+			reminderOnly: false,
+			deferred: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		};
+	},
+	// Forced Roll Modifier wrapper for the Approach matchup (see _targetMatchupEffect) — masked
+	// (returns null) whenever the trimmed lockedEffect is already set, since the Roll button's own
+	// activeLockedEffect override at submit time means an unmasked entry here could silently
+	// override an emergency lock. Not masked against _forcedWeaponRollModifier below — the two
+	// compose with each other (see docs/domains/moves.md).
+	_targetMatchupRollModifier(move, lockedEffect) {
+		if (lockedEffect) return null;
+		const effect = this._targetMatchupEffect(move);
+		if (!effect) return null;
+		return {
+			key: "target-approach-matchup",
+			label: effect === "confidence" ? "Approach Confidence" : "Approach Desperation",
+			description: "This roll's Approach confidence/desperation against the currently targeted NPC.",
+			advantage: null,
+			effect,
+			requiresAdvantage: null,
+			reminderOnly: false,
+			deferred: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		};
+	},
+	// Forced Roll Modifier wrapper for a forced weapon tag (Unreliable — see _forcedWeaponEffect).
+	// Same masking as _targetMatchupRollModifier above, and not masked against it — see that
+	// resolver's own comment. `key` is namespaced by tag key so a future second forcesEffect tag
+	// can't collide.
+	_forcedWeaponRollModifier(weapon, lockedEffect) {
+		if (lockedEffect) return null;
+		const forced = this._forcedWeaponEffect(weapon);
+		if (!forced) return null;
+		// _forcedWeaponEffect only ever returns a tagKey it already resolved itself (via its own
+		// findEquipmentTag(tagKey)?.forcesEffect check) -- so the lookup below always succeeds, with
+		// no stale-key fallback to write (unlike a persisted actor-side key, this tagKey is read
+		// fresh from the same-request equipment scan, never stored).
+		const tag = findEquipmentTag(forced.tagKey);
+		return {
+			key: `forced-weapon-effect-${forced.tagKey}`,
+			label: tag.label,
+			description: tag.description,
+			advantage: null,
+			effect: forced.effect,
+			requiresAdvantage: null,
+			reminderOnly: false,
+			deferred: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		};
 	},
 	// Living Drive's "you may use [eidolon drive] outside of an Astir" (Summoner — see
 	// playbook-moves.js's grantsUnpilotedAstirMove) — the single-target-move shape
@@ -382,12 +502,26 @@ export const MoveGrantsSheetMixin = {
 		return { available: true, reason: null };
 	},
 	// The move-roll dialog's own Roll Modifiers section (see move-dialogs.js's configureMoveRoll) --
-	// every entry whose moveKeys is absent or matches the move about to be rolled is always
+	// every catalog entry whose moveKeys is absent or matches the move about to be rolled is always
 	// included, never hidden, only ever `disabled` -- when its own gate fails, or (for an
 	// effect-setting spec specifically) this roll's Effect is already locked elsewhere.
 	// Dark Guarantees' reminderOnly entry (the-wither.js) is never gated or disabled -- it renders as
 	// description text only, with no checkbox at all (see the template).
-	_rollModifiersForMove(move, lockedEffect) {
+	//
+	// On top of the catalog loop, every standing/target-matchup/forced-weapon-tag/pending-deferred
+	// source that used to feed lockedAdvantage/lockedEffect now surfaces here instead, as an ordinary
+	// forced: true entry (see docs/domains/moves.md). The three Advantage-axis sources
+	// (_grantedAdvantageRollModifier, _coldCompanyRollModifier, _targetTierRollModifier) -- plus
+	// every pending deferred grant whose spec sets advantage, below -- are pushed independently, with
+	// no masking or precedence among them: they're designed to compose (a dispelled Cold Company and
+	// a Tier advantage genuinely stack to Advantage x2). The two Effect-axis sources
+	// (_targetMatchupRollModifier, _forcedWeaponRollModifier) compose with each other the same way,
+	// but each individually masks itself to null whenever the trimmed lockedEffect (see
+	// move-roll-mixin.js's _lockedEffectFor) is already set -- masked as a group behind the two true
+	// remaining hard locks, since the Roll button's own activeLockedEffect override at submit time
+	// means an unmasked entry here could otherwise silently cancel an emergency lock. `weapon` is
+	// only used by _forcedWeaponRollModifier -- every other source here is weapon-independent.
+	_rollModifiersForMove(move, lockedEffect, weapon) {
 		const entries = [];
 		for (const source of this._rollModifierSources()) {
 			for (const spec of source.grantsRollModifier ?? []) {
@@ -406,7 +540,8 @@ export const MoveGrantsSheetMixin = {
 						reminderOnly: true,
 						deferred: false,
 						disabled: false,
-						disabledReason: null
+						disabledReason: null,
+						forced: false
 					});
 					continue;
 				}
@@ -423,9 +558,24 @@ export const MoveGrantsSheetMixin = {
 					reminderOnly: false,
 					deferred: Boolean(spec.deferred),
 					disabled,
-					disabledReason: disabled ? (available ? "Effect already set" : reason) : null
+					disabledReason: disabled ? (available ? "Effect already set" : reason) : null,
+					forced: false
 				});
 			}
+		}
+		const grantedAdvantage = this._grantedAdvantageRollModifier(move);
+		if (grantedAdvantage) entries.push(grantedAdvantage);
+		const coldCompany = this._coldCompanyRollModifier();
+		if (coldCompany) entries.push(coldCompany);
+		const tier = this._targetTierRollModifier(move);
+		if (tier) entries.push(tier);
+		const forcedWeapon = this._forcedWeaponRollModifier(weapon, lockedEffect);
+		if (forcedWeapon) entries.push(forcedWeapon);
+		const approach = this._targetMatchupRollModifier(move, lockedEffect);
+		if (approach) entries.push(approach);
+		for (const entry of this._pendingRollModifierEntries(move)) {
+			if (entry.effect && lockedEffect) continue;
+			entries.push(entry);
 		}
 		return entries;
 	},
@@ -461,12 +611,19 @@ export const MoveGrantsSheetMixin = {
 		}
 		if (Object.keys(updates).length) await this.actor.update(updates);
 	},
-	// The read half of the one-shot deferred mechanism (see move-roll-mixin.js's _rollMove) — the
-	// first still-pending deferred grant (across every roll-modifier source) whose moveKeys is absent
-	// or matches the move about to be rolled. Re-resolves advantage/effect fresh from the catalog
-	// every read, per claude.md's "catalog in code, keys on the actor" convention — only the boolean
-	// marker itself is persisted.
-	_pendingRollModifierGrant(move) {
+	// The read half of the one-shot deferred mechanism (see move-roll-mixin.js's _rollMove) — every
+	// still-pending deferred grant (across every roll-modifier source) whose moveKeys is absent or
+	// matches the move about to be rolled, as an array of ordinary Roll-Modifier-shaped, forced: true
+	// objects — not just the first match, since more than one grant can legitimately be pending and
+	// qualifying for the same roll at once (e.g. Bullheaded's unscoped grant and Blue Potion both
+	// checked on an earlier roll). Re-resolves advantage/effect fresh from the catalog every read,
+	// per claude.md's "catalog in code, keys on the actor" convention — only the boolean marker
+	// itself is persisted. `key` is namespaced (pending-<sourceKey>-<specKey>) so it never collides
+	// with the catalog spec's own key (used when offering a fresh deferred grant on a different
+	// roll); sourceKey/specKey ride along on the entry so _clearPendingRollModifiers doesn't need to
+	// re-derive them.
+	_pendingRollModifierEntries(move) {
+		const entries = [];
 		for (const source of this._rollModifierSources()) {
 			for (const spec of source.grantsRollModifier ?? []) {
 				if (!spec.deferred) continue;
@@ -474,14 +631,36 @@ export const MoveGrantsSheetMixin = {
 				const specKey = spec.key ?? "default";
 				const pending = Boolean(this.actor.system.attributes?.pendingRollModifiers?.[source.key]?.[specKey]);
 				if (!pending) continue;
-				return { advantage: spec.advantage ?? null, effect: spec.effect ?? null, sourceKey: source.key, specKey };
+				entries.push({
+					key: `pending-${source.key}-${specKey}`,
+					label: spec.label ?? source.name,
+					description: spec.description ?? source.description,
+					advantage: spec.advantage ?? null,
+					effect: spec.effect ?? null,
+					requiresAdvantage: null,
+					reminderOnly: false,
+					deferred: false,
+					disabled: false,
+					disabledReason: null,
+					forced: true,
+					sourceKey: source.key,
+					specKey
+				});
 			}
 		}
-		return null;
+		return entries;
 	},
-	// Clears a pending grant once _rollMove has applied it to a roll — the one-shot half of the
-	// mechanism, so the same grant can't silently re-apply to a later roll too.
-	async _clearPendingRollModifier(sourceKey, specKey) {
-		await this.actor.update({ [`system.attributes.pendingRollModifiers.${sourceKey}.${specKey}`]: false });
+	// Clears every currently-pending, still-applicable grant once _rollMove has applied it to a
+	// roll — the one-shot half of the mechanism, so the same grant can't silently re-apply to a
+	// later roll too. Batched into a single actor.update() covering every entry passed in (mirrors
+	// _spendRollModifiers's own updates-object pattern), rather than one update per entry, now that
+	// more than one grant can legitimately be pending and consumed on the same roll.
+	async _clearPendingRollModifiers(entries) {
+		if (!entries.length) return;
+		const updates = {};
+		for (const entry of entries) {
+			updates[`system.attributes.pendingRollModifiers.${entry.sourceKey}.${entry.specKey}`] = false;
+		}
+		await this.actor.update(updates);
 	}
 };

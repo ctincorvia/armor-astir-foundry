@@ -1,8 +1,8 @@
 import { vi } from "vitest";
 
 // Shared fixture for the plain-CLASH trait object used across configureMoveRoll/rollMove describes
-// (lockedEffect, lockedAdvantage, equipment spends, astir part spends, guided, and configureMoveRoll
-// itself) that don't otherwise need a real actor-backed trait.
+// (lockedEffect, forced Roll Modifier entries, equipment spends, astir part spends, guided, and
+// configureMoveRoll itself) that don't otherwise need a real actor-backed trait.
 export const CLASH_TRAIT = { key: "clash", label: "CLASH", value: 1 };
 
 // A no-op fake jQuery object for selectors a render-callback test harness doesn't otherwise care

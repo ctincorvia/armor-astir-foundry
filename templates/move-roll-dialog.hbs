@@ -41,9 +41,6 @@
 				<label>Effect</label>
 				{{> "modules/armor-astir/templates/shared/notched-slider.hbs" name="effect" states=effectStates selectedKey=effectSelectedKey selectedLabel=effectSelectedLabel}}
 			</div>
-			{{#if lockedAdvantage}}
-			<p class="move-roll-locked-note">Locked: {{lockedAdvantageLabel}}</p>
-			{{/if}}
 		</div>
 		<div class="move-roll-column-2">
 			<h3 class="move-roll-column-header">Weapons, Riders, and Modifiers</h3>
@@ -97,10 +94,11 @@
 							<label class="move-roll-equipment-spend-option">
 								{{#unless reminderOnly}}
 								<input type="checkbox" name="{{#if deferred}}pending-roll-modifier{{else}}roll-modifier{{/if}}"
-								       value="{{key}}" {{#if disabled}}disabled{{/if}}/>
+								       value="{{key}}" {{#if forced}}checked disabled{{else}}{{#if disabled}}disabled{{/if}}{{/if}}/>
 								{{/unless}}
 								<span class="move-roll-equipment-name">{{label}}</span>
 								{{#if deferred}}<span class="move-roll-modifier-deferred-note">(applies to your next qualifying roll)</span>{{/if}}
+								{{#if forced}}<span class="move-roll-modifier-deferred-note">(automatic)</span>{{/if}}
 							</label>
 							<div class="move-roll-equipment-description">{{{description}}}</div>
 							<div class="move-roll-modifier-reason" data-roll-modifier-reason>{{disabledReason}}</div>
@@ -188,9 +186,6 @@
 			{{#if lockedTrait}}
 			<p class="move-roll-locked-note">Locked: {{lockedTrait.label}}</p>
 			{{/if}}
-			{{#if lockedAdvantage}}
-			<p class="move-roll-locked-note">Locked: {{lockedAdvantageLabel}}</p>
-			{{/if}}
 			{{#if lockedEffect}}
 			<p class="move-roll-locked-note">Locked: {{lockedEffectLabel}}</p>
 			{{/if}}
@@ -243,10 +238,11 @@
 						<label class="move-roll-equipment-spend-option">
 							{{#unless reminderOnly}}
 							<input type="checkbox" name="{{#if deferred}}pending-roll-modifier{{else}}roll-modifier{{/if}}"
-							       value="{{key}}" {{#if disabled}}disabled{{/if}}/>
+							       value="{{key}}" {{#if forced}}checked disabled{{else}}{{#if disabled}}disabled{{/if}}{{/if}}/>
 							{{/unless}}
 							<span class="move-roll-equipment-name">{{label}}</span>
 							{{#if deferred}}<span class="move-roll-modifier-deferred-note">(applies to your next qualifying roll)</span>{{/if}}
+							{{#if forced}}<span class="move-roll-modifier-deferred-note">(automatic)</span>{{/if}}
 						</label>
 						<div class="move-roll-equipment-description">{{{description}}}</div>
 						<div class="move-roll-modifier-reason" data-roll-modifier-reason>{{disabledReason}}</div>

@@ -14,7 +14,7 @@ vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal)
 	chooseCarrier: vi.fn()
 }));
 
-import { BASIC_MOVES, configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
+import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { UNARMED, findEquipmentTag } from "../scripts/equipment/equipment.js";
 import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
@@ -32,6 +32,8 @@ const COORDINATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:coordi
 const HELP_OR_HINDER = BASIC_MOVES.find((m) => m.key === "help-or-hinder");
 const DARK_REBIRTH = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-wither:dark-rebirth");
 const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:artifact");
+const BORN_LEADER = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-captain:born-leader");
+const LEAD_A_SORTIE = SPECIAL_MOVES.find((m) => m.key === "lead-a-sortie");
 
 beforeEach(() => {
 	configureMoveRoll.mockClear();
@@ -499,7 +501,6 @@ describe("PlaybookActorSheet#_rollMove - fromCarrier weapon parity", () => {
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
 			lockedEffect: null,
-			lockedAdvantage: null,
 			lockedTrait: null,
 			equipmentSpends: [{
 				equipmentId: "carrier-w1",
@@ -524,7 +525,8 @@ describe("PlaybookActorSheet#_rollMove - fromCarrier weapon parity", () => {
 				reminderOnly: false,
 				deferred: false,
 				disabled: false,
-				disabledReason: null
+				disabledReason: null,
+				forced: false
 			}],
 			riders: []
 		});
@@ -678,5 +680,39 @@ describe("PlaybookActorSheet#_rollMove - Coordinator's extraSuccessReminder", ()
 
 		const [, , , options] = rollMove.mock.calls.at(-1);
 		expect(options).not.toHaveProperty("extraSuccessReminder");
+	});
+});
+
+// Parity with Don't Follow Me/Legacy (see playbook-actor-sheet-roll-results.test.js/
+// playbook-actor-sheet-astir-effects.test.js): Born Leader shares the same grantsAdvantageOnMove
+// flag and the same _grantedAdvantageRollModifier resolver, so it surfaces as a forced Roll
+// Modifier entry too, never a lockedAdvantage lock (which no longer exists at all).
+describe("PlaybookActorSheet#_rollModifiersForMove - Born Leader", () => {
+	it("surfaces as a forced Roll Modifier entry once picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [BORN_LEADER.key] } } };
+
+		const entries = sheet._rollModifiersForMove(LEAD_A_SORTIE, null);
+
+		expect(entries).toEqual([{
+			key: `granted-advantage-${BORN_LEADER.key}`,
+			label: "Born Leader: Advantage",
+			description: BORN_LEADER.description,
+			advantage: "advantage",
+			effect: null,
+			requiresAdvantage: null,
+			reminderOnly: false,
+			deferred: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		}]);
+	});
+
+	it("offers nothing without Born Leader picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
+
+		expect(sheet._rollModifiersForMove(LEAD_A_SORTIE, null)).toEqual([]);
 	});
 });

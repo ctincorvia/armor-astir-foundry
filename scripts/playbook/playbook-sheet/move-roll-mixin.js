@@ -118,52 +118,34 @@ export const MoveRollSheetMixin = {
 		return traits;
 	},
 	// bite-the-dust's forcesDesperationAtMaxPerils and weave-magic's forcesDesperationOnShakenTenet
-	// sit at the same "reactive/emergency lock" tier, ahead of a forced weapon tag — all three only
-	// ever lock to Desperation today, so there's nothing to actually conflict, but the precedence
-	// keeps a future second forcesEffect value from silently overriding either actor-state read.
-	// Field Scout's standing grantsEffectOnMove (see _grantedEffectForMove) sits next: it's a
-	// permanent grant rather than any of the other three's emergency/reactive lock, so anything
-	// already forcing an axis wins over it. The target-matchup Approach signal (_targetMatchupEffect
-	// — see its own comment; Tier's own signal feeds the Advantage axis instead, independently, via
-	// _lockedAdvantageFor below) sits lowest of all: it's a passive read of the current target, so
-	// any of the above five sources — each a more specific or more deliberate lock — wins over it.
-	_lockedEffectFor(move, weapon, pendingGrant) {
-		const forced = this._forcedWeaponEffect(weapon);
+	// sit at the same "reactive/emergency lock" tier -- all three only ever lock to Desperation
+	// today, so there's nothing to actually conflict, but the precedence keeps a future second
+	// forcesEffect value from silently overriding either actor-state read. Field Scout's standing
+	// grantsEffectOnMove (see _grantedEffectForMove) sits next: it's a permanent grant rather than
+	// either of the other two's emergency/reactive lock, so anything already forcing an axis wins
+	// over it. Everything else that used to feed this function -- a forced weapon tag (Unreliable),
+	// the target-matchup Approach signal, and a pending deferred grant's own effect -- is now a
+	// forced Roll Modifier entry instead (see move-grants-mixin.js's _targetMatchupRollModifier/
+	// _forcedWeaponRollModifier/_rollModifiersForMove), masked as a group behind whichever of the
+	// two hard locks above applies, but composing freely with each other otherwise (see
+	// docs/domains/moves.md). `pendingGrant` no longer exists as a parameter here -- pending grants
+	// are resolved internally by _rollModifiersForMove instead.
+	_lockedEffectFor(move, weapon) {
 		return (move.forcesDesperationAtMaxPerils && this._allDangersArePeril() ? "desperation" : null)
 			?? (move.forcesDesperationOnShakenTenet && this._hasShakenTenet() ? "desperation" : null)
-			?? forced?.effect
 			?? this._grantedEffectForMove(move)
-			?? pendingGrant?.effect
-			?? this._targetMatchupEffect(move)
 			?? null;
 	},
-	// Don't Follow Me's own pair — see _grantedTraitForMove/_lockedAdvantageFor. The granted trait
-	// key is resolved against this roll's own final `traits` list (rather than TRAITS directly) so
-	// the locked option carries the same live, bonus-inclusive value every other entry in the
-	// dialog does; a key that isn't actually offered here (e.g. the trait is disabled for this
-	// actor) resolves to no lock at all. An explicit forced trait from a quick-roll button
-	// (Bureaucrat — see quickRollsMove) wins over any standing grantsTraitOnMove lock (Don't Follow
-	// Me): it's the more specific, immediate signal from the actual button clicked, not a passive
-	// standing grant.
+	// Don't Follow Me's own pair -- see _grantedTraitForMove. The granted trait key is resolved
+	// against this roll's own final `traits` list (rather than TRAITS directly) so the locked option
+	// carries the same live, bonus-inclusive value every other entry in the dialog does; a key that
+	// isn't actually offered here (e.g. the trait is disabled for this actor) resolves to no lock at
+	// all. An explicit forced trait from a quick-roll button (Bureaucrat -- see quickRollsMove) wins
+	// over any standing grantsTraitOnMove lock (Don't Follow Me): it's the more specific, immediate
+	// signal from the actual button clicked, not a passive standing grant.
 	_lockedTraitFor(move, quickRoll, traits) {
 		const grantedTraitKey = quickRoll.trait ?? this._grantedTraitForMove(move);
 		return grantedTraitKey ? traits.find((t) => t.key === grantedTraitKey) ?? null : null;
-	},
-	// Don't Follow Me's single-target-move grant wins if it and Cold Company's standing haunted-
-	// state lock somehow both apply -- in practice these two moves live on mutually exclusive
-	// playbooks (Impostor / Wither), so this ordering is a defensive tie-break, not an expected
-	// real-world collision. pendingGrant's own Advantage half slots in below Cold Company but above
-	// the passive target-matchup Tier signal (_targetTierAdvantage -- its Approach sibling,
-	// _targetMatchupEffect, feeds _lockedEffectFor above instead, independently, since the two axes
-	// no longer sum into one combined stack), matching the same "more specific/deliberate lock
-	// wins" ordering pendingGrant's Effect half already follows above. A checked Roll Modifier's
-	// own advantage (Artifact included, an ordinary grantsRollModifier source) still wins over all
-	// of this, per configureMoveRoll's own precedence.
-	_lockedAdvantageFor(move, pendingGrant) {
-		return this._grantedAdvantageForMove(move)
-			?? this._coldCompanyAdvantage()
-			?? pendingGrant?.advantage
-			?? this._targetTierAdvantage(move);
 	},
 	// Spell Routines' own mounted-part grant — the *source's* own label ("Spell Routines"), only
 	// for the one move the player picked on the Astir tab (system.attributes.guidedMoveChoices,
@@ -362,25 +344,22 @@ export const MoveRollSheetMixin = {
 		await this._onMoveResolved(move, result.dice, result.tier);
 	},
 	// Computes one candidate weapon's (or null, "Unarmed") full contribution to the merged
-	// weapon-choice + move-roll dialog (see move-dialogs.js's weaponBundles) — every field reuses
+	// weapon-choice + move-roll dialog (see move-dialogs.js's weaponBundles) -- every field reuses
 	// the same shared precedence-chain helpers _rollMove's single-weapon path calls, just resolved
-	// once per candidate instead of once for an already-chosen weapon. `pendingGrant` is the one
-	// piece _rollMoveWithWeaponChoice below computes once and threads through rather than
-	// recomputing per candidate, since it's a read-then-cleared roll-scoped value, not a
-	// per-weapon one.
-	_weaponRollBundle(move, weapon, { traits, pendingGrant }) {
+	// once per candidate instead of once for an already-chosen weapon.
+	_weaponRollBundle(move, weapon, { traits }) {
 		const bundleTraits = this._weaponTraitsFor(move, weapon, traits);
-		const lockedEffect = this._lockedEffectFor(move, weapon, pendingGrant);
+		const lockedEffect = this._lockedEffectFor(move, weapon);
 		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
 		const narrativeTags = this._narrativeWeaponTags(weapon);
 		const guided = this._guidedFor(move, weapon);
 		const rerollTag = this._availableRerollTag(move, weapon);
-		const rollModifiers = this._rollModifiersForMove(move, lockedEffect);
+		const rollModifiers = this._rollModifiersForMove(move, lockedEffect, weapon);
 		return {
 			weaponKey: weapon ? weapon.id : UNARMED,
 			weaponLabel: weapon ? weapon.name : "Unarmed",
 			// Reuses _equipmentEntry's own shape/logic (equipment-mixin.js) so this read-only card
-			// renders identically to the Equipment tab's own weapon card — the mounted frame (if
+			// renders identically to the Equipment tab's own weapon card -- the mounted frame (if
 			// any) supplies Tier for an Astir/Ardent-owned candidate, ignored for a mundane one
 			// (see _equipmentEntry's own tier branch).
 			weaponCard: weapon ? this._equipmentEntry(weapon, [], this._mountedFrame()) : null,
@@ -394,47 +373,45 @@ export const MoveRollSheetMixin = {
 			rollModifiers
 		};
 	},
-	// The array-branch counterpart to the single-weapon _rollMove path below — reached whenever
+	// The array-branch counterpart to the single-weapon _rollMove path below -- reached whenever
 	// `weapon` is an array of candidates: _onMoveRoll's usesWeapon branch (a full choice, possibly
-	// with no weapons at all — "Unarmed" is still always offered), or _onWeaponMoveRoll's own
+	// with no weapons at all -- "Unarmed" is still always offered), or _onWeaponMoveRoll's own
 	// single-known-weapon call with offerUnarmed: false (no Unarmed entry, nothing to choose
 	// between). `traits` here is already the
-	// weapon-independent base list (see _rollMove's own dispatch) — the per-candidate Familiar
+	// weapon-independent base list (see _rollMove's own dispatch) -- the per-candidate Familiar
 	// +CHANNEL swap happens inside _weaponRollBundle instead, since which candidate is Familiar
 	// varies per bundle.
 	async _rollMoveWithWeaponChoice(move, weapons, traits, quickRoll, { offerUnarmed = true } = {}) {
-		const pendingGrant = this._pendingRollModifierGrant(move);
 		const lockedTrait = this._lockedTraitFor(move, quickRoll, traits);
-		const lockedAdvantage = this._lockedAdvantageFor(move, pendingGrant);
 		// downgrade (see _availableDowngrade) is resolved unconditionally, but only ever offered on
 		// the chat card after a 10+ (see moves.js#rollMove), so it's folded into baseOptions the
 		// same conditional-spread way automaticSuccess already is.
 		const downgrade = this._availableDowngrade(move);
-		// Riders (see _ridersForMove) — none of the three resolvers it calls take a weapon, so this
+		// Riders (see _ridersForMove) -- none of the three resolvers it calls take a weapon, so this
 		// is computed once here rather than per weaponBundles entry, and passed at the top level of
 		// configureMoveRoll below rather than folded into _weaponRollBundle.
 		const riders = this._ridersForMove(move);
 
-		// "Unarmed" first (see docs/domains/equipment.md's chooseWeapon precedent this replaces) —
+		// "Unarmed" first (see docs/domains/equipment.md's chooseWeapon precedent this replaces) --
 		// unless offerUnarmed is false (_onWeaponMoveRoll's already-known single weapon), which
 		// omits it since there's nothing to choose between.
 		const weaponBundles = (offerUnarmed ? [null, ...weapons] : weapons).map((candidate) =>
-			this._weaponRollBundle(move, candidate, { traits, pendingGrant }));
+			this._weaponRollBundle(move, candidate, { traits }));
 
 		const config = await configureMoveRoll(move, traits, {
-			lockedAdvantage,
 			lockedTrait,
 			riders,
 			weaponBundles
 		});
 		if (!config) return;
 
-		// The one-shot deferred grant (see pendingGrant above) is cleared the moment this roll's own
-		// config resolves -- read-then-cleared before the roll itself, so checking a deferred
-		// entry's box *inside* this same dialog never grants it to this roll, only the next one
-		// (see move-grants-mixin.js's _pendingRollModifierGrant doc comment for the known UX quirk
-		// this implies).
-		if (pendingGrant) await this._clearPendingRollModifier(pendingGrant.sourceKey, pendingGrant.specKey);
+		// Every currently-pending deferred grant (see move-grants-mixin.js's
+		// _pendingRollModifierEntries) is cleared the moment this roll's own config resolves --
+		// read-then-cleared before the roll itself, so checking a deferred entry's box *inside* this
+		// same dialog never grants it to this roll, only the next one -- unconditional on every
+		// currently-pending entry once the player actually rolls, matching this mechanism's own
+		// existing semantics.
+		await this._clearPendingRollModifiers(this._pendingRollModifierEntries(move));
 
 		const chosenWeapon = config.weaponId === UNARMED ? null : weapons.find((w) => w.id === config.weaponId) ?? null;
 		// Always resolves: chosenWeapon is either null (Unarmed, always the first bundle) or a real
@@ -448,7 +425,7 @@ export const MoveRollSheetMixin = {
 	// Shared by _onMoveRoll (weapon resolved via the merged dialog's own weapon-select, or left
 	// undefined for a move that isn't usesWeapon) and _onWeaponMoveRoll (weapon already known from
 	// the clicked button, passed as a single-element array with offerUnarmed: false). `weapon` is
-	// an array of candidates for either of those usesWeapon callers — every other caller still
+	// an array of candidates for either of those usesWeapon callers -- every other caller still
 	// passes a single resolved weapon/null/undefined, exactly as before, and that path (below) is
 	// completely unchanged.
 	async _rollMove(move, weapon, quickRoll = {}, { offerUnarmed = true } = {}) {
@@ -467,7 +444,7 @@ export const MoveRollSheetMixin = {
 			}
 		}
 
-		// _onMoveRoll's usesWeapon branch (see its own comment) — everything from here through the
+		// _onMoveRoll's usesWeapon branch (see its own comment) -- everything from here through the
 		// end of this function is the single-weapon path, untouched by weaponBundles at all.
 		if (Array.isArray(weapon)) {
 			if (!traits.length && !move.conditions) return;
@@ -477,10 +454,8 @@ export const MoveRollSheetMixin = {
 		traits = this._weaponTraitsFor(move, weapon, traits);
 		if (!traits.length && !move.conditions) return;
 
-		const pendingGrant = this._pendingRollModifierGrant(move);
-		const lockedEffect = this._lockedEffectFor(move, weapon, pendingGrant);
+		const lockedEffect = this._lockedEffectFor(move, weapon);
 		const lockedTrait = this._lockedTraitFor(move, quickRoll, traits);
-		const lockedAdvantage = this._lockedAdvantageFor(move, pendingGrant);
 		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
 		const narrativeTags = this._narrativeWeaponTags(weapon);
 		const guided = this._guidedFor(move, weapon);
@@ -489,7 +464,7 @@ export const MoveRollSheetMixin = {
 		// unconditionally, like automaticSuccess below, rather than scoped to fromCarrier/usesWeapon:
 		// a source's own moveKeys filtering already narrows each entry to the moves it actually
 		// applies to, so there's nothing frame- or weapon-specific to additionally gate here.
-		const rollModifiers = this._rollModifiersForMove(move, lockedEffect);
+		const rollModifiers = this._rollModifiersForMove(move, lockedEffect, weapon);
 		// downgrade (see _availableDowngrade) is resolved unconditionally, but only ever offered on
 		// the chat card after a 10+ (see moves.js#rollMove), so it's folded into baseOptions below
 		// the same conditional-spread way automaticSuccess already is.
@@ -497,7 +472,6 @@ export const MoveRollSheetMixin = {
 		const riders = this._ridersForMove(move);
 		const config = await configureMoveRoll(move, traits, {
 			lockedEffect,
-			lockedAdvantage,
 			lockedTrait,
 			equipmentSpends,
 			narrativeTags,
@@ -508,12 +482,13 @@ export const MoveRollSheetMixin = {
 		});
 		if (!config) return;
 
-		// The one-shot deferred grant (see pendingGrant above) is cleared the moment this roll's own
-		// config resolves -- read-then-cleared before the roll itself, so checking a deferred entry's
-		// box *inside* this same dialog never grants it to this roll, only the next one (see
-		// move-grants-mixin.js's _pendingRollModifierGrant doc comment for the known UX quirk this
-		// implies).
-		if (pendingGrant) await this._clearPendingRollModifier(pendingGrant.sourceKey, pendingGrant.specKey);
+		// Every currently-pending deferred grant (see move-grants-mixin.js's
+		// _pendingRollModifierEntries) is cleared the moment this roll's own config resolves --
+		// read-then-cleared before the roll itself, so checking a deferred entry's box *inside* this
+		// same dialog never grants it to this roll, only the next one -- unconditional on every
+		// currently-pending entry once the player actually rolls, matching this mechanism's own
+		// existing semantics.
+		await this._clearPendingRollModifiers(this._pendingRollModifierEntries(move));
 
 		await this._finishMoveRoll(move, weapon, config, { quickRoll, guided, downgrade });
 	},

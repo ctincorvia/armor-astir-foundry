@@ -173,10 +173,11 @@ export const EQUIPMENT_CATALOG = [
 	{
 		key: "arcane-charge-i",
 		name: "Arcane Charge I",
-		kind: "gear",
+		kind: "weapon",
 		description: "A destructive spell delayed by a wax timer. Stick it on an Astir, light the wick, and run " +
 			"for your life.",
-		tags: ["ruin", "one-use"]
+		tags: ["melee", "ruin", "one-use"],
+		scale: "foot"
 	},
 	{
 		key: "clothes-i",
@@ -218,24 +219,6 @@ export const EQUIPMENT_CATALOG = [
 		scale: "astir"
 	},
 	{
-		key: "decanting-staff-iii",
-		name: "Decanting Staff",
-		kind: "weapon",
-		description: "A long staff, held in both hands of an Astir. A series of alchemical processes " +
-			"purify and extract magical energy from stolen blood, before turning it to violent ends.",
-		tags: ["ranged", "bane", "two-handed"],
-		scale: "astir"
-	},
-	{
-		key: "hewer-iii",
-		name: "Hewer",
-		kind: "weapon",
-		description: "A circular saw, spun at lightning speeds by the volatile reaction between distilled " +
-			"alchemical fire and permafrost from the deep heart of Repose.",
-		tags: ["melee", "bane", "drain-1"],
-		scale: "astir"
-	},
-	{
 		key: "simplified-codex-i",
 		name: "Simplified Codex",
 		kind: "weapon",
@@ -253,35 +236,6 @@ export const EQUIPMENT_CATALOG = [
 			"dyes any surface it touches an illusory colour. It wears off… after a few days.",
 		tags: ["ranged", "area", "weak"],
 		scale: "foot"
-	},
-	{
-		key: "cannon-ii",
-		name: "Cannon",
-		kind: "weapon",
-		description: "Most have little interest in non-magical weaponry, especially given the prestige of " +
-			"the Academy. That said, the cannoneers of the west have steadily been making a name for " +
-			"themselves in recent years.",
-		tags: ["sniper", "huge", "vorpal"],
-		scale: "astir"
-	},
-	{
-		key: "colossus-repeater-iii",
-		name: "Colossus Repeater",
-		kind: "weapon",
-		description: "Using the same mechanism as a common crossbow, Colossus Repeaters are designed to " +
-			"fire magically-charged bolts for maximum armour penetration. In a pinch, a talented Channeler " +
-			"can work the reloading mechanism quickly enough for multiple follow-up shots.",
-		tags: ["ranged", "blitz", "impact", "two-handed", "drain-1"],
-		scale: "astir"
-	},
-	{
-		key: "contact-runes-iii",
-		name: "Contact Runes",
-		kind: "weapon",
-		description: "Heavily charged magical runes engraved on an Astir's hands and arms make for " +
-			"volatile, if difficult to use, close-combat weaponry.",
-		tags: ["melee", "reload", "unreliable", "ruin"],
-		scale: "astir"
 	},
 	{
 		key: "wayward-skull-i",
@@ -311,26 +265,14 @@ export const EQUIPMENT_CATALOG = [
 		tags: ["ranged", "bane", "versatile", "messy", "dangerous"],
 		scale: "astir"
 	},
-	// gearOnly Ward on a weapon: grandfathered exception granted directly through data, same as
-	// the-icon:bodyguards-i in starting-gear-pools.js (see equipment-tags.js's Ward comment).
 	{
-		key: "strange-shield-iii",
-		name: "Strange-Shield",
+		key: "baneblade-i",
+		name: "Baneblade",
 		kind: "weapon",
-		description: "A luminous, semi-permeable cage surrounds this piece of cursed matter, acting as a " +
-			"shield for the Astir that would hold it. Indiscriminately devouring and compacting any matter " +
-			"and most energy caught within, they are a tool best used with great care.",
-		tags: ["melee", "defensive", "ward", "infinite", "dangerous", "two-handed"],
-		scale: "astir"
-	},
-	{
-		key: "paracausal-hook-iii",
-		name: "Paracausal Hook",
-		kind: "weapon",
-		description: "Devised as a latch for hyperlight applications, the paracausal hook, if carefully " +
-			"aimed, also turned out to be remarkably effective at twisting physical matter in a way that " +
-			"displaces it into undiscovered dimensions, and vice versa. Stand well back.",
-		tags: ["melee", "ruin", "decisive", "messy", "drain-2"],
-		scale: "astir"
+		description: "Most Astir pilots do not concern themselves with the scrambling of foot-soldiers. Some of " +
+			"these pilots meet very unexpected ends. Also seen as a Blowtorch, Enchanted Broadsword, or Bolt " +
+			"Gauntlets.",
+		tags: ["melee", "bane", "two-handed"],
+		scale: "foot"
 	}
 ];

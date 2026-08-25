@@ -282,7 +282,7 @@ describe("PlaybookActorSheet#_onWeaponMoveRoll", () => {
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), expect.objectContaining({
-			lockedAdvantage: null, lockedTrait: null, riders: []
+			lockedTrait: null, riders: []
 		}));
 		const { weaponBundles } = configureMoveRoll.mock.calls.at(-1)[2];
 		// No Unarmed entry, and no <select>-worth of choice — exactly the one clicked weapon's bundle.

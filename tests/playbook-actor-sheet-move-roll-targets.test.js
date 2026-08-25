@@ -7,7 +7,7 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 }));
 
 import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
-import { UNARMED } from "../scripts/equipment/equipment.js";
+import { UNARMED, findEquipmentTag } from "../scripts/equipment/equipment.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import { EXCHANGE_BLOWS, STRIKE_DECISIVELY, DISPEL_UNCERTAINTIES } from "./helpers/move-fixtures.js";
 import { soleWeaponBundle } from "./helpers/move-test-helpers.js";
@@ -20,27 +20,94 @@ beforeEach(() => {
 	rollMove.mockResolvedValue({ message: undefined, dice: null });
 });
 
+// Tier's own forced Roll Modifier (see move-grants-mixin.js's _targetTierRollModifier) —
+// composes with every other Advantage-axis source (no masking, no lockedAdvantage — see
+// docs/domains/moves.md).
+function tierRollModifier(advantage) {
+	return {
+		key: "target-tier-matchup",
+		label: advantage === "advantage" ? "Tier Advantage" : "Tier Disadvantage",
+		description: "This roll's Tier advantage/disadvantage against the currently targeted NPC.",
+		advantage,
+		effect: null,
+		requiresAdvantage: null,
+		reminderOnly: false,
+		deferred: false,
+		disabled: false,
+		disabledReason: null,
+		forced: true
+	};
+}
+
+// Approach's own forced Roll Modifier (see move-grants-mixin.js's _targetMatchupRollModifier) —
+// masked to null whenever lockedEffect is set, but not masked against a forced weapon tag (see
+// the "compose, not compete" test below).
+function approachRollModifier(effect) {
+	return {
+		key: "target-approach-matchup",
+		label: effect === "confidence" ? "Approach Confidence" : "Approach Desperation",
+		description: "This roll's Approach confidence/desperation against the currently targeted NPC.",
+		advantage: null,
+		effect,
+		requiresAdvantage: null,
+		reminderOnly: false,
+		deferred: false,
+		disabled: false,
+		disabledReason: null,
+		forced: true
+	};
+}
+
+const COLD_COMPANY_HAUNTED_ROLL_MODIFIER = {
+	key: "cold-company-advantage",
+	label: "Cold Company: Haunted",
+	description: expect.any(String),
+	advantage: "disadvantage",
+	effect: null,
+	requiresAdvantage: null,
+	reminderOnly: false,
+	deferred: false,
+	disabled: false,
+	disabledReason: null,
+	forced: true
+};
+
+const UNRELIABLE_ROLL_MODIFIER = {
+	key: "forced-weapon-effect-unreliable",
+	label: findEquipmentTag("unreliable").label,
+	description: findEquipmentTag("unreliable").description,
+	advantage: null,
+	effect: "desperation",
+	requiresAdvantage: null,
+	reminderOnly: false,
+	deferred: false,
+	disabled: false,
+	disabledReason: null,
+	forced: true
+};
+
 // A usesWeapon move (Exchange Blows/Strike Decisively) with no weapons on the actor still offers
 // exactly one weaponBundles entry — Unarmed (see PlaybookActorSheet#_rollMoveWithWeaponChoice) —
-// so lockedEffect now lives on that bundle rather than at the top level, while
-// lockedAdvantage/lockedTrait stay weapon-independent and top-level. objectContaining keeps this
-// test file focused on the Tier/Approach signals it's actually about, rather than every derived
-// display field the bundle also carries.
-function weaponRollConfig({ lockedAdvantage = null, lockedEffect = null } = {}) {
+// so lockedEffect/rollModifiers now live on that bundle rather than at the top level, while
+// lockedTrait stays weapon-independent and top-level. There is no lockedAdvantage anymore — every
+// Advantage-axis source (Tier included) surfaces as a forced Roll Modifier entry instead (see
+// docs/domains/moves.md). objectContaining keeps this test file focused on the Tier/Approach
+// signals it's actually about, rather than every derived display field the bundle also carries.
+function weaponRollConfig({ lockedEffect = null, rollModifiers = [] } = {}) {
 	return {
-		lockedAdvantage,
 		lockedTrait: null,
 		riders: [],
-		weaponBundles: [expect.objectContaining({ weaponKey: UNARMED, weaponLabel: "Unarmed", lockedEffect })]
+		weaponBundles: [expect.objectContaining({ weaponKey: UNARMED, weaponLabel: "Unarmed", lockedEffect, rollModifiers })]
 	};
 }
 
 // Tier Advantage on Exchange Blows/Strike Decisively (see moves-mixin.js's _targetTierAdvantage):
-// +1 higher / -1 lower / 0 equal, resolved straight to Advantage/Disadvantage. This axis is now
-// independent of the Approach matchup below — see the "Tier and Approach act independently" test
-// further down for the case where both signals fire at once. Field Scout's conflictTier: 2 (see
-// playbook-moves.js) is used to raise the roller's Tier above the default 1, which every NPC's own
-// Tier floors at too (TIER_MIN), so "higher Tier" can be exercised without it.
+// +1 higher / -1 lower / 0 equal, resolved straight to Advantage/Disadvantage, surfaced as a
+// forced Roll Modifier entry. This axis is now independent of the Approach matchup below — see the
+// "Tier and Approach act independently" describe further down for the case where both signals fire
+// at once. Field Scout's conflictTier: 2 (see playbook-moves.js) is used to raise the roller's Tier
+// above the default 1, which every NPC's own Tier floors at too (TIER_MIN), so "higher Tier" can be
+// exercised without it.
 describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", () => {
 	const clashTalkStats = { clash: { value: 0 }, talk: { value: 0 } };
 
@@ -63,7 +130,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			weaponRollConfig({ lockedAdvantage: "advantage" })
+			weaponRollConfig({ rollModifiers: [tierRollModifier("advantage")] })
 		);
 	});
 
@@ -78,7 +145,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			weaponRollConfig({ lockedAdvantage: "advantage" })
+			weaponRollConfig({ rollModifiers: [tierRollModifier("advantage")] })
 		);
 	});
 
@@ -108,7 +175,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			STRIKE_DECISIVELY,
 			expect.any(Array),
-			weaponRollConfig({ lockedAdvantage: "disadvantage" })
+			weaponRollConfig({ rollModifiers: [tierRollModifier("disadvantage")] })
 		);
 	});
 
@@ -128,15 +195,15 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			DISPEL_UNCERTAINTIES,
 			expect.any(Array),
-			{ lockedEffect: null, lockedAdvantage: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
+			{ lockedEffect: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
 		);
 	});
 
-	// Cold Company's standing lock (see _coldCompanyAdvantage) sits ahead of this target-matchup
-	// signal in the precedence chain — its haunted state resolves to "disadvantage", the opposite of
-	// what the Tier match alone would compute here, so a passing test proves the ordering rather than
-	// just happening to agree with it.
-	it("lets Cold Company's standing Advantage-axis lock win over a higher-Tier target match", async () => {
+	// Every Advantage-axis source composes now — no masking, no precedence chain (see
+	// docs/domains/moves.md's "Advantage axis" note). Cold Company's haunted state (disadvantage)
+	// and a higher-Tier target match (advantage) both apply here at once; a passing test proves they
+	// both surface as independent forced entries rather than one silently discarding the other.
+	it("stacks Cold Company's standing Advantage-axis lock with a higher-Tier target match", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -152,7 +219,9 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			weaponRollConfig({ lockedAdvantage: "disadvantage" })
+			weaponRollConfig({
+				rollModifiers: [COLD_COMPANY_HAUNTED_ROLL_MODIFIER, tierRollModifier("advantage")]
+			})
 		);
 	});
 });
@@ -160,7 +229,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 // Approach Confidence/Desperation on Exchange Blows/Strike Decisively (see moves-mixin.js's
 // _targetMatchupEffect): the type wheel (approach-matchup.js) resolves straight to Confidence
 // (counters the foe's Approach) or Desperation (is countered), independently of the Tier signal
-// above — this axis locks lockedEffect, not lockedAdvantage.
+// above, surfaced as a forced Roll Modifier entry.
 describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from a targeted NPC", () => {
 	const clashTalkStats = { clash: { value: 0 }, talk: { value: 0 } };
 
@@ -183,7 +252,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			weaponRollConfig({ lockedEffect: "confidence" })
+			weaponRollConfig({ rollModifiers: [approachRollModifier("confidence")] })
 		);
 	});
 
@@ -198,7 +267,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			weaponRollConfig({ lockedEffect: "desperation" })
+			weaponRollConfig({ rollModifiers: [approachRollModifier("desperation")] })
 		);
 	});
 
@@ -244,17 +313,19 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			weaponRollConfig({ lockedEffect: "confidence" })
+			weaponRollConfig({ rollModifiers: [approachRollModifier("confidence")] })
 		);
 	});
 
-	// A forced weapon tag (Unreliable — see _forcedWeaponEffect) sits ahead of the target-matchup
-	// Approach signal in the lockedEffect precedence chain (see _rollMove's own comment). This weapon
-	// carries an unspent Unreliable tag (forces Desperation) AND the targeted NPC's Approach is
-	// favorable (would compute Confidence on its own) — the forced tag has to win, proving the new
-	// target-matchup signal really is the lowest-precedence Effect source, not just usually agreeing
-	// with whatever else is in play.
-	it("lets a forced weapon tag win over a favorable Approach target match", async () => {
+	// A forced weapon tag (Unreliable — see _forcedWeaponEffect) no longer wins outright over the
+	// target-matchup Approach signal — both are now independent forced Roll Modifier entries that
+	// compose with each other (see docs/domains/moves.md's "Effect axis" note and
+	// tests/move-roll-dialog.test.js for the seeded-currentEffect regression test proving they
+	// actually cancel to a flat roll). This weapon carries an unspent Unreliable tag (forces
+	// Desperation) AND the targeted NPC's Approach is favorable (would compute Confidence on its
+	// own) — this is a genuine, intentional behavior change: today's build had Unreliable win
+	// outright with Approach silently discarded; this build surfaces both.
+	it("offers both a forced weapon tag entry and a favorable Approach target match, composing rather than one winning", async () => {
 		const sheet = new PlaybookActorSheet();
 		const rifle = {
 			id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: ["unreliable"], spent: [], scale: "foot", tier: 1
@@ -269,14 +340,16 @@ describe("PlaybookActorSheet#_onMoveRoll - Approach Confidence/Desperation from 
 		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "eq1" } } });
 
 		expect(soleWeaponBundle(configureMoveRoll)).toEqual(expect.objectContaining({
-			weaponKey: "eq1", lockedEffect: "desperation", equipmentSpends: [], narrativeTags: [], rollModifiers: []
+			weaponKey: "eq1", lockedEffect: null, equipmentSpends: [], narrativeTags: [],
+			rollModifiers: [UNRELIABLE_ROLL_MODIFIER, approachRollModifier("confidence")]
 		}));
 	});
 });
 
 // Tier and Approach act independently — since the two axes no longer sum into one combined stack,
 // a higher Tier plus an unfavorable Approach matchup now locks BOTH Advantage AND Desperation on
-// the same roll simultaneously, rather than netting to a single Advantage/Disadvantage state.
+// the same roll simultaneously, each as its own forced Roll Modifier entry, rather than netting to
+// a single Advantage/Disadvantage state.
 describe("PlaybookActorSheet#_onMoveRoll - Tier and Approach lock independently", () => {
 	afterEach(() => {
 		delete game.user.targets;
@@ -298,7 +371,10 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier and Approach lock independently"
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			EXCHANGE_BLOWS,
 			expect.any(Array),
-			weaponRollConfig({ lockedAdvantage: "advantage", lockedEffect: "desperation" })
+			weaponRollConfig({
+				lockedEffect: null,
+				rollModifiers: [tierRollModifier("advantage"), approachRollModifier("desperation")]
+			})
 		);
 	});
 });

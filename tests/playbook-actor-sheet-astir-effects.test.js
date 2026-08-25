@@ -105,6 +105,33 @@ describe("PlaybookActorSheet#_grantedAdvantageForMove - Legacy (Astir Move)", ()
 
 		expect(sheet._grantedAdvantageForMove(LEAD_A_SORTIE)).toBeNull();
 	});
+
+	// Parity with Don't Follow Me/Born Leader (see playbook-actor-sheet-roll-results.test.js/
+	// playbook-actor-sheet-the-captain.test.js): Legacy's grant reaches the roll-modifier dialog as a
+	// forced Roll Modifier entry too, not a lockedAdvantage lock -- all three playbook sources share
+	// the same _grantedAdvantageRollModifier resolver.
+	it("surfaces as a forced Roll Modifier entry, not lockedAdvantage, once picked and mounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", move: LEGACY.key, piloted: true, parts: [] } } }
+		};
+
+		const entries = sheet._rollModifiersForMove(LEAD_A_SORTIE, null);
+
+		expect(entries).toEqual([{
+			key: `granted-advantage-${LEGACY.key}`,
+			label: "Legacy: Advantage",
+			description: LEGACY.description,
+			advantage: "advantage",
+			effect: null,
+			requiresAdvantage: null,
+			reminderOnly: false,
+			deferred: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		}]);
+	});
 });
 
 describe("PlaybookActorSheet#_grantedSuccessReminderForMove - Mana Devourer (Astir Move)", () => {
