@@ -144,19 +144,19 @@ export const ASTIR_PART_CATALOG = [
 		// available) whenever the Controls tab's Refresh Sortie button is clicked.
 		grantsPotionsOnRefreshSortie: true,
 		grantsRollModifier: [
-			{ key: "blue", moveKeys: ["weave-magic"], advantage: "advantage", costsPotion: "blue", deferred: true,
-				label: "Blue Potion", description: "Take advantage when you next weave magic." },
+			{ key: "blue", moveKeys: ["weave-magic"], advantage: "advantage", costsPotion: "blue",
+				label: "Blue Potion", description: "Take advantage when you weave magic." },
 			{ key: "yellow", moveKeys: ["exchange-blows", "strike-decisively"], effect: "confidence",
-				costsPotion: "yellow", deferred: true,
-				label: "Yellow Potion", description: "Act with confidence when you next exchange blows or strike decisively." }
+				costsPotion: "yellow",
+				label: "Yellow Potion", description: "Take a risk. Act with confidence when you exchange blows or strike decisively." }
 		],
 		description:
 			"<p>A selection of alchemical equipment, capable of storing and mixing useful potions " +
 			"before venting them into the cockpit as a vapour to save time.</p>" +
 			"<ul>" +
 			"<li>Red: Remove a peril related to physical injury or wounds. Metallic.</li>" +
-			"<li>Blue: Take advantage when you next weave magic. Fruity.</li>" +
-			"<li>Yellow: Take a risk. Act with confidence when you next exchange blows or strike " +
+			"<li>Blue: Take advantage when you weave magic. Fruity.</li>" +
+			"<li>Yellow: Take a risk. Act with confidence when you exchange blows or strike " +
 			"decisively. Tangy and sharp.</li>" +
 			"</ul>" +
 			"<p>Take 1 of each Potion when someone leads a Sortie.</p>"
