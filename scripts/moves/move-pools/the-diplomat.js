@@ -12,8 +12,8 @@ export const THE_DIPLOMAT_POOL = {
 			traits: [],
 			// "You may read the room with +TALK" adds a trait option to Read the Room rather than
 			// locking one — see PlaybookActorSheet#_moveTraits' addsTraitToMove handling, the
-			// deliberate opposite of Field Scout's grantsEffectOnMove/Don't Follow Me's
-			// grantsTraitOnMove (both of which only ever narrow a move's existing options).
+			// deliberate opposite of Field Scout's grantsEffectOnMove (which only ever narrows a
+			// move's existing options).
 			addsTraitToMove: { moveKey: "read-the-room", trait: "talk" },
 			// A roll-less "choose 2" menu — see PlaybookActorSheet#_onMoveActivate's
 			// activateChoices branch. Posts the prompt and all 3 options to chat on Activate; the

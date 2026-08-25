@@ -136,16 +136,14 @@ export const MoveRollSheetMixin = {
 			?? this._grantedEffectForMove(move)
 			?? null;
 	},
-	// Don't Follow Me's own pair -- see _grantedTraitForMove. The granted trait key is resolved
+	// A quick-roll button's own forced trait (Bureaucrat/The Diplomat, Don't Follow Me/The Impostor
+	// -- see quickRollsMove) locks the target move's dialog to that trait. The key is resolved
 	// against this roll's own final `traits` list (rather than TRAITS directly) so the locked option
 	// carries the same live, bonus-inclusive value every other entry in the dialog does; a key that
 	// isn't actually offered here (e.g. the trait is disabled for this actor) resolves to no lock at
-	// all. An explicit forced trait from a quick-roll button (Bureaucrat -- see quickRollsMove) wins
-	// over any standing grantsTraitOnMove lock (Don't Follow Me): it's the more specific, immediate
-	// signal from the actual button clicked, not a passive standing grant.
+	// all.
 	_lockedTraitFor(move, quickRoll, traits) {
-		const grantedTraitKey = quickRoll.trait ?? this._grantedTraitForMove(move);
-		return grantedTraitKey ? traits.find((t) => t.key === grantedTraitKey) ?? null : null;
+		return quickRoll.trait ? traits.find((t) => t.key === quickRoll.trait) ?? null : null;
 	},
 	// Spell Routines' own mounted-part grant — the *source's* own label ("Spell Routines"), only
 	// for the one move the player picked on the Astir tab (system.attributes.guidedMoveChoices,
@@ -347,14 +345,14 @@ export const MoveRollSheetMixin = {
 	// weapon-choice + move-roll dialog (see move-dialogs.js's weaponBundles) -- every field reuses
 	// the same shared precedence-chain helpers _rollMove's single-weapon path calls, just resolved
 	// once per candidate instead of once for an already-chosen weapon.
-	_weaponRollBundle(move, weapon, { traits }) {
+	_weaponRollBundle(move, weapon, { traits, quickRoll }) {
 		const bundleTraits = this._weaponTraitsFor(move, weapon, traits);
 		const lockedEffect = this._lockedEffectFor(move, weapon);
 		const equipmentSpends = this._equipmentSpends(lockedEffect, weapon);
 		const narrativeTags = this._narrativeWeaponTags(weapon);
 		const guided = this._guidedFor(move, weapon);
 		const rerollTag = this._availableRerollTag(move, weapon);
-		const rollModifiers = this._rollModifiersForMove(move, lockedEffect, weapon);
+		const rollModifiers = this._rollModifiersForMove(move, lockedEffect, weapon, quickRoll);
 		return {
 			weaponKey: weapon ? weapon.id : UNARMED,
 			weaponLabel: weapon ? weapon.name : "Unarmed",
@@ -396,7 +394,7 @@ export const MoveRollSheetMixin = {
 		// unless offerUnarmed is false (_onWeaponMoveRoll's already-known single weapon), which
 		// omits it since there's nothing to choose between.
 		const weaponBundles = (offerUnarmed ? [null, ...weapons] : weapons).map((candidate) =>
-			this._weaponRollBundle(move, candidate, { traits }));
+			this._weaponRollBundle(move, candidate, { traits, quickRoll }));
 
 		const config = await configureMoveRoll(move, traits, {
 			lockedTrait,
@@ -464,7 +462,7 @@ export const MoveRollSheetMixin = {
 		// unconditionally, like automaticSuccess below, rather than scoped to fromCarrier/usesWeapon:
 		// a source's own moveKeys filtering already narrows each entry to the moves it actually
 		// applies to, so there's nothing frame- or weapon-specific to additionally gate here.
-		const rollModifiers = this._rollModifiersForMove(move, lockedEffect, weapon);
+		const rollModifiers = this._rollModifiersForMove(move, lockedEffect, weapon, quickRoll);
 		// downgrade (see _availableDowngrade) is resolved unconditionally, but only ever offered on
 		// the chat card after a 10+ (see moves.js#rollMove), so it's folded into baseOptions below
 		// the same conditional-spread way automaticSuccess already is.

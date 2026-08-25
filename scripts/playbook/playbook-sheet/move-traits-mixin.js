@@ -73,10 +73,10 @@ export const MoveTraitsSheetMixin = {
 			actorTraits.push(this._homeTraitOption());
 		}
 		// Facilitator's "you may read the room with +TALK" (see playbook-moves.js's addsTraitToMove).
-		// The counterpart to _grantedTraitForMove, and deliberately the opposite operation:
-		// grantsTraitOnMove *locks* the roll dialog to a trait the target move already offers, so it
-		// can only ever narrow an existing choice; this *adds* an option the move never had, matching
-		// the rulebook's "you may" framing. Same resolve-off-picked-moves shape as the grants* trio,
+		// Deliberately the opposite operation from Field Scout's grantsEffectOnMove (see
+		// _grantedEffectForMove): that flag *locks* the roll dialog to a value the target move already
+		// offers, so it can only ever narrow an existing choice; this *adds* an option the move never
+		// had, matching the rulebook's "you may" framing. Same resolve-off-picked-moves shape,
 		// and the same add-once guard the Input Channel block above uses. `moveKey` (a single target,
 		// e.g. Ascension's own bite-the-dust grant) and `moveKeys` (an array, e.g. Turn Unearthly
 		// adding CHANNEL to both Exchange Blows and Strike Decisively at once) are both accepted —

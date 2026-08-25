@@ -40,7 +40,7 @@ export const MoveGrantsSheetMixin = {
 		return resolvePlaybookMoves(this._playbookMoves()).find((m) => m.grantsHauntedStandingRoll);
 	},
 	// The Advantage-axis standing lock every roll this actor makes gets — unlike
-	// _grantedAdvantageForMove (Don't Follow Me), which only ever locks one specific target move,
+	// _grantedAdvantageForMove (Born Leader), which only ever locks one specific target move,
 	// this applies unconditionally to every roll, so it isn't resolved through that single-target-
 	// move lookup. Returns null when the actor hasn't picked Cold Company at all — a true no-op for
 	// every other actor, same "compute regardless, resolves to nothing" stance _grantedEffectForMove
@@ -63,21 +63,6 @@ export const MoveGrantsSheetMixin = {
 			.find((m) => m.grantsEffectOnMove?.moveKey === move.key);
 		return granting?.grantsEffectOnMove.effect ?? null;
 	},
-	// Don't Follow Me's "lead a Sortie with +DEFY & advantage" (see playbook-moves.js's
-	// grantsTraitOnMove) — the trait-key half of the same pair _grantedEffectForMove already
-	// resolves for Effect. Returns a bare key (mirroring _grantedEffectForMove/
-	// _grantedAdvantageForMove's own return shape); _rollMove resolves it against this move's own
-	// already-computed `traits` list to get a real {key, label, value} option to lock, rather than
-	// duplicating that lookup here. Applied unconditionally whenever the granting move is picked
-	// and the target move is rolled — same "always" treatment grantsEffectOnMove already gives
-	// Field Scout, rather than gating on the move's own "you may" framing (Downtime Scenes and
-	// their tokens aren't tracked anywhere in this module — see docs/domains/moves.md's "systems that do not
-	// exist yet").
-	_grantedTraitForMove(move) {
-		const granting = resolvePlaybookMoves(this._playbookMoves())
-			.find((m) => m.grantsTraitOnMove?.moveKey === move.key);
-		return granting?.grantsTraitOnMove.trait ?? null;
-	},
 	// Every move source that can carry the grantsAdvantageOnMove/addsSuccessReminderToMove/
 	// addsCriticalReminderToMove/addsFailureReminderToMove/addsQuestionsToMove family of flags — the
 	// actor's picked playbook moves, plus (Legacy, Mana Devourer, etc. — see astir.js's
@@ -86,9 +71,8 @@ export const MoveGrantsSheetMixin = {
 	// already draws (see docs/domains/frames.md's Piloted note/_mountedParts) — an Astir Move picked but not
 	// currently mounted grants nothing, the same as an installed-but-unmounted Part. Shared by every
 	// _granted*ForMove resolver below that can be sourced from an Astir Move; the ones that can't
-	// (_grantedEffectForMove, _grantedTraitForMove, _grantsUnpilotedAstirMove,
-	// _grantsCarrierWeaponAccess) keep reading resolvePlaybookMoves directly, since none of the 20
-	// catalog Astir Moves use those flags.
+	// (_grantedEffectForMove, _grantsUnpilotedAstirMove, _grantsCarrierWeaponAccess) keep reading
+	// resolvePlaybookMoves directly, since none of the 20 catalog Astir Moves use those flags.
 	_grantingMoves() {
 		const astir = this._astir();
 		const astirMove = astir?.move ? findAstirMove(astir.move) : null;
@@ -98,7 +82,7 @@ export const MoveGrantsSheetMixin = {
 			...(astirMove && mounted ? [astirMove] : [])
 		];
 	},
-	// The Advantage-axis counterpart to _grantedEffectForMove — Don't Follow Me/Born Leader/Legacy's
+	// The Advantage-axis counterpart to _grantedEffectForMove — Born Leader/Legacy's standing grant
 	// standing grant (see _grantingMoveForAdvantage, extracted the same way
 	// _grantingMoveForFailureReminder/_grantedFailureReminderForMove already are). No longer feeds a
 	// lockedAdvantage lock — _lockedAdvantageFor was removed entirely once every one of its sources
@@ -146,7 +130,7 @@ export const MoveGrantsSheetMixin = {
 		if (stack === -1) return "desperation";
 		return null;
 	},
-	// Forced Roll Modifier wrapper for the granting move trio (Don't Follow Me/Born Leader/Legacy) —
+	// Forced Roll Modifier wrapper for the granting move pair (Born Leader/Legacy) —
 	// see _grantingMoveForAdvantage above. No masking/precedence with the other Advantage-axis
 	// resolvers below: every one of them is pushed independently by _rollModifiersForMove, and they
 	// compose (see docs/domains/moves.md). label capitalizes the catalog's own advantage/disadvantage
@@ -161,6 +145,31 @@ export const MoveGrantsSheetMixin = {
 			key: `granted-advantage-${granting.key}`,
 			label: `${granting.name}: ${advantage.charAt(0).toUpperCase()}${advantage.slice(1)}`,
 			description: granting.description,
+			advantage,
+			effect: null,
+			requiresAdvantage: null,
+			reminderOnly: false,
+			deferred: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		};
+	},
+	// Forced Roll Modifier wrapper for a quick-roll's own advantage (see the quickRollsMove entry
+	// in docs/domains/moves.md and Don't Follow Me/The Impostor's catalog entry) -- sourced from the
+	// quickRoll object itself rather than a standing catalog grant, since a quick-roll button only
+	// ever fires the target move's roll once, from a click on the *granting* move's own button.
+	// `source` is looked up by reference identity against ALL_MOVES's quickRollsMove field -- the
+	// quickRoll argument is always the literal object threaded from _onMoveRoll's `clicked` move,
+	// never a copy, so this lookup is safe.
+	_quickRollAdvantageModifier(quickRoll) {
+		if (!quickRoll.advantage) return null;
+		const source = ALL_MOVES.find((m) => m.quickRollsMove === quickRoll);
+		const advantage = quickRoll.advantage;
+		return {
+			key: `quick-roll-advantage-${source.key}`,
+			label: `${source.name}: ${advantage.charAt(0).toUpperCase()}${advantage.slice(1)}`,
+			description: source.description,
 			advantage,
 			effect: null,
 			requiresAdvantage: null,
@@ -264,7 +273,7 @@ export const MoveGrantsSheetMixin = {
 	},
 	// Living Drive's "you may use [eidolon drive] outside of an Astir" (Summoner — see
 	// playbook-moves.js's grantsUnpilotedAstirMove) — the single-target-move shape
-	// _grantedTraitForMove/_grantedAdvantageForMove already use, checked by _movesData's Astir
+	// _grantedAdvantageForMove already uses, checked by _movesData's Astir
 	// Moves group to skip the mounted-frame half of its own gating for Eidolon Drive specifically.
 	_grantsUnpilotedAstirMove(move) {
 		return resolvePlaybookMoves(this._playbookMoves())
@@ -280,7 +289,7 @@ export const MoveGrantsSheetMixin = {
 	},
 	// Human Resources (The Captain): "when you read the room, you may also choose from the
 	// following questions" (see playbook-moves.js's addsQuestionsToMove) — the single-target-move
-	// shape _grantedTraitForMove/_grantedAdvantageForMove already use, but returning a whole
+	// shape _grantedAdvantageForMove already uses, but returning a whole
 	// question list rather than one key/value, since there's nothing on the target move itself to
 	// resolve against (contrast addsTraitToMove, which locks/offers one of the target move's own
 	// real trait options).
@@ -510,18 +519,20 @@ export const MoveGrantsSheetMixin = {
 	//
 	// On top of the catalog loop, every standing/target-matchup/forced-weapon-tag/pending-deferred
 	// source that used to feed lockedAdvantage/lockedEffect now surfaces here instead, as an ordinary
-	// forced: true entry (see docs/domains/moves.md). The three Advantage-axis sources
-	// (_grantedAdvantageRollModifier, _coldCompanyRollModifier, _targetTierRollModifier) -- plus
-	// every pending deferred grant whose spec sets advantage, below -- are pushed independently, with
-	// no masking or precedence among them: they're designed to compose (a dispelled Cold Company and
-	// a Tier advantage genuinely stack to Advantage x2). The two Effect-axis sources
-	// (_targetMatchupRollModifier, _forcedWeaponRollModifier) compose with each other the same way,
-	// but each individually masks itself to null whenever the trimmed lockedEffect (see
-	// move-roll-mixin.js's _lockedEffectFor) is already set -- masked as a group behind the two true
-	// remaining hard locks, since the Roll button's own activeLockedEffect override at submit time
-	// means an unmasked entry here could otherwise silently cancel an emergency lock. `weapon` is
-	// only used by _forcedWeaponRollModifier -- every other source here is weapon-independent.
-	_rollModifiersForMove(move, lockedEffect, weapon) {
+	// forced: true entry (see docs/domains/moves.md). The four Advantage-axis sources
+	// (_grantedAdvantageRollModifier, _quickRollAdvantageModifier, _coldCompanyRollModifier,
+	// _targetTierRollModifier) -- plus every pending deferred grant whose spec sets advantage, below --
+	// are pushed independently, with no masking or precedence among them: they're designed to compose
+	// (a dispelled Cold Company and a Tier advantage genuinely stack to Advantage x2). The two
+	// Effect-axis sources (_targetMatchupRollModifier, _forcedWeaponRollModifier) compose with each
+	// other the same way, but each individually masks itself to null whenever the trimmed lockedEffect
+	// (see move-roll-mixin.js's _lockedEffectFor) is already set -- masked as a group behind the two
+	// true remaining hard locks, since the Roll button's own activeLockedEffect override at submit
+	// time means an unmasked entry here could otherwise silently cancel an emergency lock. `weapon` is
+	// only used by _forcedWeaponRollModifier; `quickRoll` (default `{}` -- most moves aren't reached
+	// via a quick-roll button) is only used by _quickRollAdvantageModifier -- every other source here
+	// is weapon/quick-roll-independent.
+	_rollModifiersForMove(move, lockedEffect, weapon, quickRoll = {}) {
 		const entries = [];
 		for (const source of this._rollModifierSources()) {
 			for (const spec of source.grantsRollModifier ?? []) {
@@ -565,6 +576,8 @@ export const MoveGrantsSheetMixin = {
 		}
 		const grantedAdvantage = this._grantedAdvantageRollModifier(move);
 		if (grantedAdvantage) entries.push(grantedAdvantage);
+		const quickRollAdvantage = this._quickRollAdvantageModifier(quickRoll);
+		if (quickRollAdvantage) entries.push(quickRollAdvantage);
 		const coldCompany = this._coldCompanyRollModifier();
 		if (coldCompany) entries.push(coldCompany);
 		const tier = this._targetTierRollModifier(move);

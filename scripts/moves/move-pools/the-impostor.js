@@ -65,17 +65,15 @@ export const THE_IMPOSTOR_POOL = {
 		{
 			key: "the-impostor:dont-follow-me",
 			name: "Don't Follow Me",
-			traits: [],
-			// "Lead a Sortie with +DEFY & advantage" is a real, standing lock — see
-			// PlaybookActorSheet#_grantedTraitForMove/_grantedAdvantageForMove, the Trait/
-			// Advantage-axis counterparts to Field Scout's own grantsEffectOnMove (which locks
-			// the Effect axis the same way). Applied whenever Lead a Sortie is rolled with this
-			// move picked, same "always" treatment Field Scout's own unconditional grant gets —
-			// the move's own "during any Downtime Scene, without spending a token" framing isn't
-			// separately enforced, since neither Downtime Scenes nor tokens are tracked anywhere
-			// in this module (see docs/domains/moves.md's "systems that do not exist yet").
-			grantsTraitOnMove: { moveKey: "lead-a-sortie", trait: "defy" },
-			grantsAdvantageOnMove: { moveKey: "lead-a-sortie", advantage: "advantage" },
+			// Own quick-roll button that rolls the real Lead a Sortie move with DEFY & advantage
+			// forced (see move-roll-mixin.js's _onMoveRoll/_rollMove quickRollsMove handling)
+			// rather than a standing lock on Lead a Sortie's own button/dialog — Lead a Sortie's
+			// regular Roll button stays untouched, same treatment Bureaucrat/The Diplomat gives
+			// Exchange Blows. The move's own "without spending a token" framing isn't separately
+			// enforced, since tokens aren't tracked anywhere in this module (see
+			// docs/domains/moves.md's "systems that do not exist yet").
+			traits: ["defy"],
+			quickRollsMove: { moveKey: "lead-a-sortie", trait: "defy", advantage: "advantage" },
 			downtimeAbility:
 				"During any Downtime Scene, you may take your Astir and rush ahead to lead a Sortie " +
 				"with +DEFY and advantage — without spending a token.",

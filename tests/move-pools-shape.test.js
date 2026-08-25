@@ -152,11 +152,13 @@ describe("MOVE_POOLS", () => {
 		expect(arityMethod.grantsAutomaticSuccess).toEqual({ useKey: "sortie", moves: ["bite-the-dust"] });
 	});
 
-	it("gives Don't Follow Me a standing +DEFY & advantage grant on Lead a Sortie", () => {
+	it("gives Don't Follow Me its own quick-roll button that quick-rolls Lead a Sortie with +DEFY & advantage", () => {
 		const dontFollowMe = findPlaybookMove("the-impostor:dont-follow-me");
 
-		expect(dontFollowMe.grantsTraitOnMove).toEqual({ moveKey: "lead-a-sortie", trait: "defy" });
-		expect(dontFollowMe.grantsAdvantageOnMove).toEqual({ moveKey: "lead-a-sortie", advantage: "advantage" });
+		expect(dontFollowMe.traits).toEqual(["defy"]);
+		expect(dontFollowMe.quickRollsMove).toEqual({ moveKey: "lead-a-sortie", trait: "defy", advantage: "advantage" });
+		expect(dontFollowMe.grantsTraitOnMove).toBeUndefined();
+		expect(dontFollowMe.grantsAdvantageOnMove).toBeUndefined();
 	});
 
 	it("gives Bullheaded a deferred, unscoped advantage grant behind its own 'took a risk' uses checkbox", () => {

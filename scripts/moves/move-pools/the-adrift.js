@@ -67,10 +67,11 @@ export const THE_ADRIFT_POOL = {
 			traits: [],
 			// "Roll with +HOME instead of the listed traits" reads like a hard lock, but the trigger
 			// ("when you're pressured into leading a Sortie") is a fictional judgment call, not every
-			// Lead a Sortie roll — so this only makes +HOME available as an option (unlike Don't Follow
-			// Me's real DEFY grant, which locks unconditionally because its own trigger, a Downtime
-			// Scene, has no in-between case to leave up to the table). "Home" isn't offered on Lead a
-			// Sortie at all until this move adds it (see moves-mixin.js's _moveTraits).
+			// Lead a Sortie roll — so this only makes +HOME available as an option on Lead a Sortie's
+			// own dialog (unlike Don't Follow Me's DEFY, which forces its own separate quick-roll of
+			// Lead a Sortie via quickRollsMove rather than touching Lead a Sortie's own dialog at all).
+			// "Home" isn't offered on Lead a Sortie at all until this move adds it (see
+			// moves-mixin.js's _moveTraits).
 			addsTraitToMove: { moveKey: "lead-a-sortie", trait: "home" },
 			description:
 				"<p>When you're pressured into leading a Sortie, roll with +HOME instead of the listed " +
@@ -139,9 +140,9 @@ export const THE_ADRIFT_POOL = {
 			key: "the-adrift:hope-so-bad-that-youll-bathe-and-hunt",
 			name: "Hope So Bad That You'll Bathe And Hunt",
 			// Affects another actor's future roll based on this actor's own action — nothing in this
-			// module can reach across actors that way (every grantsEffectOnMove/grantsTraitOnMove/
-			// grantsAdvantageOnMove/addsTraitToMove flag above only ever locks the *acting* actor's own
-			// next roll). Prose only, per docs/domains/moves.md's "systems that do not exist yet".
+			// module can reach across actors that way (every grantsEffectOnMove/grantsAdvantageOnMove/
+			// addsTraitToMove flag above only ever locks the *acting* actor's own next roll). Prose
+			// only, per docs/domains/moves.md's "systems that do not exist yet".
 			traits: [],
 			description:
 				"<p>When you clear a peril from another character or their Astir, they make their next bite " +

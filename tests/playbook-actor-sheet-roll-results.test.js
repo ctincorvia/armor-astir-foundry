@@ -15,23 +15,6 @@ import {
 } from "./helpers/move-fixtures.js";
 import { soleWeaponBundle } from "./helpers/move-test-helpers.js";
 
-// The forced Roll Modifier entry Don't Follow Me's grantsAdvantageOnMove now surfaces as (see
-// move-grants-mixin.js's _grantedAdvantageRollModifier) — it no longer sets lockedAdvantage at all
-// (lockedAdvantage doesn't exist anymore — see docs/domains/moves.md).
-const DONT_FOLLOW_ME_ROLL_MODIFIER = {
-	key: `granted-advantage-${DONT_FOLLOW_ME.key}`,
-	label: "Don't Follow Me: Advantage",
-	description: DONT_FOLLOW_ME.description,
-	advantage: "advantage",
-	effect: null,
-	requiresAdvantage: null,
-	reminderOnly: false,
-	deferred: false,
-	disabled: false,
-	disabledReason: null,
-	forced: true
-};
-
 // The forced Roll Modifier entry Unreliable now surfaces as (see move-grants-mixin.js's
 // _forcedWeaponRollModifier) — Unreliable no longer sets lockedEffect at all.
 const UNRELIABLE_ROLL_MODIFIER = {
@@ -223,8 +206,8 @@ describe("PlaybookActorSheet#_rollMove - Field Scout's grantsEffectOnMove", () =
 	});
 });
 
-describe("PlaybookActorSheet#_rollMove - Don't Follow Me's grantsTraitOnMove/grantsAdvantageOnMove", () => {
-	it("locks Lead a Sortie's Trait to DEFY and offers a forced Advantage Roll Modifier when picked", async () => {
+describe("PlaybookActorSheet#_rollMove - Lead a Sortie's own button, Don't Follow Me picked", () => {
+	it("does not lock Lead a Sortie's Trait or offer a forced Roll Modifier, even with Don't Follow Me picked", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
@@ -238,58 +221,8 @@ describe("PlaybookActorSheet#_rollMove - Don't Follow Me's grantsTraitOnMove/gra
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
 
 		expect(configureMoveRoll).toHaveBeenCalledWith(LEAD_A_SORTIE, expect.any(Array), expect.objectContaining({
-			lockedTrait: { key: "defy", label: "DEFY", value: 2 },
-			rollModifiers: [DONT_FOLLOW_ME_ROLL_MODIFIER]
-		}));
-	});
-
-	it("leaves Lead a Sortie's Trait unlocked and offers no forced Roll Modifier without Don't Follow Me picked", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { stats: { know: { value: 1 }, defy: { value: 2 } }, attributes: { playbookMoves: [] } },
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(LEAD_A_SORTIE, expect.any(Array), expect.objectContaining({
 			lockedTrait: null,
 			rollModifiers: []
-		}));
-	});
-
-	it("does not lock a different move's Trait or offer its forced Roll Modifier just because Don't Follow Me is picked", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { stats: { know: { value: 0 } }, attributes: { playbookMoves: [DONT_FOLLOW_ME.key] } },
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), expect.objectContaining({
-			lockedTrait: null,
-			rollModifiers: []
-		}));
-	});
-
-	it("does not lock the granted trait when it's disabled for this actor", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { know: { value: 1 }, defy: { value: 0, disabled: true } },
-				attributes: { playbookMoves: [DONT_FOLLOW_ME.key] }
-			},
-			update: vi.fn()
-		};
-		configureMoveRoll.mockResolvedValue(null);
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(LEAD_A_SORTIE, expect.any(Array), expect.objectContaining({
-			lockedTrait: null
 		}));
 	});
 });

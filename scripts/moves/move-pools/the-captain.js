@@ -168,8 +168,8 @@ export const THE_CAPTAIN_POOL = {
 			key: "the-captain:born-leader",
 			name: "Born Leader",
 			traits: [],
-			// "You lead a Sortie with advantage" — grantsAdvantageOnMove, same shape Don't Follow
-			// Me uses. "give the crew confidence when they plan & prepare" and the Cause/Conflict
+			// "You lead a Sortie with advantage" — a standing grantsAdvantageOnMove lock on Lead a
+			// Sortie's own dialog. "give the crew confidence when they plan & prepare" and the Cause/Conflict
 			// Turn paragraph both stay prose: neither a "Plan & Prepare" move nor a Conflict Turn
 			// system exists anywhere in this module (see docs/domains/moves.md's "systems that do not exist
 			// yet", and compare That's Dialectics' own comment on its similarly-unbuilt "plan and
@@ -210,9 +210,9 @@ export const THE_CAPTAIN_POOL = {
 			key: "the-captain:coordinator",
 			name: "Coordinator",
 			// Grants another character (the helped ally) Confidence — a cross-actor effect nothing
-			// in this module can reach (every grantsEffectOnMove/grantsTraitOnMove/
-			// grantsAdvantageOnMove/addsTraitToMove flag above only ever locks the *acting*
-			// actor's own next roll — see e.g. Hope So Bad That You'll Bathe And Hunt/Team Player).
+			// in this module can reach (every grantsEffectOnMove/grantsAdvantageOnMove/addsTraitToMove
+			// flag above only ever locks the *acting* actor's own next roll — see e.g. Hope So Bad
+			// That You'll Bathe And Hunt/Team Player).
 			// Still can't actually apply the Confidence itself, per docs/domains/moves.md's "systems that do
 			// not exist yet" — but the reminder to do so can at least surface on Help or Hinder's
 			// own chat card, the success-tier mirror of Walk-on Part In The War's

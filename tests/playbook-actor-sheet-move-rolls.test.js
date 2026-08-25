@@ -19,7 +19,8 @@ import { UNARMED } from "../scripts/equipment/equipment.js";
 import { findCarrierActors, chooseCarrier } from "../scripts/world-actors/carrier-actor-sheet.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
-	EXCHANGE_BLOWS, STRIKE_DECISIVELY, BITE_THE_DUST, WEAVE_MAGIC, LEAD_A_SORTIE, DENY, I_KNOW_YOU, BUREAUCRAT, MANA_DEVOURER
+	EXCHANGE_BLOWS, STRIKE_DECISIVELY, BITE_THE_DUST, WEAVE_MAGIC, LEAD_A_SORTIE, DENY, I_KNOW_YOU, BUREAUCRAT,
+	DONT_FOLLOW_ME, MANA_DEVOURER
 } from "./helpers/move-fixtures.js";
 
 // _availableHeatUp's own return value for an actor with no Astir at all (see moves-mixin.js) —
@@ -517,6 +518,65 @@ describe("PlaybookActorSheet#_onMoveRoll - Bureaucrat's quick-roll redirect to E
 				heatUp: NO_HEAT_UP
 			}
 		);
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveRoll - Don't Follow Me's quick-roll redirect to Lead a Sortie", () => {
+	it("rolls the real Lead a Sortie move with DEFY locked and Advantage forced from Don't Follow Me's quickRollsMove", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: { know: { value: 1 }, defy: { value: 2 } } } };
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: DONT_FOLLOW_ME.key } } });
+
+		const defy = { key: "defy", label: "DEFY", value: 2 };
+		// The dialog is configured against the real target move (Lead a Sortie), not Don't Follow
+		// Me itself, with DEFY locked in from Don't Follow Me's own quickRollsMove.trait and its
+		// own advantage surfaced as a forced Roll Modifier (see _quickRollAdvantageModifier).
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			LEAD_A_SORTIE,
+			[
+				{ key: "know", label: "KNOW", value: 1 },
+				defy,
+				{ key: "crew", label: "CREW", value: 0 }
+			],
+			{
+				lockedEffect: null,
+				lockedTrait: defy,
+				equipmentSpends: [],
+				narrativeTags: [],
+				rollModifiers: [
+					{
+						key: `quick-roll-advantage-${DONT_FOLLOW_ME.key}`,
+						label: "Don't Follow Me: Advantage",
+						description: DONT_FOLLOW_ME.description,
+						advantage: "advantage",
+						effect: null,
+						requiresAdvantage: null,
+						reminderOnly: false,
+						deferred: false,
+						disabled: false,
+						disabledReason: null,
+						forced: true
+					}
+				],
+				riders: []
+			}
+		);
+	});
+
+	it("does not lock DEFY when it's disabled for this actor, even via the quick-roll path", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { know: { value: 1 }, defy: { value: 0, disabled: true } } }
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: DONT_FOLLOW_ME.key } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(LEAD_A_SORTIE, expect.any(Array), expect.objectContaining({
+			lockedTrait: null
+		}));
 	});
 });
 

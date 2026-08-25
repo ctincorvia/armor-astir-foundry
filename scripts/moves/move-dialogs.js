@@ -55,8 +55,9 @@ const requiresAdvantageReason = (entry) =>
 // unconditionally, seeded into the render callback's own currentAdvantage below via
 // resolveRollChain rather than a locked starting value (see docs/domains/moves.md).
 //
-// lockedTrait (Don't Follow Me's own +DEFY half — see PlaybookActorSheet#_grantedTraitForMove) is
-// the Trait-select counterpart, but carries the full {key, label, value} option object rather
+// lockedTrait (a quick-roll button's own forced trait, e.g. Don't Follow Me's +DEFY — see
+// PlaybookActorSheet#_lockedTraitFor) is the Trait-select counterpart, but carries the full
+// {key, label, value} option object rather
 // than a bare key: unlike Effect/Advantage, whose possible values are a small fixed catalog
 // (EFFECT_STATES/ADVANTAGE_STATES) this module can resolve a label from, a Trait's value is
 // actor-specific, so the caller (which already resolved `traits` for display) hands over the

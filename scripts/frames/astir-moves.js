@@ -19,9 +19,9 @@ export const ASTIR_MOVE_CATALOG = [
 		name: "Legacy",
 		traits: [],
 		// "Lead a Sortie with advantage while piloting this Astir" — same grantsAdvantageOnMove
-		// shape as the-impostor:dont-follow-me/the-captain:born-leader (playbook-moves.js), resolved
-		// here through _grantingMoves rather than resolvePlaybookMoves alone, since this is an Astir
-		// Move, not a playbook move.
+		// shape as the-captain:born-leader (playbook-moves.js), resolved here through
+		// _grantingMoves rather than resolvePlaybookMoves alone, since this is an Astir Move, not a
+		// playbook move.
 		grantsAdvantageOnMove: { moveKey: "lead-a-sortie", advantage: "advantage" },
 		description:
 			"<p>An Astir with a storied history commands respect—and inspires confidence—in whoever " +
