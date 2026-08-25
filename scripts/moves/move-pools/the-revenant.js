@@ -116,12 +116,7 @@ export const THE_REVENANT_POOL = {
 			key: "the-revenant:ravenous-spectre",
 			name: "Ravenous Spectre",
 			traits: [],
-			// A manual `uses` checkbox stands in for "caused a living being to be in peril" as the
-			// trigger -- nothing in this module tracks that condition automatically -- and checking
-			// the Roll Modifier is what sets that flag true and applies advantage to that same Cool
-			// Off roll.
-			uses: [{ key: "triggered", label: "Caused a living being to be in peril" }],
-			grantsRollModifier: [{ moveKeys: ["cool-off"], advantage: "advantage", costsUse: "triggered",
+			grantsRollModifier: [{ moveKeys: ["cool-off"], advantage: "advantage",
 				label: "Ravenous Spectre",
 				description: "Take advantage when you cool off after causing a living being to be in peril." }],
 			description:

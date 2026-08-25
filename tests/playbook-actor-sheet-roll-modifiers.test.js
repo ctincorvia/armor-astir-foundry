@@ -22,7 +22,6 @@ import {
 	FIELD_TESTING,
 	IDENTIFY,
 	MANAWHEELS,
-	RAVENOUS_SPECTRE,
 	READ_THE_ROOM,
 	RESHAPE,
 	SHARPER_KNIVES,
@@ -157,10 +156,10 @@ describe("PlaybookActorSheet#_moveHoldUpdatePath", () => {
 describe("PlaybookActorSheet#_rollModifierAvailability", () => {
 	const [manawheelsSpec] = MANAWHEELS.grantsRollModifier;
 	const [watchThisSpec] = WATCH_THIS.grantsRollModifier;
-	const [snakesSpec] = SNAKES_IN_THE_GRASS.grantsRollModifier;
+	const [embraceChaosSpec] = EMBRACE_CHAOS.grantsRollModifier;
 	const [identifySpec] = IDENTIFY.grantsRollModifier;
 	const [blueSpec] = ALCHEMICAL_SUITE.grantsRollModifier;
-	const [ravenousSpectreSpec] = RAVENOUS_SPECTRE.grantsRollModifier;
+	const [artifactSpec] = ARTIFACT.grantsRollModifier;
 	const [sharperKnivesSpec] = SHARPER_KNIVES.grantsRollModifier;
 
 	it("requiresOverheating: available while overheating, unavailable (with a reason) while not", () => {
@@ -200,15 +199,15 @@ describe("PlaybookActorSheet#_rollModifierAvailability", () => {
 	it("costsHold (own pool, no explicit moveKey): reads this source's own hold", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
-			system: { attributes: { moveHold: { [SNAKES_IN_THE_GRASS.key]: { value: 1 } } } }
+			system: { attributes: { moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } } } }
 		};
-		expect(sheet._rollModifierAvailability(snakesSpec, SNAKES_IN_THE_GRASS)).toEqual({
+		expect(sheet._rollModifierAvailability(embraceChaosSpec, EMBRACE_CHAOS)).toEqual({
 			available: true,
 			reason: null
 		});
 
-		sheet.actor.system.attributes.moveHold[SNAKES_IN_THE_GRASS.key].value = 0;
-		expect(sheet._rollModifierAvailability(snakesSpec, SNAKES_IN_THE_GRASS)).toEqual({
+		sheet.actor.system.attributes.moveHold[EMBRACE_CHAOS.key].value = 0;
+		expect(sheet._rollModifierAvailability(embraceChaosSpec, EMBRACE_CHAOS)).toEqual({
 			available: false,
 			reason: "Needs 1 hold"
 		});
@@ -241,13 +240,13 @@ describe("PlaybookActorSheet#_rollModifierAvailability", () => {
 	it("costsUse: available while the named use is unchecked, unavailable once checked", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { moveUses: {} } } };
-		expect(sheet._rollModifierAvailability(ravenousSpectreSpec, RAVENOUS_SPECTRE)).toEqual({
+		expect(sheet._rollModifierAvailability(artifactSpec, ARTIFACT)).toEqual({
 			available: true,
 			reason: null
 		});
 
-		sheet.actor.system.attributes.moveUses[RAVENOUS_SPECTRE.key] = { triggered: true };
-		expect(sheet._rollModifierAvailability(ravenousSpectreSpec, RAVENOUS_SPECTRE)).toEqual({
+		sheet.actor.system.attributes.moveUses[ARTIFACT.key] = { expended: true };
+		expect(sheet._rollModifierAvailability(artifactSpec, ARTIFACT)).toEqual({
 			available: false,
 			reason: "Already used"
 		});
@@ -528,15 +527,15 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
-				attributes: { playbookMoves: [SNAKES_IN_THE_GRASS.key], moveHold: { [SNAKES_IN_THE_GRASS.key]: { value: 1 } } }
+				attributes: { playbookMoves: [EMBRACE_CHAOS.key], moveHold: { [EMBRACE_CHAOS.key]: { value: 1 } } }
 			},
 			update: vi.fn()
 		};
 
-		await sheet._spendRollModifiers([SNAKES_IN_THE_GRASS.key]);
+		await sheet._spendRollModifiers([EMBRACE_CHAOS.key]);
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			[`system.attributes.moveHold.${SNAKES_IN_THE_GRASS.key}.value`]: 0
+			[`system.attributes.moveHold.${EMBRACE_CHAOS.key}.value`]: 0
 		});
 	});
 
@@ -655,11 +654,10 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 	});
 });
 
-// Regression: Bonded In Blood follows the exact same unscoped-uses shape as Ravenous Spectre
-// above, just with its own use key -- one pass-through case so this catalog entry's own call site
-// isn't dead code.
+// Bonded In Blood is a plain unscoped grantsRollModifier entry with no gate of its own --
+// one pass-through case so this catalog entry's own call site isn't dead code.
 describe("PlaybookActorSheet#_rollModifiersForMove - Bonded In Blood", () => {
-	it("is unscoped and gated on its own uses checkbox", () => {
+	it("is unscoped and never gated", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { playbookMoves: [BONDED_IN_BLOOD.key] } } };
 
@@ -667,17 +665,13 @@ describe("PlaybookActorSheet#_rollModifiersForMove - Bonded In Blood", () => {
 
 		expect(entry.deferred).toBeUndefined();
 		expect(entry.disabled).toBe(false);
-
-		sheet.actor.system.attributes.moveUses = { [BONDED_IN_BLOOD.key]: { "took-peril": true } };
-		expect(sheet._rollModifiersForMove(READ_THE_ROOM, null)[0].disabled).toBe(true);
 	});
 });
 
-// Regression: Bullheaded (the-impostor.js) follows the same unscoped-uses shape too, just with its
-// own "took a risk" use key -- same one-pass-through-case treatment as Bonded In Blood above, so
-// this catalog entry's own call site isn't dead code either.
+// Bullheaded is a plain unscoped grantsRollModifier entry with no gate of its own -- one
+// pass-through case so this catalog entry's own call site isn't dead code.
 describe("PlaybookActorSheet#_rollModifiersForMove - Bullheaded", () => {
-	it("is unscoped and gated on its own uses checkbox", () => {
+	it("is unscoped and never gated", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: { playbookMoves: [BULLHEADED.key] } } };
 
@@ -685,9 +679,6 @@ describe("PlaybookActorSheet#_rollModifiersForMove - Bullheaded", () => {
 
 		expect(entry.deferred).toBeUndefined();
 		expect(entry.disabled).toBe(false);
-
-		sheet.actor.system.attributes.moveUses = { [BULLHEADED.key]: { "took-risk": true } };
-		expect(sheet._rollModifiersForMove(READ_THE_ROOM, null)[0].disabled).toBe(true);
 	});
 });
 

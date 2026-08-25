@@ -79,15 +79,13 @@ export const THE_SUMMONER_POOL = {
 			name: "Bonded In Blood",
 			// Taking a peril is already the existing Danger "Add" controls
 			// (system.attributes.dangers), same reasoning as Cantrips' Fire-Eater/Selfless. "Act with
-			// advantage on your roll" is a real, unscoped grantsRollModifier entry -- a manual `uses`
-			// checkbox stands in for "voluntarily took a peril binding this ally" as the trigger
-			// (nothing in this module tracks that condition automatically), and checking the Roll
-			// Modifier is what sets that flag true and applies advantage to the same roll. Allies
-			// "won't (or can't) abandon your service" is pure fiction with no tracked state to hook --
-			// Release already requires an explicit player click regardless of how an ally was bound.
+			// advantage on your roll" is a real, unscoped grantsRollModifier entry -- checking it in
+			// the roll dialog is the fictional declaration itself, not a record of something already
+			// marked elsewhere. Allies "won't (or can't) abandon your service" is pure fiction with no
+			// tracked state to hook -- Release already requires an explicit player click regardless of
+			// how an ally was bound.
 			traits: [],
-			uses: [{ key: "took-peril", label: "Took a peril binding this ally" }],
-			grantsRollModifier: [{ advantage: "advantage", costsUse: "took-peril",
+			grantsRollModifier: [{ advantage: "advantage",
 				label: "Bonded In Blood", description: "Take a peril binding this ally to take advantage." }],
 			description:
 				"<p>You may voluntarily take a peril as part of binding an ally: this counts as an " +

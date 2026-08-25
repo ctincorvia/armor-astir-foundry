@@ -6,8 +6,7 @@ import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js"
 
 const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
 const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
-// Haste (see cantrips.js) has no uses of its own — Bullheaded no longer fits this role now that it
-// carries a real `uses` checkbox behind its own grantsRollModifier grant (see the-impostor.js).
+// Haste (see cantrips.js) has no uses of its own.
 const HASTE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:haste");
 const CLASSICAL_SPELLCASTING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:classical-spellcasting");
 

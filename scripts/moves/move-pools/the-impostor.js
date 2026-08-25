@@ -120,15 +120,11 @@ export const THE_IMPOSTOR_POOL = {
 			// flag stays false and only a Description button renders (same treatment as
 			// Subsystems in SPECIAL_MOVES). Taking the risk is already the existing Danger "Add"
 			// controls (system.attributes.dangers), same reasoning as Cantrips' Fire-Eater/Selfless.
-			// "Advantage on your roll" is a real, unscoped grantsRollModifier entry -- the same
-			// shape Bonded In Blood/Ravenous Spectre use for their own untracked-precondition
-			// triggers, with a manual `uses` checkbox standing in for "took a risk for this" since
-			// nothing in this module tracks that condition automatically. Checking the Roll
-			// Modifier is what sets the `took-risk` flag true, so it's the fictional declaration
-			// itself, not a record of something already marked elsewhere.
+			// "Advantage on your roll" is a real, unscoped grantsRollModifier entry -- checking it
+			// in the roll dialog is the fictional declaration itself, not a record of something
+			// already marked elsewhere.
 			traits: [],
-			uses: [{ key: "took-risk", label: "Took a risk for this" }],
-			grantsRollModifier: [{ advantage: "advantage", costsUse: "took-risk",
+			grantsRollModifier: [{ advantage: "advantage",
 				label: "Bullheaded", description: "Take a risk to take advantage." }],
 			description:
 				"<p>You may take a risk to take advantage on your roll. People know that you are brash " +
