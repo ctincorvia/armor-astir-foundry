@@ -695,6 +695,26 @@ describe("configureMoveRoll - live chain recompute (weaponBundles)", () => {
 		lockedEffect: null, equipmentSpends: [], guided: null, rollModifiers: [halberdModifier]
 	};
 
+	const forcedDesperationEntry = {
+		key: "equipment:unreliable", label: "Unreliable", description: "d",
+		advantage: null, effect: "desperation", requiresAdvantage: null,
+		reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: true
+	};
+	const forcedConfidenceEntry = {
+		key: "approach:favorable-matchup", label: "Favorable Matchup", description: "d",
+		advantage: null, effect: "confidence", requiresAdvantage: null,
+		reminderOnly: false, deferred: false, disabled: false, disabledReason: null, forced: true
+	};
+	const unreliableBundle = {
+		weaponKey: "eq2", weaponLabel: "Unreliable Weapon", weaponCard: null,
+		traits: [CLASH_TRAIT], traitOptions: [{ key: "clash", label: "CLASH (1)" }],
+		lockedEffect: null, equipmentSpends: [], guided: null, rollModifiers: [forcedDesperationEntry]
+	};
+	const unreliableWithMatchupBundle = {
+		...unreliableBundle,
+		rollModifiers: [forcedDesperationEntry, forcedConfidenceEntry]
+	};
+
 	it("resolves the active panel's own rollModifiers, scoped to the active weapon panel's selectors", async () => {
 		const { dialogOptions } = await openDialog({ weaponBundles: [unarmedBundle, halberdBundle] });
 		const dom = fakeChainDom({ rollModifierKeys: [halberdModifier.key], weaponSelectValue: "eq1", scoped: true });
@@ -721,6 +741,43 @@ describe("configureMoveRoll - live chain recompute (weaponBundles)", () => {
 		// re-ran as part of the weapon-select's own change handler and found it applicable (no
 		// requiresAdvantage gate), so it stays enabled rather than disabled.
 		expect(dom.state.disabled[halberdModifier.key]).toBe(false);
+
+		dialogOptions.close();
+	});
+
+	// The reported regression's setup half: a weapon-specific forced Roll Modifier (e.g. the
+	// Unreliable equipment tag) never appears in the Unarmed bundle's own rollModifiers (weapon is
+	// null there), so the initial render seed -- computed against Unarmed, the template's own
+	// default-selected panel -- can't fold it in. Switching the weapon-select to the actual weapon
+	// must re-seed against that panel's own forced entries, not just re-paint availability.
+	it("re-seeds Effect from the newly active weapon panel's own forced Roll Modifier when the weapon-select changes", async () => {
+		const { dialogOptions } = await openDialog({ weaponBundles: [unarmedBundle, unreliableBundle] });
+		const dom = fakeChainDom({ rollModifierKeys: [], weaponSelectValue: UNARMED, scoped: true });
+
+		dialogOptions.render(dom.html);
+		expect(dom.state.effectHiddenValue).toBe("none");
+
+		switchWeapon(dom, "eq2");
+
+		expect(dom.state.effectHiddenValue).toBe("desperation");
+
+		dialogOptions.close();
+	});
+
+	// The direct regression test: an Unreliable weapon (forced Desperation) plus a favorable
+	// Approach target matchup (forced Confidence) on the same weapon's bundle should cancel to a
+	// neutral roll once that weapon is selected -- not silently seed from Unarmed's own fold (which
+	// never sees the weapon-specific entry) and leave Desperation out entirely.
+	it("cancels a weapon's forced Desperation against a forced Confidence in the same bundle after switching weapons (regression)", async () => {
+		const { dialogOptions } = await openDialog({ weaponBundles: [unarmedBundle, unreliableWithMatchupBundle] });
+		const dom = fakeChainDom({ rollModifierKeys: [], weaponSelectValue: UNARMED, scoped: true });
+
+		dialogOptions.render(dom.html);
+		expect(dom.state.effectHiddenValue).toBe("none");
+
+		switchWeapon(dom, "eq2");
+
+		expect(dom.state.effectHiddenValue).toBe("none");
 
 		dialogOptions.close();
 	});

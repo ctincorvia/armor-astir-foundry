@@ -207,14 +207,19 @@ export async function configureMoveRoll(
 				// move-roll-dialog.hbs's own {{#if weaponBundles}} markup) — a plain synchronous
 				// class toggle, no re-render, mirroring wirePickerTabs' own tab-switch wiring
 				// (equipment-helpers.js) for the same "no TabsV2 controller inside a bare Foundry
-				// Dialog" reason. Also re-runs repaintAvailability() below — the active weapon panel
-				// is what activeRollModifiers() reads, so switching weapons can change which Roll
-				// Modifiers are offered — but never perturbs currentAdvantage/currentEffect, since
-				// switching panels isn't itself a player choice about the roll's Dice/Effect.
+				// Dialog" reason. Also re-runs seedForcedRollModifiers() and repaintAvailability()
+				// below — the active weapon panel is what activeRollModifiers() reads, so a
+				// different panel can carry entirely different forced entries (e.g. a
+				// weapon-specific forced tag that isn't in the Unarmed bundle at all).
+				// seedForcedRollModifiers() recomputes currentAdvantage/currentEffect from scratch
+				// for the newly active panel, equivalent to what a fresh dialog open on that weapon
+				// would produce — discarding whatever the previous panel's forced fold or the
+				// player's own manual notch clicks had set.
 				if (weaponBundles) {
 					html.find("[name='weapon-select']").on("change", (event) => {
 						html.find("[data-weapon-panel]").removeClass("active");
 						html.find(`[data-weapon-panel="${event.target.value}"]`).addClass("active");
+						seedForcedRollModifiers();
 						repaintAvailability();
 					});
 				}
@@ -256,12 +261,6 @@ export async function configureMoveRoll(
 				// docs/domains/moves.md for the full model.
 				let currentAdvantage = "none";
 				let currentEffect = lockedEffect ?? "none";
-				const forcedSeed = resolveRollChain(
-					{ advantage: currentAdvantage, effect: currentEffect },
-					activeRollModifiers().filter((entry) => entry.forced)
-				);
-				currentAdvantage = forcedSeed.advantage;
-				currentEffect = forcedSeed.effect;
 
 				// Writes the hidden [name='advantage']/[name='effect'] input, checks the matching
 				// notch, and sets the readout — showing a "from → to" arrow only when fromValue
@@ -284,6 +283,24 @@ export async function configureMoveRoll(
 					html.find("[data-notched-slider='effect'] [data-notched-slider-readout]").text(
 						fromValue !== value ? `${effectState(fromValue).label} → ${label}` : label
 					);
+				};
+
+				// Recomputes the forced Roll Modifier seed from scratch for the currently active
+				// panel and repaints the sliders to match — called once for the dialog's initial
+				// open, and again whenever the active weapon panel changes (see the weapon-select
+				// change handler above), since a different panel's forced entries can be entirely
+				// different from the previous one's.
+				const seedForcedRollModifiers = () => {
+					currentAdvantage = "none";
+					currentEffect = lockedEffect ?? "none";
+					const forcedSeed = resolveRollChain(
+						{ advantage: currentAdvantage, effect: currentEffect },
+						activeRollModifiers().filter((entry) => entry.forced)
+					);
+					currentAdvantage = forcedSeed.advantage;
+					currentEffect = forcedSeed.effect;
+					paintAdvantage(currentAdvantage);
+					paintEffect(currentEffect);
 				};
 
 				// Re-evaluates disabled/reason state for every *unchecked*, non-reminder,
@@ -345,8 +362,7 @@ export async function configureMoveRoll(
 					repaintAvailability();
 				});
 
-				paintAdvantage(currentAdvantage);
-				paintEffect(currentEffect);
+				seedForcedRollModifiers();
 				repaintAvailability();
 			},
 			buttons: {
