@@ -23,7 +23,7 @@
 			"description": "<p>A dedicated bay and datalink rig lets one pilot store, launch and coordinate a full flight of remote units without splitting their attention.</p><p>Holds and comes with one set of Drones of your choice.</p>"
 		},
 		"astir-part:alchemical-suite": {
-			"name": "Combat Stimilation Suite",
+			"name": "Combat Stimulant Suite",
 			"description": "<p>A rack of preformulated aerosol canisters, vented directly into the cockpit's HVAC system on demand.</p><ul><li>Red: Remove a peril related to physical injury or wounds. Metallic aftertaste.</li><li>Blue: Take advantage when you next weave magic. Sharp and clean.</li><li>Yellow: Take a risk. Act with confidence when you next exchange blows or strike decisively. Bitter, with a kick.</li></ul><p>Take 1 of each Stim when someone leads a Sortie.</p>"
 		},
 		"astir-part:chameleon-cloak": {
