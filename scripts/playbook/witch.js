@@ -9,39 +9,48 @@ import { renderTemplate } from "../compat.js";
 //
 // Boon keys are namespaced witch-boon:..., not the-witch:..., since boons aren't moves and never
 // touch ALL_MOVES/resolvePlaybookMoves — they're their own tracked resource
-// (system.attributes.witch.boons), not something rendered through the Moves tab. Descriptions are
-// plain text, not HTML, matching EQUIPMENT_TAGS' own catalog-item convention (equipment.js) rather
-// than a move's own {{{description}}} rich text.
+// (system.attributes.witch.boons), rendered read-only in their own Moves-tab group via
+// moves-mixin.js's _movesData rather than joining either of those. Descriptions are plain text, not
+// HTML, matching EQUIPMENT_TAGS' own catalog-item convention (equipment.js) rather than a move's own
+// {{{description}}} rich text.
 export const WITCH_BOONS = [
 	{
 		key: "witch-boon:empowering",
 		name: "Empowering Boon",
+		traits: [],
 		description: "You may give your patron 1 Influence to make the subsystems move for free. When you " +
 			"do so, describe what mark your patron's power leaves on the situation."
 	},
 	{
 		key: "witch-boon:tenacious",
 		name: "Tenacious Boon",
+		traits: [],
 		description: "When you cool off you may choose to succeed as if you had rolled a 10+. If you do so, " +
 			"give your patron 1 Influence."
 	},
 	{
 		key: "witch-boon:masking",
 		name: "Masking Boon",
-		// "Roll +CHANNEL" stays descriptive — the player rolls this from the normal Traits panel like
-		// any other +CHANNEL roll; there's no per-boon Roll button.
+		traits: ["channel"],
 		description: "You can mask yourself or an Astir you are attuned to against detection. When you do " +
 			"so, roll +CHANNEL. On a 10+, you are disguised or cloaked in a fashion appropriate to your " +
-			"patron. On a 7-9, the Director will tell you a flaw with your disguise."
+			"patron. On a 7-9, the Director will tell you a flaw with your disguise.",
+		results: {
+			success: "You are disguised or cloaked in a fashion appropriate to your patron.",
+			mixed: "The Director will tell you a flaw with your disguise.",
+			failure: null
+		}
 	},
 	{
 		key: "witch-boon:shielding",
 		name: "Shielding Boon",
+		traits: [],
 		description: "You may give your patron 1 Influence to avoid taking a risk."
 	},
 	{
 		key: "witch-boon:shifting",
 		name: "Shifting Boon",
+		traits: [],
 		// No new mechanic — the existing "manual edit + revert, no enforcement" precedent (Transmute
 		// Self, the Astir/Ardent Approach swap) already covers a Sortie-scoped Trait swap just as well.
 		description: "You may swap two of your Traits for this Sortie."
@@ -49,6 +58,13 @@ export const WITCH_BOONS = [
 	{
 		key: "witch-boon:tricksters",
 		name: "Trickster's Boon",
+		traits: [],
+		// Declarative flags, evaluated generically in PlaybookActorSheet (see CLAUDE.md's "behaviour
+		// that depends on actor state goes in the sheet" convention) — this boon has no roll of its
+		// own, so it surfaces entirely through every other move's own roll (_ridersForMove) and
+		// resolution (_onMoveResolved).
+		showsRollRiderOnAllRolls: true,
+		activatesOnDoubles: true,
 		description: "Whenever you roll doubles, something helpful but unexpected happens."
 	}
 ];

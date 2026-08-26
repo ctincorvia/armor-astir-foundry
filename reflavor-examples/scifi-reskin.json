@@ -84,8 +84,8 @@
 			"description": "Your typical, garden-variety sword made out of a projected energy blade. It cuts well and won't explode - what else do you want? Also seen as a Thermal Cutter or a Pneumatic Hammer."
 		},
 		"blazewands": {
-			"name": "Grenade Launcher Racks",
-			"description": "Arranged in paired racks and loaded with incendiary charges, short-range launchers are a common and potent weapon when it comes to arming Astirs. Also seen as Acid Pods or a Plasma Mortar."
+			"name": "Thermite Arrays",
+			"description": "Arranged in paired racks and loaded with thermite charges, short-range launchers are a common and potent weapon when it comes to arming Astirs. Also seen as Acid Pods or a Plasma Mortar."
 		},
 		"novawhip": {
 			"name": "Nanite Whip",
@@ -116,20 +116,20 @@
 			"description": "Sharp-clawed constructs of servo-driven metal and composite plating.  Winged and black, their silhouettes earned them the 'Crow Drone' moniker. Also seen as Hunter-Killer Units, Phantom Drones, or Saw Drones. Drone — requires a Drone Control Bay Astir Part; rolls +CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear automatically during Downtime."
 		},
 		"ardent-feature:bolt-sigils": {
-			"name": "EMP Edge",
+			"name": "Electrified Edge",
 			"description": "A capacitor-lined blade, primed to discharge a disabling electromagnetic pulse on impact."
 		},
 		"ardent-feature:brimstone-pods": {
-			"name": "Incendiary Pods",
-			"description": "Pods of volatile incendiary charges, lobbed to cover a wide area — better rationed than relied on."
+			"name": "Grenade Tubes",
+			"description": "Usually fixed in arrays on ardent hulls, these tubes can be loaded with a variety of explosive or chemical payloads, and fired in salvos."
 		},
 		"hewer": {
 			"name": "Plasma Saw",
 			"description": "A circular saw, spun at blistering speeds by a superheated plasma injector fed by compressed coolant from the deep heart of Repose."
 		},
 		"colossus-repeater": {
-			"name": "Autocannon Repeater",
-			"description": "Using a sophisticated autoloader, Autocannon Repeaters fire armour-piercing rounds for maximum penetration. In a pinch, a talented pilot can work the reloading mechanism quickly enough for multiple follow-up shots."
+			"name": "Autocannon",
+			"description": "Using a sophisticated autoloader, Autocannons fire armour-piercing rounds for maximum penetration. In a pinch, a talented pilot can push the reloading mechanism and achieve fully automatic fire for prolonged periods of time."
 		}
 	},
 	"equipment": {

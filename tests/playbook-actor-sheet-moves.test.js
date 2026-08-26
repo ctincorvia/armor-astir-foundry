@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+import { MASKING_BOON, TRICKSTERS_BOON } from "./helpers/move-fixtures.js";
 
 describe("PlaybookActorSheet#getData - moves", () => {
 	it("exposes basic moves grouped, with each move's currently enabled traits and values", () => {
@@ -297,5 +298,50 @@ describe("PlaybookActorSheet#getData - moves", () => {
 		const data = sheet.getData();
 
 		expect(data.moveGroups[0].moves[0].traits).toEqual([{ key: "talk", label: "TALK", value: 0 }]);
+	});
+});
+
+describe("PlaybookActorSheet#getData - moves - Patron Boons", () => {
+	it("omits the Patron Boons group with no boons held", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups.some((group) => group.label === "Patron Boons")).toBe(false);
+	});
+
+	it("omits the Patron Boons group when every held key is stale", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: { witch: { boons: ["witch-boon:deleted"] } } } };
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups.some((group) => group.label === "Patron Boons")).toBe(false);
+	});
+
+	it("renders a read-only group for every held boon, with Masking Boon rollable at +CHANNEL", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 2 } },
+				attributes: { witch: { boons: [MASKING_BOON.key, TRICKSTERS_BOON.key] } }
+			}
+		};
+
+		const data = sheet.getData();
+		const group = data.moveGroups.find((g) => g.label === "Patron Boons");
+
+		expect(group).toBeTruthy();
+		expect(group.addable).toBeUndefined();
+		expect(group.removable).toBeUndefined();
+		expect(group.moves.map((move) => move.key)).toEqual([MASKING_BOON.key, TRICKSTERS_BOON.key]);
+
+		const masking = group.moves.find((move) => move.key === MASKING_BOON.key);
+		expect(masking.rollable).toBe(true);
+		expect(masking.traits).toEqual([{ key: "channel", label: "CHANNEL", value: 2 }]);
+
+		const tricksters = group.moves.find((move) => move.key === TRICKSTERS_BOON.key);
+		expect(tricksters.rollable).toBe(false);
 	});
 });

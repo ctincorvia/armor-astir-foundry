@@ -11,12 +11,22 @@ import { WITCH_BOONS } from "../scripts/playbook/witch.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
 	ALCHEMICAL_SUITE, FLOURISH_COMPONENT, LEAD_A_SORTIE, PATRON, EXCHANGE_BLOWS, BITE_THE_DUST, INDOMITABLE,
-	READ_THE_ROOM, TRUTH_MAKING, WEAVE_MAGIC, A_GREENER_WORLD, SHARP_TONGUE, COOL_OFF, PATCH_JOB
+	READ_THE_ROOM, TRUTH_MAKING, WEAVE_MAGIC, A_GREENER_WORLD, SHARP_TONGUE, COOL_OFF, PATCH_JOB, TRICKSTERS_BOON
 } from "./helpers/move-fixtures.js";
+
+const DOUBLES = [
+	{ original: 3, result: 3, changed: false, kept: true },
+	{ original: 3, result: 3, changed: false, kept: true }
+];
+const NOT_DOUBLES = [
+	{ original: 3, result: 3, changed: false, kept: true },
+	{ original: 5, result: 5, changed: false, kept: true }
+];
 
 beforeEach(() => {
 	configureMoveRoll.mockClear();
 	rollMove.mockClear();
+	ChatMessage.create.mockClear();
 	// rollMove resolves { message, dice } (see moves.js) — a bare default so every existing test
 	// that doesn't care about the roll's dice (most of them) doesn't have to configure this itself.
 	rollMove.mockResolvedValue({ message: undefined, dice: null });
@@ -107,6 +117,45 @@ describe("PlaybookActorSheet#_onMoveResolved - Patron's random Boon grant", () =
 		expect(sheet.actor.update.mock.calls[1][0]).toMatchObject({
 			"system.attributes.astir.power": 2
 		});
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveResolved - Trickster's Boon doubles activation", () => {
+	it("posts a chat note on doubles, even with nothing mounted", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { witch: { boons: [TRICKSTERS_BOON.key] } } },
+			update: vi.fn()
+		};
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await sheet._onMoveResolved(EXCHANGE_BLOWS, DOUBLES, "success");
+
+		expect(ChatMessage.create).toHaveBeenCalledWith({
+			speaker: { actor: "speaker" },
+			content: `<p><strong>${TRICKSTERS_BOON.name}</strong> activates — ${TRICKSTERS_BOON.description}</p>`
+		});
+	});
+
+	it("posts nothing on doubles when Trickster's Boon isn't held", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		await sheet._onMoveResolved(EXCHANGE_BLOWS, DOUBLES, "success");
+
+		expect(ChatMessage.create).not.toHaveBeenCalled();
+	});
+
+	it("posts nothing when the roll isn't doubles, even with the Boon held", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { witch: { boons: [TRICKSTERS_BOON.key] } } },
+			update: vi.fn()
+		};
+
+		await sheet._onMoveResolved(EXCHANGE_BLOWS, NOT_DOUBLES, "success");
+
+		expect(ChatMessage.create).not.toHaveBeenCalled();
 	});
 });
 

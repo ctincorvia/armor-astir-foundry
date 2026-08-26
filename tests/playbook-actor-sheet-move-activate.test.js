@@ -27,6 +27,7 @@ import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
 import { ARDENT_FEATURE_PARTS } from "../scripts/frames/ardent.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+import { MASKING_BOON, TRICKSTERS_BOON } from "./helpers/move-fixtures.js";
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 const READ_THE_ROOM = BASIC_MOVES.find((m) => m.key === "read-the-room");
@@ -625,6 +626,15 @@ describe("PlaybookActorSheet#_onMoveDescription", () => {
 
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, B_PLOT);
 	});
+
+	it("finds a held Witch Boon by key, falling back past ALL_MOVES the same as a playbook move", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		await sheet._onMoveDescription({ currentTarget: { dataset: { move: TRICKSTERS_BOON.key } } });
+
+		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, TRICKSTERS_BOON);
+	});
 });
 
 describe("PlaybookActorSheet#_onMoveInfo", () => {
@@ -672,5 +682,14 @@ describe("PlaybookActorSheet#_onMoveInfo", () => {
 		await sheet._onMoveInfo({ currentTarget: { dataset: { move: "b-plot" } } });
 
 		expect(showMoveDescription).toHaveBeenCalledWith(B_PLOT);
+	});
+
+	it("finds a held Witch Boon by key, falling back past ALL_MOVES the same as a playbook move", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		await sheet._onMoveInfo({ currentTarget: { dataset: { move: MASKING_BOON.key } } });
+
+		expect(showMoveDescription).toHaveBeenCalledWith(MASKING_BOON);
 	});
 });

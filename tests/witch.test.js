@@ -82,6 +82,29 @@ describe("WITCH_BOONS", () => {
 			expect(boon.key.startsWith("witch-boon:")).toBe(true);
 		}
 	});
+
+	it("gives every boon a traits array, even one with no roll of its own", () => {
+		for (const boon of WITCH_BOONS) {
+			expect(Array.isArray(boon.traits)).toBe(true);
+		}
+	});
+
+	it("gives Masking Boon a +CHANNEL roll with success/mixed/failure results", () => {
+		const masking = findWitchBoon("witch-boon:masking");
+		expect(masking.traits).toEqual(["channel"]);
+		expect(masking.results).toEqual({
+			success: "You are disguised or cloaked in a fashion appropriate to your patron.",
+			mixed: "The Director will tell you a flaw with your disguise.",
+			failure: null
+		});
+	});
+
+	it("flags Trickster's Boon to show a roll rider on every move and activate on doubles", () => {
+		const tricksters = findWitchBoon("witch-boon:tricksters");
+		expect(tricksters.traits).toEqual([]);
+		expect(tricksters.showsRollRiderOnAllRolls).toBe(true);
+		expect(tricksters.activatesOnDoubles).toBe(true);
+	});
 });
 
 describe("findWitchBoon/resolveWitchBoons", () => {

@@ -7,6 +7,7 @@ import { partRequirementTooltip, resolveAstirParts, unmetPartRequirements } from
 import { playbookGrantsHomeInsteadOfChannel } from "../../moves/starting-moves.js";
 import { BASIC_MOVES, SPECIAL_MOVES } from "../../moves/moves.js";
 import { ARDENT_DEFAULT_NAME, ARDENT_PART_CATALOG } from "../../frames/ardent.js";
+import { resolveWitchBoons } from "../witch.js";
 
 // Basic, Special and Playbook moves' shared roll pipeline (see claude.md's Moves sections) — move
 // definitions themselves live in moves.js/playbook-moves.js/astir.js/ardent.js; this mixin owns
@@ -117,6 +118,15 @@ export const MovesSheetMixin = {
 				) && this._playbookMoves().length === 0
 			}
 		];
+		// The Witch's Boons (witch.js) — a held boon's own catalog entry, read-only (no
+		// addable/removable, unlike Playbook Moves above), since the Patron section (Social tab) is
+		// still the only place a boon is granted/relinquished. Gated on heldBoons.length alone, no
+		// explicit Witch-playbook check, matching _traitBonuses' own unconditional
+		// this._witchInfluence() call elsewhere in this file.
+		const heldBoons = resolveWitchBoons(this._witchBoons());
+		if (heldBoons.length) {
+			moveGroups.push({ label: "Patron Boons", moves: this._moveGroupMoves(heldBoons) });
+		}
 		// Astir Parts read as moves, and the Astir's one unique move joins them under the same
 		// group — both are picked/removed only from the Astir tab, so unlike Playbook Moves this
 		// group renders no add/remove controls of its own. Each Ardent's own installed parts get

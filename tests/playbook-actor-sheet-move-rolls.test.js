@@ -20,8 +20,9 @@ import { findCarrierActors, chooseCarrier } from "../scripts/world-actors/carrie
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
 	EXCHANGE_BLOWS, STRIKE_DECISIVELY, BITE_THE_DUST, WEAVE_MAGIC, LEAD_A_SORTIE, DENY, I_KNOW_YOU, BUREAUCRAT,
-	DONT_FOLLOW_ME, MANA_DEVOURER
+	DONT_FOLLOW_ME, MANA_DEVOURER, MASKING_BOON
 } from "./helpers/move-fixtures.js";
+import { mockRoll } from "./helpers/move-test-helpers.js";
 
 // _availableHeatUp's own return value for an actor with no Astir at all (see moves-mixin.js) —
 // every fixture in this file lacks one unless a test says otherwise, so _rollMove's baseOptions
@@ -94,6 +95,22 @@ describe("PlaybookActorSheet#_onMoveRoll", () => {
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: DENY.key } } });
 
 		expect(rollMove).toHaveBeenCalledWith(sheet.actor, DENY, config.trait, { ...config, heatUp: NO_HEAT_UP });
+	});
+
+	it("rolls a held Witch Boon (Masking Boon) by its witch-boon key, same as a basic move", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 2 } },
+				attributes: { witch: { boons: [MASKING_BOON.key] } }
+			}
+		};
+		const config = { trait: { key: "channel", label: "CHANNEL", value: 2 }, advantage: "normal", effect: "none" };
+		configureMoveRoll.mockResolvedValue(config);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: MASKING_BOON.key } } });
+
+		expect(rollMove).toHaveBeenCalledWith(sheet.actor, MASKING_BOON, config.trait, { ...config, heatUp: NO_HEAT_UP });
 	});
 
 	it("offers I Know You's flat +3 FAMILIARITY fixedTrait, with no actor stat contributing", async () => {
@@ -629,6 +646,79 @@ describe("PlaybookActorSheet#_rollMove - riders (_ridersForMove)", () => {
 		);
 	});
 
+	it("rides Trickster's Boon on an arbitrary move's roll while the Boon is held", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: { witch: { boons: ["witch-boon:tricksters"] } }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			expect.objectContaining({ key: "dispel-uncertainties" }),
+			expect.any(Array),
+			expect.objectContaining({
+				riders: [{
+					label: "Trickster's Boon",
+					text: "Whenever you roll doubles, something helpful but unexpected happens."
+				}]
+			})
+		);
+	});
+
+	it("omits Trickster's Boon's rider when the Boon isn't held", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {}, attributes: {} } };
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			expect.objectContaining({ key: "dispel-uncertainties" }),
+			expect.any(Array),
+			expect.objectContaining({ riders: [] })
+		);
+	});
+
+	it("appends Trickster's Boon's rider after a collapsed \"All Rolls:\" row from another source", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: {
+					equipment: [],
+					playbookMoves: ["the-witch:bearer-of-curses"],
+					witch: { boons: ["witch-boon:tricksters"] }
+				}
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
+
+		expect(configureMoveRoll).toHaveBeenCalledWith(
+			EXCHANGE_BLOWS,
+			expect.any(Array),
+			expect.objectContaining({
+				riders: [
+					{
+						label: "Bearer Of Curses - All Rolls:",
+						text: "First time this Scene, choose 1: they can't use subsystems this Scene; you leave " +
+							"a lasting mark on them; or the next move against them is made with advantage"
+					},
+					{
+						label: "Trickster's Boon",
+						text: "Whenever you roll doubles, something helpful but unexpected happens."
+					}
+				]
+			})
+		);
+	});
+
 	it("passes Mana Devourer's reminder once at the top level through the usesWeapon (array) branch, not per weaponBundles entry", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
@@ -687,5 +777,32 @@ describe("PlaybookActorSheet#_rollMove - riders (_ridersForMove)", () => {
 				}]
 			})
 		);
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveRoll - Masking Boon full round trip", () => {
+	it("rolls +CHANNEL through the real move-roll pipeline and posts the matching result text", async () => {
+		const actual = await vi.importActual("../scripts/moves/moves.js");
+		rollMove.mockImplementation(actual.rollMove);
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [5, 5] });
+
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { channel: { value: 0 } },
+				attributes: { witch: { boons: [MASKING_BOON.key] } }
+			}
+		};
+		const channel = { key: "channel", label: "CHANNEL", value: 0 };
+		configureMoveRoll.mockResolvedValue({ trait: channel, advantage: "none", effect: "none" });
+
+		await sheet._onMoveRoll({ currentTarget: { dataset: { move: MASKING_BOON.key } } });
+
+		expect(renderTemplate).toHaveBeenCalledWith(actual.MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			name: MASKING_BOON.name,
+			tier: "success",
+			resultText: MASKING_BOON.results.success
+		}));
 	});
 });

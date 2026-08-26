@@ -2,6 +2,7 @@ import { BASIC_MOVES, SPECIAL_MOVES } from "../../scripts/moves/moves.js";
 import { ALL_PLAYBOOK_MOVES } from "../../scripts/moves/playbook-moves.js";
 import { ASTIR_MOVE_CATALOG, ASTIR_PART_CATALOG } from "../../scripts/frames/astir.js";
 import { ARDENT_FEATURE_PARTS } from "../../scripts/frames/ardent.js";
+import { WITCH_BOONS } from "../../scripts/playbook/witch.js";
 
 // Shared catalog-lookup constants for the PlaybookActorSheet astir/move-roll/roll-results/summoner
 // test files, which were previously split across those files with duplicate
@@ -85,6 +86,11 @@ export const CHROMATIC_FOCUS = ASTIR_PART_CATALOG.find((p) => p.key === "astir-p
 
 // ARDENT_FEATURE_PARTS
 export const CHROMATIC_RESERVES = ARDENT_FEATURE_PARTS.find((p) => p.key === "ardent-feature:chromatic-reserves");
+
+// WITCH_BOONS (witch.js) — Masking Boon (rollable, +CHANNEL) and Trickster's Boon (no roll of its
+// own, rider/doubles-only) are the two boons with dedicated Moves-tab behavior.
+export const MASKING_BOON = WITCH_BOONS.find((b) => b.key === "witch-boon:masking");
+export const TRICKSTERS_BOON = WITCH_BOONS.find((b) => b.key === "witch-boon:tricksters");
 
 // ASTIR_MOVE_CATALOG
 export const LEGACY = ASTIR_MOVE_CATALOG.find((m) => m.key === "astir:legacy");

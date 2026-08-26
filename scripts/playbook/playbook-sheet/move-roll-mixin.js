@@ -16,13 +16,20 @@ import {
 	showMoveDescription
 } from "../../moves/moves.js";
 import { ALL_MOVES } from "../../moves/all-moves.js";
+import { findWitchBoon, resolveWitchBoons } from "../witch.js";
 
 // The Roll/Activate/Description/Info button handlers and the shared _rollMove pipeline every move
 // source (basic, special, playbook, Astir) runs through — see moves-mixin.js's file comment for how
 // this file relates to its siblings in this directory.
 export const MoveRollSheetMixin = {
+	// A held Witch Boon (witch.js) renders Chat/Info buttons — and, for Masking, a Roll button — in
+	// its own Patron Boons group (moves-mixin.js), so every ALL_MOVES.find lookup keyed off a
+	// clicked move's data-move key needs this fallback alongside it.
+	_resolveAnyMove(key) {
+		return ALL_MOVES.find((m) => m.key === key) ?? findWitchBoon(key);
+	},
 	async _onMoveRoll(event) {
-		const clicked = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
+		const clicked = this._resolveAnyMove(event.currentTarget.dataset.move);
 		if (!clicked) return;
 
 		// Bureaucrat's own quick-roll button (see the-diplomat.js's quickRollsMove) rolls a
@@ -201,9 +208,15 @@ export const MoveRollSheetMixin = {
 		const onSuccess = successSource?.addsSuccessReminderToMove.reminder ?? null;
 		const onCritical = criticalSource?.addsCriticalReminderToMove.reminder ?? null;
 
+		// Trickster's Boon (witch.js) has no move of its own — it rides every other move's own roll,
+		// so it's appended to whichever of the two shapes below actually returns.
+		const boonRiders = resolveWitchBoons(this._witchBoons())
+			.filter((boon) => boon.showsRollRiderOnAllRolls)
+			.map((boon) => ({ label: boon.name, text: boon.description }));
+
 		if (onFailure && onMixed && onSuccess && onCritical &&
 			onFailure === onMixed && onMixed === onSuccess && onSuccess === onCritical) {
-			return [{ label: `${failureSource.name} - All Rolls:`, text: onFailure }];
+			return [{ label: `${failureSource.name} - All Rolls:`, text: onFailure }, ...boonRiders];
 		}
 
 		const anySuccess = onMixed && onSuccess && onMixed === onSuccess;
@@ -216,7 +229,8 @@ export const MoveRollSheetMixin = {
 					...(onMixed ? [{ label: `${mixedSource.name} - On 7-9`, text: onMixed }] : []),
 					...(onSuccess ? [{ label: `${successSource.name} - On 10+`, text: onSuccess }] : [])
 				]),
-			...(onCritical ? [{ label: `${criticalSource.name} - On 12+`, text: onCritical }] : [])
+			...(onCritical ? [{ label: `${criticalSource.name} - On 12+`, text: onCritical }] : []),
+			...boonRiders
 		];
 	},
 	// Shared tail of both _rollMove's single-weapon path and _rollMoveWithWeaponChoice's array
@@ -498,6 +512,17 @@ export const MoveRollSheetMixin = {
 				&& resolvePlaybookMoves(this._playbookMoves()).some((m) => m.key === "the-witch:patron")) {
 			await this._grantRandomWitchBoons();
 		}
+		// Trickster's Boon (witch.js) — "whenever you roll doubles, something helpful but unexpected
+		// happens" applies to every move this actor rolls, not just an Astir Part's own
+		// regainPowerOnDoubles effect below, so it's checked here unconditionally like Patron above.
+		if (dice && rolledDoubles(dice)) {
+			for (const boon of resolveWitchBoons(this._witchBoons()).filter((b) => b.activatesOnDoubles)) {
+				await ChatMessage.create({
+					speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+					content: `<p><strong>${boon.name}</strong> activates — ${boon.description}</p>`
+				});
+			}
+		}
 		// Cold Company (see _coldCompanyMove/_coldCompanyAdvantage) — flips the haunted/dispelled
 		// state based on THIS roll's own outcome tier, for every move this actor rolls. A 7-9 is a
 		// no-op either way (Cold Company's own text only reacts to 10+/6-); already-dispelled staying
@@ -626,13 +651,13 @@ export const MoveRollSheetMixin = {
 		await rollVariableDicePool(this.actor, move, config);
 	},
 	async _onMoveDescription(event) {
-		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
+		const move = this._resolveAnyMove(event.currentTarget.dataset.move);
 		if (!move) return;
 
 		await postMoveDescription(this.actor, move);
 	},
 	async _onMoveInfo(event) {
-		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
+		const move = this._resolveAnyMove(event.currentTarget.dataset.move);
 		if (!move) return;
 
 		await showMoveDescription(move);
