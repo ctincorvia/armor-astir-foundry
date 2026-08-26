@@ -30,8 +30,13 @@ export const MovesSheetMixin = {
 	// Chromatic Reserves (ardent.js) now spends a numericTrackers countdown instead of a `uses`
 	// pool — see _promptsApproachOverrideAvailable/_promptsApproachOverrideSpend below, which
 	// resolve "is there anything left"/"spend one" across both storage shapes generically.
+	// `move.usesMoveKey` (a synthesized Arcanist ritual slot — see arcanist-mixin.js's
+	// _preparedRitualMoves) redirects the moveUses lookup onto a different, real catalog move's own
+	// bucket, so a ritual slot's own Spent checkbox can never disagree with the real Prepare Rituals
+	// move's own ritual-N flags/Refresh Sortie clearing.
 	_nextUnusedMoveUseKey(move) {
-		return (move.uses ?? []).find((use) => !this.actor.system.attributes?.moveUses?.[move.key]?.[use.key])?.key ?? null;
+		const moveKey = move.usesMoveKey ?? move.key;
+		return (move.uses ?? []).find((use) => !this.actor.system.attributes?.moveUses?.[moveKey]?.[use.key])?.key ?? null;
 	},
 	// Chromatic Focus (a `uses` checkbox) and Chromatic Reserves (a `numericTrackers` countdown
 	// stepper) back promptsApproachOverride with two different storage shapes — this resolves "is
@@ -47,8 +52,9 @@ export const MovesSheetMixin = {
 		return Boolean(this._nextUnusedMoveUseKey(move));
 	},
 	// The actor.update fragment for spending one charge — checks the next `uses` box (Chromatic
-	// Focus) or decrements the tracker by 1 (Chromatic Reserves). Only ever called after
-	// _promptsApproachOverrideAvailable confirms there's something to spend.
+	// Focus, or the Arcanist's Aspect ritual — see usesMoveKey above) or decrements the tracker by 1
+	// (Chromatic Reserves). Only ever called after _promptsApproachOverrideAvailable confirms
+	// there's something to spend.
 	_promptsApproachOverrideSpend(move) {
 		if (move.numericTrackers?.length) {
 			const tracker = move.numericTrackers[0];
@@ -56,7 +62,7 @@ export const MovesSheetMixin = {
 				?? (tracker.resetTo === "max" ? tracker.max : 0);
 			return { [`system.attributes.moveTrackers.${move.key}.${tracker.key}`]: current - 1 };
 		}
-		return { [`system.attributes.moveUses.${move.key}.${this._nextUnusedMoveUseKey(move)}`]: true };
+		return { [`system.attributes.moveUses.${move.usesMoveKey ?? move.key}.${this._nextUnusedMoveUseKey(move)}`]: true };
 	},
 	// Crew Support's own hold pool (see special-moves.js) — read by move-traits-mixin.js's
 	// _moveTraits to decide whether to offer this actor the CREW-substitution trait option on
@@ -126,6 +132,14 @@ export const MovesSheetMixin = {
 		const heldBoons = resolveWitchBoons(this._witchBoons());
 		if (heldBoons.length) {
 			moveGroups.push({ label: "Patron Boons", moves: this._moveGroupMoves(heldBoons) });
+		}
+		// The Arcanist's Prepared Rituals (arcanist-mixin.js) — one read-only entry per prepared
+		// slot, the same treatment Patron Boons gets immediately above (no addable/removable —
+		// Prepare/Adapt on the Social tab are the only place a ritual is chosen). Gated on the
+		// synthesized list being non-empty, matching heldBoons.length's own gate above.
+		const preparedRituals = this._preparedRitualMoves();
+		if (preparedRituals.length) {
+			moveGroups.push({ label: "Prepared Rituals", moves: this._moveGroupMoves(preparedRituals) });
 		}
 		// Astir Parts read as moves, and the Astir's one unique move joins them under the same
 		// group — both are picked/removed only from the Astir tab, so unlike Playbook Moves this
@@ -398,11 +412,14 @@ export const MovesSheetMixin = {
 				// adding this never touches existing fields. Nothing ever clears these
 				// automatically — there's no "start a new Sortie/Downtime" concept anywhere in this
 				// module, so a checked box stays checked until the player unchecks it themselves,
-				// same manual-tracking model as the Advancement checklist.
+				// same manual-tracking model as the Advancement checklist. usesMoveKey (a synthesized
+				// Arcanist ritual slot — see arcanist-mixin.js's _preparedRitualMoves) redirects this
+				// read onto a different, real catalog move's own moveUses bucket, the same
+				// substitution _nextUnusedMoveUseKey/_promptsApproachOverrideSpend already apply.
 				uses: (move.uses ?? []).map((use) => ({
 					key: use.key,
 					label: use.label,
-					checked: Boolean(this.actor.system.attributes?.moveUses?.[move.key]?.[use.key])
+					checked: Boolean(this.actor.system.attributes?.moveUses?.[move.usesMoveKey ?? move.key]?.[use.key])
 				})),
 				// Let Loose's per-actor trait pick (see trait-bonuses.js's chooseTrait) — a small
 				// select rendered on the move's own row (see the template) rather than a separate

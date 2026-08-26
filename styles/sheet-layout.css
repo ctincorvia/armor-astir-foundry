@@ -257,6 +257,51 @@
 	font-size: 12px;
 }
 
+/* The Arcanist-only Prepare Rituals section (Social tab, gated on isArcanist) — Ward Hold reuses
+   the existing .power-control readout styling as-is; only the ritual slot list below needs its own
+   rules, mirroring .patron-boon-item's own treatment immediately above. */
+.armor-astir.sheet .ritual-slot-list {
+	margin: var(--aa-space-2) 0 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.sheet .ritual-slot-item {
+	padding: var(--aa-space-2) 0;
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.sheet .ritual-slot-label {
+	font-weight: bold;
+}
+
+.armor-astir.sheet .ritual-slot-name {
+	margin-left: var(--aa-space-1);
+}
+
+/* Secondary role token, same "this is the player's own tracked state" marking a held Boon's own
+   name already uses (.patron-boon-item.held .patron-boon-name above). */
+.armor-astir.sheet .ritual-slot-spent-tag {
+	margin-left: var(--aa-space-1);
+	font-size: 11px;
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir.sheet .ritual-slot-empty-tag {
+	margin-left: var(--aa-space-1);
+	font-size: 11px;
+	font-style: italic;
+}
+
+.armor-astir.sheet .ritual-slot-description {
+	margin: var(--aa-space-1) 0 0;
+	font-size: 12px;
+}
+
+.armor-astir.sheet .ritual-slot-item.empty {
+	opacity: 0.6;
+}
+
 .armor-astir.sheet .gravity-clock-list {
 	margin: 0;
 	padding: 0;

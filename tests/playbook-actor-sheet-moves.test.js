@@ -345,3 +345,96 @@ describe("PlaybookActorSheet#getData - moves - Patron Boons", () => {
 		expect(tricksters.rollable).toBe(false);
 	});
 });
+
+// The Arcanist's Prepared Rituals (arcanist-mixin.js) — one read-only entry per prepared slot,
+// gated the same way Patron Boons is immediately above, and inserted right after it.
+describe("PlaybookActorSheet#getData - moves - Prepared Rituals", () => {
+	it("omits the Prepared Rituals group with nothing prepared", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		expect(data.moveGroups.some((group) => group.label === "Prepared Rituals")).toBe(false);
+	});
+
+	it("appears immediately after Patron Boons when both are present", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					witch: { boons: [MASKING_BOON.key] },
+					arcanist: { rituals: [{ ritualKey: "arcanist-ritual:warding" }, null, null] }
+				}
+			}
+		};
+
+		const labels = sheet.getData().moveGroups.map((group) => group.label);
+		const patronIndex = labels.indexOf("Patron Boons");
+		const ritualsIndex = labels.indexOf("Prepared Rituals");
+
+		expect(patronIndex).toBeGreaterThanOrEqual(0);
+		expect(ritualsIndex).toBe(patronIndex + 1);
+	});
+
+	it("appears with no addable/removable controls, and no Astir group present", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: {}, attributes: { arcanist: { rituals: [{ ritualKey: "arcanist-ritual:aspect" }, null, null] } } }
+		};
+
+		const data = sheet.getData();
+		const group = data.moveGroups.find((g) => g.label === "Prepared Rituals");
+
+		expect(group).toBeTruthy();
+		expect(group.addable).toBeUndefined();
+		expect(group.removable).toBeUndefined();
+		expect(group.moves).toHaveLength(1);
+	});
+
+	it("renders the Aspect ritual entry activatable, gated once its own Spent flag is already checked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					arcanist: { rituals: [{ ritualKey: "arcanist-ritual:aspect" }, null, null] },
+					moveUses: { "the-arcanist:prepare-rituals": { "ritual-1": true } }
+				}
+			}
+		};
+
+		const data = sheet.getData();
+		const [entry] = data.moveGroups.find((g) => g.label === "Prepared Rituals").moves;
+
+		expect(entry.activatable).toBe(true);
+		expect(entry.gated).toBe(true);
+	});
+
+	it("renders an unspent Aspect ritual entry activatable and ungated", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: {}, attributes: { arcanist: { rituals: [{ ritualKey: "arcanist-ritual:aspect" }, null, null] } } }
+		};
+
+		const data = sheet.getData();
+		const [entry] = data.moveGroups.find((g) => g.label === "Prepared Rituals").moves;
+
+		expect(entry.activatable).toBe(true);
+		expect(entry.gated).toBe(false);
+	});
+
+	it("renders a confidence/Warding ritual entry non-rollable, non-activatable (Chat/Info only)", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: {}, attributes: { arcanist: { rituals: [{ ritualKey: "arcanist-ritual:warding" }, null, null] } } }
+		};
+
+		const data = sheet.getData();
+		const [entry] = data.moveGroups.find((g) => g.label === "Prepared Rituals").moves;
+
+		expect(entry.rollable).toBe(false);
+		expect(entry.activatable).toBe(false);
+	});
+});

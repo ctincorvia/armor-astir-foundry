@@ -908,6 +908,46 @@
 	font-size: 12px;
 }
 
+.armor-astir.arcanist-rituals-picker .arcanist-rituals-picker-instructions {
+	margin: 0 0 var(--aa-space-1);
+	font-weight: bold;
+}
+
+.armor-astir.arcanist-rituals-picker .arcanist-rituals-picker-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir.arcanist-rituals-picker .arcanist-rituals-picker-item {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
+	padding: var(--aa-space-2) 0;
+	border-bottom: var(--aa-border);
+}
+
+.armor-astir.arcanist-rituals-picker .arcanist-rituals-picker-item-locked {
+	opacity: 0.6;
+}
+
+.armor-astir.arcanist-rituals-picker .arcanist-rituals-picker-slot-label {
+	font-weight: bold;
+}
+
+.armor-astir.arcanist-rituals-picker .arcanist-rituals-picker-locked-summary {
+	font-style: italic;
+}
+
+/* The confidence ritual's own move-target <select>, shown/hidden live as the ritual-type <select>
+   changes (see arcanist.js's chooseArcanistRituals) — a plain display:none toggle, scoped to this
+   picker rather than a module-wide utility class since nothing else in this codebase currently
+   needs one (every other conditional element here is shown/hidden via jQuery's own .show()/.hide()
+   instead). */
+.armor-astir.arcanist-rituals-picker .hidden {
+	display: none;
+}
+
 .armor-astir.equipment-catalog-picker .equipment-catalog-picker-list {
 	margin: 0;
 	padding: 0;

@@ -147,7 +147,8 @@
 .armor-astir.sheet .move-variable-dice-roll.disabled,
 .armor-astir.sheet .controls-mount-up.disabled,
 .armor-astir.sheet .controls-dismount.disabled,
-.armor-astir.sheet .witch-boons-choose.disabled {
+.armor-astir.sheet .witch-boons-choose.disabled,
+.armor-astir.sheet .arcanist-rituals-adapt.disabled {
 	background: var(--aa-primary-tint);
 	border-color: var(--aa-primary-tint);
 	color: var(--aa-primary-dark);
@@ -622,6 +623,7 @@
    Dialog application class never carries .sheet. */
 .armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip],
 .armor-astir.sheet .witch-boons-choose.disabled[data-gate-tooltip],
+.armor-astir.sheet .arcanist-rituals-adapt.disabled[data-gate-tooltip],
 .armor-astir.sheet .move-roll.disabled[data-gate-tooltip],
 .armor-astir.playbook-move-picker .move-picker-item-disabled[data-gate-tooltip],
 .armor-astir.equipment-catalog-picker .equipment-catalog-picker-item-disabled[data-gate-tooltip] {
@@ -630,6 +632,7 @@
 
 .armor-astir.sheet .weapon-move-roll.disabled[data-gate-tooltip]:hover::after,
 .armor-astir.sheet .witch-boons-choose.disabled[data-gate-tooltip]:hover::after,
+.armor-astir.sheet .arcanist-rituals-adapt.disabled[data-gate-tooltip]:hover::after,
 .armor-astir.sheet .move-roll.disabled[data-gate-tooltip]:hover::after,
 .armor-astir.playbook-move-picker .move-picker-item-disabled[data-gate-tooltip]:hover::after,
 .armor-astir.equipment-catalog-picker .equipment-catalog-picker-item-disabled[data-gate-tooltip]:hover::after {

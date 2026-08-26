@@ -453,9 +453,14 @@ export const MoveGrantsSheetMixin = {
 	// actor's picked playbook moves / mounted Astir Move (_grantingMoves, already the shared
 	// resolver every other single-target-move grant above uses) and every part installed on the
 	// currently mounted frame (_mountedParts) — needed on top of _grantingMoves since Alchemical
-	// Suite is a Part, not a move, and _grantingMoves never resolves those.
+	// Suite is a Part, not a move, and _grantingMoves never resolves those. The Arcanist's Prepare
+	// Rituals (arcanist-mixin.js's _ritualRollModifierSource) is a third kind of source on top of
+	// those two: not a picked move or an installed part, but one synthesized fresh from actor state
+	// (the 3 prepared ritual slots) every time this is called — null (omitted) for every actor with
+	// nothing currently prepared.
 	_rollModifierSources() {
-		return [...this._grantingMoves(), ...this._mountedParts()];
+		const ritualSource = this._ritualRollModifierSource();
+		return [...this._grantingMoves(), ...this._mountedParts(), ...(ritualSource ? [ritualSource] : [])];
 	},
 	// Read the Room's shared hold pool vs a per-move flatHold/separateHold pool — replicates
 	// moves-mixin.js:202-204's existing `(move.flatHold || move.separateHold) ? moveHold[key] :
@@ -505,6 +510,22 @@ export const MoveGrantsSheetMixin = {
 		if (spec.costsUse) {
 			const available = !this.actor.system.attributes?.moveUses?.[source.key]?.[spec.costsUse];
 			return { available, reason: available ? null : "Already used" };
+		}
+		// The Arcanist's Warding ritual (see arcanist-mixin.js's _ritualRollModifierSource) — the
+		// first grantsRollModifier gate that reads/writes a numericTrackers pool instead of `hold`, a
+		// `uses` checkbox, or a Potion. Shaped exactly like costsHold immediately above, down to the
+		// optional cross-move moveKey (unused by Warding today, but kept for parity/future reuse the
+		// same way costsHold/costsUse already default to the source's own key). The tracker's own
+		// catalog label (e.g. "Ward Hold") is looked up for the reason text so a generic mechanism
+		// still reads naturally, rather than surfacing the raw trackerKey.
+		if (spec.costsTracker) {
+			const { moveKey, trackerKey, amount } = spec.costsTracker;
+			const targetKey = moveKey ?? source.key;
+			const current = this.actor.system.attributes?.moveTrackers?.[targetKey]?.[trackerKey] ?? 0;
+			const available = current >= amount;
+			const label = ALL_MOVES.find((m) => m.key === targetKey)?.numericTrackers
+				?.find((tracker) => tracker.key === trackerKey)?.label ?? trackerKey;
+			return { available, reason: available ? null : `Needs ${amount} ${label}` };
 		}
 		return { available: true, reason: null };
 	},
@@ -586,7 +607,11 @@ export const MoveGrantsSheetMixin = {
 	},
 	// The write side of the Roll Modifiers section -- mirrors _spendEquipmentTags/
 	// handleAutomaticSuccess's own per-kind write branches, one actor.update batch for every checked
-	// entry regardless of source.
+	// entry regardless of source. costsHold/costsTracker both read their running value from
+	// `updates` first, falling back to the actor's own stored value only when nothing in this same
+	// batch has touched that path yet -- otherwise two checked entries that both draw from the same
+	// pool (e.g. two prepared Warding rituals sharing one Wardhold tracker) would each compute their
+	// deduction from the same stale stored value, and only one point would actually end up spent.
 	async _spendRollModifiers(keys) {
 		if (!keys?.length) return;
 		const updates = {};
@@ -599,12 +624,19 @@ export const MoveGrantsSheetMixin = {
 					updates["system.attributes.spotlight.value"] = Math.max(SPOTLIGHT_MIN, current - spec.costsSpotlight);
 				} else if (spec.costsHold) {
 					const moveKey = spec.costsHold.moveKey ?? source.key;
-					updates[this._moveHoldUpdatePath(moveKey)] =
-						Math.max(HOLD_MIN, this._moveHoldValue(moveKey) - spec.costsHold.amount);
+					const path = this._moveHoldUpdatePath(moveKey);
+					const current = updates[path] ?? this._moveHoldValue(moveKey);
+					updates[path] = Math.max(HOLD_MIN, current - spec.costsHold.amount);
 				} else if (spec.costsPotion) {
 					updates[`system.attributes.astir.potions.${spec.costsPotion}`] = true;
 				} else if (spec.costsUse) {
 					updates[`system.attributes.moveUses.${source.key}.${spec.costsUse}`] = true;
+				} else if (spec.costsTracker) {
+					const { moveKey, trackerKey, amount } = spec.costsTracker;
+					const targetKey = moveKey ?? source.key;
+					const path = `system.attributes.moveTrackers.${targetKey}.${trackerKey}`;
+					const current = updates[path] ?? (this.actor.system.attributes?.moveTrackers?.[targetKey]?.[trackerKey] ?? 0);
+					updates[path] = Math.max(0, current - amount);
 				}
 			}
 		}

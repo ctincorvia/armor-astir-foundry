@@ -206,3 +206,24 @@ describe("resolveRollChain", () => {
 		});
 	});
 });
+
+// The Arcanist's Warding ritual (arcanist.js's ARCANIST_RITUALS) — a +1 Advantage step gated to
+// only apply from disadvantage or worse ("ignore a disadvantage"), distinct from Embrace Chaos's
+// own +2 step above: disadvantage(-1)+1=none(0) and disadvantage2(-2)+1=disadvantage(-1), each
+// stepping up exactly one notch rather than converting all the way past none.
+describe("chainEntryResult - Warding ritual shape", () => {
+	it("steps +1 Advantage from disadvantage to none, or disadvantage2 to disadvantage", () => {
+		const warding = { key: "ritual-1", advantage: "advantage", requiresAdvantage: ["disadvantage", "disadvantage2"] };
+
+		expect(chainEntryResult({ advantage: "disadvantage", effect: "none" }, warding))
+			.toEqual({ advantage: "none", effect: "none" });
+		expect(chainEntryResult({ advantage: "disadvantage2", effect: "none" }, warding))
+			.toEqual({ advantage: "disadvantage", effect: "none" });
+	});
+
+	it("gates off once the roll is no longer at a disadvantage", () => {
+		const warding = { key: "ritual-1", advantage: "advantage", requiresAdvantage: ["disadvantage", "disadvantage2"] };
+
+		expect(chainEntryResult({ advantage: "none", effect: "none" }, warding)).toBeNull();
+	});
+});

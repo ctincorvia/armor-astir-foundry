@@ -32,10 +32,17 @@ export const MoveTrackingSheetMixin = {
 		this.actor.update({ [`system.attributes.moveTrackers.${moveKey}.${trackerKey}`]: next });
 	},
 	// A plain boolean toggle, same shape as _onOverheatingToggle/_onAdvancementToggle — a "uses"
-	// checkbox has no min/max to clamp, unlike Hold or Spotlight's stepped tracks.
+	// checkbox has no min/max to clamp, unlike Hold or Spotlight's stepped tracks. The checkbox's own
+	// data-move attribute is always the *rendered* move's key (moves-mixin.js's template, `{{../key}}`)
+	// — for a synthesized Arcanist ritual slot (arcanist-mixin.js) that's the slot's own key, not the
+	// real Prepare Rituals move its Spent flag actually lives on, so this resolves the clicked move
+	// (the same fallback chain move-roll-mixin.js's _resolveAnyMove uses) to find its usesMoveKey
+	// before writing, the same substitution _nextUnusedMoveUseKey/_promptsApproachOverrideSpend/the
+	// uses-checked mapping in _moveGroupMoves already apply on the read side.
 	_onMoveUseToggle(event) {
 		const { move: moveKey, use: useKey } = event.currentTarget.dataset;
-		this.actor.update({ [`system.attributes.moveUses.${moveKey}.${useKey}`]: event.currentTarget.checked });
+		const targetKey = this._resolveAnyMove(moveKey)?.usesMoveKey ?? moveKey;
+		this.actor.update({ [`system.attributes.moveUses.${targetKey}.${useKey}`]: event.currentTarget.checked });
 	},
 	// Let Loose's per-actor trait pick (see _moveGroupMoves' traitBonusChoosable/traitBonusChoice
 	// and trait-bonuses.js's chooseTrait) — every option in the select is a real TRAITS key or the

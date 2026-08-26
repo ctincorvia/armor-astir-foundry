@@ -156,6 +156,35 @@
 						</ol>
 					</section>
 					{{/if}}
+					{{#if isArcanist}}
+					<section class="rituals">
+						<div class="section-header">
+							<h3>Prepare Rituals</h3>
+							<div class="section-header-actions">
+								<button type="button" class="arcanist-rituals-prepare icon-add-button labeled-add-button" title="Prepare Rituals" aria-label="Prepare Rituals">Prepare</button>
+								<button type="button" class="arcanist-rituals-adapt icon-add-button labeled-add-button{{#unless arcanist.canAdapt}} disabled{{/unless}}" title="Adapt Rituals" aria-label="Adapt Rituals" {{#unless arcanist.canAdapt}}disabled data-gate-tooltip="{{arcanist.adaptTooltip}}"{{/unless}}>Adapt</button>
+							</div>
+						</div>
+						<div class="power-control ritual-ward-hold">
+							<label class="power-label">Ward Hold</label>
+							<span class="power-value">{{arcanist.wardHold}}</span>
+						</div>
+						<ol class="ritual-slot-list">
+							{{#each arcanist.slots}}
+							<li class="ritual-slot-item{{#if spent}} spent{{/if}}{{#unless prepared}} empty{{/unless}}">
+								<span class="ritual-slot-label">{{label}}</span>
+								{{#if prepared}}
+								<span class="ritual-slot-name">{{name}}{{#if moveName}} ({{moveName}}){{/if}}</span>
+								<p class="ritual-slot-description">{{description}}</p>
+								{{#if spent}}<span class="ritual-slot-spent-tag">Spent</span>{{/if}}
+								{{else}}
+								<span class="ritual-slot-empty-tag">Not prepared</span>
+								{{/if}}
+							</li>
+							{{/each}}
+						</ol>
+					</section>
+					{{/if}}
 					{{#if isCommander}}
 					<section class="ace-crew">
 						<div class="section-header">

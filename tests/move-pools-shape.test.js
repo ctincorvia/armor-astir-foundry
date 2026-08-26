@@ -189,6 +189,17 @@ describe("MOVE_POOLS", () => {
 		}
 	});
 
+	// The additive Wardhold pool every prepared Warding ritual instance feeds (see arcanist.js's
+	// wardHoldFor/adaptedWardHold) — Sortie-scoped like the ritual-1/2/3 uses above, so it clears for
+	// free on Refresh Sortie via the same generic numericTrackers walk (_refreshPeriod).
+	it("gives Prepare Rituals a Sortie-scoped ward-hold numericTracker, 0 to 6", () => {
+		const prepareRituals = findPlaybookMove("the-arcanist:prepare-rituals");
+
+		expect(prepareRituals.numericTrackers).toEqual([
+			{ key: "ward-hold", label: "Ward Hold", min: 0, max: 6, period: "Sortie" }
+		]);
+	});
+
 	it("rolls Reshape with +CHANNEL, granting 2 hold on both success and mixed via separateHold", () => {
 		const reshape = findPlaybookMove("the-arcanist:reshape");
 

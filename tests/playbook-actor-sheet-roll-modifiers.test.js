@@ -22,6 +22,7 @@ import {
 	FIELD_TESTING,
 	IDENTIFY,
 	MANAWHEELS,
+	PREPARE_RITUALS,
 	READ_THE_ROOM,
 	RESHAPE,
 	SHARPER_KNIVES,
@@ -32,6 +33,8 @@ import {
 	WEAVE_MAGIC,
 	YOU_SHOULD_SEE_ME_IN_A_CROWN
 } from "./helpers/move-fixtures.js";
+
+const PREPARE_RITUALS_KEY = PREPARE_RITUALS.key;
 
 beforeEach(() => {
 	configureMoveRoll.mockClear();
@@ -78,6 +81,26 @@ describe("PlaybookActorSheet#_rollModifierSources", () => {
 		};
 
 		expect(sheet._rollModifierSources().map((s) => s.key)).not.toContain(ALCHEMICAL_SUITE.key);
+	});
+
+	// The Arcanist's synthesized ritual source (arcanist-mixin.js's _ritualRollModifierSource) —
+	// unlike _grantingMoves/_mountedParts, this isn't a static catalog entry at all, so it's omitted
+	// entirely (not an empty placeholder) with nothing prepared, and appears keyed to the real
+	// Prepare Rituals move once something is.
+	it("omits the ritual source with nothing prepared", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._rollModifierSources().map((s) => s.key)).not.toContain(PREPARE_RITUALS_KEY);
+	});
+
+	it("includes the ritual source, keyed to the real Prepare Rituals move, once a Warding ritual is prepared", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { arcanist: { rituals: [{ ritualKey: "arcanist-ritual:warding" }, null, null] } } }
+		};
+
+		expect(sheet._rollModifierSources().map((s) => s.key)).toContain(PREPARE_RITUALS_KEY);
 	});
 });
 
@@ -259,6 +282,59 @@ describe("PlaybookActorSheet#_rollModifierAvailability", () => {
 		expect(sheet._rollModifierAvailability(sharperKnivesSpec, SHARPER_KNIVES)).toEqual({
 			available: true,
 			reason: null
+		});
+	});
+
+	// costsTracker (see the Arcanist's Warding ritual, arcanist-mixin.js) — the first gate kind that
+	// reads/writes a numericTrackers pool instead of hold/a uses checkbox/a Potion, shaped exactly
+	// like costsHold otherwise, down to the optional cross-move moveKey.
+	describe("costsTracker", () => {
+		const source = { key: PREPARE_RITUALS_KEY };
+		const spec = { costsTracker: { trackerKey: "ward-hold", amount: 1 } };
+
+		it("available at or above the amount, unavailable below it", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = {
+				system: { attributes: { moveTrackers: { [PREPARE_RITUALS_KEY]: { "ward-hold": 1 } } } }
+			};
+			expect(sheet._rollModifierAvailability(spec, source)).toEqual({ available: true, reason: null });
+
+			sheet.actor.system.attributes.moveTrackers[PREPARE_RITUALS_KEY]["ward-hold"] = 0;
+			expect(sheet._rollModifierAvailability(spec, source)).toEqual({
+				available: false,
+				reason: "Needs 1 Ward Hold"
+			});
+		});
+
+		it("treats a missing tracker value as 0", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = { system: { attributes: {} } };
+
+			expect(sheet._rollModifierAvailability(spec, source)).toEqual({
+				available: false,
+				reason: "Needs 1 Ward Hold"
+			});
+		});
+
+		it("reads a named cross-move moveKey's own pool instead of the source's", () => {
+			const sheet = new PlaybookActorSheet();
+			const crossSpec = { costsTracker: { moveKey: "some-other-move", trackerKey: "ward-hold", amount: 1 } };
+			sheet.actor = {
+				system: { attributes: { moveTrackers: { "some-other-move": { "ward-hold": 1 } } } }
+			};
+
+			expect(sheet._rollModifierAvailability(crossSpec, source)).toEqual({ available: true, reason: null });
+		});
+
+		it("falls back to the raw trackerKey in the reason when the catalog label can't be resolved", () => {
+			const sheet = new PlaybookActorSheet();
+			const unknownSpec = { costsTracker: { moveKey: "not-a-real-move", trackerKey: "made-up", amount: 1 } };
+			sheet.actor = { system: { attributes: {} } };
+
+			expect(sheet._rollModifierAvailability(unknownSpec, source)).toEqual({
+				available: false,
+				reason: "Needs 1 made-up"
+			});
 		});
 	});
 });
@@ -443,6 +519,126 @@ describe("PlaybookActorSheet#_rollModifiersForMove", () => {
 
 		expect(entry.requiresAdvantage).toBeNull();
 	});
+
+	// The Arcanist's Prepare Rituals synthesized source (arcanist-mixin.js) — confidence entries
+	// scope themselves to their own stored target move only, two slots of the same ritual type never
+	// collide (each keeps its own "ritual-N" key), and a spent confidence entry stays visible but
+	// disabled, the same "always shown, only ever disabled" treatment every other costsUse entry
+	// (e.g. Artifact) already gets.
+	describe("the Arcanist's Prepare Rituals", () => {
+		it("scopes a confidence entry to its own stored target move only", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = {
+				system: {
+					attributes: {
+						arcanist: { rituals: [{ ritualKey: "arcanist-ritual:confidence", moveKey: WEATHER_THE_STORM.key }, null, null] }
+					}
+				}
+			};
+
+			expect(sheet._rollModifiersForMove(WEATHER_THE_STORM, null).map((e) => e.key)).toEqual(["ritual-1"]);
+			expect(sheet._rollModifiersForMove(READ_THE_ROOM, null)).toEqual([]);
+		});
+
+		it("gives two slots holding the same ritual type their own independently checkable entries", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = {
+				system: {
+					attributes: {
+						arcanist: {
+							rituals: [{ ritualKey: "arcanist-ritual:warding" }, { ritualKey: "arcanist-ritual:warding" }, null]
+						},
+						moveTrackers: { [PREPARE_RITUALS_KEY]: { "ward-hold": 4 } }
+					}
+				}
+			};
+
+			const entries = sheet._rollModifiersForMove(EXCHANGE_BLOWS, null);
+
+			expect(entries.map((e) => e.key)).toEqual(["ritual-1", "ritual-2"]);
+			expect(entries.every((e) => !e.disabled)).toBe(true);
+		});
+
+		it("renders a spent confidence entry disabled, with its own reason", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = {
+				system: {
+					attributes: {
+						arcanist: { rituals: [{ ritualKey: "arcanist-ritual:confidence", moveKey: WEATHER_THE_STORM.key }, null, null] },
+						moveUses: { [PREPARE_RITUALS_KEY]: { "ritual-1": true } }
+					}
+				}
+			};
+
+			const [entry] = sheet._rollModifiersForMove(WEATHER_THE_STORM, null);
+
+			expect(entry.disabled).toBe(true);
+			expect(entry.disabledReason).toBe("Already used");
+		});
+
+		it("produces no roll-modifier source at all for an Aspect-only prepared slot (it carries no rollModifier)", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = {
+				system: { attributes: { arcanist: { rituals: [{ ritualKey: "arcanist-ritual:aspect" }, null, null] } } }
+			};
+
+			expect(sheet._rollModifiersForMove(EXCHANGE_BLOWS, null)).toEqual([]);
+			expect(sheet._rollModifierSources().map((s) => s.key)).not.toContain(PREPARE_RITUALS_KEY);
+		});
+
+		it("labels a confidence entry with no stored moveKey by the ritual name alone, scoped to no move", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = {
+				system: { attributes: { arcanist: { rituals: [{ ritualKey: "arcanist-ritual:confidence" }, null, null] } } }
+			};
+
+			const [entry] = sheet._rollModifiersForMove(EXCHANGE_BLOWS, null);
+
+			expect(entry).toBeUndefined();
+			const source = sheet._ritualRollModifierSource();
+			expect(source.grantsRollModifier[0]).toEqual(expect.objectContaining({
+				label: "Make a Move in Confidence",
+				moveKeys: []
+			}));
+		});
+
+		it("falls back to the raw moveKey in a confidence entry's label when it no longer resolves in ALL_MOVES", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = {
+				system: {
+					attributes: {
+						arcanist: { rituals: [{ ritualKey: "arcanist-ritual:confidence", moveKey: "stale-move-key" }, null, null] }
+					}
+				}
+			};
+
+			const source = sheet._ritualRollModifierSource();
+
+			expect(source.grantsRollModifier[0]).toEqual(expect.objectContaining({
+				label: "Make a Move in Confidence: stale-move-key",
+				moveKeys: ["stale-move-key"]
+			}));
+		});
+
+		it("renders a Warding entry disabled once its shared Wardhold pool is empty", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = {
+				system: {
+					attributes: {
+						arcanist: { rituals: [{ ritualKey: "arcanist-ritual:warding" }, null, null] },
+						moveTrackers: { [PREPARE_RITUALS_KEY]: { "ward-hold": 0 } }
+					}
+				}
+			};
+
+			const [entry] = sheet._rollModifiersForMove(EXCHANGE_BLOWS, null);
+
+			expect(entry.disabled).toBe(true);
+			expect(entry.disabledReason).toBe("Needs 1 Ward Hold");
+			expect(entry.advantage).toBe("advantage");
+			expect(entry.requiresAdvantage).toEqual(["disadvantage", "disadvantage2"]);
+		});
+	});
 });
 
 // The mirror image of _availableAutomaticSuccess (unit-tested through integration elsewhere, e.g.
@@ -618,6 +814,84 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 		await sheet._spendRollModifiers([SHARPER_KNIVES.key]);
 
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	// costsTracker's own spend (the Arcanist's Warding ritual) — shaped exactly like costsHold's
+	// write above, just against a numericTrackers pool instead.
+	it("costsTracker: decrements the named tracker by the spec's own amount", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					arcanist: { rituals: [{ ritualKey: "arcanist-ritual:warding" }, null, null] },
+					moveTrackers: { [PREPARE_RITUALS_KEY]: { "ward-hold": 2 } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._spendRollModifiers(["ritual-1"]);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveTrackers.${PREPARE_RITUALS_KEY}.ward-hold`]: 1
+		});
+	});
+
+	it("costsTracker: treats a missing tracker value as 0 before clamping at 0", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { arcanist: { rituals: [{ ritualKey: "arcanist-ritual:warding" }, null, null] } } },
+			update: vi.fn()
+		};
+
+		await sheet._spendRollModifiers(["ritual-1"]);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveTrackers.${PREPARE_RITUALS_KEY}.ward-hold`]: 0
+		});
+	});
+
+	// The confirmed accumulation bug (see move-grants-mixin.js's _spendRollModifiers doc comment):
+	// two checked entries drawing from the same pool in one batch must each apply their own
+	// deduction, not both compute off the same stale stored value — exercised for both the new
+	// costsTracker gate (two prepared Warding rituals sharing one Wardhold pool) and the
+	// pre-existing costsHold gate (fixed in the same pass, for correctness).
+	it("costsTracker: two checked entries sharing one Wardhold pool each apply their own deduction", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					arcanist: {
+						rituals: [{ ritualKey: "arcanist-ritual:warding" }, { ritualKey: "arcanist-ritual:warding" }, null]
+					},
+					moveTrackers: { [PREPARE_RITUALS_KEY]: { "ward-hold": 4 } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._spendRollModifiers(["ritual-1", "ritual-2"]);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveTrackers.${PREPARE_RITUALS_KEY}.ward-hold`]: 2
+		});
+	});
+
+	it("costsHold: two checked entries sharing one hold pool each apply their own deduction", async () => {
+		const sheet = new PlaybookActorSheet();
+		const TWIN_HOLD_SOURCE_A = { key: "twin-hold-a", grantsRollModifier: [{ key: "twin-a", costsHold: { moveKey: EMBRACE_CHAOS.key, amount: 1 } }] };
+		const TWIN_HOLD_SOURCE_B = { key: "twin-hold-b", grantsRollModifier: [{ key: "twin-b", costsHold: { moveKey: EMBRACE_CHAOS.key, amount: 1 } }] };
+		sheet._rollModifierSources = vi.fn(() => [TWIN_HOLD_SOURCE_A, TWIN_HOLD_SOURCE_B]);
+		sheet.actor = {
+			system: { attributes: { moveHold: { [EMBRACE_CHAOS.key]: { value: 2 } } } },
+			update: vi.fn()
+		};
+
+		await sheet._spendRollModifiers(["twin-a", "twin-b"]);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			[`system.attributes.moveHold.${EMBRACE_CHAOS.key}.value`]: 0
+		});
 	});
 
 	it("skips a picked source that carries no grantsRollModifier at all", async () => {

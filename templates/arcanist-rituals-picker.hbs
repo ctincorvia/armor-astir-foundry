@@ -1,0 +1,20 @@
+<form class="armor-astir-arcanist-rituals-picker">
+	<p class="arcanist-rituals-picker-instructions">{{instructions}}</p>
+	<ol class="arcanist-rituals-picker-list">
+		{{#each slots}}
+		<li class="arcanist-rituals-picker-item{{#if locked}} arcanist-rituals-picker-item-locked{{/if}}">
+			<span class="arcanist-rituals-picker-slot-label">{{label}}</span>
+			{{#if locked}}
+			<span class="arcanist-rituals-picker-locked-summary">{{ritualName}}{{#if moveName}} ({{moveName}}){{/if}}</span>
+			{{else}}
+			<select name="ritual-type-{{index}}" class="arcanist-rituals-picker-type-select">
+				{{selectOptions ../ritualOptions selected=ritualKey valueAttr="key" labelAttr="name" blank="— Choose an effect —"}}
+			</select>
+			<select name="ritual-move-{{index}}" class="arcanist-rituals-picker-move-select{{#unless requiresMove}} hidden{{/unless}}" data-move-select="{{index}}">
+				{{selectOptions ../moveOptions selected=moveKey valueAttr="key" labelAttr="name" blank="— Choose a move —"}}
+			</select>
+			{{/if}}
+		</li>
+		{{/each}}
+	</ol>
+</form>

@@ -142,6 +142,40 @@ describe("PlaybookActorSheet#_onMoveUseToggle", () => {
 			[`system.attributes.moveUses.${PERSONAL_FAMILIAR.key}.sortie`]: false
 		});
 	});
+
+	// A synthesized Arcanist ritual slot's own checkbox carries the slot's own key in data-move (not
+	// the real Prepare Rituals move's key — see arcanist-mixin.js's _preparedRitualMoves), so this
+	// has to resolve the clicked move first (via _resolveAnyMove's _preparedRitualEntry fallback) to
+	// find its usesMoveKey before writing, the same substitution the read side (moves-mixin.js's
+	// uses-checked mapping) already applies.
+	it("routes a ritual slot's own checkbox through usesMoveKey into the real move's bucket", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { arcanist: { rituals: [{ ritualKey: "arcanist-ritual:aspect" }, null, null] } } },
+			update: vi.fn()
+		};
+
+		sheet._onMoveUseToggle({
+			currentTarget: { dataset: { move: "arcanist-ritual-slot:1", use: "ritual-1" }, checked: true }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-1": true
+		});
+	});
+
+	it("falls back to the clicked key itself when it resolves to no move at all", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+
+		sheet._onMoveUseToggle({
+			currentTarget: { dataset: { move: "not-a-real-move", use: "sortie" }, checked: true }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.moveUses.not-a-real-move.sortie": true
+		});
+	});
 });
 
 describe("PlaybookActorSheet#_onTraitBonusChoiceChange", () => {

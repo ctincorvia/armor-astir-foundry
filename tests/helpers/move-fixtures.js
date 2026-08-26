@@ -66,6 +66,11 @@ export const ALL_IN = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:all-in"
 // separateHold (not flatHold) — the-arcanist:reshape, the one exercised _moveHoldValue/
 // _moveHoldUpdatePath's "flatHold falsy, separateHold truthy" branch needs.
 export const RESHAPE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:reshape");
+// The Arcanist's Prepare Rituals (arcanist.js/arcanist-mixin.js) — the real catalog move every
+// synthesized ritual slot's own Spent flag/ward-hold tracker lives on, and its own Adaptive Rituals
+// sibling (gates _hasAdaptiveRituals/_onAdaptRituals).
+export const PREPARE_RITUALS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:prepare-rituals");
+export const ADAPTIVE_RITUALS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:adaptive-rituals");
 
 // addsMixedReminderToMove sources (Riders section's 7-9 tier — see
 // tests/playbook-actor-sheet-roll-resolved.test.js and the-scout.js/soldier.js/the-attendant.js/

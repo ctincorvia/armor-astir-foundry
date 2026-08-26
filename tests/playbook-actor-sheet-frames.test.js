@@ -741,6 +741,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
+			"system.attributes.arcanist.rituals": [],
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
@@ -769,6 +770,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
+			"system.attributes.arcanist.rituals": [],
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
@@ -801,6 +803,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
+			"system.attributes.arcanist.rituals": [],
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
@@ -840,6 +843,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
+			"system.attributes.arcanist.rituals": [],
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
@@ -875,6 +879,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.bonusDowntimeTokens.the-summoner:helping-hands.value": 1,
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
+			"system.attributes.arcanist.rituals": [],
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			"system.attributes.moveTrackers.crew-support.hold": 0
@@ -1206,6 +1211,80 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 
 		const updates = sheet.actor.update.mock.calls.at(-1)[0];
 		expect(Object.keys(updates).some((key) => key.includes("quarters:extra-token"))).toBe(false);
+	});
+
+	// The Arcanist's Prepare Rituals (arcanist-mixin.js): "any remaining rituals expire when you
+	// prepare new ones," and rituals are re-prepared every Sortie regardless — see docs/domains/moves.md's
+	// "synthesize a roll-modifier source" paragraph for why this needs its own explicit clear
+	// (arcanist.rituals isn't a uses/numericTrackers entry on a catalog move) while the ritual-1/2/3
+	// spent flags and the ward-hold tracker are cleared for free by the generic _refreshPeriod walk.
+	it("clears arcanist.rituals, unconditionally", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { arcanist: { rituals: [{ ritualKey: "arcanist-ritual:warding" }, null, null] } } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.arcanist.rituals": [] })
+		);
+	});
+
+	it("clears the ritual-1/2/3 spent flags via the generic _refreshPeriod walk", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { moveUses: { "the-arcanist:prepare-rituals": { "ritual-1": true, "ritual-2": true } } } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-1": false,
+				"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-2": false
+			})
+		);
+	});
+
+	it("resets the ward-hold tracker to its min via the generic _refreshPeriod walk", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { moveTrackers: { "the-arcanist:prepare-rituals": { "ward-hold": 4 } } } },
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.moveTrackers.the-arcanist:prepare-rituals.ward-hold": 0 })
+		);
+	});
+});
+
+describe("PlaybookActorSheet#_onRefreshScene - the Arcanist's Prepare Rituals", () => {
+	it("leaves arcanist.rituals, the spent flags and the ward-hold tracker alone", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					arcanist: { rituals: [{ ritualKey: "arcanist-ritual:warding" }, null, null] },
+					moveUses: { "the-arcanist:prepare-rituals": { "ritual-1": true } },
+					moveTrackers: { "the-arcanist:prepare-rituals": { "ward-hold": 4 } }
+				},
+				resources: { hold: { value: 0 } }
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshScene();
+
+		const updates = sheet.actor.update.mock.calls.at(-1)[0];
+		expect("system.attributes.arcanist.rituals" in updates).toBe(false);
+		expect("system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-1" in updates).toBe(false);
+		expect("system.attributes.moveTrackers.the-arcanist:prepare-rituals.ward-hold" in updates).toBe(false);
 	});
 });
 

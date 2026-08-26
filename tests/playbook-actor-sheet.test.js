@@ -399,6 +399,22 @@ describe("PlaybookActorSheet#activateListeners", () => {
 		expect(html.find).toHaveBeenCalledWith(".playbook-select");
 		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
 	});
+
+	// The Arcanist's Prepare/Adapt buttons (arcanist-mixin.js) — bound next to the pre-existing
+	// witch-boons-* bindings, same click-handler shape.
+	it("binds click handlers to the Prepare/Adapt Rituals buttons", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".arcanist-rituals-prepare");
+		expect(html.find).toHaveBeenCalledWith(".arcanist-rituals-adapt");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+	});
 });
 
 describe("PlaybookActorSheet#_seedCosmeticDefaults", () => {

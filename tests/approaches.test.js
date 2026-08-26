@@ -113,4 +113,20 @@ describe("chooseApproachOverride", () => {
 
 		expect(Dialog.mock.calls.at(-1)[1]).toEqual({ classes: ["armor-astir"] });
 	});
+
+	// The Arcanist's Aspect ritual (arcanist-mixin.js) reuses this same picker for a Sortie-scoped
+	// swap instead of Chromatic Focus/Reserves' own Scene-scoped one — `period` only ever changes
+	// this dialog copy; move-roll-mixin.js's _onMoveActivate decides separately whether the resolved
+	// approach gets written with a `period` key at all.
+	it("defaults the dialog copy to Scene when no period is given", () => {
+		chooseApproachOverride("mundane");
+
+		expect(Dialog.mock.calls.at(-1)[0].content).toBe("<p>Swap to which Approach for this Scene?</p>");
+	});
+
+	it("words the dialog copy for a passed-in period", () => {
+		chooseApproachOverride("mundane", "Sortie");
+
+		expect(Dialog.mock.calls.at(-1)[0].content).toBe("<p>Swap to which Approach for this Sortie?</p>");
+	});
 });

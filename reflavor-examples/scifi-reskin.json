@@ -120,7 +120,7 @@
 			"description": "A capacitor-lined blade, primed to discharge a disabling electromagnetic pulse on impact."
 		},
 		"ardent-feature:brimstone-pods": {
-			"name": "Grenade Tubes",
+			"name": "Grenade Battery",
 			"description": "Usually fixed in arrays on ardent hulls, these tubes can be loaded with a variety of explosive or chemical payloads, and fired in salvos."
 		},
 		"hewer": {

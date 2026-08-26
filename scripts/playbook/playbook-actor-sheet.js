@@ -22,6 +22,7 @@ import { MoveGrantsSheetMixin } from "./playbook-sheet/move-grants-mixin.js";
 import { MoveTrackingSheetMixin } from "./playbook-sheet/move-tracking-mixin.js";
 import { MoveRollSheetMixin } from "./playbook-sheet/move-roll-mixin.js";
 import { PatronSheetMixin } from "./playbook-sheet/patron-mixin.js";
+import { ArcanistSheetMixin } from "./playbook-sheet/arcanist-mixin.js";
 import { HomeSheetMixin } from "./playbook-sheet/home-mixin.js";
 import { SummonerSheetMixin } from "./playbook-sheet/summoner-mixin.js";
 import { QuartersSheetMixin } from "./playbook-sheet/quarters-mixin.js";
@@ -99,6 +100,10 @@ export class PlaybookActorSheet extends ActorSheet {
 		// isCommander both follow). Computed unconditionally below (data.witch), same as
 		// data.aceCrew already is for isCommander.
 		data.isWitch = playbookSlug === "the-witch";
+		// Gates the Prepare Rituals section (Social tab) — Prepare/Adapt buttons, the Wardhold
+		// readout, and the 3 ritual slots — exclusive to The Arcanist (see arcanist.js/arcanist-mixin.js).
+		// Same "compute regardless, gate the render" stance as data.witch above.
+		data.isArcanist = playbookSlug === "the-arcanist";
 		// Gates the Tenets label + Shaken checkbox on the Social tab's Hooks section — exclusive to
 		// The Paradigm (see claude.md's Tenets notes and tracking-mixin.js's HOOK_DEPTHS comment).
 		// Computed here, same reason isCommander/isWitch are: no Handlebars equality helper is
@@ -205,6 +210,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		data.aceCrew = this._aceCrewData();
 		data.hooks = this._hooksData();
 		data.witch = this._witchData();
+		data.arcanist = this._arcanistData();
 		// The Adrift's +HOME clock (Social tab) — gated on the actor having actually picked Love,
 		// Love, Love, the same "object once a granting move/part is installed, else null" treatment
 		// an Ardent's Repair Tokens already establishes for a conditionally-present section.
@@ -283,6 +289,8 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".witch-boons-random").on("click", this._grantRandomWitchBoons.bind(this));
 		html.find(".witch-boons-choose").on("click", this._onWitchBoonsChoose.bind(this));
 		html.find(".witch-boons-relinquish").on("click", this._onWitchBoonsRelinquish.bind(this));
+		html.find(".arcanist-rituals-prepare").on("click", this._onPrepareRituals.bind(this));
+		html.find(".arcanist-rituals-adapt").on("click", this._onAdaptRituals.bind(this));
 		html.find(".home-value-step").on("click", this._onHomeValueStep.bind(this));
 		html.find(".home-clock-step").on("click", this._onHomeProgressStep.bind(this));
 		html.find(".bound-ally-add").on("click", this._onBoundAllyAdd.bind(this));
@@ -372,7 +380,7 @@ Object.assign(
 	PlaybookActorSheet.prototype,
 	TrackingSheetMixin, ProgressionSheetMixin, ArdentSheetMixin, FramesSheetMixin,
 	AstirSheetMixin, EquipmentSheetMixin, MovesSheetMixin, MoveTraitsSheetMixin, MoveGrantsSheetMixin,
-	MoveTrackingSheetMixin, MoveRollSheetMixin, PatronSheetMixin, HomeSheetMixin,
+	MoveTrackingSheetMixin, MoveRollSheetMixin, PatronSheetMixin, ArcanistSheetMixin, HomeSheetMixin,
 	SummonerSheetMixin, QuartersSheetMixin
 );
 

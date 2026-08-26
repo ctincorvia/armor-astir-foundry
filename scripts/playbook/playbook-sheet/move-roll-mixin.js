@@ -24,9 +24,12 @@ import { findWitchBoon, resolveWitchBoons } from "../witch.js";
 export const MoveRollSheetMixin = {
 	// A held Witch Boon (witch.js) renders Chat/Info buttons — and, for Masking, a Roll button — in
 	// its own Patron Boons group (moves-mixin.js), so every ALL_MOVES.find lookup keyed off a
-	// clicked move's data-move key needs this fallback alongside it.
+	// clicked move's data-move key needs this fallback alongside it. A synthesized Arcanist ritual
+	// slot (arcanist-mixin.js's _preparedRitualMoves) gets the same treatment as a third fallback —
+	// it renders Chat/Info (and, for the Aspect ritual, Activate) buttons in its own Prepared
+	// Rituals group the same read-only way a Boon does.
 	_resolveAnyMove(key) {
-		return ALL_MOVES.find((m) => m.key === key) ?? findWitchBoon(key);
+		return ALL_MOVES.find((m) => m.key === key) ?? findWitchBoon(key) ?? this._preparedRitualEntry(key);
 	},
 	async _onMoveRoll(event) {
 		const clicked = this._resolveAnyMove(event.currentTarget.dataset.move);
@@ -562,7 +565,7 @@ export const MoveRollSheetMixin = {
 	// — unlike that button, this fires even when the mechanical effect itself is a no-op (e.g.
 	// hold already at HOLD_MAX), since the player still asked to see the move's text.
 	async _onMoveActivate(event) {
-		const move = ALL_MOVES.find((m) => m.key === event.currentTarget.dataset.move);
+		const move = this._resolveAnyMove(event.currentTarget.dataset.move);
 		if (!move) return;
 
 		if (move.flatHold) {
@@ -619,20 +622,32 @@ export const MoveRollSheetMixin = {
 			return;
 		}
 
-		// Chromatic Focus/Chromatic Reserves (astir-parts.js/ardent.js's promptsApproachOverride).
-		// No-ops with nothing left to spend — a `uses` checkbox (Chromatic Focus) or a numericTrackers
-		// countdown at 0 (Chromatic Reserves), same as move.activatesApproachOverride's own "nothing
-		// to snapshot" guard above — so a fully-Expended part never even opens the dialog. Cancelling
-		// the dialog also no-ops entirely — no actor.update call at all, unlike a real pick, which
-		// writes the override and the spend in one update so the two can never land out of sync.
-		// moves-mixin.js's _promptsApproachOverrideAvailable/_promptsApproachOverrideSpend resolve
-		// both storage shapes generically, so this branch doesn't need to know which one it's got.
+		// Chromatic Focus/Chromatic Reserves (astir-parts.js/ardent.js's promptsApproachOverride),
+		// and the Arcanist's Aspect ritual (arcanist-mixin.js's _preparedRitualMoves). No-ops with
+		// nothing left to spend — a `uses` checkbox (Chromatic Focus, the Aspect ritual) or a
+		// numericTrackers countdown at 0 (Chromatic Reserves), same as move.activatesApproachOverride's
+		// own "nothing to snapshot" guard above — so a fully-spent source never even opens the dialog.
+		// Cancelling the dialog also no-ops entirely — no actor.update call at all, unlike a real
+		// pick, which writes the override and the spend in one update so the two can never land out
+		// of sync. moves-mixin.js's _promptsApproachOverrideAvailable/_promptsApproachOverrideSpend
+		// resolve both storage shapes generically, so this branch doesn't need to know which one it's
+		// got. `promptsApproachOverride` is either bare `true` (Chromatic Focus/Reserves, Scene-
+		// scoped) or `{period}` (the Aspect ritual, Sortie-scoped) — the written approachOverride
+		// object only ever carries a `period` key when it's "Scene", exactly matching Enduring
+		// Support's own Sortie-scoped shape (no `period` key at all) and _onRefreshSortie's
+		// unconditional clear.
 		if (move.promptsApproachOverride) {
 			if (!this._promptsApproachOverrideAvailable(move)) return;
-			const chosen = await chooseApproachOverride(this.actor.system.attributes?.approach ?? "");
+			// No `?? "Scene"` fallback on the object form's own `.period` -- every real catalog entry
+			// that passes `{period}` (the Aspect ritual, below) always sets it; add the fallback back
+			// only once a real grant actually needs it (see move-grants-mixin.js's own precedent for
+			// this same "don't carry a branch the 100%-coverage gate can never legitimately exercise"
+			// stance).
+			const period = move.promptsApproachOverride === true ? "Scene" : move.promptsApproachOverride.period;
+			const chosen = await chooseApproachOverride(this.actor.system.attributes?.approach ?? "", period);
 			if (!chosen) return;
 			await this.actor.update({
-				"system.attributes.approachOverride": { approach: chosen, period: "Scene" },
+				"system.attributes.approachOverride": { approach: chosen, ...(period === "Scene" && { period }) },
 				...this._promptsApproachOverrideSpend(move)
 			});
 			await postMoveDescription(this.actor, move);

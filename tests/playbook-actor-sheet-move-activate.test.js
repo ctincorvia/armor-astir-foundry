@@ -281,7 +281,7 @@ describe("PlaybookActorSheet#_onMoveActivate - Chromatic Focus", () => {
 
 		await sheet._onMoveActivate({ currentTarget: { dataset: { move: CHROMATIC_FOCUS.key } } });
 
-		expect(chooseApproachOverride).toHaveBeenCalledWith("mundane");
+		expect(chooseApproachOverride).toHaveBeenCalledWith("mundane", "Scene");
 	});
 
 	it("excludes an empty string when the actor has no approach set at all", async () => {
@@ -291,7 +291,7 @@ describe("PlaybookActorSheet#_onMoveActivate - Chromatic Focus", () => {
 
 		await sheet._onMoveActivate({ currentTarget: { dataset: { move: CHROMATIC_FOCUS.key } } });
 
-		expect(chooseApproachOverride).toHaveBeenCalledWith("");
+		expect(chooseApproachOverride).toHaveBeenCalledWith("", "Scene");
 	});
 
 	it("writes the override and checks Expended in one update, then posts the description", async () => {
@@ -368,6 +368,75 @@ describe("PlaybookActorSheet#_onMoveActivate - Chromatic Reserves", () => {
 			"system.attributes.approachOverride": { approach: "arcane", period: "Scene" },
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 1
 		});
+	});
+});
+
+// The Arcanist's Aspect ritual (arcanist-mixin.js's _preparedRitualMoves) — the promptsApproachOverride
+// generalization's own reference case: unlike Chromatic Focus/Reserves' bare `true` (Scene-scoped,
+// tested above), this carries `{period: "Sortie"}`, so the written approachOverride carries no
+// `period` key at all — exactly matching Enduring Support's own Sortie-scoped shape.
+describe("PlaybookActorSheet#_onMoveActivate - the Arcanist's Aspect ritual", () => {
+	const RITUAL_SLOT_KEY = "arcanist-ritual-slot:1";
+
+	it("does not even open the dialog once the slot's own Spent flag is already checked", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					arcanist: { rituals: [{ ritualKey: "arcanist-ritual:aspect" }, null, null] },
+					moveUses: { "the-arcanist:prepare-rituals": { "ritual-1": true } }
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: RITUAL_SLOT_KEY } } });
+
+		expect(chooseApproachOverride).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("opens the picker worded for a Sortie", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { approach: "mundane", arcanist: { rituals: [{ ritualKey: "arcanist-ritual:aspect" }, null, null] } } },
+			update: vi.fn()
+		};
+		chooseApproachOverride.mockResolvedValue(null);
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: RITUAL_SLOT_KEY } } });
+
+		expect(chooseApproachOverride).toHaveBeenCalledWith("mundane", "Sortie");
+	});
+
+	it("writes {approach} with no period key, plus the slot's own spend, in one update", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { approach: "mundane", arcanist: { rituals: [{ ritualKey: "arcanist-ritual:aspect" }, null, null] } } },
+			update: vi.fn()
+		};
+		chooseApproachOverride.mockResolvedValue("profane");
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: RITUAL_SLOT_KEY } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.approachOverride": { approach: "profane" },
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-1": true
+		});
+		expect(postMoveDescription).toHaveBeenCalled();
+	});
+
+	it("makes no update when the picker is cancelled", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { approach: "mundane", arcanist: { rituals: [{ ritualKey: "arcanist-ritual:aspect" }, null, null] } } },
+			update: vi.fn()
+		};
+		chooseApproachOverride.mockResolvedValue(null);
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: RITUAL_SLOT_KEY } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 });
 

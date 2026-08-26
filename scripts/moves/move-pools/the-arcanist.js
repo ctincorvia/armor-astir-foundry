@@ -23,6 +23,12 @@ export const THE_ARCANIST_POOL = {
 				{ key: "ritual-2", label: "Ritual 2 Spent", period: "Sortie" },
 				{ key: "ritual-3", label: "Ritual 3 Spent", period: "Sortie" }
 			],
+			// The shared, additive "Hold 2" pool for every prepared Warding ritual (see arcanist.js's
+			// wardHoldFor/adaptedWardHold) — Sortie-scoped like the ritual-1/2/3 uses above, so
+			// _refreshPeriod (frames-mixin.js) already resets it to 0 on Refresh Sortie for free.
+			numericTrackers: [
+				{ key: "ward-hold", label: "Ward Hold", min: 0, max: 6, period: "Sortie" }
+			],
 			description:
 				"<p>Before every Sortie, you prepare a set of complex rituals to bolster your magical " +
 				"potential. When someone leads a Sortie, describe to your Director 3 magical rituals you " +

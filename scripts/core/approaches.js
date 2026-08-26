@@ -39,8 +39,11 @@ export function availableApproaches(playbookSlug) {
 // Chromatic Focus (astir-parts.js) / Chromatic Reserves (ardent.js's ARDENT_FEATURE_PARTS) own
 // Activate flow: "swap to any other Approach for a single Scene" — offers every Approach but the
 // one currently in effect. Mirrors carrier-actor-sheet.js's chooseCarrier exactly (promise/Dialog/
-// resolve-null shape, one labelled button per option).
-export function chooseApproachOverride(excludeApproach) {
+// resolve-null shape, one labelled button per option). `period` (default "Scene", matching every
+// caller before the Arcanist's Aspect ritual — arcanist-mixin.js) only ever changes the dialog's own
+// copy; the caller (move-roll-mixin.js's _onMoveActivate) decides separately whether the resolved
+// approach gets written with a `period` key at all.
+export function chooseApproachOverride(excludeApproach, period = "Scene") {
 	return new Promise((resolve) => {
 		const buttons = {};
 		for (const approach of APPROACHES.filter((a) => a.key !== excludeApproach)) {
@@ -48,7 +51,7 @@ export function chooseApproachOverride(excludeApproach) {
 		}
 		new Dialog({
 			title: "Swap Approach",
-			content: "<p>Swap to which Approach for this Scene?</p>",
+			content: `<p>Swap to which Approach for this ${period}?</p>`,
 			buttons,
 			close: () => resolve(null)
 		}, { classes: ["armor-astir"] }).render(true);
