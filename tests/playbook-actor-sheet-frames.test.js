@@ -742,6 +742,9 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
 			"system.attributes.arcanist.rituals": [],
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-1": false,
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-2": false,
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-3": false,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
@@ -771,6 +774,9 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
 			"system.attributes.arcanist.rituals": [],
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-1": false,
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-2": false,
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-3": false,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
@@ -804,6 +810,9 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
 			"system.attributes.arcanist.rituals": [],
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-1": false,
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-2": false,
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-3": false,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
@@ -844,6 +853,9 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
 			"system.attributes.arcanist.rituals": [],
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-1": false,
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-2": false,
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-3": false,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
@@ -880,6 +892,9 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.eidolonDrive": { summonedAllyId: null, bonusUsed: false },
 			"system.attributes.approachOverride": null,
 			"system.attributes.arcanist.rituals": [],
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-1": false,
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-2": false,
+			"system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-3": false,
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			"system.attributes.moveTrackers.crew-support.hold": 0
@@ -1215,9 +1230,10 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 
 	// The Arcanist's Prepare Rituals (arcanist-mixin.js): "any remaining rituals expire when you
 	// prepare new ones," and rituals are re-prepared every Sortie regardless — see docs/domains/moves.md's
-	// "synthesize a roll-modifier source" paragraph for why this needs its own explicit clear
-	// (arcanist.rituals isn't a uses/numericTrackers entry on a catalog move) while the ritual-1/2/3
-	// spent flags and the ward-hold tracker are cleared for free by the generic _refreshPeriod walk.
+	// "synthesize a roll-modifier source" paragraph for why this needs its own explicit clear. Neither
+	// arcanist.rituals nor the ritual-1/2/3 spent flags is a uses/numericTrackers entry on a catalog
+	// move, so both get their own explicit line in _onRefreshSortie; only the ward-hold tracker is
+	// cleared for free by the generic _refreshPeriod walk.
 	it("clears arcanist.rituals, unconditionally", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
@@ -1232,7 +1248,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 		);
 	});
 
-	it("clears the ritual-1/2/3 spent flags via the generic _refreshPeriod walk", () => {
+	it("clears the ritual-1/2/3 spent flags via _onRefreshSortie's own explicit write", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { attributes: { moveUses: { "the-arcanist:prepare-rituals": { "ritual-1": true, "ritual-2": true } } } },

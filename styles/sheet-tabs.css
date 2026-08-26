@@ -659,3 +659,10 @@
 	pointer-events: none;
 	white-space: normal;
 }
+
+/* Adapt is the rightmost button in .section-header-actions, so the shared left-anchoring above
+   pushes its bubble off the sheet's right edge instead — anchor to the right edge here instead. */
+.armor-astir.sheet .arcanist-rituals-adapt.disabled[data-gate-tooltip]:hover::after {
+	left: auto;
+	right: 0;
+}

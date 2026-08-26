@@ -337,12 +337,16 @@ export const FramesSheetMixin = {
 		// (and only) clear point.
 		updates["system.attributes.approachOverride"] = null;
 		// The Arcanist's Prepare Rituals (arcanist-mixin.js): "any remaining rituals expire when you
-		// prepare new ones," and rituals are re-prepared every Sortie regardless. The ritual-1/2/3
-		// spent flags and the ward-hold tracker are already cleared for free by _refreshPeriod above
-		// (both are Sortie-scoped catalog fields — see move-pools/the-arcanist.js); this is the one
-		// field _refreshPeriod's generic ALL_MOVES walk can't reach, since it isn't a `uses`/
-		// numericTrackers entry on a catalog move at all.
+		// prepare new ones," and rituals are re-prepared every Sortie regardless. Neither the
+		// ritual-1/2/3 spent flags nor the slot assignments themselves (arcanist.rituals) are a
+		// `uses`/numericTrackers entry on a catalog move (see move-pools/the-arcanist.js), so
+		// _refreshPeriod's generic ALL_MOVES walk above can't reach either one — both need their own
+		// explicit clear here. Only the ward-hold tracker is a real Sortie-scoped numericTrackers
+		// entry on that move, so it alone is already cleared for free by _refreshPeriod above.
 		updates["system.attributes.arcanist.rituals"] = [];
+		updates["system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-1"] = false;
+		updates["system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-2"] = false;
+		updates["system.attributes.moveUses.the-arcanist:prepare-rituals.ritual-3"] = false;
 		updates["system.attributes.downtimeTokens.value"] = this._downtimeTokensMax();
 		// The Extra Parts/Weapons pool (see docs/domains/frames.md's Ardents section) is entirely
 		// removed here, not just uses-reset like everything above — guarded on astir existing and

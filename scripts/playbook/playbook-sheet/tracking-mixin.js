@@ -15,7 +15,7 @@ import {
 // one actually does.
 export const DANGER_MAX = 3;
 
-export const GRAVITY_CLOCK_MAX = 5;
+export const GRAVITY_CLOCK_MAX = 4;
 // Progress track reuses Spotlight's exact length/interaction (see _onGravityClockStep).
 export const GRAVITY_CLOCK_PROGRESS_MIN = 0;
 export const GRAVITY_CLOCK_PROGRESS_MAX = 6;

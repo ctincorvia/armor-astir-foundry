@@ -536,7 +536,7 @@ describe("PlaybookActorSheet#getData - gravity clocks", () => {
 
 		const data = sheet.getData();
 
-		expect(data.gravityClocks).toEqual({ max: 5, canAdd: true, list: [] });
+		expect(data.gravityClocks).toEqual({ max: 4, canAdd: true, list: [] });
 	});
 
 	it("expands each clock's stored progress into a Spotlight-style steps array", () => {

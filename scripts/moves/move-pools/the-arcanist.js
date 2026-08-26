@@ -11,18 +11,6 @@ export const THE_ARCANIST_POOL = {
 			// Field Scout/Giant Slayer's own comment, and Facilitator's identical reasoning for The
 			// Diplomat) — this is a plain grantedKeys entry in starting-moves.js instead.
 			traits: [],
-			// The effect choice per ritual (make a move in confidence / change the Astir's approach for
-			// the Sortie / a nested "hold 2, spend 1-for-1 to ignore a disadvantage" option) isn't
-			// mechanically enforced — nothing in this module tracks a set of independently-configurable
-			// slots like this. As a middle ground, these three checkboxes track only which of the 3
-			// rituals prepared for the current Sortie have already been spent; the player narrates which
-			// effect each one represents. `period: "Sortie"` ties them to the existing Refresh Sortie
-			// button, the closest existing proxy for "expire when you prepare new ones."
-			uses: [
-				{ key: "ritual-1", label: "Ritual 1 Spent", period: "Sortie" },
-				{ key: "ritual-2", label: "Ritual 2 Spent", period: "Sortie" },
-				{ key: "ritual-3", label: "Ritual 3 Spent", period: "Sortie" }
-			],
 			// The shared, additive "Hold 2" pool for every prepared Warding ritual (see arcanist.js's
 			// wardHoldFor/adaptedWardHold) — Sortie-scoped like the ritual-1/2/3 uses above, so
 			// _refreshPeriod (frames-mixin.js) already resets it to 0 on Refresh Sortie for free.

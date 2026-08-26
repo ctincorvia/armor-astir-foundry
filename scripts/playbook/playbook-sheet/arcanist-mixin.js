@@ -10,10 +10,10 @@ import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { BASIC_MOVES, SPECIAL_MOVES } from "../../moves/moves.js";
 import { ALL_MOVES } from "../../moves/all-moves.js";
 
-// The real catalog move both the pre-existing ritual-1/2/3 `uses` checkboxes and the new `ward-hold`
-// numericTracker live on (move-pools/the-arcanist.js) — every synthesized per-slot entry below routes
-// its own state through this one key's existing moveUses/moveTrackers buckets rather than any new
-// field, so _refreshPeriod (frames-mixin.js) keeps clearing them for free.
+// The real catalog move the ritual-1/2/3 `uses` flags and the `ward-hold` numericTracker both live
+// on (move-pools/the-arcanist.js) — every synthesized per-slot entry below routes its own state
+// through this one key's existing moveUses/moveTrackers buckets rather than any new field, so
+// _refreshPeriod (frames-mixin.js) keeps clearing the ward-hold tracker for free.
 const PREPARE_RITUALS_KEY = "the-arcanist:prepare-rituals";
 
 // The Arcanist's Prepare Rituals domain (the 3 stored slots, Prepare/Adapt, the Wardhold pool, the
@@ -29,8 +29,9 @@ export const ArcanistSheetMixin = {
 		return this.actor.system.attributes?.arcanist?.rituals ?? [];
 	},
 	// Whether a given slot's own "ritual-N" Spent flag is checked — reads the real Prepare Rituals
-	// move's existing moveUses bucket, the same field the pre-existing ritual-1/2/3 checkboxes
-	// (Moves tab) and the roll dialog's own costsUse gate for a confidence ritual both read/write.
+	// move's existing moveUses bucket, the same field each prepared slot's own synthesized Spent
+	// checkbox (Moves tab, see _preparedRitualMoves) and the roll dialog's own costsUse gate for a
+	// confidence ritual both read/write.
 	_ritualSlotSpent(index) {
 		return Boolean(this.actor.system.attributes?.moveUses?.[PREPARE_RITUALS_KEY]?.[`ritual-${index + 1}`]);
 	},

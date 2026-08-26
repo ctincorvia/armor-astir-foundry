@@ -180,13 +180,10 @@ describe("MOVE_POOLS", () => {
 		expect(faceToFace.questions).toHaveLength(3);
 	});
 
-	it("gives Prepare Rituals 3 Sortie-scoped uses checkboxes, one per ritual", () => {
+	it("gives Prepare Rituals no uses array of its own — the per-slot Spent checkbox lives on each synthesized ritual entry instead", () => {
 		const prepareRituals = findPlaybookMove("the-arcanist:prepare-rituals");
 
-		expect(prepareRituals.uses.map((use) => use.key)).toEqual(["ritual-1", "ritual-2", "ritual-3"]);
-		for (const use of prepareRituals.uses) {
-			expect(use.period).toBe("Sortie");
-		}
+		expect(prepareRituals.uses).toBeUndefined();
 	});
 
 	// The additive Wardhold pool every prepared Warding ritual instance feeds (see arcanist.js's
