@@ -133,7 +133,7 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 		sheet.actor = {
 			system: {
 				attributes: {
-					astir: { id: "a1", tier: 3, parts: [] },
+					astir: { id: "a1", tier: 3, parts: [], piloted: true },
 					equipment: [
 						{ id: "1", kind: "weapon", astir: true, extra: true, name: "Spare Lance", description: "", tags: [], spent: [] }
 					]
@@ -335,6 +335,99 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 
 		expect(data.equipment.gear[0].tags.map((t) => t.key)).toEqual(["blitz"]);
 		expect(data.equipment.gear[0].value).toBe(1);
+	});
+
+	it("hides an Astir weapon from the Equipment tab while the Astir isn't piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", tier: 3, parts: [] },
+					equipment: [
+						{ id: "1", kind: "weapon", astir: true, name: "Lance", description: "", tags: [], spent: [] }
+					]
+				}
+			}
+		};
+
+		expect(sheet.getData().equipment.astirWeapons).toEqual([]);
+	});
+
+	it("surfaces an Astir weapon on the Equipment tab once the Astir is piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", tier: 3, parts: [], piloted: true },
+					equipment: [
+						{ id: "1", kind: "weapon", astir: true, name: "Lance", description: "", tags: [], spent: [] }
+					]
+				}
+			}
+		};
+
+		expect(sheet.getData().equipment.astirWeapons.map((w) => w.id)).toEqual(["1"]);
+	});
+
+	it("hides an Ardent's weapon from the Equipment tab while that Ardent isn't piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", tier: 2, parts: [] }],
+					equipment: [
+						{ id: "1", kind: "weapon", ardent: "ar1", name: "Spear", description: "", tags: [], spent: [] }
+					]
+				}
+			}
+		};
+
+		expect(sheet.getData().equipment.ardentWeapons).toEqual([]);
+	});
+
+	it("surfaces an Ardent's weapon on the Equipment tab once that Ardent is piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", tier: 2, parts: [], piloted: true }],
+					equipment: [
+						{ id: "1", kind: "weapon", ardent: "ar1", name: "Spear", description: "", tags: [], spent: [] }
+					]
+				}
+			}
+		};
+
+		expect(sheet.getData().equipment.ardentWeapons.map((w) => w.id)).toEqual(["1"]);
+	});
+
+	it("mounting one frame hides another frame's weapons from the Equipment tab, in both directions", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", tier: 3, parts: [], piloted: true },
+					ardents: [{ id: "ar1", tier: 2, parts: [], piloted: false }],
+					equipment: [
+						{ id: "1", kind: "weapon", astir: true, name: "Lance", description: "", tags: [], spent: [] },
+						{ id: "2", kind: "weapon", ardent: "ar1", name: "Spear", description: "", tags: [], spent: [] }
+					]
+				}
+			}
+		};
+
+		const astirMountedData = sheet.getData();
+
+		expect(astirMountedData.equipment.astirWeapons.map((w) => w.id)).toEqual(["1"]);
+		expect(astirMountedData.equipment.ardentWeapons).toEqual([]);
+
+		sheet.actor.system.attributes.astir.piloted = false;
+		sheet.actor.system.attributes.ardents[0].piloted = true;
+
+		const ardentMountedData = sheet.getData();
+
+		expect(ardentMountedData.equipment.astirWeapons).toEqual([]);
+		expect(ardentMountedData.equipment.ardentWeapons.map((w) => w.id)).toEqual(["2"]);
 	});
 });
 

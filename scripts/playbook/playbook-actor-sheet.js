@@ -197,7 +197,7 @@ export class PlaybookActorSheet extends ActorSheet {
 				.filter((item) => item.kind === "weapon" && item.ardent === ardent.id)
 				.map((item) => this._equipmentEntry(item, frameWeaponMoves(ardent.id), ardent))
 		]));
-		data.equipment = this._equipmentData(equipment, weaponMoves, astirWeapons, ardentWeaponEntriesById, ardents, startingGearPool);
+		data.equipment = this._equipmentData(equipment, weaponMoves, astirWeapons, ardentWeaponEntriesById, ardents, startingGearPool, mountedFrameId);
 		data.astir = this._astirData(astir, astirParts, astirMove, equipment, astirWeapons);
 		data.ardentTierMin = ARDENT_TIER_MIN;
 		data.ardentTierMax = ARDENT_TIER_MAX;

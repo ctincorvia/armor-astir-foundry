@@ -159,7 +159,11 @@ describe("PlaybookActorSheet#getData - weaponMoves", () => {
 
 		const data = sheet.getData();
 
-		expect(data.equipment.ardentWeapons[0].weaponMoves).toEqual([
+		// Read from data.ardents[0].weapons, not data.equipment.ardentWeapons — the Equipment tab's
+		// own list is mounted-frame-only, so an unmounted Ardent's weapon no longer surfaces there at
+		// all (see docs/domains/frames.md); the Ardents tab's own loadout-management view still shows
+		// it unconditionally, weaponMoves gating and all.
+		expect(data.ardents[0].weapons[0].weaponMoves).toEqual([
 			{ key: "exchange-blows", name: "Exchange Blows", gated: true, tooltip: "This weapon's frame isn't mounted. Dismount your current frame and mount this one to use this weapon." },
 			{ key: "strike-decisively", name: "Strike Decisively", gated: true, tooltip: "This weapon's frame isn't mounted. Dismount your current frame and mount this one to use this weapon." }
 		]);

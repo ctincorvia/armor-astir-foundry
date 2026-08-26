@@ -69,14 +69,19 @@ export const EquipmentSheetMixin = {
 	// computed once in getData (shared with the Astir/Ardent data methods, which render the same
 	// Astir/Ardent weapon entries read-only on their own tab) and passed in here rather than
 	// recomputed — see getData's own comment on why. Weapons get their own header per claude.md;
-	// gear is everything that isn't a weapon.
-	_equipmentData(equipment, weaponMoves, astirWeapons, ardentWeaponEntriesById, ardents, startingGearPool) {
+	// gear is everything that isn't a weapon. astirWeapons/ardentWeapons are further filtered to
+	// the currently mounted frame (mirroring _weaponFrameId's gating of quick-roll buttons/spends
+	// elsewhere) since this is the read-only Equipment tab; weapons/gear aren't, since those are
+	// the plain unmounted-equipment lists with no frame to be mounted at all.
+	_equipmentData(equipment, weaponMoves, astirWeapons, ardentWeaponEntriesById, ardents, startingGearPool, mountedFrameId) {
 		return {
 			weapons: equipment
 				.filter((item) => item.kind === "weapon" && !item.astir && !item.ardent)
 				.map((item) => this._equipmentEntry(item, weaponMoves)),
-			astirWeapons,
-			ardentWeapons: ardents.flatMap((ardent) => ardentWeaponEntriesById.get(ardent.id)),
+			astirWeapons: mountedFrameId === "astir" ? astirWeapons : [],
+			ardentWeapons: ardents
+				.filter((ardent) => ardent.id === mountedFrameId)
+				.flatMap((ardent) => ardentWeaponEntriesById.get(ardent.id)),
 			gear: equipment.filter((item) => item.kind !== "weapon").map((item) => this._equipmentEntry(item)),
 			// The "+ Choose Starting Gear" button (see PlaybookActorSheet#_onStartingGearAdd) only
 			// shows up once its playbook's pool actually has something to offer AND the actor's

@@ -366,7 +366,7 @@ describe("PlaybookActorSheet#getData - astir", () => {
 			system: {
 				stats: {},
 				attributes: {
-					astir: { id: "a1", core: "", approach: "", tier: 4, power: 4, overheating: false, parts: [], move: null },
+					astir: { id: "a1", core: "", approach: "", tier: 4, power: 4, overheating: false, parts: [], piloted: true, move: null },
 					equipment: [
 						{ id: "1", kind: "weapon", astir: true, name: "Lance", description: "", tags: [], spent: [] },
 						{ id: "2", kind: "weapon", name: "Rifle", description: "", tags: [], spent: [], scale: "foot", tier: 2 }
@@ -382,7 +382,9 @@ describe("PlaybookActorSheet#getData - astir", () => {
 		expect(data.astir.weapons[0].scaleLabel).toBe("Astir Scale");
 		// data.astir.weapons is now data.equipment.astirWeapons filtered to exclude Extra Weapons
 		// (see _astirData's own weapons/extraWeapons split), so the two are content-equal rather than
-		// the same array reference whenever nothing is flagged extra, as here.
+		// the same array reference whenever nothing is flagged extra, as here. Equipment tab's own
+		// astirWeapons is additionally mounted-frame-only (see equipment-mixin.js), so the Astir is
+		// piloted above to keep this comparison meaningful.
 		expect(data.equipment.astirWeapons).toEqual(data.astir.weapons);
 		expect(data.equipment.weapons.map((w) => w.id)).toEqual(["2"]);
 	});

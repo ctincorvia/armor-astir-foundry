@@ -97,7 +97,7 @@ describe("PlaybookActorSheet#getData - ardents", () => {
 		sheet.actor = {
 			system: {
 				attributes: {
-					ardents: [{ id: "ar1", tier: 4, parts: [] }, { id: "ar2", tier: 2, parts: [] }],
+					ardents: [{ id: "ar1", tier: 4, parts: [], piloted: true }, { id: "ar2", tier: 2, parts: [] }],
 					equipment: [
 						{ id: "1", kind: "weapon", ardent: "ar1", name: "Spear", description: "", tags: [], spent: [] },
 						{ id: "2", kind: "weapon", ardent: "ar2", name: "Axe", description: "", tags: [], spent: [] }
@@ -111,8 +111,12 @@ describe("PlaybookActorSheet#getData - ardents", () => {
 		expect(data.ardents[0].weapons.map((w) => w.id)).toEqual(["1"]);
 		expect(data.ardents[0].weapons[0].tier).toBe(4);
 		expect(data.ardents[0].weapons[0].scaleLabel).toBe("Astir Scale");
+		// ar2 isn't piloted, but its weapon still surfaces on the Ardents tab's own per-frame list —
+		// that's the loadout-management view, which is never gated (see docs/domains/frames.md).
 		expect(data.ardents[1].weapons.map((w) => w.id)).toEqual(["2"]);
-		expect(data.equipment.ardentWeapons.map((w) => w.id)).toEqual(["1", "2"]);
+		// The Equipment tab's own ardentWeapons is mounted-frame-only, though — only ar1 (piloted)
+		// shows here, not ar2's weapon.
+		expect(data.equipment.ardentWeapons.map((w) => w.id)).toEqual(["1"]);
 	});
 
 	it("flags loadoutFull once parts+weapons reach ARDENT_MAX_LOADOUT", () => {
