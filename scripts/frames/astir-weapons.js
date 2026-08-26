@@ -306,5 +306,22 @@ export const ASTIR_WEAPON_CATALOG = [
 			"aimed, also turned out to be remarkably effective at twisting physical matter in a way that " +
 			"displaces it into undiscovered dimensions, and vice versa. Stand well back.",
 		tags: ["melee", "ruin", "decisive", "messy", "drain-2"]
+	},
+	{
+		key: "little-shark-ii",
+		name: "Little Shark",
+		description: "When the first mariner's ardent team was dispatched to interfere with Progress " +
+			"reinforcements, they found their equipment lacking for undersea use. Dubbed Little Sharks, " +
+			"these ardent-fit wands stacked with short-range frost magic provided an easy way of ruining " +
+			"ship hulls. Descriptive tags: Freezing.",
+		tags: ["melee", "intimate"]
+	},
+	{
+		key: "bestiary-array-ii",
+		name: "Bestiary Array",
+		description: "A popular weapon among the Living Dead, the Bestiary Array projects words of power " +
+			"into acrid smoky shapes of beasts, hard to catch and irritatingly effective at unravelling " +
+			"Astir enchantments.",
+		tags: ["ranged", "bane", "versatile", "messy", "dangerous"]
 	}
 ];

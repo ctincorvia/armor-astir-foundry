@@ -208,17 +208,6 @@ export const EQUIPMENT_CATALOG = [
 		scale: "foot"
 	},
 	{
-		key: "little-shark-ii",
-		name: "Little Shark",
-		kind: "weapon",
-		description: "When the first mariner's ardent team was dispatched to interfere with Progress " +
-			"reinforcements, they found their equipment lacking for undersea use. Dubbed Little Sharks, " +
-			"these ardent-fit wands stacked with short-range frost magic provided an easy way of ruining " +
-			"ship hulls. Descriptive tags: Freezing.",
-		tags: ["melee", "intimate"],
-		scale: "astir"
-	},
-	{
 		key: "simplified-codex-i",
 		name: "Simplified Codex",
 		kind: "weapon",
@@ -254,16 +243,6 @@ export const EQUIPMENT_CATALOG = [
 			"people sometimes dip themselves in sense-depriving projection vats to astrally project " +
 			"themselves across moderate distances. Descriptive tags: Enormous, Sealed.",
 		tags: ["set-up", "huge"]
-	},
-	{
-		key: "bestiary-array-ii",
-		name: "Bestiary Array",
-		kind: "weapon",
-		description: "A popular weapon among the Living Dead, the Bestiary Array projects words of power " +
-			"into acrid smoky shapes of beasts, hard to catch and irritatingly effective at unravelling " +
-			"Astir enchantments.",
-		tags: ["ranged", "bane", "versatile", "messy", "dangerous"],
-		scale: "astir"
 	},
 	{
 		key: "baneblade-i",

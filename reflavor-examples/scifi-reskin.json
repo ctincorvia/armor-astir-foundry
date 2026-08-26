@@ -125,11 +125,19 @@
 		},
 		"hewer": {
 			"name": "Plasma Saw",
-			"description": "A circular saw, spun at blistering speeds by a superheated plasma injector fed by compressed coolant from the deep heart of Repose."
+			"description": "A circular saw, spun at blistering speeds by a superheated plasma injector fed by compressed gases from the deep heart of Repose."
 		},
 		"colossus-repeater": {
 			"name": "Autocannon",
 			"description": "Using a sophisticated autoloader, Autocannons fire armour-piercing rounds for maximum penetration. In a pinch, a talented pilot can push the reloading mechanism and achieve fully automatic fire for prolonged periods of time."
+		},
+		"little-shark-ii": {
+			"name": "Cryo Harpoon",
+			"description": "When the first mariner's ardent team was dispatched to interfere with Progress reinforcements, they found their equipment lacking for undersea use. Dubbed Cryo Harpoons, these ardent-fit launchers stacked with short-range cryogenic charges provided an easy way of ruining ship hulls. Descriptive tags: Freezing."
+		},
+		"bestiary-array-ii": {
+			"name": "Holoprojector Array",
+			"description": "A popular weapon among the Hollow Ranks, the Holoprojector Array casts flickering holographic decoys shaped like beasts of war, hard to pin down and irritatingly effective at scrambling Astir targeting systems."
 		}
 	},
 	"equipment": {
@@ -176,10 +184,6 @@
 			"name": "Pig Sticker",
 			"description": "The rank-and-file of the Faces Of Progress carry these sinister spears, engineered specifically to punch through armour plating and flesh alike."
 		},
-		"little-shark-ii": {
-			"name": "Cryo Harpoon",
-			"description": "When the first mariner's ardent team was dispatched to interfere with Progress reinforcements, they found their equipment lacking for undersea use. Dubbed Cryo Harpoons, these ardent-fit launchers stacked with short-range cryogenic charges provided an easy way of ruining ship hulls. Descriptive tags: Freezing."
-		},
 		"colour-spray-i": {
 			"name": "Dye Canister",
 			"description": "A staple of any academy prankster: small pressurized canisters, full of industrial dye that marks any surface it touches in gaudy colour. It washes off… after a few days."
@@ -187,10 +191,6 @@
 		"wayward-skull-i": {
 			"name": "Salvaged AI Core",
 			"description": "Derelict AI cores are easier to find than ever in the wreckage fields of the Kessler Drift, and are often a great source of information and advice. Recover one, and all the newest rumours will find your ear. Descriptive tags: Sturdy, Chattering, Autonomous."
-		},
-		"bestiary-array-ii": {
-			"name": "Holoprojector Array",
-			"description": "A popular weapon among the Hollow Ranks, the Holoprojector Array casts flickering holographic decoys shaped like beasts of war, hard to pin down and irritatingly effective at scrambling Astir targeting systems."
 		}
 	}
 }
