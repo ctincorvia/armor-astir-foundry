@@ -272,9 +272,9 @@ export const FramesSheetMixin = {
 			// start of a Sortie" (see playbook-moves.js), so this overwrites _refreshPeriod's own
 			// reset-to-0 for this one key with the computed value instead, the same "computed, not
 			// just cleared" treatment this method already gives Alchemical Suite's Potions and
-			// Downtime Tokens below. Folds in _traitBonuses() the same way _moveTraits does, so a
-			// Let Loose KNOW pick is reflected here too. Clamped against the tracker's own min/max
-			// (currently 0/6) rather than hardcoding those numbers again.
+			// Downtime Tokens below. Folds in _traitBonuses() the same way _moveTraits does, so any
+			// future traitBonus targeting KNOW is reflected here too. Clamped against the tracker's
+			// own min/max (currently 0/6) rather than hardcoding those numbers again.
 			if (move.key === "the-captain:tactical-genius") {
 				const tracker = move.numericTrackers[0];
 				const know = (this.actor.system.stats?.know?.value ?? 0) + (this._traitBonuses()?.know ?? 0);

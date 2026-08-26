@@ -124,12 +124,6 @@
 	font-size: 11px;
 }
 
-/* Let Loose's per-actor trait pick (see trait-bonuses.js's chooseTrait) — a plain select on the
-   move's own row, same compact treatment as .move-uses-control beside it. */
-.armor-astir.sheet .move-trait-bonus-control select {
-	font-size: 11px;
-}
-
 .armor-astir.sheet .move-controls {
 	display: flex;
 	flex-direction: row;

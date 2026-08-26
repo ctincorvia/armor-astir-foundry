@@ -1,6 +1,6 @@
 import { moveRequirementTooltip, resolvePlaybookMoves, unmetMoveRequirements } from "../../moves/playbook-moves.js";
 import { findEquipmentTag } from "../../equipment/equipment.js";
-import { patronChannelBonus, traitBonusesFor } from "../../moves/trait-bonuses.js";
+import { hasUnboundedTraits, patronChannelBonus, traitBonusesFor } from "../../moves/trait-bonuses.js";
 import { TRAITS } from "../../core/traits.js";
 import { APPROACHES } from "../../core/approaches.js";
 import { partRequirementTooltip, resolveAstirParts, unmetPartRequirements } from "../../frames/astir.js";
@@ -184,16 +184,15 @@ export const MovesSheetMixin = {
 		moveGroups.push({ label: "Special Moves", moves: this._moveGroupMoves(SPECIAL_MOVES.filter((m) => m !== subsystems)) });
 		return moveGroups;
 	},
-	// Sums every picked playbook move's declarative traitBonus (Arcane Augments, Let Loose) against
-	// this actor's current Danger/Burden counts and stored per-move trait choices — see
-	// trait-bonuses.js. Derived fresh every call, never stored, same stance as
-	// equipmentValue/_conflictTier, so it can't drift after a Danger/Burden/choice changes.
+	// Sums every picked playbook move's declarative traitBonus (Arcane Augments) against this
+	// actor's current Danger/Burden counts — see trait-bonuses.js. Derived fresh every call, never
+	// stored, same stance as equipmentValue/_conflictTier, so it can't drift after a Danger/Burden
+	// changes.
 	_traitBonuses() {
 		const moves = resolvePlaybookMoves(this._playbookMoves());
 		const bonuses = traitBonusesFor(moves, {
 			dangerCount: this._dangers().length,
-			burdenCount: this._burdens().length,
-			choices: this.actor.system.attributes?.traitBonusChoices ?? {}
+			burdenCount: this._burdens().length
 		});
 		// The Witch's Patron ("as long as your Patron has at least 1 Influence, your CHANNEL is
 		// increased by 1" — see trait-bonuses.js's patronChannelBonus). A separate boolean-threshold
@@ -204,6 +203,13 @@ export const MovesSheetMixin = {
 		const patronBonus = patronChannelBonus(moves, this._witchInfluence());
 		if (patronBonus) bonuses.channel = (bonuses.channel ?? 0) + patronBonus;
 		return bonuses;
+	},
+	// Let Loose (The Impostor) — whether this actor's base Trait values are exempt from the
+	// stepper's usual +3 ceiling (see trait-bonuses.js's hasUnboundedTraits and
+	// progression-mixin.js's _onTraitStep). Cross-mixin-callable via `this`, same convention as
+	// _traitBonuses/_witchInfluence above.
+	_hasUnboundedTraits() {
+		return hasUnboundedTraits(resolvePlaybookMoves(this._playbookMoves()));
 	},
 	// Classical Spellcasting's own dropdown options — "Choose a Basic Move" per its rules text, so
 	// intentionally narrower than _guidedMoveOptions' "any move" (Spell Routines).
@@ -421,16 +427,8 @@ export const MovesSheetMixin = {
 					label: use.label,
 					checked: Boolean(this.actor.system.attributes?.moveUses?.[move.usesMoveKey ?? move.key]?.[use.key])
 				})),
-				// Let Loose's per-actor trait pick (see trait-bonuses.js's chooseTrait) — a small
-				// select rendered on the move's own row (see the template) rather than a separate
-				// dialog, the same "plain bound field, no picker" treatment the Cosmetic tab's
-				// freeform fields get. Stored at system.attributes.traitBonusChoices.<moveKey>, kept
-				// distinct from moveUses/moveHold the same way those two stay distinct from each
-				// other — a different kind of per-move state.
-				traitBonusChoosable: Boolean(move.traitBonus?.chooseTrait),
-				traitBonusChoice: this.actor.system.attributes?.traitBonusChoices?.[move.key] ?? "",
-				// Classical Spellcasting's own per-actor Basic Move pick (see trait-bonuses.js's
-				// chooseTrait and move-traits-mixin.js's addsTraitToMove chooseMove resolution) — same
+				// Classical Spellcasting's own per-actor Basic Move pick (see
+				// move-traits-mixin.js's addsTraitToMove chooseMove resolution) — same
 				// conditional-spread, omit-when-unused treatment as summonedAllyInfo/variableDiceRoll
 				// above, so no other move's entry in the moveGroups toEqual snapshot needs to change.
 				...(move.addsTraitToMove?.chooseMove && {

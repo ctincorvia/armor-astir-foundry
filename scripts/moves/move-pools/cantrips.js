@@ -9,7 +9,7 @@ export const CANTRIPS_POOL = {
 			// addsTraitToMove.chooseMove offers +CHANNEL as an extra option on whichever Basic Move the
 			// player picks (dropdown on this move's own row), additive not replacing — same shape The Old
 			// Blood's requiresUnmounted uses, just with the target move chosen per-actor instead of fixed
-			// in the catalog (mirrors trait-bonuses.js's own chooseTrait).
+			// in the catalog.
 			//
 			// grantsEquipment snapshots the rulebook's own violent-use profile onto the actor the moment
 			// this move is newly picked (see move-tracking-mixin.js's _onPlaybookMoveAdd/
@@ -43,9 +43,9 @@ export const CANTRIPS_POOL = {
 			//
 			// grantsWeaponTagChoice mirrors grantsWeaponTags (Signed & Sealed, equipment-mixin.js) but
 			// scoped to one specific granted weapon by name, rather than every weapon uniformly, and with
-			// a per-actor *chosen* tag rather than a fixed set — the same chooseMove/chooseTrait shape
-			// this pool's own Classical Spellcasting and trait-bonuses.js already use for "the rulebook
-			// picks the mechanism, the player picks the value." Resolved by equipment-mixin.js's
+			// a per-actor *chosen* tag rather than a fixed set — the same chooseMove shape this pool's own
+			// Classical Spellcasting already uses for "the rulebook picks the mechanism, the player picks
+			// the value." Resolved by equipment-mixin.js's
 			// _weaponTagKeys, never persisted onto Hand-casting's own stored tags — dropped instantly if
 			// Advanced Evocation is ever removed. The list is only the four named tags; "or create a new
 			// one entirely" is Director's-discretion prose, deliberately left unbuilt (same call already

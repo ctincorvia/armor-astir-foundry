@@ -105,10 +105,14 @@ export const THE_IMPOSTOR_POOL = {
 			key: "the-impostor:let-loose",
 			name: "Let Loose",
 			traits: [],
-			// Per-burden bonus to a player-chosen Trait (see trait-bonuses.js's chooseTrait and
-			// PlaybookActorSheet's traitBonusChoosable/traitBonusChoice) — uncapped (no `max`),
-			// since this move's own text explicitly overrides the usual +3 Trait ceiling.
-			traitBonus: { per: "burden", chooseTrait: true },
+			// The +1-per-burden increase itself is manual bookkeeping via the existing Trait +/-
+			// stepper (see progression-mixin.js's _onTraitStep), same "manual trackers, not
+			// enforcement" convention as everything else in claude.md's Recurring conventions — no
+			// traitBonus field, unlike Arcane Augments. removesTraitCap is the one piece of this move
+			// that has to be real code rather than prose: without it, the stepper's own always-on +3
+			// ceiling would silently make "the usual max does not apply" impossible to act on (see
+			// trait-bonuses.js's hasUnboundedTraits).
+			removesTraitCap: true,
 			description:
 				"<p>For every burden you have, you may increase one of your Traits by +1. The usual max of " +
 				"+3 does not apply to increases earned through let loose.</p>"

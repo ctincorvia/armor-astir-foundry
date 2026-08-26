@@ -131,8 +131,12 @@ describe("MOVE_POOLS", () => {
 		});
 	});
 
-	it("gives Let Loose an uncapped, per-actor-chosen traitBonus scaled by burdens", () => {
-		expect(findPlaybookMove("the-impostor:let-loose").traitBonus).toEqual({ per: "burden", chooseTrait: true });
+	it("gives Let Loose no traitBonus field — the per-burden increase is manual bookkeeping via the Trait stepper", () => {
+		expect(findPlaybookMove("the-impostor:let-loose").traitBonus).toBeUndefined();
+	});
+
+	it("gives Let Loose removesTraitCap so the stepper's usual +3 ceiling doesn't block that manual bookkeeping", () => {
+		expect(findPlaybookMove("the-impostor:let-loose").removesTraitCap).toBe(true);
 	});
 
 	it("gives Hot-blooded a flat, unscoped (no period) hold grant", () => {

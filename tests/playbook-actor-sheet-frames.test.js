@@ -952,15 +952,14 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 		);
 	});
 
-	it("folds a Let Loose KNOW trait bonus into Tactical Genius's computed hold value", () => {
+	it("adds no bonus from Let Loose into Tactical Genius's computed hold value — its increase is manual, not a traitBonus", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				attributes: {
 					moveTrackers: { [TACTICAL_GENIUS.key]: { hold: 0 } },
 					playbookMoves: [TACTICAL_GENIUS.key, LET_LOOSE.key],
-					burdens: [{ id: "b1", label: "A burden" }],
-					traitBonusChoices: { [LET_LOOSE.key]: "know" }
+					burdens: [{ id: "b1", label: "A burden" }]
 				},
 				stats: { know: { value: 1 } }
 			},
@@ -969,9 +968,9 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 
 		sheet._onRefreshSortie();
 
-		// 1 (base KNOW) + 1 (Let Loose's +1-per-burden, 1 burden) = 2, so 1+KNOW = 3.
+		// 1 (base KNOW) + 0 (Let Loose contributes no traitBonus) = 1, so 1+KNOW = 2.
 		expect(sheet.actor.update).toHaveBeenCalledWith(
-			expect.objectContaining({ [`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 3 })
+			expect.objectContaining({ [`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 2 })
 		);
 	});
 

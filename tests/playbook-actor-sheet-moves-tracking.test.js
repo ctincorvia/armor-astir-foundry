@@ -76,19 +76,6 @@ describe("PlaybookActorSheet#activateListeners - move uses", () => {
 		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
 	});
 
-	it("binds a change handler to the trait bonus select", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: {} };
-
-		const on = vi.fn();
-		const html = { find: vi.fn().mockReturnValue({ on }) };
-
-		sheet.activateListeners(html);
-
-		expect(html.find).toHaveBeenCalledWith(".trait-bonus-select");
-		expect(on).toHaveBeenCalledWith("change", expect.any(Function));
-	});
-
 	it("binds a change handler to the adds-trait-move select", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: {} };
@@ -174,34 +161,6 @@ describe("PlaybookActorSheet#_onMoveUseToggle", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.moveUses.not-a-real-move.sortie": true
-		});
-	});
-});
-
-describe("PlaybookActorSheet#_onTraitBonusChoiceChange", () => {
-	it("writes the selected trait key to the actor, keyed by move", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { update: vi.fn() };
-
-		sheet._onTraitBonusChoiceChange({
-			currentTarget: { dataset: { move: "the-impostor:let-loose" }, value: "clash" }
-		});
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.traitBonusChoices.the-impostor:let-loose": "clash"
-		});
-	});
-
-	it("writes an empty string back when the blank option is chosen", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { update: vi.fn() };
-
-		sheet._onTraitBonusChoiceChange({
-			currentTarget: { dataset: { move: "the-impostor:let-loose" }, value: "" }
-		});
-
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.traitBonusChoices.the-impostor:let-loose": ""
 		});
 	});
 });

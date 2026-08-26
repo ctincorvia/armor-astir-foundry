@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { TRAIT_BONUS_SOURCES, patronChannelBonus, traitBonusesFor } from "../scripts/moves/trait-bonuses.js";
+import { TRAIT_BONUS_SOURCES, hasUnboundedTraits, patronChannelBonus, traitBonusesFor } from "../scripts/moves/trait-bonuses.js";
 
 describe("TRAIT_BONUS_SOURCES", () => {
 	it("maps danger and burden to their count keys", () => {
@@ -28,7 +28,7 @@ describe("traitBonusesFor", () => {
 		expect(traitBonusesFor(moves, { dangerCount: 5 })).toEqual({ channel: 3 });
 	});
 
-	it("defaults dangerCount/burdenCount/choices to 0/0/empty when omitted", () => {
+	it("defaults dangerCount/burdenCount to 0/0 when omitted", () => {
 		const moves = [{ key: "arcane-augments", traitBonus: { trait: "channel", per: "danger", max: 3 } }];
 
 		expect(traitBonusesFor(moves)).toEqual({});
@@ -40,42 +40,34 @@ describe("traitBonusesFor", () => {
 		expect(traitBonusesFor(moves, { dangerCount: 0 })).toEqual({});
 	});
 
-	it("resolves a chooseTrait bonus off the actor's stored choice for that move", () => {
-		const moves = [{ key: "let-loose", traitBonus: { per: "burden", chooseTrait: true } }];
+	it("is uncapped when no max is given", () => {
+		const moves = [{ key: "unmaxed-source", traitBonus: { trait: "channel", per: "danger" } }];
 
-		expect(traitBonusesFor(moves, { burdenCount: 4, choices: { "let-loose": "clash" } })).toEqual({ clash: 4 });
+		expect(traitBonusesFor(moves, { dangerCount: 9 })).toEqual({ channel: 9 });
 	});
 
-	it("is uncapped when no max is given, e.g. Let Loose", () => {
-		const moves = [{ key: "let-loose", traitBonus: { per: "burden", chooseTrait: true } }];
+	it("contributes nothing for a traitBonus with no fixed trait", () => {
+		const moves = [{ key: "no-target", traitBonus: { per: "burden", max: 3 } }];
 
-		expect(traitBonusesFor(moves, { burdenCount: 9, choices: { "let-loose": "clash" } })).toEqual({ clash: 9 });
-	});
-
-	it("contributes nothing for a chooseTrait bonus with no choice stored yet", () => {
-		const moves = [{ key: "let-loose", traitBonus: { per: "burden", chooseTrait: true } }];
-
-		expect(traitBonusesFor(moves, { burdenCount: 4, choices: {} })).toEqual({});
+		expect(traitBonusesFor(moves, { burdenCount: 4 })).toEqual({});
 	});
 
 	it("stacks two moves' bonuses onto the same trait", () => {
 		const moves = [
 			{ key: "arcane-augments", traitBonus: { trait: "channel", per: "danger", max: 3 } },
-			{ key: "let-loose", traitBonus: { per: "burden", chooseTrait: true } }
+			{ key: "other-source", traitBonus: { trait: "channel", per: "burden", max: 2 } }
 		];
 
-		expect(traitBonusesFor(moves, { dangerCount: 2, burdenCount: 1, choices: { "let-loose": "channel" } }))
-			.toEqual({ channel: 3 });
+		expect(traitBonusesFor(moves, { dangerCount: 2, burdenCount: 1 })).toEqual({ channel: 3 });
 	});
 
 	it("keeps two moves' bonuses on different traits separate", () => {
 		const moves = [
 			{ key: "arcane-augments", traitBonus: { trait: "channel", per: "danger", max: 3 } },
-			{ key: "let-loose", traitBonus: { per: "burden", chooseTrait: true } }
+			{ key: "other-source", traitBonus: { trait: "clash", per: "burden", max: 2 } }
 		];
 
-		expect(traitBonusesFor(moves, { dangerCount: 2, burdenCount: 1, choices: { "let-loose": "clash" } }))
-			.toEqual({ channel: 2, clash: 1 });
+		expect(traitBonusesFor(moves, { dangerCount: 2, burdenCount: 1 })).toEqual({ channel: 2, clash: 1 });
 	});
 });
 
@@ -96,5 +88,19 @@ describe("patronChannelBonus", () => {
 
 	it("stays at 1 as Influence rises further — a threshold gate, not a scaling bonus", () => {
 		expect(patronChannelBonus([PATRON], 5)).toBe(1);
+	});
+});
+
+describe("hasUnboundedTraits", () => {
+	it("is false for an empty move list", () => {
+		expect(hasUnboundedTraits([])).toBe(false);
+	});
+
+	it("is false when no picked move carries removesTraitCap", () => {
+		expect(hasUnboundedTraits([{ key: "arcane-augments" }])).toBe(false);
+	});
+
+	it("is true when a picked move carries removesTraitCap", () => {
+		expect(hasUnboundedTraits([{ key: "the-impostor:let-loose", removesTraitCap: true }])).toBe(true);
 	});
 });

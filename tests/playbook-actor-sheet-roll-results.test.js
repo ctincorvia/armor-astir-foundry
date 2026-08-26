@@ -11,7 +11,7 @@ import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js"
 import { findEquipmentTag } from "../scripts/equipment/equipment.js";
 import {
 	EXCHANGE_BLOWS, DISPEL_UNCERTAINTIES, WEAVE_MAGIC, READ_THE_ROOM,
-	LEAD_A_SORTIE, ARCANE_AUGMENTS, LET_LOOSE, DONT_FOLLOW_ME
+	LEAD_A_SORTIE, ARCANE_AUGMENTS, DONT_FOLLOW_ME
 } from "./helpers/move-fixtures.js";
 import { soleWeaponBundle } from "./helpers/move-test-helpers.js";
 
@@ -246,7 +246,7 @@ describe("PlaybookActorSheet#_rollMove - Lead a Sortie's own button, Don't Follo
 	});
 });
 
-describe("PlaybookActorSheet#_rollMove - derived Trait bonuses (Arcane Augments, Let Loose)", () => {
+describe("PlaybookActorSheet#_rollMove - derived Trait bonuses (Arcane Augments)", () => {
 	it("adds a picked Arcane Augments-style bonus into the trait's dialog value and the roll's traitBonus option", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
@@ -277,28 +277,6 @@ describe("PlaybookActorSheet#_rollMove - derived Trait bonuses (Arcane Augments,
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "exchange-blows" } } });
 
 		expect(rollMove.mock.calls.at(-1)[3]).not.toHaveProperty("traitBonus");
-	});
-
-	it("lets a Let Loose player pick which Trait its per-burden bonus applies to", async () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { channel: { value: 0 } },
-				attributes: {
-					playbookMoves: [LET_LOOSE.key],
-					burdens: [{ id: "1", label: "A lingering injury" }],
-					traitBonusChoices: { [LET_LOOSE.key]: "channel" }
-				}
-			},
-			update: vi.fn()
-		};
-		const trait = { key: "channel", label: "CHANNEL", value: 1 };
-		configureMoveRoll.mockResolvedValue({ trait, advantage: "none", effect: "none" });
-
-		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "weave-magic" } } });
-
-		expect(configureMoveRoll).toHaveBeenCalledWith(WEAVE_MAGIC, [trait], expect.any(Object));
-		expect(rollMove).toHaveBeenCalledWith(sheet.actor, WEAVE_MAGIC, trait, expect.objectContaining({ traitBonus: 1 }));
 	});
 });
 

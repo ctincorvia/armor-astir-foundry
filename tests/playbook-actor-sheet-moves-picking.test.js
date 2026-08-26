@@ -21,7 +21,6 @@ import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js"
 const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
 const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:bullheaded");
 const ARCANE_AUGMENTS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:arcane-augments");
-const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:let-loose");
 const TRANSMUTE_SELF = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:transmute-self");
 const PRE_ORDAINED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:pre-ordained");
 const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know-you");
@@ -243,8 +242,6 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 			separateHoldPool: false,
 			hold: 0,
 			uses: [],
-			traitBonusChoosable: false,
-			traitBonusChoice: "",
 			trackers: []
 		});
 	});
@@ -301,27 +298,6 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 		expect(move.trackers).toEqual([
 			{ key: "kept-die", label: "Kept d6", min: 0, max: 6, value: 0 }
 		]);
-	});
-
-	it("marks a chooseTrait traitBonus move (Let Loose) as traitBonusChoosable, defaulting choice to blank", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { playbookMoves: [LET_LOOSE.key] } } };
-
-		const move = playbookGroup(sheet.getData()).moves[0];
-
-		expect(move.traitBonusChoosable).toBe(true);
-		expect(move.traitBonusChoice).toBe("");
-	});
-
-	it("reflects a stored traitBonus choice for that move", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				attributes: { playbookMoves: [LET_LOOSE.key], traitBonusChoices: { [LET_LOOSE.key]: "sense" } }
-			}
-		};
-
-		expect(playbookGroup(sheet.getData()).moves[0].traitBonusChoice).toBe("sense");
 	});
 
 	it("marks a chooseMove addsTraitToMove move (Classical Spellcasting) as addsTraitToMoveChoosable, defaulting choice to blank", () => {

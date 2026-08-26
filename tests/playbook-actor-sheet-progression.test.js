@@ -71,22 +71,21 @@ describe("PlaybookActorSheet#getData - traits", () => {
 		expect(data.traits.find((t) => t.key === "channel")).toEqual({ key: "channel", label: "CHANNEL", value: 1, bonus: 3, total: 4, disabled: false });
 	});
 
-	it("adds Let Loose's uncapped per-Burden bonus to whichever Trait the player chose", () => {
+	it("adds no bonus for Let Loose — its per-Burden Trait increase is manual bookkeeping via the Trait stepper, not a traitBonus", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				stats: { sense: { value: 0 } },
 				attributes: {
 					playbookMoves: [LET_LOOSE.key],
-					burdens: [{ id: "1", label: "A" }, { id: "2", label: "B" }],
-					traitBonusChoices: { [LET_LOOSE.key]: "sense" }
+					burdens: [{ id: "1", label: "A" }, { id: "2", label: "B" }]
 				}
 			}
 		};
 
 		const data = sheet.getData();
 
-		expect(data.traits.find((t) => t.key === "sense")).toEqual({ key: "sense", label: "SENSE", value: 0, bonus: 2, total: 2, disabled: false });
+		expect(data.traits.find((t) => t.key === "sense")).toEqual({ key: "sense", label: "SENSE", value: 0, bonus: 0, total: 0, disabled: false });
 	});
 
 	it("adds Patron's +1 CHANNEL once Influence reaches 1, with no other bonus on CHANNEL", () => {
@@ -1079,6 +1078,30 @@ describe("PlaybookActorSheet#_onTraitStep", () => {
 	it("clamps at the minimum and does not update the actor", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: { defy: { value: -3 } } }, update: vi.fn() };
+
+		sheet._onTraitStep({ currentTarget: { dataset: { trait: "defy", delta: "-1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("steps past the usual +3 maximum for an actor with Let Loose picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { defy: { value: 3 } }, attributes: { playbookMoves: ["the-impostor:let-loose"] } },
+			update: vi.fn()
+		};
+
+		sheet._onTraitStep({ currentTarget: { dataset: { trait: "defy", delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.stats.defy.value": 4 });
+	});
+
+	it("still clamps at the minimum for an actor with Let Loose picked — only the ceiling lifts", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: { defy: { value: -3 } }, attributes: { playbookMoves: ["the-impostor:let-loose"] } },
+			update: vi.fn()
+		};
 
 		sheet._onTraitStep({ currentTarget: { dataset: { trait: "defy", delta: "-1" } } });
 

@@ -109,7 +109,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 	const conditionBonus = (move.conditions ?? [])
 		.filter((condition) => options.conditions?.includes(condition.key))
 		.length;
-	// A derived Trait bonus (Arcane Augments, Let Loose — see trait-bonuses.js), resolved by
+	// A derived Trait bonus (Arcane Augments — see trait-bonuses.js), resolved by
 	// PlaybookActorSheet#_rollMove for whichever trait was actually chosen and passed in as a
 	// plain number — this module has no actor to derive it from itself, and the dialog's own
 	// displayed trait value (see PlaybookActorSheet#_moveTraits) is display-only: an actor-trait

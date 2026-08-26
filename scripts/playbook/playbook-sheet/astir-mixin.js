@@ -228,7 +228,7 @@ export const AstirSheetMixin = {
 	// Spell Routines' own dropdown (see getData's parts/extraParts mapping) — writes the chosen
 	// move's key keyed by the granting part's own key, the same per-source keying
 	// bonusDowntimeTokens/moveHold already use, so two different Guided-granting parts (should one
-	// ever exist) can't collide. No `_astir()` guard, mirroring _onTraitBonusChoiceChange's own
+	// ever exist) can't collide. No `_astir()` guard, mirroring _onAddsTraitToMoveChoiceChange's own
 	// unguarded write for the analogous move-side control.
 	_onGuidedMoveChoiceChange(event) {
 		const { part: partKey } = event.currentTarget.dataset;

@@ -44,17 +44,10 @@ export const MoveTrackingSheetMixin = {
 		const targetKey = this._resolveAnyMove(moveKey)?.usesMoveKey ?? moveKey;
 		this.actor.update({ [`system.attributes.moveUses.${targetKey}.${useKey}`]: event.currentTarget.checked });
 	},
-	// Let Loose's per-actor trait pick (see _moveGroupMoves' traitBonusChoosable/traitBonusChoice
-	// and trait-bonuses.js's chooseTrait) — every option in the select is a real TRAITS key or the
-	// blank "—" option, so nothing here needs to validate the value before writing it.
-	_onTraitBonusChoiceChange(event) {
-		const { move: moveKey } = event.currentTarget.dataset;
-		this.actor.update({ [`system.attributes.traitBonusChoices.${moveKey}`]: event.currentTarget.value });
-	},
 	// Classical Spellcasting's own per-actor Basic Move pick (see moves-mixin.js's
 	// addsTraitToMoveChoosable/addsTraitToMoveChoice and move-traits-mixin.js's addsTraitToMove
-	// chooseMove resolution) — mirrors _onTraitBonusChoiceChange's shape exactly, just keyed by
-	// the granting move instead of the trait-bonus move.
+	// chooseMove resolution) — every option in the select is a real move key or the blank "—"
+	// option, so nothing here needs to validate the value before writing it.
 	_onAddsTraitToMoveChoiceChange(event) {
 		const { move: moveKey } = event.currentTarget.dataset;
 		this.actor.update({ [`system.attributes.addsTraitToMoveChoices.${moveKey}`]: event.currentTarget.value });

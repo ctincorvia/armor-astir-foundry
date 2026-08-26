@@ -280,10 +280,15 @@ export const ProgressionSheetMixin = {
 			}))
 		};
 	},
+	// Let Loose (The Impostor) lifts the usual +3 ceiling for this actor — see trait-bonuses.js's
+	// hasUnboundedTraits — since its own rules text is manual bookkeeping with no traitBonus of its
+	// own to enforce (see move-pools/the-impostor.js). The floor (TRAIT_MIN) is untouched either
+	// way; nothing in Let Loose's text lowers it.
 	_onTraitStep(event) {
 		const { trait: key, delta } = event.currentTarget.dataset;
 		const current = this.actor.system.stats?.[key]?.value ?? 0;
-		const next = Math.min(TRAIT_MAX, Math.max(TRAIT_MIN, current + Number(delta)));
+		const max = this._hasUnboundedTraits() ? Infinity : TRAIT_MAX;
+		const next = Math.min(max, Math.max(TRAIT_MIN, current + Number(delta)));
 		if (next === current) return;
 		this.actor.update({ [`system.stats.${key}.value`]: next });
 	},

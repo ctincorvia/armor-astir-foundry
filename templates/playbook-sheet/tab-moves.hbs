@@ -55,13 +55,6 @@
 										{{/each}}
 									</div>
 									{{/if}}
-									{{#if traitBonusChoosable}}
-									<div class="move-trait-bonus-control">
-										<select class="trait-bonus-select" data-move="{{key}}">
-											{{selectOptions @root.traits selected=traitBonusChoice valueAttr="key" labelAttr="label" blank="—"}}
-										</select>
-									</div>
-									{{/if}}
 									{{#if addsTraitToMoveChoosable}}
 									<div class="move-adds-trait-move-control">
 										<select class="adds-trait-move-select" data-move="{{key}}">

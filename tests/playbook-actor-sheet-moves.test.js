@@ -30,8 +30,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: []
 					},
 					{
@@ -51,8 +49,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: []
 					},
 					{
@@ -70,8 +66,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: []
 					},
 					{
@@ -89,8 +83,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: []
 					},
 					{
@@ -106,8 +98,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: []
 					},
 					{
@@ -127,8 +117,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: []
 					},
 					{
@@ -151,8 +139,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: []
 					},
 					{
@@ -171,8 +157,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: []
 					},
 					{
@@ -190,8 +174,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: []
 					}
 				]
@@ -225,8 +207,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: []
 					},
 					{
@@ -245,8 +225,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: [{ key: "hold", label: "Hold", min: 0, max: 3, value: 0 }]
 					},
 					{
@@ -264,8 +242,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: true,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: []
 					},
 					{
@@ -281,8 +257,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
-						traitBonusChoosable: false,
-						traitBonusChoice: "",
 						trackers: [],
 						variableDiceRoll: true
 					}

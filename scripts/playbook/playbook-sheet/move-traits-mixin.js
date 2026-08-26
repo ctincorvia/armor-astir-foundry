@@ -90,9 +90,8 @@ export const MoveTraitsSheetMixin = {
 		// `chooseMove` (Classical Spellcasting — "choose a Basic Move") is a third target form
 		// alongside `moveKey`/`moveKeys`, matching against a per-actor stored choice
 		// (system.attributes.addsTraitToMoveChoices.<grantingMoveKey>, written by
-		// _onAddsTraitToMoveChoiceChange — move-tracking-mixin.js) instead of a static catalog key,
-		// the same "declare a choosable field, resolve generically" shape trait-bonuses.js's own
-		// chooseTrait already uses for traitBonus.
+		// _onAddsTraitToMoveChoiceChange — move-tracking-mixin.js) instead of a static catalog key —
+		// a "declare a choosable field, resolve generically" shape.
 		const addedTraitKey = resolvePlaybookMoves(this._playbookMoves())
 			.find((m) => {
 				const grant = m.addsTraitToMove;
