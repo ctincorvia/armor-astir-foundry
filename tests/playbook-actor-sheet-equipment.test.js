@@ -51,6 +51,61 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 		expect(data.equipment.startingGear).toEqual({ available: false });
 	});
 
+	it("keeps starting gear available when the actor only has an Astir weapon", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { name: "The Scout" },
+				attributes: {
+					equipment: [
+						{ id: "1", kind: "weapon", name: "Astir Blade", description: "", tags: [], spent: [], astir: true }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.equipment.startingGear).toEqual({ available: true });
+	});
+
+	it("keeps starting gear available when the actor only has an Ardent weapon", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { name: "The Scout" },
+				attributes: {
+					equipment: [
+						{ id: "1", kind: "weapon", name: "Ardent Weapon", description: "", tags: [], spent: [], ardent: "some-id" }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.equipment.startingGear).toEqual({ available: true });
+	});
+
+	it("hides starting gear when plain equipment coexists with an Astir weapon", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { name: "The Scout" },
+				attributes: {
+					equipment: [
+						{ id: "1", kind: "weapon", name: "Astir Blade", description: "", tags: [], spent: [], astir: true },
+						{ id: "2", kind: "gear", name: "Rations", description: "", tags: [], spent: [] }
+					]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.equipment.startingGear).toEqual({ available: false });
+	});
+
 	it("partitions equipment into weapons and gear by kind", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {

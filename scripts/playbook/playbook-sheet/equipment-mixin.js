@@ -90,13 +90,16 @@ export const EquipmentSheetMixin = {
 			// (see starting-gear.js). This is a live emptiness check, not a one-time flag: cancelling
 			// every dialog it opens leaves the button available to retry, and removing every
 			// equipment entry brings it back — unlike "+ Add Playbook Move"/"+ Add Weapon"/"+ Add
-			// Gear", which are always offered regardless.
+			// Gear", which are always offered regardless. Astir/Ardent-flagged entries (same
+			// !item.astir && !item.ardent distinction the weapons list above uses) don't count
+			// toward this emptiness check, since they come from mounting an Astir/Ardent frame, not
+			// from the player choosing or hand-building equipment.
 			startingGear: {
 				available: Boolean(
 					startingGearPool?.grantedItems?.length
 						|| startingGearPool?.groups?.some((group) => group.items.length)
 						|| startingGearPool?.customWeaponNote
-				) && equipment.length === 0
+				) && equipment.filter((item) => !item.astir && !item.ardent).length === 0
 			}
 		};
 	},
@@ -452,7 +455,8 @@ export const EquipmentSheetMixin = {
 		}
 
 		// Nothing was granted and every dialog was cancelled — leave the actor untouched so the
-		// button stays available (equipment is still empty) rather than writing a no-op update.
+		// button stays available (no starting-gear-blocking equipment exists yet) rather than
+		// writing a no-op update.
 		if (!newEntries.length) return;
 		await this.actor.update({ "system.attributes.equipment": [...this._equipment(), ...newEntries] });
 	},
