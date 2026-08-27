@@ -127,6 +127,7 @@
 .armor-astir.sheet .move-controls {
 	display: flex;
 	flex-direction: row;
+	justify-content: center;
 	gap: var(--aa-space-1);
 	flex: 0 0 auto;
 }
@@ -192,6 +193,8 @@
 	color: #fff;
 	font-weight: 700;
 	cursor: pointer;
+	width: auto;
+	flex: 0 0 auto;
 }
 
 .armor-astir.sheet .move-roll:not(.disabled):hover,
@@ -234,6 +237,8 @@
 	background: transparent;
 	color: var(--aa-primary-dark);
 	cursor: pointer;
+	width: auto;
+	flex: 0 0 auto;
 }
 
 .armor-astir.sheet .move-description {
@@ -404,6 +409,7 @@
 .armor-astir.sheet .equipment-item-controls {
 	display: flex;
 	flex-direction: row;
+	justify-content: center;
 	gap: var(--aa-space-1);
 }
 

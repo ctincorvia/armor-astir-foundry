@@ -134,6 +134,8 @@
 	color: #fff;
 	font-weight: 700;
 	cursor: pointer;
+	width: auto;
+	flex: 0 0 auto;
 }
 
 .armor-astir-move-chat .move-reroll,
@@ -164,9 +166,13 @@
 }
 
 /* Side by side rather than each stretching full-width — buttons are flex containers by Foundry's
-   own core style, so without a flex-row parent each one fills its own row. */
+   own core style, so without a flex-row parent each one fills its own row. Foundry v14 additionally
+   dropped buttons' old implicit flex-grow inside a flex container, so the buttons above now pin to
+   their own natural size (width: auto; flex: 0 0 auto) instead of stretching to fill; centered here
+   so removing that stretch doesn't leave them left-packed with dead space on the right. */
 .armor-astir-move-chat .move-advantage-controls {
 	display: flex;
+	justify-content: center;
 	gap: var(--aa-space-1);
 	margin-top: var(--aa-space-1);
 }
