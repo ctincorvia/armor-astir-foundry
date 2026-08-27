@@ -193,8 +193,24 @@
 	color: #fff;
 	font-weight: 700;
 	cursor: pointer;
-	width: auto;
 	flex: 0 0 auto;
+}
+
+/* icon-add-button deliberately excluded from width: auto below -- it owns its own fixed 20x20
+   square sizing (sheet-layout.css), and that rule ties in specificity with this one, so this
+   file's load order (after sheet-layout.css in module.json) would otherwise win and collapse the
+   square "+" button down to its glyph width. */
+.armor-astir.sheet .move-roll,
+.armor-astir.sheet .move-activate,
+.armor-astir.sheet .move-summon,
+.armor-astir.sheet .move-variable-dice-roll,
+.armor-astir.sheet .danger-add,
+.armor-astir.sheet .astir-create,
+.armor-astir.sheet .controls-mount-up,
+.armor-astir.sheet .controls-dismount,
+.armor-astir.sheet .controls-refresh-scene,
+.armor-astir.sheet .controls-refresh-sortie {
+	width: auto;
 }
 
 .armor-astir.sheet .move-roll:not(.disabled):hover,

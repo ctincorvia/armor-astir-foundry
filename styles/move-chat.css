@@ -134,8 +134,6 @@
 	color: #fff;
 	font-weight: 700;
 	cursor: pointer;
-	width: auto;
-	flex: 0 0 auto;
 }
 
 .armor-astir-move-chat .move-reroll,
@@ -143,6 +141,17 @@
 .armor-astir-move-chat .move-heatup,
 .armor-astir-move-chat .move-roll-bonus {
 	margin-top: var(--aa-space-1);
+}
+
+/* Foundry v14's own <button> rule is `display: flex`, a block-level box that fills its container's
+   width by default when there's no ancestor flex/grid to size it against — that's what keeps
+   Reroll/Automatic Success/Heat Up/Downgrade/Roll-bonus above each spanning the card full-width,
+   one per line. Add Advantage/Add Disadvantage sit inside .move-advantage-controls instead, so they
+   should match that same full-width, one-action-fills-the-row visual weight rather than shrinking to
+   their label text — flex: 1 1 0 splits the row's width evenly between exactly the two of them. */
+.armor-astir-move-chat .move-add-advantage,
+.armor-astir-move-chat .move-add-disadvantage {
+	flex: 1 1 0;
 }
 
 /* Embrace Chaos's own mirror offer (see downgradeOffer in moves.js#rollMove) -- a secondary,
@@ -166,13 +175,11 @@
 }
 
 /* Side by side rather than each stretching full-width — buttons are flex containers by Foundry's
-   own core style, so without a flex-row parent each one fills its own row. Foundry v14 additionally
-   dropped buttons' old implicit flex-grow inside a flex container, so the buttons above now pin to
-   their own natural size (width: auto; flex: 0 0 auto) instead of stretching to fill; centered here
-   so removing that stretch doesn't leave them left-packed with dead space on the right. */
+   own core style, so without a flex-row parent each one fills its own row. See the
+   .move-add-advantage/.move-add-disadvantage rule above for how the two are then re-stretched to
+   split this row evenly, matching Reroll/Heat Up/etc.'s full-width look above them. */
 .armor-astir-move-chat .move-advantage-controls {
 	display: flex;
-	justify-content: center;
 	gap: var(--aa-space-1);
 	margin-top: var(--aa-space-1);
 }
