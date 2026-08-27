@@ -414,3 +414,54 @@ li.chat-message:has(.armor-astir-move-chat) .dice-tooltip .part-total {
 	color: #fff;
 	font-weight: 700;
 }
+
+/* The Downtime Scene "Chat" button's card (see downtime-scene-chat.js/downtime-scene-chat.hbs) —
+   the read-only .downtime-scene-dialog's own chat-card counterpart: same two headers (You /
+   Everyone else can) plus a bulleted list, structured content rather than one block of rich text. */
+.armor-astir-downtime-scene-chat {
+	margin-bottom: var(--aa-space-2);
+}
+
+.armor-astir-downtime-scene-chat .downtime-scene-chat-name {
+	margin: 0 0 var(--aa-space-1);
+}
+
+.armor-astir-downtime-scene-chat .downtime-scene-you,
+.armor-astir-downtime-scene-chat .downtime-scene-everyone {
+	margin-bottom: var(--aa-space-2);
+}
+
+.armor-astir-downtime-scene-chat .downtime-scene-you h4,
+.armor-astir-downtime-scene-chat .downtime-scene-everyone h4 {
+	margin: 0 0 var(--aa-space-1);
+}
+
+.armor-astir-downtime-scene-chat .downtime-scene-you p {
+	margin: 0;
+}
+
+/* Explicit list-style/indentation rather than relying on the browser/Foundry default — same
+   reasoning as the downtime-scene-dialog's own identical rule in dialogs.css: narrowing
+   padding-left for a tighter layout is easy to do without noticing it also crowds out the disc
+   marker's own space, so both are spelled out here instead of left implicit. */
+.armor-astir-downtime-scene-chat .downtime-scene-bullet-list {
+	margin: 0;
+	padding: 0 0 0 var(--aa-space-4);
+	list-style: disc outside;
+}
+
+.armor-astir-downtime-scene-chat .downtime-scene-bullet-list li {
+	padding: 2px 0;
+}
+
+.armor-astir-downtime-scene-chat .downtime-scene-sub-bullet-list {
+	margin: 2px 0 0;
+	padding-left: var(--aa-space-4);
+	list-style: circle outside;
+}
+
+.armor-astir-downtime-scene-chat .downtime-scene-note {
+	margin: var(--aa-space-2) 0 0;
+	font-size: 12px;
+	font-style: italic;
+}

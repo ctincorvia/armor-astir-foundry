@@ -397,6 +397,17 @@
 	font-weight: 700;
 }
 
+/* Wraps the Chat + "?" buttons so the two share the row's single fixed trailing grid column above
+   (.downtime-scene-item only has minmax(0, 1fr) auto) — same problem .move-controls already solves
+   for a move row's own Chat + "?" buttons, same fix (sheet-tabs.css). */
+.armor-astir.sheet .downtime-scene-controls {
+	display: flex;
+	flex-direction: row;
+	justify-content: center;
+	gap: var(--aa-space-1);
+	flex: 0 0 auto;
+}
+
 /* Potions (Alchemical Suite — see astir.js) — a compact row per color rather than the full
    .move-list treatment, since there's nothing to add/remove/roll, just a label and a Spent
    checkbox (see .potion-spent, sheet-tabs.css). */

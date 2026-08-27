@@ -60,7 +60,10 @@
 								{{#each downtimeSceneKinds}}
 								<li class="entry-list-item downtime-scene-item">
 									<span class="downtime-scene-name">{{name}}</span>
-									<button type="button" class="downtime-scene-info move-info" data-scene-kind="{{key}}" aria-label="{{name}} details">?</button>
+									<div class="downtime-scene-controls">
+										<button type="button" class="downtime-scene-chat move-description" data-scene-kind="{{key}}" aria-label="Post {{name}} to chat">Chat</button>
+										<button type="button" class="downtime-scene-info move-info" data-scene-kind="{{key}}" aria-label="{{name}} details">?</button>
+									</div>
 								</li>
 								{{/each}}
 							</ol>

@@ -7,6 +7,7 @@ import { resolveAstirParts } from "../../frames/astir.js";
 import { ARDENT_PART_CATALOG } from "../../frames/ardent.js";
 import { DOWNTIME_SCENE_KINDS, findDowntimeSceneKind } from "../downtime-scenes.js";
 import { showDowntimeSceneDetails } from "../downtime-scene-dialog.js";
+import { postDowntimeSceneDetails } from "../downtime-scene-chat.js";
 
 const TRAIT_MIN = -3;
 const TRAIT_MAX = 3;
@@ -367,5 +368,11 @@ export const ProgressionSheetMixin = {
 		if (!kind) return;
 
 		await showDowntimeSceneDetails(kind);
+	},
+	async _onDowntimeSceneChat(event) {
+		const kind = findDowntimeSceneKind(event.currentTarget.dataset.sceneKind);
+		if (!kind) return;
+
+		await postDowntimeSceneDetails(this.actor, kind);
 	}
 };

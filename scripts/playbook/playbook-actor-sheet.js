@@ -263,6 +263,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".downtime-tokens-step").on("click", this._onDowntimeTokensStep.bind(this));
 		html.find(".bonus-downtime-tokens-step").on("click", this._onBonusDowntimeTokenStep.bind(this));
 		html.find(".downtime-scene-info").on("click", this._onDowntimeSceneInfo.bind(this));
+		html.find(".downtime-scene-chat").on("click", this._onDowntimeSceneChat.bind(this));
 		html.find(".advancement-checkbox").on("change", this._onAdvancementToggle.bind(this));
 		html.find(".danger-add-toggle").on("click", this._onDangerAddToggle.bind(this));
 		html.find(".danger-add").on("click", this._onDangerAdd.bind(this));

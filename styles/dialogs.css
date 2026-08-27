@@ -30,12 +30,16 @@
 	margin: 0;
 }
 
-/* List-reset modeled on sheet-tabs.css's .quarters-benefit-list, but scoped to this dialog's own
-   root instead of .armor-astir.sheet — that rule is deliberately kept to its two sheet-side users
-   (see that file's own comment), not extended to a Dialog root. */
+/* Explicit list-style/indentation rather than relying on the browser/Foundry default: Foundry's
+   own elements.typography layer already gives ul/ol a 1.5em left indent with disc markers, but
+   that's easy to lose track of once a rule here narrows padding down for a tighter dialog layout —
+   spelling it out keeps the bullet marker guaranteed regardless of what the surrounding cascade
+   does. Padding-left needs to clear var(--aa-space-3) (12px) by enough to leave the disc marker
+   itself legible, hence --aa-space-4 (16px) rather than reusing the tighter token. */
 .armor-astir.downtime-scene-dialog .downtime-scene-bullet-list {
 	margin: 0;
-	padding: 0 0 0 var(--aa-space-3);
+	padding: 0 0 0 var(--aa-space-4);
+	list-style: disc outside;
 }
 
 .armor-astir.downtime-scene-dialog .downtime-scene-bullet-list li {
@@ -45,7 +49,8 @@
 
 .armor-astir.downtime-scene-dialog .downtime-scene-sub-bullet-list {
 	margin: 2px 0 0;
-	padding-left: var(--aa-space-3);
+	padding-left: var(--aa-space-4);
+	list-style: circle outside;
 }
 
 /* A supplementary reminder, not a primary rule — italicized to read as secondary to the You/
