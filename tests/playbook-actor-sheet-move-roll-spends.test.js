@@ -6,9 +6,18 @@ vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	rollMove: vi.fn()
 }));
 
+// findCarrierActors defaults to no Carriers in the world — same mock other PlaybookActorSheet test
+// files apply, needed here since the Crew Support hold spend (below) reads/writes the world's
+// Carrier actor directly rather than this.actor.
+vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	findCarrierActors: vi.fn(() => [])
+}));
+
 import { configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { EQUIPMENT_TAGS } from "../scripts/equipment/equipment.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
 import { DISPEL_UNCERTAINTIES, BITE_THE_DUST } from "./helpers/move-fixtures.js";
 
 // _availableHeatUp's own return value for an actor with no Astir at all (see moves-mixin.js) —
@@ -22,6 +31,8 @@ beforeEach(() => {
 	// rollMove resolves { message, dice } (see moves.js) — a bare default so every existing test
 	// that doesn't care about the roll's dice (most of them) doesn't have to configure this itself.
 	rollMove.mockResolvedValue({ message: undefined, dice: null });
+	findCarrierActors.mockClear();
+	findCarrierActors.mockReturnValue([]);
 });
 
 // dispel-uncertainties (not a usesWeapon move) stands in for "any ordinary move" here — these
@@ -351,12 +362,11 @@ describe("PlaybookActorSheet#_onMoveRoll - equipment spends", () => {
 // is injected generically into every move's own trait list (see move-traits-mixin.js's
 // _moveTraits) rather than declared as its own spend field.
 describe("PlaybookActorSheet#_finishMoveRoll - Crew Support hold spend", () => {
-	it("spends 1 Crew Support hold when the roll used the crew-support-crew option", async () => {
+	it("spends 1 Crew Support hold on the Carrier when the roll used the crew-support-crew option", async () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { stats: {}, attributes: { moveTrackers: { "crew-support": { hold: 2 } } } },
-			update: vi.fn()
-		};
+		sheet.actor = { system: { stats: {}, attributes: {} }, update: vi.fn() };
+		const carrier = { system: { attributes: { crewSupportHold: 2 } }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrier]);
 		const config = {
 			trait: { key: "crew-support-crew", label: "CREW (Crew Support)", value: 0 },
 			advantage: "none",
@@ -366,59 +376,49 @@ describe("PlaybookActorSheet#_finishMoveRoll - Crew Support hold spend", () => {
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "help-or-hinder" } } });
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.moveTrackers.crew-support.hold": 1
-		});
+		expect(carrier.update).toHaveBeenCalledWith({ "system.attributes.crewSupportHold": 1 });
+		expect(sheet.actor.update).not.toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.crewSupportHold": expect.anything() })
+		);
 	});
 
 	it("does not spend Crew Support hold for an ordinary trait key", async () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { know: { value: 1 } },
-				attributes: { moveTrackers: { "crew-support": { hold: 2 } } }
-			},
-			update: vi.fn()
-		};
+		sheet.actor = { system: { stats: { know: { value: 1 } }, attributes: {} }, update: vi.fn() };
+		const carrier = { system: { attributes: { crewSupportHold: 2 } }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrier]);
 		const config = { trait: { key: "know", label: "KNOW", value: 1 }, advantage: "none", effect: "none" };
 		configureMoveRoll.mockResolvedValue(config);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "dispel-uncertainties" } } });
 
-		expect(sheet.actor.update).not.toHaveBeenCalledWith(
-			expect.objectContaining({ "system.attributes.moveTrackers.crew-support.hold": expect.anything() })
-		);
+		expect(carrier.update).not.toHaveBeenCalled();
 	});
 
 	it("does not spend Crew Support hold for Lead a Sortie's own permanent crew fixedTraits key", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
-			system: {
-				stats: { know: { value: 1 }, defy: { value: 0 } },
-				attributes: { moveTrackers: { "crew-support": { hold: 2 } } }
-			},
+			system: { stats: { know: { value: 1 }, defy: { value: 0 } }, attributes: {} },
 			update: vi.fn()
 		};
+		const carrier = { system: { attributes: { crewSupportHold: 2 } }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrier]);
 		const config = { trait: { key: "crew", label: "CREW", value: 0 }, advantage: "none", effect: "none" };
 		configureMoveRoll.mockResolvedValue(config);
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "lead-a-sortie" } } });
 
-		expect(sheet.actor.update).not.toHaveBeenCalledWith(
-			expect.objectContaining({ "system.attributes.moveTrackers.crew-support.hold": expect.anything() })
-		);
+		expect(carrier.update).not.toHaveBeenCalled();
 	});
 
 	it("does not spend Crew Support hold for a Captain, whose In Command grants the option for free", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
-			system: {
-				playbook: { slug: "the-captain" },
-				stats: {},
-				attributes: { moveTrackers: { "crew-support": { hold: 2 } } }
-			},
+			system: { playbook: { slug: "the-captain" }, stats: {}, attributes: {} },
 			update: vi.fn()
 		};
+		const carrier = { system: { attributes: { crewSupportHold: 2 } }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrier]);
 		const config = {
 			trait: { key: "crew-support-crew", label: "CREW (In Command)", value: 0 },
 			advantage: "none",
@@ -428,9 +428,7 @@ describe("PlaybookActorSheet#_finishMoveRoll - Crew Support hold spend", () => {
 
 		await sheet._onMoveRoll({ currentTarget: { dataset: { move: "help-or-hinder" } } });
 
-		expect(sheet.actor.update).not.toHaveBeenCalledWith(
-			expect.objectContaining({ "system.attributes.moveTrackers.crew-support.hold": expect.anything() })
-		);
+		expect(carrier.update).not.toHaveBeenCalled();
 	});
 });
 

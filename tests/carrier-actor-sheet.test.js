@@ -79,30 +79,35 @@ describe("CarrierActorSheet#_weaponTagKeys", () => {
 });
 
 describe("CarrierActorSheet#getData", () => {
-	it("reads crew, description, and crew members off the actor", () => {
+	it("reads crew, crewSupportHold, description, and crew members off the actor", () => {
 		const sheet = new CarrierActorSheet();
 		sheet.actor = {
 			system: {
 				stats: { crew: { value: 2 } },
 				details: { description: { value: "A sturdy old freighter." } },
-				attributes: { crewMembers: [{ id: "1", name: "Vex", position: "Pilot", description: "" }] }
+				attributes: {
+					crewMembers: [{ id: "1", name: "Vex", position: "Pilot", description: "" }],
+					crewSupportHold: 3
+				}
 			}
 		};
 
 		const data = sheet.getData({});
 
 		expect(data.crew).toBe(2);
+		expect(data.crewSupportHold).toBe(3);
 		expect(data.description).toBe("A sturdy old freighter.");
 		expect(data.crewMembers).toEqual([{ id: "1", name: "Vex", position: "Pilot", description: "" }]);
 	});
 
-	it("defaults crew/description/crewMembers when unset", () => {
+	it("defaults crew/crewSupportHold/description/crewMembers when unset", () => {
 		const sheet = new CarrierActorSheet();
 		sheet.actor = { system: {} };
 
 		const data = sheet.getData({});
 
 		expect(data.crew).toBe(0);
+		expect(data.crewSupportHold).toBe(0);
 		expect(data.description).toBe("");
 		expect(data.crewMembers).toEqual([]);
 	});
@@ -234,6 +239,7 @@ describe("CarrierActorSheet#activateListeners", () => {
 		sheet.activateListeners(html);
 
 		expect(html.find).toHaveBeenCalledWith(".crew-step");
+		expect(html.find).toHaveBeenCalledWith(".crew-support-hold-step");
 		expect(html.find).toHaveBeenCalledWith(".weapon-add");
 		expect(html.find).toHaveBeenCalledWith(".equipment-edit");
 		expect(html.find).toHaveBeenCalledWith(".equipment-remove");
@@ -277,6 +283,44 @@ describe("CarrierActorSheet#_onCrewStep", () => {
 		sheet._onCrewStep({ currentTarget: { dataset: { delta: "1" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.stats.crew.value": 1 });
+	});
+});
+
+describe("CarrierActorSheet#_onCrewSupportHoldStep", () => {
+	it("increments crewSupportHold by the clicked delta", () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = { system: { attributes: { crewSupportHold: 0 } }, update: vi.fn() };
+
+		sheet._onCrewSupportHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.crewSupportHold": 1 });
+	});
+
+	it("clamps at the maximum (3)", () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = { system: { attributes: { crewSupportHold: 3 } }, update: vi.fn() };
+
+		sheet._onCrewSupportHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at the minimum (0)", () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = { system: { attributes: { crewSupportHold: 0 } }, update: vi.fn() };
+
+		sheet._onCrewSupportHoldStep({ currentTarget: { dataset: { delta: "-1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing crewSupportHold value as 0", () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = { system: {}, update: vi.fn() };
+
+		sheet._onCrewSupportHoldStep({ currentTarget: { dataset: { delta: "1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.crewSupportHold": 1 });
 	});
 });
 

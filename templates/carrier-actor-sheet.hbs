@@ -8,10 +8,20 @@
 	</header>
 	<section class="crew">
 		<h3>Crew</h3>
-		<div class="trait-control">
-			<button type="button" class="crew-step crew-decrement" data-delta="-1">-</button>
-			<span class="trait-value">{{crew}}</span>
-			<button type="button" class="crew-step crew-increment" data-delta="1">+</button>
+		<div class="crew-row">
+			<div class="trait-control">
+				<button type="button" class="crew-step crew-decrement" data-delta="-1">-</button>
+				<span class="trait-value">{{crew}}</span>
+				<button type="button" class="crew-step crew-increment" data-delta="1">+</button>
+			</div>
+			<div class="trait">
+				<label class="trait-label">Crew Support Hold</label>
+				<div class="trait-control">
+					<button type="button" class="crew-support-hold-step crew-support-hold-decrement" data-delta="-1">-</button>
+					<span class="trait-value">{{crewSupportHold}}</span>
+					<button type="button" class="crew-support-hold-step crew-support-hold-increment" data-delta="1">+</button>
+				</div>
+			</div>
 		</div>
 	</section>
 	<section class="description">

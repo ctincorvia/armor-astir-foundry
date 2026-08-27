@@ -1,6 +1,7 @@
 import { choosePlaybookMove, resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { HOLD_MAX, HOLD_MIN } from "../../moves/moves.js";
 import { chooseStartingMoves, findStartingMovePool, startingMoveKeysByPlaybook } from "../../moves/starting-moves.js";
+import { findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
 
 // Hold/tracker steppers, uses checkboxes and trait-bonus choice, plus the Playbook Moves add/remove
 // and starting-moves pickers — see moves-mixin.js's file comment for how this file relates to its
@@ -26,6 +27,20 @@ export const MoveTrackingSheetMixin = {
 	// the fixed HOLD_MIN/HOLD_MAX.
 	_onMoveTrackerStep(event) {
 		const { move: moveKey, tracker: trackerKey, delta, min, max } = event.currentTarget.dataset;
+		// Crew Support's hold isn't a per-character tracker (see moves-mixin.js's _crewSupportHold) --
+		// it's a single pool shared by the whole crew, stored on the Carrier actor instead of
+		// this.actor, so its stepper redirects onto the Carrier here rather than falling through to
+		// the generic moveTrackers write below.
+		if (moveKey === "crew-support") {
+			const carriers = findCarrierActors();
+			if (carriers.length !== 1) return;
+			const carrier = carriers[0];
+			const current = carrier.system.attributes?.crewSupportHold ?? 0;
+			const next = Math.min(Number(max), Math.max(Number(min), current + Number(delta)));
+			if (next === current) return;
+			carrier.update({ "system.attributes.crewSupportHold": next });
+			return;
+		}
 		const current = this.actor.system.attributes?.moveTrackers?.[moveKey]?.[trackerKey] ?? 0;
 		const next = Math.min(Number(max), Math.max(Number(min), current + Number(delta)));
 		if (next === current) return;

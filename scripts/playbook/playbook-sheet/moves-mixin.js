@@ -8,6 +8,7 @@ import { playbookGrantsHomeInsteadOfChannel } from "../../moves/starting-moves.j
 import { BASIC_MOVES, SPECIAL_MOVES } from "../../moves/moves.js";
 import { ARDENT_DEFAULT_NAME, ARDENT_PART_CATALOG } from "../../frames/ardent.js";
 import { resolveWitchBoons } from "../witch.js";
+import { findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
 
 // Basic, Special and Playbook moves' shared roll pipeline (see claude.md's Moves sections) — move
 // definitions themselves live in moves.js/playbook-moves.js/astir.js/ardent.js; this mixin owns
@@ -64,17 +65,27 @@ export const MovesSheetMixin = {
 		}
 		return { [`system.attributes.moveUses.${move.usesMoveKey ?? move.key}.${this._nextUnusedMoveUseKey(move)}`]: true };
 	},
-	// Crew Support's own hold pool (see special-moves.js) — read by move-traits-mixin.js's
-	// _moveTraits to decide whether to offer this actor the CREW-substitution trait option on
-	// every other move.
+	// Crew Support's hold pool (see special-moves.js) is shared by the whole crew, not tracked
+	// per-character — it lives on the world's Carrier actor at system.attributes.crewSupportHold,
+	// resolved the same "exactly one Carrier or fall back to 0" way _crewFixedTraitValue does
+	// (move-traits-mixin.js). Read by that same file's _moveTraits to decide whether to offer this
+	// actor the CREW-substitution trait option on every other move.
 	_crewSupportHold() {
-		return this.actor.system.attributes?.moveTrackers?.["crew-support"]?.hold ?? 0;
+		const carriers = findCarrierActors();
+		return carriers.length === 1 ? carriers[0].system.attributes?.crewSupportHold ?? 0 : 0;
 	},
-	// The actor.update fragment for spending 1 Crew Support hold — called by move-roll-mixin.js's
-	// _finishMoveRoll once a roll actually used the CREW-substitution option.
-	_crewSupportHoldSpend() {
-		const current = this._crewSupportHold();
-		return { "system.attributes.moveTrackers.crew-support.hold": Math.max(0, current - 1) };
+	// Spends 1 Crew Support hold by writing directly to the Carrier's shared pool — called by
+	// move-roll-mixin.js's _finishMoveRoll once a roll actually used the CREW-substitution option.
+	// Unlike every other move's tracker spend, this can't return an actor.update fragment for the
+	// caller to apply, since the write targets a different actor entirely; it performs its own
+	// update and silently no-ops with zero or more than one Carrier in the world, the same
+	// simplification _crewSupportHold above applies.
+	async _crewSupportHoldSpend() {
+		const carriers = findCarrierActors();
+		if (carriers.length !== 1) return;
+		const carrier = carriers[0];
+		const current = carrier.system.attributes?.crewSupportHold ?? 0;
+		await carrier.update({ "system.attributes.crewSupportHold": Math.max(0, current - 1) });
 	},
 	// The Captain's own In Command move ("unlike when other playbooks use +CREW, you may do this
 	// any number of times" — see the-captain.js) already grants unlimited, unspent access to the
@@ -461,8 +472,10 @@ export const MovesSheetMixin = {
 					label: tracker.label,
 					min: tracker.min,
 					max: tracker.max,
-					value: this.actor.system.attributes?.moveTrackers?.[move.key]?.[tracker.key]
-						?? (tracker.resetTo === "max" ? tracker.max : 0)
+					value: move.key === "crew-support"
+						? this._crewSupportHold()
+						: this.actor.system.attributes?.moveTrackers?.[move.key]?.[tracker.key]
+							?? (tracker.resetTo === "max" ? tracker.max : 0)
 				})),
 				// Plan & Prepare's own roll button (see SPECIAL_MOVES' variableDicePool) — omitted (not
 				// `false`) for every other move, same reasoning as summonedAllyInfo/gatedTooltip above:

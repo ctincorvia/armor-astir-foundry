@@ -377,7 +377,7 @@ describe("createWorldActor", () => {
 				system: {
 					stats: { crew: { value: 0 } },
 					details: { description: { value: "" } },
-					attributes: { crewMembers: [], weapons: { primary: null, secondary: null } }
+					attributes: { crewMembers: [], weapons: { primary: null, secondary: null }, crewSupportHold: 0 }
 				}
 			},
 			{ renderSheet: true }

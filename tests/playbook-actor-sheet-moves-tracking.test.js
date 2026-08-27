@@ -1,8 +1,19 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	findCarrierActors: vi.fn(() => [])
+}));
 
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
+
+beforeEach(() => {
+	findCarrierActors.mockClear();
+	findCarrierActors.mockReturnValue([]);
+});
 
 const SEEK_ALLIES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:seek-allies");
 const PERSONAL_FAMILIAR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:personal-familiar");
@@ -616,34 +627,191 @@ describe("PlaybookActorSheet#_onMoveTrackerStep", () => {
 });
 
 describe("PlaybookActorSheet#_crewSupportHold", () => {
-	it("reads the stored hold value", () => {
+	it("reads the shared hold value off the world's one Carrier", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { moveTrackers: { "crew-support": { hold: 2 } } } } };
+		sheet.actor = { system: { attributes: {} } };
+		findCarrierActors.mockReturnValue([{ system: { attributes: { crewSupportHold: 2 } } }]);
 
 		expect(sheet._crewSupportHold()).toBe(2);
 	});
 
-	it("treats a missing stored value as 0", () => {
+	it("treats a missing stored value on the Carrier as 0", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: {} } };
+		findCarrierActors.mockReturnValue([{ system: { attributes: {} } }]);
+
+		expect(sheet._crewSupportHold()).toBe(0);
+	});
+
+	it("falls back to 0 with no Carrier in the world", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+		findCarrierActors.mockReturnValue([]);
+
+		expect(sheet._crewSupportHold()).toBe(0);
+	});
+
+	it("falls back to 0 with more than one Carrier in the world", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+		findCarrierActors.mockReturnValue([
+			{ system: { attributes: { crewSupportHold: 2 } } },
+			{ system: { attributes: { crewSupportHold: 3 } } }
+		]);
 
 		expect(sheet._crewSupportHold()).toBe(0);
 	});
 });
 
 describe("PlaybookActorSheet#_crewSupportHoldSpend", () => {
-	it("returns a patch that decrements the current hold by 1", () => {
+	it("decrements the Carrier's shared hold by 1", async () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { moveTrackers: { "crew-support": { hold: 2 } } } } };
+		sheet.actor = { system: { attributes: {} } };
+		const carrier = { system: { attributes: { crewSupportHold: 2 } }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrier]);
 
-		expect(sheet._crewSupportHoldSpend()).toEqual({ "system.attributes.moveTrackers.crew-support.hold": 1 });
+		await sheet._crewSupportHoldSpend();
+
+		expect(carrier.update).toHaveBeenCalledWith({ "system.attributes.crewSupportHold": 1 });
 	});
 
-	it("floors at 0 rather than going negative", () => {
+	it("floors at 0 rather than going negative", async () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { moveTrackers: { "crew-support": { hold: 0 } } } } };
+		sheet.actor = { system: { attributes: {} } };
+		const carrier = { system: { attributes: { crewSupportHold: 0 } }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrier]);
 
-		expect(sheet._crewSupportHoldSpend()).toEqual({ "system.attributes.moveTrackers.crew-support.hold": 0 });
+		await sheet._crewSupportHoldSpend();
+
+		expect(carrier.update).toHaveBeenCalledWith({ "system.attributes.crewSupportHold": 0 });
+	});
+
+	it("treats a missing stored value on the Carrier as 0, floored at 0", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+		const carrier = { system: { attributes: {} }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrier]);
+
+		await sheet._crewSupportHoldSpend();
+
+		expect(carrier.update).toHaveBeenCalledWith({ "system.attributes.crewSupportHold": 0 });
+	});
+
+	it("no-ops with no Carrier in the world", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+		findCarrierActors.mockReturnValue([]);
+
+		await sheet._crewSupportHoldSpend();
+	});
+
+	it("no-ops with more than one Carrier in the world", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+		const carrierA = { system: { attributes: { crewSupportHold: 2 } }, update: vi.fn() };
+		const carrierB = { system: { attributes: { crewSupportHold: 3 } }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrierA, carrierB]);
+
+		await sheet._crewSupportHoldSpend();
+
+		expect(carrierA.update).not.toHaveBeenCalled();
+		expect(carrierB.update).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveTrackerStep - crew-support", () => {
+	it("increments the Carrier's shared hold and writes to the Carrier, not the actor", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+		const carrier = { system: { attributes: { crewSupportHold: 1 } }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrier]);
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: "crew-support", tracker: "hold", delta: "1", min: "0", max: "3" } }
+		});
+
+		expect(carrier.update).toHaveBeenCalledWith({ "system.attributes.crewSupportHold": 2 });
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("treats a missing stored value on the Carrier as 0", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+		const carrier = { system: { attributes: {} }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrier]);
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: "crew-support", tracker: "hold", delta: "1", min: "0", max: "3" } }
+		});
+
+		expect(carrier.update).toHaveBeenCalledWith({ "system.attributes.crewSupportHold": 1 });
+	});
+
+	it("decrements the Carrier's shared hold", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+		const carrier = { system: { attributes: { crewSupportHold: 1 } }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrier]);
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: "crew-support", tracker: "hold", delta: "-1", min: "0", max: "3" } }
+		});
+
+		expect(carrier.update).toHaveBeenCalledWith({ "system.attributes.crewSupportHold": 0 });
+	});
+
+	it("clamps at the maximum and does not update the Carrier", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+		const carrier = { system: { attributes: { crewSupportHold: 3 } }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrier]);
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: "crew-support", tracker: "hold", delta: "1", min: "0", max: "3" } }
+		});
+
+		expect(carrier.update).not.toHaveBeenCalled();
+	});
+
+	it("clamps at the minimum and does not update the Carrier", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+		const carrier = { system: { attributes: { crewSupportHold: 0 } }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrier]);
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: "crew-support", tracker: "hold", delta: "-1", min: "0", max: "3" } }
+		});
+
+		expect(carrier.update).not.toHaveBeenCalled();
+	});
+
+	it("no-ops with no Carrier in the world", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([]);
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: "crew-support", tracker: "hold", delta: "1", min: "0", max: "3" } }
+		});
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("no-ops with more than one Carrier in the world", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
+		const carrierA = { system: { attributes: { crewSupportHold: 1 } }, update: vi.fn() };
+		const carrierB = { system: { attributes: { crewSupportHold: 2 } }, update: vi.fn() };
+		findCarrierActors.mockReturnValue([carrierA, carrierB]);
+
+		sheet._onMoveTrackerStep({
+			currentTarget: { dataset: { move: "crew-support", tracker: "hold", delta: "1", min: "0", max: "3" } }
+		});
+
+		expect(carrierA.update).not.toHaveBeenCalled();
+		expect(carrierB.update).not.toHaveBeenCalled();
+		expect(sheet.actor.update).not.toHaveBeenCalled();
 	});
 });
 

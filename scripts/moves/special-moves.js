@@ -45,12 +45,18 @@ export const SPECIAL_MOVES = [
 		// frames-mixin.js's _onRefreshSortie), the same shape The Captain's Tactical Genius uses for
 		// its own KNOW-sourced hold. max: 3 is deliberate, not generous headroom like Tactical
 		// Genius's max: 6 — CREW's own range is hard-capped at -3..3 by CREW_MIN/CREW_MAX in
-		// carrier-actor-sheet.js, so 3 is the true ceiling for this pool.
+		// carrier-actor-sheet.js, so 3 is the true ceiling for this pool. Unlike every other move's
+		// numericTrackers, this pool doesn't live per-character at
+		// system.attributes.moveTrackers["crew-support"] — it's a single pool shared by the whole
+		// crew, stored on the Carrier actor itself at system.attributes.crewSupportHold (see
+		// moves-mixin.js's _crewSupportHold/_crewSupportHoldSpend). This declaration still drives
+		// the move card's label/min/max for every character.
 		numericTrackers: [{ key: "hold", label: "Hold", min: 0, max: 3, period: "Sortie" }],
 		description:
 			"<p>When you coordinate with your Carrier's crew to lend aid, you lever their skill into " +
-			"support for your own actions. At the start of a Sortie, take hold equal to your Carrier's " +
-			"+CREW. Spend it 1-for-1 to roll any move with +CREW instead of that move's own traits.</p>"
+			"support for your own actions. At the start of a Sortie, your whole crew shares hold equal " +
+			"to your Carrier's +CREW—one pool, spent by whoever needs it. Spend it 1-for-1 to roll any " +
+			"move with +CREW instead of that move's own traits.</p>"
 	},
 	{
 		key: "subsystems",

@@ -1,8 +1,21 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// findCarrierActors defaults to no Carriers in the world — the Crew Support describe block below
+// overrides this per-test to exercise the shared-hold-on-the-Carrier behavior.
+vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	findCarrierActors: vi.fn(() => [])
+}));
 
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
+
+beforeEach(() => {
+	findCarrierActors.mockClear();
+	findCarrierActors.mockReturnValue([]);
+});
 
 const INPUT_CHANNEL = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:input-channel");
 const FACILITATOR = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:facilitator");
@@ -324,12 +337,8 @@ describe("PlaybookActorSheet#_moveTraits", () => {
 describe("PlaybookActorSheet#_moveTraits - Crew Support's CREW substitution", () => {
 	it("offers a crew-support-crew option on any move once Crew Support has hold", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { sense: { value: 1 } },
-				attributes: { moveTrackers: { "crew-support": { hold: 2 } } }
-			}
-		};
+		sheet.actor = { system: { stats: { sense: { value: 1 } }, attributes: {} } };
+		findCarrierActors.mockReturnValue([{ system: { attributes: { crewSupportHold: 2 } } }]);
 
 		expect(sheet._moveTraits({ key: "read-the-room", traits: ["sense"] })).toEqual([
 			{ key: "sense", label: "SENSE", value: 1 },
@@ -340,6 +349,7 @@ describe("PlaybookActorSheet#_moveTraits - Crew Support's CREW substitution", ()
 	it("does not offer the option without any Crew Support hold", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { stats: { sense: { value: 1 } }, attributes: {} } };
+		findCarrierActors.mockReturnValue([{ system: { attributes: { crewSupportHold: 0 } } }]);
 
 		expect(sheet._moveTraits({ key: "read-the-room", traits: ["sense"] })).toEqual([
 			{ key: "sense", label: "SENSE", value: 1 }
@@ -348,9 +358,8 @@ describe("PlaybookActorSheet#_moveTraits - Crew Support's CREW substitution", ()
 
 	it("offers the option even on a move with no traits of its own (Help or Hinder)", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: { stats: {}, attributes: { moveTrackers: { "crew-support": { hold: 1 } } } }
-		};
+		sheet.actor = { system: { stats: {}, attributes: {} } };
+		findCarrierActors.mockReturnValue([{ system: { attributes: { crewSupportHold: 1 } } }]);
 
 		expect(sheet._moveTraits({ key: "help-or-hinder", traits: [] })).toEqual([
 			{ key: "crew-support-crew", label: "CREW (Crew Support)", value: 0 }
@@ -360,8 +369,9 @@ describe("PlaybookActorSheet#_moveTraits - Crew Support's CREW substitution", ()
 	it("does not duplicate CREW on Lead a Sortie, which already offers a real crew fixedTraits entry", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
-			system: { stats: { know: { value: 0 }, defy: { value: 0 } }, attributes: { moveTrackers: { "crew-support": { hold: 1 } } } }
+			system: { stats: { know: { value: 0 }, defy: { value: 0 } }, attributes: {} }
 		};
+		findCarrierActors.mockReturnValue([{ system: { attributes: { crewSupportHold: 1 } } }]);
 		const leadASortie = {
 			key: "lead-a-sortie",
 			traits: ["know", "defy"],

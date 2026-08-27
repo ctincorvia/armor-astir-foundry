@@ -1,7 +1,22 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+// findCarrierActors defaults to no Carriers in the world, matching this file's existing
+// fixtures' behavior under the real implementation (game.actors.filter defaults to [] — see
+// tests/setup.js) — overridden per-test below for the Crew Support-reads-off-the-Carrier
+// regression guard.
+vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	findCarrierActors: vi.fn(() => [])
+}));
 
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
 import { MASKING_BOON, TRICKSTERS_BOON } from "./helpers/move-fixtures.js";
+
+beforeEach(() => {
+	findCarrierActors.mockClear();
+	findCarrierActors.mockReturnValue([]);
+});
 
 describe("PlaybookActorSheet#getData - moves", () => {
 	it("exposes basic moves grouped, with each move's currently enabled traits and values", () => {
@@ -272,6 +287,26 @@ describe("PlaybookActorSheet#getData - moves", () => {
 		const data = sheet.getData();
 
 		expect(data.moveGroups[0].moves[0].traits).toEqual([{ key: "talk", label: "TALK", value: 0 }]);
+	});
+
+	// Regression guard: Crew Support's hold tracker (see moves-mixin.js's _moveGroupMoves) must
+	// read off the world's Carrier, never off this actor's own (now-stale) moveTrackers entry --
+	// that per-character copy is exactly the bug this feature moved away from (see special-moves.js).
+	it("reads Crew Support's tracker value off the Carrier, not a stale per-character moveTrackers entry", () => {
+		findCarrierActors.mockReturnValue([{ system: { attributes: { crewSupportHold: 2 } } }]);
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: { moveTrackers: { "crew-support": { hold: 99 } } }
+			}
+		};
+
+		const data = sheet.getData();
+		const specialMoves = data.moveGroups.find((group) => group.label === "Special Moves");
+		const crewSupport = specialMoves.moves.find((move) => move.key === "crew-support");
+
+		expect(crewSupport.trackers).toEqual([{ key: "hold", label: "Hold", min: 0, max: 3, value: 2 }]);
 	});
 });
 

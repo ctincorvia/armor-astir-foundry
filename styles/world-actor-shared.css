@@ -8,6 +8,17 @@
 	min-width: 480px;
 }
 
+/* Carrier's Crew and Crew Support Hold steppers share one row — space-between pins Crew to the
+   left edge and the Crew Support Hold label+stepper to the right, since there are only ever these
+   two children (not a list of many rows), so the grid-column-alignment concern the styling doc's
+   label+control note calls out for .danger-item/.move doesn't apply here. */
+.armor-astir.sheet .crew-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+}
+
 /* Carrier's Crew stepper — same visual language as sheet-chrome.css's consolidated trait-step/
    power-step/hold-step/... rule, kept as its own copy rather than joining that selector so this
    stylesheet has no reason to touch sheet-chrome.css. */
@@ -30,6 +41,7 @@
    GRIP, Cause's Faction Grip — see world-actor-sheet.js's _onEntryCounterStep) — same small +/-
    control everywhere it appears. */
 .armor-astir.sheet .crew-step,
+.armor-astir.sheet .crew-support-hold-step,
 .armor-astir.sheet .tier-step,
 .armor-astir.sheet .entry-list-counter-step {
 	width: 22px;
@@ -43,6 +55,7 @@
 }
 
 .armor-astir.sheet .crew-step:hover,
+.armor-astir.sheet .crew-support-hold-step:hover,
 .armor-astir.sheet .tier-step:hover,
 .armor-astir.sheet .entry-list-counter-step:hover {
 	border-color: var(--aa-primary);

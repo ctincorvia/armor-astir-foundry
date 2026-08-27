@@ -3,6 +3,7 @@ import { ARDENT_DEFAULT_NAME, ARDENT_PART_CATALOG, ARDENT_TIER_DEFAULT, chooseFr
 import { baseEquipmentTagKey, findEquipmentTag } from "../../equipment/equipment.js";
 import { HOLD_MIN } from "../../moves/moves.js";
 import { ALL_MOVES } from "../../moves/all-moves.js";
+import { findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
 
 // The Astir/Ardent "which frame is mounted" machinery (see docs/domains/frames.md's Piloted note) — generic
 // across both frame kinds, so neither the Astir nor Ardent mixins need their own mounting logic.
@@ -177,6 +178,12 @@ export const FramesSheetMixin = {
 			// Politely, Force Multiplier) declare no period at all and are untouched by either
 			// Refresh button — this only ever fires for one that opts in.
 			for (const tracker of move.numericTrackers ?? []) {
+				// Crew Support's hold (see special-moves.js) no longer lives on this.actor at all --
+				// it's a single pool shared by the whole crew, stored on the Carrier actor instead
+				// (see moves-mixin.js's _crewSupportHold) -- so this generic per-character reset pass
+				// must never touch it. _onRefreshSortie below handles it separately, targeting the
+				// Carrier directly.
+				if (move.key === "crew-support") continue;
 				if (tracker.period !== period) continue;
 				// tracker.min is always present (every numericTrackers entry declares one — see
 				// playbook-moves.js's own generic invariant test), unlike the actor's stored value
@@ -281,15 +288,19 @@ export const FramesSheetMixin = {
 				updates[`system.attributes.moveTrackers.${move.key}.${tracker.key}`] =
 					Math.min(tracker.max, Math.max(tracker.min, 1 + know));
 			}
-			// Crew Support (see special-moves.js) is the same "computed, not just cleared" shape as
-			// Tactical Genius immediately above -- overwrites _refreshPeriod's own generic
-			// reset-to-min with the Carrier's live CREW value instead (0 for the zero/ambiguous-
-			// Carrier case, per _crewFixedTraitValue's own contract), clamped against the tracker's
-			// own min/max.
-			if (move.key === "crew-support") {
-				const tracker = move.numericTrackers[0];
-				updates[`system.attributes.moveTrackers.${move.key}.${tracker.key}`] =
-					Math.min(tracker.max, Math.max(tracker.min, this._crewFixedTraitValue()));
+		}
+		// Crew Support's hold is a single Carrier-wide pool (see special-moves.js/moves-mixin.js's
+		// _crewSupportHold), not a per-character copy, so Refresh Sortie writes it directly onto the
+		// Carrier as a separate actor.update call rather than folding it into `updates` above. Silently
+		// no-ops with zero or more than one Carrier in the world, the same simplification
+		// _crewFixedTraitValue already applies.
+		const crewSupportCarriers = findCarrierActors();
+		if (crewSupportCarriers.length === 1) {
+			const carrier = crewSupportCarriers[0];
+			const tracker = ALL_MOVES.find((m) => m.key === "crew-support").numericTrackers[0];
+			const nextHold = Math.min(tracker.max, Math.max(tracker.min, this._crewFixedTraitValue()));
+			if ((carrier.system.attributes?.crewSupportHold ?? 0) !== nextHold) {
+				carrier.update({ "system.attributes.crewSupportHold": nextHold });
 			}
 		}
 		// Alchemical Suite's "Take 1 of each Potion" (see astir-parts.js's grantsPotionsOnRefreshSortie)

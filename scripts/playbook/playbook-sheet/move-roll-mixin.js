@@ -290,7 +290,7 @@ export const MoveRollSheetMixin = {
 		// nothing either -- In Command grants it to them for free, any number of times (see
 		// moves-mixin.js's _hasUnlimitedCrewSupport).
 		if (config.trait?.key === "crew-support-crew" && !this._hasUnlimitedCrewSupport()) {
-			await this.actor.update(this._crewSupportHoldSpend());
+			await this._crewSupportHoldSpend();
 		}
 
 		// weapon undefined (not a usesWeapon move) leaves rollMove's options untouched, same as

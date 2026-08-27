@@ -1,5 +1,5 @@
 import { WorldActorSheet } from "./world-actor-sheet.js";
-import { BASIC_MOVES, configureMoveRoll, postGuidedResult, rollMove } from "../moves/moves.js";
+import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postGuidedResult, rollMove } from "../moves/moves.js";
 import {
 	TIER_MAX,
 	configureEquipment,
@@ -36,6 +36,12 @@ export const WEAPON_SLOTS = [
 // moves.js's usesWeapon) — both are always-available basic moves, so filtering BASIC_MOVES is
 // enough; there's no playbook-move equivalent that uses a weapon.
 const CARRIER_WEAPON_MOVES = BASIC_MOVES.filter((move) => move.usesWeapon);
+
+// Crew Support's hold pool (see special-moves.js) is a single Carrier-wide counter, not a
+// per-character copy (see playbook-sheet/moves-mixin.js's _crewSupportHold) — its min/max are
+// sourced from the one place the tracker itself is declared instead of duplicating 0/3 here as
+// new magic numbers.
+const CREW_SUPPORT_HOLD_TRACKER = SPECIAL_MOVES.find((m) => m.key === "crew-support").numericTrackers[0];
 
 // A weapon entry's effective tag-key list: its own stored tags plus its slot's locked tags (see
 // WEAPON_SLOTS above). Exported as a standalone function (rather than only living as
@@ -168,6 +174,7 @@ export class CarrierActorSheet extends WorldActorSheet {
 	getData(options) {
 		const data = super.getData(options);
 		data.crew = this.actor.system.stats?.crew?.value ?? 0;
+		data.crewSupportHold = this.actor.system.attributes?.crewSupportHold ?? 0;
 		data.description = this.actor.system.details?.description?.value ?? "";
 		data.crewMembers = this._list("crewMembers");
 		const weapons = this._weapons();
@@ -182,6 +189,7 @@ export class CarrierActorSheet extends WorldActorSheet {
 	activateListeners(html) {
 		super.activateListeners(html);
 		html.find(".crew-step").on("click", this._onCrewStep.bind(this));
+		html.find(".crew-support-hold-step").on("click", this._onCrewSupportHoldStep.bind(this));
 		html.find(".weapon-add").on("click", this._onWeaponAdd.bind(this));
 		html.find(".equipment-edit").on("click", this._onWeaponEdit.bind(this));
 		html.find(".equipment-remove").on("click", this._onWeaponRemove.bind(this));
@@ -195,6 +203,19 @@ export class CarrierActorSheet extends WorldActorSheet {
 		const next = Math.min(CREW_MAX, Math.max(CREW_MIN, current + Number(delta)));
 		if (next === current) return;
 		this.actor.update({ "system.stats.crew.value": next });
+	}
+
+	// The shared Crew Support hold pool's own stepper — mirrors _onCrewStep exactly, but bounded by
+	// CREW_SUPPORT_HOLD_TRACKER's own min/max instead of CREW_MIN/CREW_MAX. See
+	// playbook-sheet/moves-mixin.js's _crewSupportHold/_crewSupportHoldSpend and
+	// playbook-sheet/move-tracking-mixin.js's _onMoveTrackerStep for the other read/write paths onto
+	// this same field, driven from a playbook character's own Crew Support move card.
+	_onCrewSupportHoldStep(event) {
+		const { delta } = event.currentTarget.dataset;
+		const current = this.actor.system.attributes?.crewSupportHold ?? 0;
+		const next = Math.min(CREW_SUPPORT_HOLD_TRACKER.max, Math.max(CREW_SUPPORT_HOLD_TRACKER.min, current + Number(delta)));
+		if (next === current) return;
+		this.actor.update({ "system.attributes.crewSupportHold": next });
 	}
 
 	// see docs/domains/world-actors.md, "The Carrier carries two named, fixed-role weapon slots"
