@@ -12,7 +12,11 @@
       "Bash(npm run pullJSONtoLDB)",
       "Bash(awk '$1>=900')",
       "Bash(py .claude/scripts/*)",
-      "PowerShell(py .claude/scripts/*)"
+      "PowerShell(py .claude/scripts/*)",
+      "Bash(git -C * diff*)",
+      "Bash(git -C * status*)",
+      "PowerShell(Get-Item*)",
+      "PowerShell(Get-ChildItem*)"
     ],
     "ask": [
       "Bash(rm *)",

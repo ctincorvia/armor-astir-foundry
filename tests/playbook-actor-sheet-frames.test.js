@@ -1306,6 +1306,42 @@ describe("PlaybookActorSheet#_onRefreshScene - the Arcanist's Prepare Rituals", 
 	});
 });
 
+describe("PlaybookActorSheet#_onRefreshSortie - Risks/Perils", () => {
+	it("clears Risk-type dangers but leaves Peril-type dangers", () => {
+		const sheet = new PlaybookActorSheet();
+		const risk = { id: "1", type: "risk", label: "A patrol closes in" };
+		const peril = { id: "2", type: "peril", label: "The hull is breached" };
+		sheet.actor = { system: { attributes: { dangers: [risk, peril] } }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({ "system.attributes.dangers": [peril] })
+		);
+	});
+
+	it("writes no dangers key when only Perils are present", () => {
+		const sheet = new PlaybookActorSheet();
+		const peril = { id: "1", type: "peril", label: "The hull is breached" };
+		sheet.actor = { system: { attributes: { dangers: [peril] } }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		const updates = sheet.actor.update.mock.calls.at(-1)[0];
+		expect(Object.keys(updates)).not.toContain("system.attributes.dangers");
+	});
+
+	it("writes no dangers key when the danger list is empty", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { dangers: [] } }, update: vi.fn() };
+
+		sheet._onRefreshSortie();
+
+		const updates = sheet.actor.update.mock.calls.at(-1)[0];
+		expect(Object.keys(updates)).not.toContain("system.attributes.dangers");
+	});
+});
+
 describe("PlaybookActorSheet#_onRefreshSortie - Extra Parts/Weapons", () => {
 	it("clears a non-empty astir.extraParts", () => {
 		const sheet = new PlaybookActorSheet();

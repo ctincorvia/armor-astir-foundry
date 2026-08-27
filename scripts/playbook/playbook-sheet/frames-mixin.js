@@ -347,6 +347,15 @@ export const FramesSheetMixin = {
 		// outlive the summon's own Scene-scoped boundary, so Refresh Sortie is this field's real
 		// (and only) clear point.
 		updates["system.attributes.approachOverride"] = null;
+		// Risks are Sortie-scoped dangers and clear automatically here; Perils persist until the
+		// player manually clears one via the danger-remove control (tracking-mixin.js's
+		// _onDangerRemove) — that's a deliberate narrated action, not tied to a Sortie boundary (see
+		// downtime-scenes.js's "clears a peril... frame a short scene"). Conditional like the
+		// Extra Parts/Weapons writes below: only rewrite the array when a Risk actually needs to go.
+		const dangers = this._dangers();
+		if (dangers.some((danger) => danger.type === "risk")) {
+			updates["system.attributes.dangers"] = dangers.filter((danger) => danger.type !== "risk");
+		}
 		// The Arcanist's Prepare Rituals (arcanist-mixin.js): "any remaining rituals expire when you
 		// prepare new ones," and rituals are re-prepared every Sortie regardless. Neither the
 		// ritual-1/2/3 spent flags nor the slot assignments themselves (arcanist.rituals) are a
