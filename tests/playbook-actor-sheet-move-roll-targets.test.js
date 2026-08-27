@@ -93,7 +93,8 @@ function weaponRollConfig({ lockedEffect = null, rollModifiers = [] } = {}) {
 	return {
 		lockedTrait: null,
 		riders: [],
-		weaponBundles: [expect.objectContaining({ weaponKey: UNARMED, weaponLabel: "Unarmed", lockedEffect, rollModifiers })]
+		weaponBundles: [expect.objectContaining({ weaponKey: UNARMED, weaponLabel: "Unarmed", lockedEffect, rollModifiers })],
+		gravityClocks: []
 	};
 }
 
@@ -191,7 +192,7 @@ describe("PlaybookActorSheet#_onMoveRoll - Tier Advantage from a targeted NPC", 
 		expect(configureMoveRoll).toHaveBeenCalledWith(
 			DISPEL_UNCERTAINTIES,
 			expect.any(Array),
-			{ lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [] }
+			{ lockedEffect: null, lockedEffectSource: null, lockedTrait: null, equipmentSpends: [], narrativeTags: [], rollModifiers: [], riders: [], gravityClocks: [] }
 		);
 	});
 

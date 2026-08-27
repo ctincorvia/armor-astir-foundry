@@ -528,7 +528,8 @@ describe("PlaybookActorSheet#_rollMove - fromCarrier weapon parity", () => {
 				disabledReason: null,
 				forced: false
 			}],
-			riders: []
+			riders: [],
+			gravityClocks: []
 		});
 
 		// The checked Blitz spend lands on the Carrier that actually owns the weapon, not on this

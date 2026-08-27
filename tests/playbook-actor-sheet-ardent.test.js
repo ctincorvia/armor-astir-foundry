@@ -813,7 +813,8 @@ describe("PlaybookActorSheet#_onMoveRoll - Roll Modifiers from a mounted Ardent"
 				disabledReason: null,
 				forced: false
 			}],
-			riders: []
+			riders: [],
+			gravityClocks: []
 		});
 	});
 });

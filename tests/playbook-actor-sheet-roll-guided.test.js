@@ -88,7 +88,7 @@ describe("PlaybookActorSheet#_rollMove - Guided (take 7-9)", () => {
 		// own guided field (not a top-level option any more — see
 		// PlaybookActorSheet#_rollMoveWithWeaponChoice/_weaponRollBundle) is null.
 		expect(configureMoveRoll).toHaveBeenCalledWith(EXCHANGE_BLOWS, expect.any(Array), {
-			lockedTrait: null, riders: [],
+			lockedTrait: null, riders: [], gravityClocks: [],
 			weaponBundles: [expect.objectContaining({ weaponKey: UNARMED, weaponLabel: "Unarmed", guided: null })]
 		});
 	});
@@ -192,7 +192,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedEffectSource: null, lockedTrait: null,
 			equipmentSpends: [], narrativeTags: [],
-			rollModifiers: [], riders: [],
+			rollModifiers: [], riders: [], gravityClocks: [],
 			guided: SPELL_ROUTINES.name
 		});
 	});
@@ -216,7 +216,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedEffectSource: null, lockedTrait: null,
 			equipmentSpends: [], narrativeTags: [],
-			rollModifiers: [], riders: []
+			rollModifiers: [], riders: [], gravityClocks: []
 		});
 	});
 
@@ -239,7 +239,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedEffectSource: null, lockedTrait: null,
 			equipmentSpends: [], narrativeTags: [],
-			rollModifiers: [], riders: []
+			rollModifiers: [], riders: [], gravityClocks: []
 		});
 	});
 
@@ -259,7 +259,7 @@ describe("PlaybookActorSheet#_rollMove - Spell Routines (Guided on the chosen mo
 		expect(configureMoveRoll).toHaveBeenCalledWith(DISPEL_UNCERTAINTIES, expect.any(Array), {
 			lockedEffect: null, lockedEffectSource: null, lockedTrait: null,
 			equipmentSpends: [], narrativeTags: [],
-			rollModifiers: [], riders: []
+			rollModifiers: [], riders: [], gravityClocks: []
 		});
 	});
 });

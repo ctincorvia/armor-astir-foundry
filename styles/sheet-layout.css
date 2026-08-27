@@ -325,6 +325,11 @@
 	min-width: 0;
 }
 
+.armor-astir.sheet .gravity-clock-target-input {
+	width: 100%;
+	margin-top: var(--aa-space-1);
+}
+
 .armor-astir.sheet .gravity-clock-body {
 	display: flex;
 	flex-direction: row;

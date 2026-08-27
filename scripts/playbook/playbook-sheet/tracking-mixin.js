@@ -48,6 +48,14 @@ export const TrackingSheetMixin = {
 	_gravityClocks() {
 		return this.actor.system.attributes?.gravityClocks ?? [];
 	},
+	// What the move-roll dialog offers as Gravity Target options (see move-dialogs.js's
+	// configureMoveRoll) — only clocks with a target set have anything to substitute for a
+	// Trait, so an untargeted clock is excluded rather than shown with a blank label.
+	_availableGravityClocks() {
+		return this._gravityClocks()
+			.filter((clock) => clock.target)
+			.map((clock) => ({ id: clock.id, target: clock.target, value: clock.value ?? GRAVITY_CLOCK_VALUE_MIN }));
+	},
 	// Generic narrative clocks (see clocks.js) — universal, not gated to any playbook, unlike
 	// Gravity Clocks above (fixed-6-step, tied to the Social tab's Gravity Trigger section).
 	_clocks() {
@@ -252,7 +260,7 @@ export const TrackingSheetMixin = {
 		this.actor.update({
 			"system.attributes.gravityClocks": [
 				...current,
-				{ id: foundry.utils.randomID(), label: "", progress: 0, value: GRAVITY_CLOCK_VALUE_MIN }
+				{ id: foundry.utils.randomID(), label: "", progress: 0, value: GRAVITY_CLOCK_VALUE_MIN, target: "" }
 			]
 		});
 	},
@@ -267,6 +275,14 @@ export const TrackingSheetMixin = {
 		const current = this._gravityClocks();
 		this.actor.update({
 			"system.attributes.gravityClocks": current.map((clock) => (clock.id === clockId ? { ...clock, label } : clock))
+		});
+	},
+	_onGravityClockTargetChange(event) {
+		const { clockId } = event.currentTarget.dataset;
+		const target = event.currentTarget.value.trim();
+		const current = this._gravityClocks();
+		this.actor.update({
+			"system.attributes.gravityClocks": current.map((clock) => (clock.id === clockId ? { ...clock, target } : clock))
 		});
 	},
 	_onGravityClockValueStep(event) {

@@ -14,7 +14,7 @@
 			{{#each weaponBundles}}
 			<div class="move-roll-weapon-panel{{#if @first}} active{{/if}}" data-weapon-panel="{{weaponKey}}">
 				{{#if traits.length}}
-				<div class="form-group move-roll-select-group">
+				<div class="form-group move-roll-select-group" data-trait-group>
 					<label>Trait</label>
 					{{#if (gt traits.length 1)}}
 					<select name="trait" {{#if ../lockedTrait}}disabled{{/if}}>
@@ -33,6 +33,20 @@
 				{{/if}}
 			</div>
 			{{/each}}
+			{{#if (and gravityClocks.length (not lockedTrait))}}
+			<div class="form-group move-roll-select-group">
+				<label>Gravity</label>
+				<input type="checkbox" name="has-gravity"/>
+			</div>
+			<div class="form-group move-roll-select-group move-roll-select-group-hidden" data-gravity-target-group>
+				<label>Gravity Target</label>
+				<select name="gravity-target">
+					{{#each gravityClocks}}
+					<option value="{{id}}">{{target}} (+{{value}})</option>
+					{{/each}}
+				</select>
+			</div>
+			{{/if}}
 			<div class="form-group move-roll-select-group">
 				<label>Dice</label>
 				{{> "modules/armor-astir/templates/shared/notched-slider.hbs" name="advantage" states=advantageStates selectedKey=advantageSelectedKey selectedLabel=advantageSelectedLabel}}
@@ -138,7 +152,7 @@
 		<div class="move-roll-column-1">
 			<h3 class="move-roll-column-header">Controls</h3>
 			{{#if traits.length}}
-			<div class="form-group move-roll-select-group">
+			<div class="form-group move-roll-select-group" data-trait-group>
 				<label>Trait</label>
 				{{#if (gt traits.length 1)}}
 				<select name="trait" {{#if lockedTrait}}disabled{{/if}}>
@@ -150,6 +164,20 @@
 				<input type="hidden" name="trait" value="{{key}}"/>
 				{{/each}}
 				{{/if}}
+			</div>
+			{{/if}}
+			{{#if (and traits.length gravityClocks.length (not lockedTrait))}}
+			<div class="form-group move-roll-select-group">
+				<label>Gravity</label>
+				<input type="checkbox" name="has-gravity"/>
+			</div>
+			<div class="form-group move-roll-select-group move-roll-select-group-hidden" data-gravity-target-group>
+				<label>Gravity Target</label>
+				<select name="gravity-target">
+					{{#each gravityClocks}}
+					<option value="{{id}}">{{target}} (+{{value}})</option>
+					{{/each}}
+				</select>
 			</div>
 			{{/if}}
 			{{#if intents}}

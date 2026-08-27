@@ -1015,6 +1015,155 @@ describe("configureMoveRoll - weaponBundles", () => {
 	});
 });
 
+// Gravity Clocks as a virtual-trait source (see docs/domains/clocks.md, tracking-mixin.js's
+// _availableGravityClocks) — a checked Has Gravity plus a picked target synthesizes a
+// {key: "gravity:<id>", label, value} trait outside TRAITS, the same pattern Home's `home` field
+// and Summoner's `eidolon-drive-ally` already use.
+describe("configureMoveRoll - gravity clocks", () => {
+	const clash = CLASH_TRAIT;
+	const talk = { key: "talk", label: "TALK", value: 2 };
+	const gravityOption = { id: "clock1", target: "The Broker", value: 3 };
+
+	function fakeHasGravityRenderHtml() {
+		const state = { handler: null, toggleCalls: [] };
+		state.html = {
+			find: (selector) => {
+				if (selector === "[name='has-gravity']") {
+					return { on: (event, handler) => { state.handler = handler; } };
+				}
+				if (selector === "[data-trait-group]" || selector === "[data-gravity-target-group]") {
+					return { toggleClass: (cls, on) => { state.toggleCalls.push([selector, cls, on]); } };
+				}
+				return fakeNoopJQuery();
+			}
+		};
+		return state;
+	}
+
+	it("defaults gravityClocks to an empty array in the dialog template context", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			gravityClocks: []
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("passes a given gravityClocks list through to the dialog template", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { gravityClocks: [gravityOption] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			gravityClocks: [gravityOption]
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("wires Has Gravity to toggle the trait select and gravity-target select visibility", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { gravityClocks: [gravityOption] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeHasGravityRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		state.handler({ target: { checked: true } });
+
+		expect(state.toggleCalls).toContainEqual(["[data-trait-group]", "move-roll-select-group-hidden", true]);
+		expect(state.toggleCalls).toContainEqual(["[data-gravity-target-group]", "move-roll-select-group-hidden", false]);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("does not wire a Has Gravity handler when no gravityClocks are available", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeHasGravityRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		expect(state.handler).toBeNull();
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves a gravity clock's virtual trait when Has Gravity is checked and a target is picked", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { gravityClocks: [gravityOption] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='gravity-target']": "clock1",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], [], [], false, true));
+
+		expect(await promise).toEqual(expect.objectContaining({
+			trait: { key: "gravity:clock1", label: "The Broker", value: 3 }
+		}));
+	});
+
+	it("resolves the normal trait when Has Gravity is unchecked, even with gravityClocks available", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { gravityClocks: [gravityOption] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}));
+
+		expect(await promise).toEqual(expect.objectContaining({ trait: clash }));
+	});
+
+	it("resolves the normal trait when gravityClocks is omitted entirely", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='trait']": "clash",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], [], [], false, true));
+
+		expect(await promise).toEqual(expect.objectContaining({ trait: clash }));
+	});
+
+	// The template itself omits the Has Gravity checkbox entirely whenever lockedTrait is set (see
+	// move-roll-dialog.hbs's `(not lockedTrait)` gate), so a real Roll dialog never has a
+	// `[name='gravity-target']` value to read in this state -- this test simulates that: even
+	// forcing has-gravity's checked state, there's nothing for gravityClocks.find to match without
+	// a real selection, so resolution falls through to lockedTrait exactly as it did before this
+	// feature existed.
+	it("lockedTrait wins over gravity-clock resolution, matching how the template gates the checkbox off whenever lockedTrait is set", async () => {
+		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash], { lockedTrait: talk, gravityClocks: [gravityOption] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], [], [], false, true));
+
+		expect(await promise).toEqual(expect.objectContaining({ trait: talk }));
+	});
+});
+
 describe("configureVariableDiceRoll", () => {
 	function fakeVariableDiceHtml(values) {
 		return { find: (selector) => ({ val: () => values[selector] }) };

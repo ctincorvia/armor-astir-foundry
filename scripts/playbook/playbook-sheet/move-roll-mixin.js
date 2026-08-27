@@ -428,7 +428,8 @@ export const MoveRollSheetMixin = {
 		const config = await configureMoveRoll(move, traits, {
 			lockedTrait,
 			riders,
-			weaponBundles
+			weaponBundles,
+			gravityClocks: this._availableGravityClocks()
 		});
 		if (!config) return;
 
@@ -498,6 +499,7 @@ export const MoveRollSheetMixin = {
 			narrativeTags,
 			rollModifiers,
 			riders,
+			gravityClocks: this._availableGravityClocks(),
 			...(guided && { guided }),
 			...(rerollTag && { rerollTag })
 		});

@@ -619,6 +619,7 @@ describe("PlaybookActorSheet#activateListeners - gravity clocks", () => {
 		expect(html.find).toHaveBeenCalledWith(".gravity-clock-add");
 		expect(html.find).toHaveBeenCalledWith(".gravity-clock-remove");
 		expect(html.find).toHaveBeenCalledWith(".gravity-clock-label-input");
+		expect(html.find).toHaveBeenCalledWith(".gravity-clock-target-input");
 		expect(html.find).toHaveBeenCalledWith(".gravity-clock-value-step");
 		expect(html.find).toHaveBeenCalledWith(".gravity-clock-step");
 		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
@@ -634,7 +635,7 @@ describe("PlaybookActorSheet#_onGravityClockAdd", () => {
 		sheet._onGravityClockAdd({});
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.gravityClocks": [{ id: "test-id", label: "", progress: 0, value: 1 }]
+			"system.attributes.gravityClocks": [{ id: "test-id", label: "", progress: 0, value: 1, target: "" }]
 		});
 	});
 
@@ -650,7 +651,7 @@ describe("PlaybookActorSheet#_onGravityClockAdd", () => {
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.gravityClocks": [
 				{ id: "existing", label: "Existing", progress: 3, value: 2 },
-				{ id: "test-id", label: "", progress: 0, value: 1 }
+				{ id: "test-id", label: "", progress: 0, value: 1, target: "" }
 			]
 		});
 	});
@@ -662,7 +663,7 @@ describe("PlaybookActorSheet#_onGravityClockAdd", () => {
 		sheet._onGravityClockAdd({});
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.gravityClocks": [{ id: "test-id", label: "", progress: 0, value: 1 }]
+			"system.attributes.gravityClocks": [{ id: "test-id", label: "", progress: 0, value: 1, target: "" }]
 		});
 	});
 
@@ -743,6 +744,83 @@ describe("PlaybookActorSheet#_onGravityClockLabelChange", () => {
 				{ id: "2", label: "Untouched", progress: 0, value: 1 }
 			]
 		});
+	});
+});
+
+describe("PlaybookActorSheet#_onGravityClockTargetChange", () => {
+	it("trims and updates only the matching clock's target", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					gravityClocks: [
+						{ id: "1", label: "a", progress: 0, value: 1, target: "Old target" },
+						{ id: "2", label: "b", progress: 0, value: 1, target: "Untouched" }
+					]
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onGravityClockTargetChange({ currentTarget: { dataset: { clockId: "1" }, value: "  New target  " } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.gravityClocks": [
+				{ id: "1", label: "a", progress: 0, value: 1, target: "New target" },
+				{ id: "2", label: "b", progress: 0, value: 1, target: "Untouched" }
+			]
+		});
+	});
+});
+
+describe("PlaybookActorSheet#_availableGravityClocks", () => {
+	it("returns an empty list when there are no gravity clocks", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._availableGravityClocks()).toEqual([]);
+	});
+
+	it("excludes clocks with an empty or missing target", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					gravityClocks: [
+						{ id: "1", label: "a", progress: 0, value: 2, target: "" },
+						{ id: "2", label: "b", progress: 0, value: 2 }
+					]
+				}
+			}
+		};
+
+		expect(sheet._availableGravityClocks()).toEqual([]);
+	});
+
+	it("maps id/target/value for clocks that have a target", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					gravityClocks: [{ id: "1", label: "a", progress: 0, value: 3, target: "The Broker" }]
+				}
+			}
+		};
+
+		expect(sheet._availableGravityClocks()).toEqual([{ id: "1", target: "The Broker", value: 3 }]);
+	});
+
+	it("defaults value to GRAVITY_CLOCK_VALUE_MIN when a targeted clock's value is unset", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					gravityClocks: [{ id: "1", label: "a", progress: 0, target: "The Broker" }]
+				}
+			}
+		};
+
+		expect(sheet._availableGravityClocks()).toEqual([{ id: "1", target: "The Broker", value: 1 }]);
 	});
 });
 

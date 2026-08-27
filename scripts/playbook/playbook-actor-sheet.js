@@ -272,6 +272,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".gravity-clock-add").on("click", this._onGravityClockAdd.bind(this));
 		html.find(".gravity-clock-remove").on("click", this._onGravityClockRemove.bind(this));
 		html.find(".gravity-clock-label-input").on("change", this._onGravityClockLabelChange.bind(this));
+		html.find(".gravity-clock-target-input").on("change", this._onGravityClockTargetChange.bind(this));
 		html.find(".gravity-clock-value-step").on("click", this._onGravityClockValueStep.bind(this));
 		html.find(".gravity-clock-step").on("click", this._onGravityClockStep.bind(this));
 		html.find(".clock-add").on("click", this._onClockAdd.bind(this));

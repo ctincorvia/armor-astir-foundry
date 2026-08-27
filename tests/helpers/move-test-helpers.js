@@ -50,7 +50,8 @@ export function fakeRollHtml(
 	checkedEquipmentTags = [],
 	checkedAstirPartSpends = [],
 	checkedRollModifiers = [],
-	panelScoped = false
+	panelScoped = false,
+	checkedHasGravity = false
 ) {
 	const scope = panelScoped ? "[data-weapon-panel].active " : "";
 	return {
@@ -66,6 +67,9 @@ export function fakeRollHtml(
 			}
 			if (selector === `${scope}[name='roll-modifier']:checked`) {
 				return { map: (fn) => ({ get: () => checkedRollModifiers.map((value, index) => fn(index, { value })) }) };
+			}
+			if (selector === "[name='has-gravity']:checked") {
+				return { length: checkedHasGravity ? 1 : 0 };
 			}
 			return { val: () => values[selector] };
 		}

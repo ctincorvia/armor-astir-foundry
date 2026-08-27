@@ -145,7 +145,8 @@ export async function configureMoveRoll(
 		riders = [],
 		guided = null,
 		rerollTag = null,
-		weaponBundles = null
+		weaponBundles = null,
+		gravityClocks = []
 	} = {}
 ) {
 	// The Advantage slider is never locked — see the render callback's own resolveRollChain seed
@@ -187,6 +188,7 @@ export async function configureMoveRoll(
 		riders,
 		guided,
 		rerollTag,
+		gravityClocks,
 		// Each bundle's own lockedEffectLabel is resolved here, the same effectState lookup as the
 		// top-level lockedEffect above — kept out of PlaybookActorSheet#_weaponRollBundle so that
 		// method (and every test asserting its return shape) doesn't need its own roll-effects.js
@@ -227,6 +229,17 @@ export async function configureMoveRoll(
 						html.find(`[data-weapon-panel="${event.target.value}"]`).addClass("active");
 						seedForcedRollModifiers();
 						repaintAvailability();
+					});
+				}
+
+				// "Has Gravity" checkbox (see docs/domains/clocks.md's Gravity Clocks entry) — swaps
+				// the Trait select for a Gravity Target select; only wired when there's at least one
+				// eligible clock to offer (the template itself omits the checkbox otherwise).
+				if (gravityClocks.length) {
+					html.find("[name='has-gravity']").on("change", (event) => {
+						const checked = event.target.checked;
+						html.find("[data-trait-group]").toggleClass("move-roll-select-group-hidden", checked);
+						html.find("[data-gravity-target-group]").toggleClass("move-roll-select-group-hidden", !checked);
 					});
 				}
 
@@ -431,8 +444,21 @@ export async function configureMoveRoll(
 							? html.find(rollModifierSelector).map((_, el) => el.value).get()
 							: [];
 
+						// A checked Has Gravity plus a picked target synthesizes a virtual trait keyed
+						// outside TRAITS (`gravity:<clockId>`), the same pattern Home's `home` field and
+						// Summoner's `eidolon-drive-ally` already use — moves.js#rollMove trusts a
+						// non-TRAITS trait's `value` directly, and _finishMoveRoll's traitBonus lookup
+						// safely no-ops to 0 for a key it doesn't recognize, so no downstream change is
+						// needed for this to just work.
+						const hasGravity = gravityClocks.length > 0 && html.find("[name='has-gravity']:checked").length > 0;
+						const gravityClock = hasGravity
+							? gravityClocks.find((c) => c.id === html.find("[name='gravity-target']").val())
+							: null;
+
 						resolve({
-							trait: lockedTrait ?? activeTraits.find((t) => t.key === html.find(traitSelector).val()),
+							trait: gravityClock
+								? { key: `gravity:${gravityClock.id}`, label: gravityClock.target, value: gravityClock.value }
+								: lockedTrait ?? activeTraits.find((t) => t.key === html.find(traitSelector).val()),
 							// The render callback's own paintAdvantage/paintEffect (see chainEntryResult
 							// in roll-chain.js) already wrote these two hidden inputs — from the forced
 							// Roll Modifier seed, lockedEffect, any one-time Roll Modifier nudge, and
