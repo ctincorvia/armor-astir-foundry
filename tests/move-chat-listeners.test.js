@@ -1051,6 +1051,27 @@ describe("onRenderMoveChat/handleAdvantage (Add Advantage/Add Disadvantage)", ()
 		}));
 	});
 
+	it("preserves a Gravity Clock reminder (rollMove's gravityReminder, carried via extraReminders) across a retroactive Advantage add", async () => {
+		game.actors.get.mockReturnValue({ id: "actor1" });
+		const offer = baseOffer({ value: 3, extraReminders: ["Advance this GRAVITY clock with The Broker."] });
+		const message = { flags: { "armor-astir": { advantageOffer: offer } }, author: "author1", update: vi.fn() };
+		const fake = fakeChatHtml();
+		mockDieRoll(6);
+
+		onRenderMoveChat(message, fake.html);
+		fake.addAdvantageHandler({ currentTarget: { disabled: false } });
+		await Promise.resolve();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		// Same die push as the extraReminders test above -> success tier; the gravity reminder rides
+		// along unconditionally, the same way Bureaucrat's own extraReminders do.
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			reminders: ["Advance this GRAVITY clock with The Broker."]
+		}));
+	});
+
 	it("steps advantage back down to none when disadvantage is clicked, without rolling a new die", async () => {
 		game.actors.get.mockReturnValue({ id: "actor1" });
 		const offer = baseOffer({

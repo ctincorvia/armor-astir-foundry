@@ -1082,6 +1082,59 @@ describe("configureMoveRoll - gravity clocks", () => {
 		await promise;
 	});
 
+	// The template's single-panel Has Gravity gate no longer includes a `traits.length` clause (see
+	// templates/move-roll-dialog.hbs) — Help or Hinder (traits: [], rolls off `conditions` instead)
+	// is the one move this newly enables. renderTemplate itself is stubbed in tests (see
+	// tests/setup.js), so "still renders the checkbox" is verified here as: configureMoveRoll's own
+	// context-building and Has Gravity wiring don't gate on traits.length either, matching the
+	// template's own unconditional-on-traits gate.
+	it("passes gravityClocks through to the template context for a zero-trait move (Help or Hinder)", async () => {
+		const promise = configureMoveRoll(HELP_OR_HINDER, [], { gravityClocks: [gravityOption] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.stringContaining("move-roll-dialog"), expect.objectContaining({
+			traits: [],
+			gravityClocks: [gravityOption]
+		}));
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("wires the Has Gravity handler for a zero-trait move (Help or Hinder) when gravityClocks are available", async () => {
+		const promise = configureMoveRoll(HELP_OR_HINDER, [], { gravityClocks: [gravityOption] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeHasGravityRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+		state.handler({ target: { checked: true } });
+
+		expect(state.handler).not.toBeNull();
+		expect(state.toggleCalls).toContainEqual(["[data-gravity-target-group]", "move-roll-select-group-hidden", false]);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("resolves a gravity clock's virtual trait for a zero-trait move (Help or Hinder)", async () => {
+		const promise = configureMoveRoll(HELP_OR_HINDER, [], { gravityClocks: [gravityOption] });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		dialogOptions.buttons.roll.callback(fakeRollHtml({
+			"[name='gravity-target']": "clock1",
+			"[name='advantage']": "none",
+			"[name='effect']": "none"
+		}, [], [], [], [], false, true));
+
+		expect(await promise).toEqual(expect.objectContaining({
+			trait: { key: "gravity:clock1", label: "The Broker", value: 3 }
+		}));
+	});
+
 	it("does not wire a Has Gravity handler when no gravityClocks are available", async () => {
 		const promise = configureMoveRoll(EXCHANGE_BLOWS, [clash]);
 		await Promise.resolve();

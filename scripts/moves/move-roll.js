@@ -104,6 +104,12 @@ export async function rollMove(actor, move, trait, options = {}) {
 	// same-keyed entry — TRAITS membership, not presence-on-actor, decides which lookup applies.
 	const isActorTrait = trait && TRAITS.some((t) => t.key === trait.key);
 	const statValue = trait ? (isActorTrait ? (actor.system.stats?.[trait.key]?.value ?? 0) : trait.value) : 0;
+	// A roll that substitutes a Gravity Clock's value for the normal Trait (see move-dialogs.js's "Has
+	// Gravity" checkbox) is exactly the moment a Gravity Trigger might apply — this only nudges the player;
+	// nothing here writes to the clock itself (manual trackers, not enforcement — see claude.md).
+	const gravityReminder = trait?.key?.startsWith("gravity:")
+		? `Advance this GRAVITY clock with ${trait.label}.`
+		: null;
 	// Conditional +1s for moves with no base stat to roll, e.g. Help or Hinder — each checked
 	// condition key contributes +1, on top of (never instead of) any trait value.
 	const conditionBonus = (move.conditions ?? [])
@@ -196,7 +202,8 @@ export async function rollMove(actor, move, trait, options = {}) {
 	// aren't tier-gated: the rules text applies "even on a fail," so they're appended to every
 	// tier's reminders unconditionally, the same unconditional-merge treatment combinedQuestions
 	// below gives move.questions/options.extraQuestions.
-	const combinedReminders = [...reminders, ...(options.extraReminders ?? [])];
+	const allExtraReminders = [...(options.extraReminders ?? []), ...(gravityReminder ? [gravityReminder] : [])];
+	const combinedReminders = [...reminders, ...allExtraReminders];
 
 	// Human Resources' extra questions (see PlaybookActorSheet#_grantedQuestionsForMove) merge onto
 	// the move's own question list, if any — this module never imports playbook-moves.js (see
@@ -378,7 +385,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 			// Bureaucrat's own unconditional reminders (see combinedReminders above) — carried
 			// through so move-chat-listeners.js#handleAdvantage can still include them after a
 			// retroactive Advantage/Disadvantage add changes the tier.
-			extraReminders: options.extraReminders ?? null,
+			extraReminders: allExtraReminders.length ? allExtraReminders : null,
 			flavorArgs
 		}
 	};

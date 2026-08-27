@@ -480,6 +480,73 @@ describe("rollMove", () => {
 	});
 });
 
+// A roll that substitutes a Gravity Clock's value for the normal Trait (see move-dialogs.js's "Has
+// Gravity" checkbox) synthesizes a `gravity:<id>`-keyed virtual trait outside TRAITS -- rollMove
+// treats that as the moment a Gravity Trigger might apply and adds an unconditional chat reminder
+// to advance the clock (see docs/domains/clocks.md).
+describe("rollMove - Gravity Clocks", () => {
+	const gravityTrait = { key: "gravity:clock1", label: "The Broker", value: 3 };
+
+	it("adds a reminder to advance the Gravity clock when the trait used is a gravity: virtual trait, regardless of result tier", async () => {
+		const actor = { system: { stats: {} } };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		mockRoll({ dice: [5, 5] });
+		await rollMove(actor, EXCHANGE_BLOWS, gravityTrait);
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			reminders: ["Advance this GRAVITY clock with The Broker."]
+		}));
+
+		mockRoll({ dice: [1, 1] });
+		await rollMove(actor, EXCHANGE_BLOWS, gravityTrait);
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "failure",
+			reminders: [...FAILURE_REMINDERS, "Advance this GRAVITY clock with The Broker."]
+		}));
+	});
+
+	it("does not add a gravity reminder for an ordinary (non-gravity) trait", async () => {
+		const actor = { system: { stats: { clash: { value: 2 } } } };
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		mockRoll({ dice: [5, 5] });
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			reminders: null
+		}));
+	});
+
+	it("combines the gravity reminder with options.extraReminders (e.g. Bureaucrat) without either clobbering the other", async () => {
+		const actor = { system: { stats: {} } };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		mockRoll({ dice: [5, 5] });
+		await rollMove(actor, EXCHANGE_BLOWS, gravityTrait, {
+			extraReminders: ["Choose 2, even on a fail:", "Some reminder"]
+		});
+
+		expect(renderTemplate).toHaveBeenCalledWith(MOVE_CHAT_TEMPLATE, expect.objectContaining({
+			tier: "success",
+			reminders: ["Choose 2, even on a fail:", "Some reminder", "Advance this GRAVITY clock with The Broker."]
+		}));
+	});
+
+	it("carries the gravity reminder through into the advantageOffer flag's extraReminders, for handleAdvantage to reattach later", async () => {
+		const actor = { id: "actor1", system: { stats: {} } };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [3, 4, 2] });
+
+		await rollMove(actor, EXCHANGE_BLOWS, gravityTrait, { advantage: "advantage", effect: "confidence" });
+
+		const rollInstance = Roll.mock.results.at(-1).value;
+		const flags = rollInstance.toMessage.mock.calls.at(-1)[0].flags["armor-astir"];
+		expect(flags.advantageOffer.extraReminders).toEqual(["Advance this GRAVITY clock with The Broker."]);
+	});
+});
+
 describe("rollMove - hold", () => {
 	it("writes hold 3 to the actor on a 10+", async () => {
 		const actor = { system: { stats: { sense: { value: 0 } } }, update: vi.fn() };
