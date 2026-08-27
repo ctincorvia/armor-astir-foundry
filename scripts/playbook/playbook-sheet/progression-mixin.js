@@ -5,6 +5,8 @@ import { APPROACHES } from "../../core/approaches.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../advancements.js";
 import { resolveAstirParts } from "../../frames/astir.js";
 import { ARDENT_PART_CATALOG } from "../../frames/ardent.js";
+import { DOWNTIME_SCENE_KINDS, findDowntimeSceneKind } from "../downtime-scenes.js";
+import { showDowntimeSceneDetails } from "../downtime-scene-dialog.js";
 
 const TRAIT_MIN = -3;
 const TRAIT_MAX = 3;
@@ -354,5 +356,16 @@ export const ProgressionSheetMixin = {
 	_onAdvancementToggle(event) {
 		const { advancementKey: key } = event.currentTarget.dataset;
 		this.actor.update({ [`system.attributes.advancements.${key}`]: event.currentTarget.checked });
+	},
+	// Downtime Scenes (Downtime tab): the fixed reference list itself, no actor state involved (see
+	// downtime-scenes.js).
+	_downtimeSceneKindsData() {
+		return DOWNTIME_SCENE_KINDS;
+	},
+	async _onDowntimeSceneInfo(event) {
+		const kind = findDowntimeSceneKind(event.currentTarget.dataset.sceneKind);
+		if (!kind) return;
+
+		await showDowntimeSceneDetails(kind);
 	}
 };

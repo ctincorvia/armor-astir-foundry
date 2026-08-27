@@ -1,0 +1,21 @@
+<div class="downtime-scene-dialog-content">
+	<section class="downtime-scene-you">
+		<h3>You</h3>
+		<p>{{you}}</p>
+	</section>
+	<section class="downtime-scene-everyone">
+		<h3>Anyone may spend a token to choose one:</h3>
+		<ul class="downtime-scene-bullet-list">
+			{{#each everyoneElse}}
+			<li>{{text}}{{#if subBullets.length}}
+				<ul class="downtime-scene-bullet-list downtime-scene-sub-bullet-list">
+					{{#each subBullets}}<li>{{this}}</li>{{/each}}
+				</ul>
+			{{/if}}</li>
+			{{/each}}
+		</ul>
+	</section>
+	{{#if note}}
+	<p class="downtime-scene-note">{{note}}</p>
+	{{/if}}
+</div>

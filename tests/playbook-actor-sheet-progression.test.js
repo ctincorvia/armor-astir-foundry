@@ -1,11 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 
+vi.mock("../scripts/playbook/downtime-scene-dialog.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	showDowntimeSceneDetails: vi.fn()
+}));
+
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
 import { ADVANCEMENT_TOP, ADVANCEMENT_BOTTOM } from "../scripts/playbook/advancements.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { BASIC_MOVES, SPECIAL_MOVES } from "../scripts/moves/moves.js";
 import { TRAITS } from "../scripts/core/traits.js";
 import { ASTIR_PART_CATALOG } from "../scripts/frames/astir.js";
+import { DOWNTIME_SCENE_KINDS } from "../scripts/playbook/downtime-scenes.js";
+import { showDowntimeSceneDetails } from "../scripts/playbook/downtime-scene-dialog.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 
 const ARCANE_AUGMENTS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:arcane-augments");
@@ -762,6 +769,50 @@ describe("PlaybookActorSheet#_downtimeAbilitiesData", () => {
 		sheet.actor = { system: { attributes: { playbookMoves: [MASTER_SERVANT.key] } } };
 
 		expect(sheet._downtimeAbilitiesData().some((entry) => entry.key === MASTER_SERVANT.key)).toBe(false);
+	});
+});
+
+describe("PlaybookActorSheet#_downtimeSceneKindsData", () => {
+	it("returns the full DOWNTIME_SCENE_KINDS catalog", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._downtimeSceneKindsData()).toBe(DOWNTIME_SCENE_KINDS);
+	});
+});
+
+describe("PlaybookActorSheet#_onDowntimeSceneInfo", () => {
+	it("no-ops for an unrecognized scene kind key", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		await sheet._onDowntimeSceneInfo({ currentTarget: { dataset: { sceneKind: "not-a-real-scene-kind" } } });
+
+		expect(showDowntimeSceneDetails).not.toHaveBeenCalled();
+	});
+
+	it("shows the resolved scene kind's details", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		await sheet._onDowntimeSceneInfo({ currentTarget: { dataset: { sceneKind: "fade" } } });
+
+		expect(showDowntimeSceneDetails).toHaveBeenCalledWith(DOWNTIME_SCENE_KINDS.find((k) => k.key === "fade"));
+	});
+});
+
+describe("PlaybookActorSheet#activateListeners - downtime scene info", () => {
+	it("binds a click handler to the downtime scene info buttons", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".downtime-scene-info");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
 	});
 });
 

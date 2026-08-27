@@ -378,6 +378,25 @@
 	opacity: 0.8;
 }
 
+/* Downtime Scenes (read-only reference list, always visible — see downtime-scenes.js): a name +
+   "?" button per Scene Kind. .entry-list/.entry-list-item cover the list reset and row
+   padding/stripe/hover; this grid is what a plain .entry-list-item row didn't already need for
+   .downtime-ability-item (text-only), since here the button has to land in a fixed column
+   regardless of how long a Scene Kind's name runs — see docs/domains/styling.md's
+   variable-length-label-plus-fixed-control convention (.danger-item/.move already do the same). */
+.armor-astir.sheet .downtime-scene-item {
+	display: grid;
+	grid-template-columns: minmax(0, 1fr) auto;
+	align-items: center;
+	gap: var(--aa-space-2);
+}
+
+/* Same bold treatment as sheet-tabs.css's .move-name — this row's own name label, next to its
+   own "?" button, is the same "bold name beside a control" shape as a move row. */
+.armor-astir.sheet .downtime-scene-name {
+	font-weight: 700;
+}
+
 /* Potions (Alchemical Suite — see astir.js) — a compact row per color rather than the full
    .move-list treatment, since there's nothing to add/remove/roll, just a label and a Spent
    checkbox (see .potion-spent, sheet-tabs.css). */

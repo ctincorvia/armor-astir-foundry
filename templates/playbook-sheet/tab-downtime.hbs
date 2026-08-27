@@ -52,5 +52,18 @@
 							</ol>
 						</section>
 						{{/if}}
+						<section class="downtime-scenes">
+							<div class="section-header">
+								<h3>Downtime Scenes</h3>
+							</div>
+							<ol class="entry-list downtime-scene-list">
+								{{#each downtimeSceneKinds}}
+								<li class="entry-list-item downtime-scene-item">
+									<span class="downtime-scene-name">{{name}}</span>
+									<button type="button" class="downtime-scene-info move-info" data-scene-kind="{{key}}" aria-label="{{name}} details">?</button>
+								</li>
+								{{/each}}
+							</ol>
+						</section>
 					</section>
 				</div>

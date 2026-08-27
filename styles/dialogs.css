@@ -9,6 +9,55 @@
 	padding: 0 var(--aa-space-2) var(--aa-space-2);
 }
 
+/* The Downtime Scene "?" dialog (see downtime-scene-dialog.js/downtime-scene-dialog.hbs) — the
+   move-info dialog's own structured-content counterpart: two headers (You / Everyone else can)
+   plus a bulleted list instead of one block of rich text. */
+.armor-astir.downtime-scene-dialog .downtime-scene-dialog-content {
+	padding: 0 var(--aa-space-2) var(--aa-space-2);
+}
+
+.armor-astir.downtime-scene-dialog .downtime-scene-you,
+.armor-astir.downtime-scene-dialog .downtime-scene-everyone {
+	margin-bottom: var(--aa-space-2);
+}
+
+.armor-astir.downtime-scene-dialog .downtime-scene-you h3,
+.armor-astir.downtime-scene-dialog .downtime-scene-everyone h3 {
+	margin: 0 0 var(--aa-space-1);
+}
+
+.armor-astir.downtime-scene-dialog .downtime-scene-you p {
+	margin: 0;
+}
+
+/* List-reset modeled on sheet-tabs.css's .quarters-benefit-list, but scoped to this dialog's own
+   root instead of .armor-astir.sheet — that rule is deliberately kept to its two sheet-side users
+   (see that file's own comment), not extended to a Dialog root. */
+.armor-astir.downtime-scene-dialog .downtime-scene-bullet-list {
+	margin: 0;
+	padding: 0 0 0 var(--aa-space-3);
+}
+
+.armor-astir.downtime-scene-dialog .downtime-scene-bullet-list li {
+	padding: 2px 0;
+	font-size: 12px;
+}
+
+.armor-astir.downtime-scene-dialog .downtime-scene-sub-bullet-list {
+	margin: 2px 0 0;
+	padding-left: var(--aa-space-3);
+}
+
+/* A supplementary reminder, not a primary rule — italicized to read as secondary to the You/
+   Everyone else content above it, same distinction .downtime-ability-source's italic treatment
+   draws for a move's own downtimeAbility source line (sheet-chrome.css). */
+.armor-astir.downtime-scene-dialog .downtime-scene-note {
+	margin: var(--aa-space-2) 0 0;
+	font-size: 12px;
+	font-style: italic;
+	opacity: 0.8;
+}
+
 .armor-astir.move-roll-dialog .form-group {
 	display: flex;
 	flex-direction: row;

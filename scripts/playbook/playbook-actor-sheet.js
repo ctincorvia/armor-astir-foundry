@@ -135,6 +135,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		data.downtimeTokens = this._downtimeTokensData();
 		data.bonusDowntimeTokens = this._bonusDowntimeTokensData();
 		data.downtimeAbilities = this._downtimeAbilitiesData();
+		data.downtimeSceneKinds = this._downtimeSceneKindsData();
 		const startingMovePool = findStartingMovePool(this.actor.system.playbook?.name);
 		const astirParts = this._astirParts();
 		const astirMove = astir?.move ? findAstirMove(astir.move) : null;
@@ -261,6 +262,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".spotlight-step").on("click", this._onSpotlightStep.bind(this));
 		html.find(".downtime-tokens-step").on("click", this._onDowntimeTokensStep.bind(this));
 		html.find(".bonus-downtime-tokens-step").on("click", this._onBonusDowntimeTokenStep.bind(this));
+		html.find(".downtime-scene-info").on("click", this._onDowntimeSceneInfo.bind(this));
 		html.find(".advancement-checkbox").on("change", this._onAdvancementToggle.bind(this));
 		html.find(".danger-add-toggle").on("click", this._onDangerAddToggle.bind(this));
 		html.find(".danger-add").on("click", this._onDangerAdd.bind(this));
