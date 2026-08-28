@@ -8,11 +8,16 @@ A [Foundry VTT](https://foundryvtt.com/) module implementing character sheets an
 
 ## What it does
 
-- **Playbook actors** — dragging a playbook out of a compendium produces a ready-to-play character actor directly, complete with basic moves, playbook move picking, equipment, and Astir/Ardent pilotable frames.
-- **World actors** — custom Actor sub-types for the Carrier (the party's mobile base), the Authority (the empire), and the Cause (the opposing factions), each with their own sheet.
-- **Astirs & Ardents** — mecha-style pilotable frames with parts, weapons, Power tracking, and move integration.
+- **Playbook actors** — dragging any of the sixteen basic playbooks (Adrift, Advocate, Arcanist, Artificer, Attendant, Commander, Diplomat, Icon, Impostor, Paradigm, Revenant, Scout, Summoner, The Captain, Witch, Wither) out of a compendium produces a ready-to-play character actor directly, complete with basic moves, playbook move picking, starting equipment, and Astir/Ardent pilotable frames.
+- **200+ automated moves** — Basic Moves, Special Moves, every playbook's move pool (plus the universal Cantrips and Soldier Moves pools), and the Astir Moves catalog all run through one shared roll pipeline: tier-based 2d6 with Advantage/Disadvantage and Confidence/Desperation Effect sliders, automatic 10+/7-9/6-/12+ result branching, hold/spend economies, guided rerolls, and automatic-success/downgrade offers that can retroactively flip an already-posted roll — including cross-actor spends like the Icon's Bardic Inspiration.
+- **Astirs & Ardents** — mecha-style pilotable frames. An Astir carries a Power pool, Overheating, a unique Astir Move, and up to two installed Parts drawn from dedicated Parts/weapon catalogs; Ardents are cheaper secondary frames a character can stockpile freely, with only one frame mountable at a time.
+- **Equipment** — a snapshot-on-pick catalog with a tag system (Blitz, Defensive, Drain, Impact, Approach tags, and more) that can be spent from the roll dialog to shift Effect, plus a points budget for homebrew gear.
+- **Clocks & Gravity Clocks** — freeform narrative clocks on every character sheet, plus a distinct Gravity Clock mechanic tied to each playbook's Gravity Trigger that can substitute for a move's normal trait.
+- **Downtime Scene Reference** — the seven Downtime Scene Kinds available as an in-sheet lookup dialog or postable directly to the chat log for the whole table to see.
+- **World actors** — custom Actor sub-types for the Carrier (the party's mobile base, with its own built-in weapon slots), the Authority (the empire, with Stability, Divisions, and Pillars), the Cause (the opposing factions, tracked by Grip), and a lightweight NPC actor, each with its own sheet.
+- **Reflavor** — GMs can upload a JSON file that reskins move, equipment, tag, and Astir text across the whole module for a different genre or setting, without touching any underlying mechanics.
 - **Custom actor creation flow** for these module-defined actor types.
-- Starting compendium packs for all sixteen basic playbooks.
+- Backed by a 100%-branch-coverage test suite enforced on every commit.
 
 ## Development
 
