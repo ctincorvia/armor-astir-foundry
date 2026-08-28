@@ -1,10 +1,10 @@
 # armor-astir-foundry
 
-A [Foundry VTT](https://foundryvtt.com/) module implementing character sheets and mechanics for [**Armor Astir: Advent**](https://royalrabbit.itch.io/armour-astir), a PBTA TRPG. Built on top of the [pbta](https://github.com/asacolips-projects/pbta) system (v1.1.15+, Foundry v12).
+A [Foundry VTT](https://foundryvtt.com/) module implementing character sheets and mechanics for [**Armour Astir: Advent**](https://royalrabbit.itch.io/armour-astir), a PBTA TRPG. Built on top of the [pbta](https://github.com/asacolips-projects/pbta) system (v1.1.15+, Foundry v12).
 
-> **Disclaimer:** This module has been published with explicit permission from Briar Soverign,  Armor Astir's system author, but it is an unofficial, fan-made module.
+> **Disclaimer:** This module has been published with explicit permission from Briar Soverign,  Armour Astir's system author, but it is an unofficial, fan-made module.
 >
-> This module's code was developed with AI assistance. Its written content — moves, playbook text, and other rules copy — was not AI-generated; it's transcribed from the official Armor Astir: Advent rulebook.
+> This module's code was developed with AI assistance. Its written content — moves, playbook text, and other rules copy — was not AI-generated; it's transcribed from the official Armour Astir: Advent rulebook.
 
 ## What it does
 
