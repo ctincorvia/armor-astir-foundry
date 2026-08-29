@@ -1,12 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-
-vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
-	...(await importOriginal()),
-	rollMove: vi.fn()
-}));
-
-import { BASIC_MOVES, MOVE_CHAT_TEMPLATE, MOVE_RESULT_LABELS, rollMove } from "../scripts/moves/moves.js";
+import * as movesModule from "../scripts/moves/moves.js";
+import { BASIC_MOVES, MOVE_CHAT_TEMPLATE, MOVE_RESULT_LABELS } from "../scripts/moves/moves.js";
 import { registerMoveChatListeners, onRenderMoveChat } from "../scripts/moves/move-chat-listeners.js";
+
+// vi.spyOn on the real barrel, not vi.mock(..., async importOriginal) — the latter has a known
+// intermittent race in this codebase (see custom-content-apply.js's own comment on it) where the
+// async factory's promise can lose to a concurrent static import of the same module, leaving
+// BASIC_MOVES/etc. undefined on the mock. Spying keeps every other export as the real live binding
+// with zero mock-timing risk; rollMove's real implementation never runs because beforeEach always
+// sets a mockResolvedValue before each test.
+const rollMove = vi.spyOn(movesModule, "rollMove");
 
 const EXCHANGE_BLOWS = BASIC_MOVES.find((m) => m.key === "exchange-blows");
 const BITE_THE_DUST = BASIC_MOVES.find((m) => m.key === "bite-the-dust");

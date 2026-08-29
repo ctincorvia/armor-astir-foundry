@@ -20,6 +20,153 @@
 		<input type="file" name="reflavor-file" accept=".json"/>
 	</div>
 	<div class="reflavor-config-summary" data-reflavor-summary></div>
+
+	<div class="reflavor-entry-manager">
+		{{#if entryError}}
+		<p class="reflavor-config-note reflavor-config-warning" data-entry-error>{{entryError}}</p>
+		{{/if}}
+
+		<div class="reflavor-entry-section">
+			<h3 class="reflavor-entry-section-title">Current Overrides</h3>
+			{{#if overrideRows}}
+			<ul class="reflavor-entry-list">
+				{{#each overrideRows}}
+				<li class="reflavor-entry-row">
+					<span class="reflavor-entry-label">{{this.sectionLabel}} — {{this.display}} ({{this.key}})</span>
+					<button type="button" class="reflavor-entry-remove" data-remove-override data-section="{{this.section}}" data-key="{{this.key}}">✕</button>
+				</li>
+				{{/each}}
+			</ul>
+			{{else}}
+			<p class="reflavor-config-note">(none)</p>
+			{{/if}}
+		</div>
+
+		<div class="reflavor-entry-section">
+			<h3 class="reflavor-entry-section-title">Current Custom Additions</h3>
+			{{#if additionRows}}
+			<ul class="reflavor-entry-list">
+				{{#each additionRows}}
+				<li class="reflavor-entry-row">
+					<span class="reflavor-entry-label">{{this.sectionLabel}} — {{this.display}} ({{this.key}})</span>
+					<button type="button" class="reflavor-entry-remove" data-remove-addition data-section="{{this.section}}" data-key="{{this.key}}">✕</button>
+				</li>
+				{{/each}}
+			</ul>
+			{{else}}
+			<p class="reflavor-config-note">(none)</p>
+			{{/if}}
+		</div>
+
+		<div class="reflavor-entry-section reflavor-entry-form">
+			<h3 class="reflavor-entry-section-title">Add / Update an Override</h3>
+			<div class="form-group">
+				<label>Section</label>
+				<select data-override-section>
+					{{#each reflavorSectionOptions}}
+					<option value="{{this.value}}">{{this.label}}</option>
+					{{/each}}
+				</select>
+			</div>
+			<div class="form-group">
+				<label>Entry</label>
+				<select data-override-key></select>
+			</div>
+			<div class="form-group">
+				<label data-override-primary-label>Name</label>
+				<input type="text" data-override-primary/>
+			</div>
+			<div class="form-group">
+				<label>Description</label>
+				<textarea data-override-description></textarea>
+			</div>
+			<div class="form-group">
+				<label>Advanced</label>
+				<textarea class="reflavor-advanced-textarea" data-override-advanced placeholder="Advanced fields (JSON object), optional"></textarea>
+			</div>
+			<button type="button" class="reflavor-config-button" data-override-add>Add / Update Override</button>
+		</div>
+
+		<div class="reflavor-entry-section reflavor-entry-form">
+			<h3 class="reflavor-entry-section-title">Add a Custom Entry</h3>
+			<div class="form-group">
+				<label>Section</label>
+				<select data-addition-section>
+					{{#each additionSectionOptions}}
+					<option value="{{this.value}}">{{this.label}}</option>
+					{{/each}}
+				</select>
+			</div>
+			<div class="form-group">
+				<label>Key</label>
+				<input type="text" data-addition-key placeholder="custom:my-thing"/>
+			</div>
+			<div class="form-group">
+				<label>Name</label>
+				<input type="text" data-addition-name/>
+			</div>
+			<div class="form-group">
+				<label>Description</label>
+				<textarea data-addition-description></textarea>
+			</div>
+
+			<div class="reflavor-addition-group" data-addition-group="equipment">
+				<div class="form-group">
+					<label>Kind</label>
+					<select data-addition-kind>
+						<option value="weapon">Weapon</option>
+						<option value="gear">Gear</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label>Scale</label>
+					<select data-addition-scale>
+						<option value="foot">Foot</option>
+						<option value="astir">Astir</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label>Tags</label>
+					<input type="text" data-addition-tags placeholder="comma, separated, tags"/>
+				</div>
+			</div>
+
+			<div class="reflavor-addition-group" data-addition-group="astirWeapons">
+				<div class="form-group">
+					<label>Tags</label>
+					<input type="text" data-addition-tags placeholder="comma, separated, tags"/>
+				</div>
+			</div>
+
+			<div class="reflavor-addition-group" data-addition-group="astirParts">
+				<div class="form-group">
+					<label>Part Type</label>
+					<select data-addition-parttype>
+						<option value="Active">Active</option>
+						<option value="Passive">Passive</option>
+					</select>
+				</div>
+				<div class="form-group">
+					<label>Traits</label>
+					<input type="text" data-addition-traits placeholder="comma, separated"/>
+				</div>
+			</div>
+
+			<div class="reflavor-addition-group" data-addition-group="moves">
+				<div class="form-group">
+					<label>Traits</label>
+					<input type="text" data-addition-traits placeholder="comma, separated (may be empty)"/>
+				</div>
+			</div>
+
+			<div class="form-group">
+				<label>Advanced</label>
+				<textarea class="reflavor-advanced-textarea" data-addition-advanced placeholder="Advanced fields (JSON object), optional"></textarea>
+			</div>
+			<button type="button" class="reflavor-config-button" data-addition-add>Add Custom Entry</button>
+		</div>
+	</div>
+
 	<div class="reflavor-config-actions">
 		<button type="button" class="reflavor-config-button" data-reflavor-download>Download Template</button>
 		<button type="button" class="reflavor-config-button" data-reflavor-clear>Clear Reflavor</button>

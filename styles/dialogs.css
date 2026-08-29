@@ -1273,3 +1273,84 @@
 	color: var(--aa-primary-dark);
 	cursor: not-allowed;
 }
+
+/* Entry-management UI (view/add/remove) — lives between the whole-file upload summary and the
+   existing Download/Clear/Save action row above. Each of its three parts (the two entry lists, the
+   two add-forms) shares this one section wrapper/heading treatment. */
+.armor-astir#armor-astir-reflavor-config .reflavor-entry-section {
+	margin: var(--aa-space-2) 0;
+	padding: var(--aa-space-2);
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-entry-section-title {
+	margin: 0 0 var(--aa-space-2);
+	font-size: 13px;
+	font-weight: 700;
+	color: var(--aa-primary-dark);
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-entry-list {
+	margin: 0;
+	padding: 0;
+	list-style: none;
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-entry-row {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--aa-space-2);
+	padding: var(--aa-space-1) 0;
+	font-size: 12px;
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-entry-row + .reflavor-entry-row {
+	border-top: var(--aa-border);
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-entry-label {
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+/* Same small square icon-button idiom as .equipment-remove and its siblings
+   (styles/sheet-layout.css) — rewritten here rather than relied on since that rule is scoped to
+   .armor-astir.sheet, which this panel's root (id-scoped, no "sheet" class) doesn't carry. */
+.armor-astir#armor-astir-reflavor-config .reflavor-entry-remove {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
+	padding: 0;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	line-height: 1;
+	font-size: 11px;
+	cursor: pointer;
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-entry-remove:hover {
+	border-color: var(--aa-danger);
+	color: var(--aa-danger);
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-entry-form .form-group {
+	margin-bottom: var(--aa-space-2);
+}
+
+.armor-astir#armor-astir-reflavor-config .reflavor-addition-group {
+	margin-bottom: var(--aa-space-2);
+	padding-top: var(--aa-space-1);
+	border-top: var(--aa-border);
+}
+
+/* No existing textarea in this codebase carries a JSON-specific font — monospace is the plain,
+   conventional choice for a raw-JSON input field. */
+.armor-astir#armor-astir-reflavor-config .reflavor-advanced-textarea {
+	min-height: 60px;
+	font-family: monospace;
+}
