@@ -18,9 +18,9 @@ export function registerReflavorSettings() {
 	// all, and FormApplication's own registerMenu plumbing refuses to even open ReflavorConfig for
 	// them (see docs/domains/reflavor.md).
 	game.settings.registerMenu(MODULE_ID, "reflavorMenu", {
-		name: "Reflavor",
-		label: "Configure Reflavor",
-		hint: "Upload a JSON file to reskin move/equipment names and descriptions.",
+		name: "Reflavor & Custom Content",
+		label: "Configure Reflavor & Custom Content",
+		hint: "Reskin move/equipment names and descriptions, or add brand-new custom moves, equipment, and Astir Parts/Weapons.",
 		icon: "fas fa-masks-theater",
 		type: ReflavorConfig,
 		restricted: true

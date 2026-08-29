@@ -163,7 +163,7 @@ export class ReflavorConfig extends FormApplication {
 	static get defaultOptions() {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			id: "armor-astir-reflavor-config",
-			title: "Armor Astir — Reflavor",
+			title: "Armor Astir — Reflavor & Custom Content",
 			template: REFLAVOR_CONFIG_TEMPLATE,
 			classes: ["armor-astir"],
 			width: 560,

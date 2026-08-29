@@ -177,7 +177,7 @@ describe("ReflavorConfig.defaultOptions", () => {
 	it("merges the reflavor-specific options onto the FormApplication base", () => {
 		expect(ReflavorConfig.defaultOptions).toMatchObject({
 			id: "armor-astir-reflavor-config",
-			title: "Armor Astir — Reflavor",
+			title: "Armor Astir — Reflavor & Custom Content",
 			template: REFLAVOR_CONFIG_TEMPLATE,
 			classes: ["armor-astir"],
 			width: 560,
