@@ -3,9 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { MODULE_ID } from "../scripts/main.js";
 import { ReflavorConfig, REFLAVOR_CONFIG_TEMPLATE } from "../scripts/reflavor/reflavor-config.js";
 import { ALL_MOVES } from "../scripts/moves/all-moves.js";
+import { EQUIPMENT_CATALOG } from "../scripts/equipment/equipment.js";
 import { applyReflavor, resetToBaseline } from "../scripts/reflavor/reflavor-apply.js";
+import { applyCustomContent, resetCustomContent } from "../scripts/custom-content/custom-content-apply.js";
 
 const findMove = (key) => ALL_MOVES.find((move) => move.key === key);
+const findEquipment = (key) => EQUIPMENT_CATALOG.find((item) => item.key === key);
 
 // Fakes the jQuery `html.find(selector)` chain activateListeners uses — one fake element per
 // selector, each capturing whatever handler/value it was given so a test can invoke it directly and
@@ -49,6 +52,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	resetToBaseline();
+	resetCustomContent();
 });
 
 describe("ReflavorConfig.defaultOptions", () => {
@@ -90,10 +94,11 @@ describe("ReflavorConfig#activateListeners", () => {
 		await state.fileHandler({ target: { files: [{}] } });
 
 		expect(state.saveDisabled).toBe(false);
-		expect(state.summaryHtml).toContain("1 entry parsed.");
+		expect(state.summaryHtml).toContain("1 override parsed.");
+		expect(state.summaryHtml).toContain("0 new entries parsed.");
 	});
 
-	it("pluralizes the entry count in the summary for zero parsed entries", async () => {
+	it("pluralizes the override count in the summary for zero parsed overrides", async () => {
 		const config = new ReflavorConfig();
 		const state = fakeReflavorHtml();
 		config.activateListeners(state.html);
@@ -101,10 +106,10 @@ describe("ReflavorConfig#activateListeners", () => {
 		readTextFromFile.mockResolvedValueOnce(JSON.stringify({}));
 		await state.fileHandler({ target: { files: [{}] } });
 
-		expect(state.summaryHtml).toContain("0 entries parsed.");
+		expect(state.summaryHtml).toContain("0 overrides parsed.");
 	});
 
-	it("pluralizes the entry count in the summary for multiple parsed entries", async () => {
+	it("pluralizes the override count in the summary for multiple parsed overrides", async () => {
 		const config = new ReflavorConfig();
 		const state = fakeReflavorHtml();
 		config.activateListeners(state.html);
@@ -117,7 +122,56 @@ describe("ReflavorConfig#activateListeners", () => {
 		}));
 		await state.fileHandler({ target: { files: [{}] } });
 
-		expect(state.summaryHtml).toContain("2 entries parsed.");
+		expect(state.summaryHtml).toContain("2 overrides parsed.");
+	});
+
+	it("counts additions across all three sections and pluralizes for a single new entry", async () => {
+		const config = new ReflavorConfig();
+		const state = fakeReflavorHtml();
+		config.activateListeners(state.html);
+
+		readTextFromFile.mockResolvedValueOnce(JSON.stringify({
+			additions: {
+				equipment: [{ key: "custom:x", name: "X", kind: "gear", description: "..." }]
+			}
+		}));
+		await state.fileHandler({ target: { files: [{}] } });
+
+		expect(state.saveDisabled).toBe(false);
+		expect(state.summaryHtml).toContain("0 overrides parsed.");
+		expect(state.summaryHtml).toContain("1 new entry parsed.");
+	});
+
+	it("counts a moves addition alongside the other sections", async () => {
+		const config = new ReflavorConfig();
+		const state = fakeReflavorHtml();
+		config.activateListeners(state.html);
+
+		readTextFromFile.mockResolvedValueOnce(JSON.stringify({
+			additions: {
+				moves: [{ key: "custom:new-move", name: "New Move", traits: [], description: "..." }]
+			}
+		}));
+		await state.fileHandler({ target: { files: [{}] } });
+
+		expect(state.saveDisabled).toBe(false);
+		expect(state.summaryHtml).toContain("1 new entry parsed.");
+	});
+
+	it("pluralizes the addition count for multiple new entries across sections", async () => {
+		const config = new ReflavorConfig();
+		const state = fakeReflavorHtml();
+		config.activateListeners(state.html);
+
+		readTextFromFile.mockResolvedValueOnce(JSON.stringify({
+			additions: {
+				equipment: [{ key: "custom:x", name: "X", kind: "gear", description: "..." }],
+				astirWeapons: [{ key: "custom:y", name: "Y", description: "...", tags: ["melee"] }]
+			}
+		}));
+		await state.fileHandler({ target: { files: [{}] } });
+
+		expect(state.summaryHtml).toContain("2 new entries parsed.");
 	});
 
 	it("shows warnings for a file that parses cleanly but references unknown content", async () => {
@@ -144,6 +198,21 @@ describe("ReflavorConfig#activateListeners", () => {
 		expect(state.summaryHtml).toContain("Error: Malformed JSON");
 	});
 
+	it("shows an error and disables Save for an invalid addition, even when overrides are clean", async () => {
+		const config = new ReflavorConfig();
+		const state = fakeReflavorHtml();
+		config.activateListeners(state.html);
+
+		readTextFromFile.mockResolvedValueOnce(JSON.stringify({
+			moves: { "exchange-blows": { name: "Trade Fire" } },
+			additions: { equipment: [{ key: "not-namespaced", name: "X", kind: "gear", description: "..." }] }
+		}));
+		await state.fileHandler({ target: { files: [{}] } });
+
+		expect(state.saveDisabled).toBe(true);
+		expect(state.summaryHtml).toContain("must have a \"key\" starting with \"custom:\"");
+	});
+
 	it("wires the download button to downloadReflavorTemplate", () => {
 		const config = new ReflavorConfig();
 		const state = fakeReflavorHtml();
@@ -156,8 +225,9 @@ describe("ReflavorConfig#activateListeners", () => {
 		expect(saveDataToFile).toHaveBeenCalled();
 	});
 
-	it("wires the clear button to reset the catalogs, clear the setting, and re-render", async () => {
+	it("wires the clear button to reset the catalogs and injected additions, clear the setting, and re-render", async () => {
 		applyReflavor({ moves: { "exchange-blows": { name: "Trade Fire" } } });
+		applyCustomContent({ equipment: [{ key: "custom:temp", name: "Temp", kind: "gear", description: "..." }] });
 
 		const config = new ReflavorConfig();
 		const state = fakeReflavorHtml();
@@ -168,6 +238,7 @@ describe("ReflavorConfig#activateListeners", () => {
 		await state.clearHandler(event);
 
 		expect(findMove("exchange-blows").name).toBe("Exchange Blows");
+		expect(findEquipment("custom:temp")).toBeUndefined();
 		expect(game.settings.set).toHaveBeenCalledWith(MODULE_ID, "reflavorData", "");
 		expect(renderSpy).toHaveBeenCalled();
 	});
@@ -194,12 +265,61 @@ describe("ReflavorConfig#_updateObject", () => {
 		expect(game.settings.set).toHaveBeenCalledWith(MODULE_ID, "reflavorData", rawText);
 	});
 
+	it("applies pending additions alongside overrides in the same Save", async () => {
+		const config = new ReflavorConfig();
+		const state = fakeReflavorHtml();
+		config.activateListeners(state.html);
+
+		const rawText = JSON.stringify({
+			additions: { equipment: [{ key: "custom:new-gear", name: "New Gear", kind: "gear", description: "..." }] }
+		});
+		readTextFromFile.mockResolvedValueOnce(rawText);
+		await state.fileHandler({ target: { files: [{}] } });
+
+		await config._updateObject();
+
+		expect(findEquipment("custom:new-gear")).toMatchObject({ name: "New Gear" });
+	});
+
+	it("applies a pending moves addition on Save", async () => {
+		const config = new ReflavorConfig();
+		const state = fakeReflavorHtml();
+		config.activateListeners(state.html);
+
+		const rawText = JSON.stringify({
+			additions: { moves: [{ key: "custom:new-move", name: "New Move", traits: [], description: "..." }] }
+		});
+		readTextFromFile.mockResolvedValueOnce(rawText);
+		await state.fileHandler({ target: { files: [{}] } });
+
+		await config._updateObject();
+
+		expect(findMove("custom:new-move")).toMatchObject({ name: "New Move" });
+	});
+
 	it("does not apply or persist a file that failed validation", async () => {
 		const config = new ReflavorConfig();
 		const state = fakeReflavorHtml();
 		config.activateListeners(state.html);
 
 		readTextFromFile.mockResolvedValueOnce("{ not valid json");
+		await state.fileHandler({ target: { files: [{}] } });
+
+		await config._updateObject();
+
+		expect(findMove("exchange-blows").name).toBe("Exchange Blows");
+		expect(game.settings.set).not.toHaveBeenCalled();
+	});
+
+	it("does not apply an upload whose additions failed validation, even though overrides were clean", async () => {
+		const config = new ReflavorConfig();
+		const state = fakeReflavorHtml();
+		config.activateListeners(state.html);
+
+		readTextFromFile.mockResolvedValueOnce(JSON.stringify({
+			moves: { "exchange-blows": { name: "Trade Fire" } },
+			additions: { equipment: [{ key: "not-namespaced", name: "X", kind: "gear", description: "..." }] }
+		}));
 		await state.fileHandler({ target: { files: [{}] } });
 
 		await config._updateObject();

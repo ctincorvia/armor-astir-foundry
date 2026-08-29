@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import { buildReflavorTemplate, downloadReflavorTemplate } from "../scripts/reflavor/reflavor-export.js";
-import { REFLAVOR_SECTIONS } from "../scripts/reflavor/reflavor-schema.js";
+import { REFLAVOR_SECTIONS, resolveSectionCatalog } from "../scripts/reflavor/reflavor-schema.js";
 import { applyReflavor, resetToBaseline } from "../scripts/reflavor/reflavor-apply.js";
 
 // buildReflavorTemplate reads (never writes) every catalog, but the "reflects an already-applied
@@ -12,13 +12,19 @@ afterEach(() => {
 });
 
 describe("buildReflavorTemplate", () => {
-	it("has exactly the five section names, one entry per live catalog key", () => {
+	it("has exactly the five override section names plus the additions skeleton, one entry per live catalog key", () => {
 		const template = buildReflavorTemplate();
 
-		expect(Object.keys(template)).toEqual(Object.keys(REFLAVOR_SECTIONS));
+		expect(Object.keys(template)).toEqual([...Object.keys(REFLAVOR_SECTIONS), "additions"]);
 		for (const [sectionName, section] of Object.entries(REFLAVOR_SECTIONS)) {
-			expect(Object.keys(template[sectionName])).toEqual(section.catalog.map((entry) => entry.key));
+			expect(Object.keys(template[sectionName])).toEqual(resolveSectionCatalog(section).map((entry) => entry.key));
 		}
+	});
+
+	it("includes an empty additions skeleton for all four addable sections", () => {
+		const template = buildReflavorTemplate();
+
+		expect(template.additions).toEqual({ equipment: [], astirWeapons: [], astirParts: [], moves: [] });
 	});
 
 	it("includes only fields the entry actually defines, dropping the rest", () => {

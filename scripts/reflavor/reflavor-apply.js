@@ -1,4 +1,4 @@
-import { REFLAVOR_SECTIONS } from "./reflavor-schema.js";
+import { REFLAVOR_SECTIONS, resolveSectionCatalog } from "./reflavor-schema.js";
 
 // Keyed by object identity (a catalog entry reference), not by its `key` string — `astirParts`'s
 // catalog and `moves`'s catalog share the same Part objects (see reflavor-schema.js), so walking
@@ -77,7 +77,7 @@ function restoreEntry(entry, fields, snapshot) {
 // need to call this themselves — the module-load call below runs before applyReflavor can ever run.
 export function captureBaseline() {
 	for (const section of Object.values(REFLAVOR_SECTIONS)) {
-		for (const entry of section.catalog) {
+		for (const entry of resolveSectionCatalog(section)) {
 			if (!baseline.has(entry)) {
 				baseline.set(entry, readOverridableFields(entry, section.fields));
 			}
@@ -94,7 +94,7 @@ captureBaseline();
 // idempotency mechanism below.
 export function resetToBaseline() {
 	for (const section of Object.values(REFLAVOR_SECTIONS)) {
-		for (const entry of section.catalog) {
+		for (const entry of resolveSectionCatalog(section)) {
 			restoreEntry(entry, section.fields, baseline.get(entry));
 		}
 	}
@@ -150,6 +150,11 @@ function walkOverrides(overrides, apply) {
 	const warnings = [];
 
 	for (const [sectionName, entries] of Object.entries(overrides)) {
+		// "additions" is a sibling top-level key (see scripts/custom-content/) handled entirely by
+		// validateCustomContent/applyCustomContent — not an unrecognized section, so it's silently
+		// skipped here rather than producing a spurious "Unknown reflavor section" warning.
+		if (sectionName === "additions") continue;
+
 		const section = REFLAVOR_SECTIONS[sectionName];
 		if (!section) {
 			warnings.push(`Unknown reflavor section "${sectionName}" was ignored.`);
@@ -157,7 +162,7 @@ function walkOverrides(overrides, apply) {
 		}
 
 		for (const [entryKey, fieldOverrides] of Object.entries(entries)) {
-			const entry = section.catalog.find((candidate) => candidate.key === entryKey);
+			const entry = resolveSectionCatalog(section).find((candidate) => candidate.key === entryKey);
 			if (!entry) {
 				warnings.push(`Unknown ${sectionName} key "${entryKey}" was ignored.`);
 				continue;

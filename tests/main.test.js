@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	MODULE_ID,
 	PLAYBOOK_SHEET_PARTIALS,
@@ -7,6 +7,18 @@ import {
 	registerInitHook,
 	registerReadyHook
 } from "../scripts/main.js";
+import { ALL_MOVES } from "../scripts/moves/all-moves.js";
+import { EQUIPMENT_CATALOG } from "../scripts/equipment/equipment.js";
+import { resetToBaseline } from "../scripts/reflavor/reflavor-apply.js";
+import { resetCustomContent } from "../scripts/custom-content/custom-content-apply.js";
+
+const findMove = (key) => ALL_MOVES.find((move) => move.key === key);
+const findEquipment = (key) => EQUIPMENT_CATALOG.find((item) => item.key === key);
+
+afterEach(() => {
+	resetToBaseline();
+	resetCustomContent();
+});
 
 describe("registerInitHook", () => {
 	it("registers an init hook", () => {
@@ -60,5 +72,19 @@ describe("registerReadyHook", () => {
 
 		expect(() => callback()).not.toThrow();
 		expect(getSpy).toHaveBeenCalled();
+	});
+
+	it("applies both stored reflavor overrides and stored custom content additions when the hook fires", () => {
+		vi.spyOn(game.settings, "get").mockReturnValue(JSON.stringify({
+			moves: { "exchange-blows": { name: "Trade Fire" } },
+			additions: { equipment: [{ key: "custom:ready-hook-gear", name: "Ready Hook Gear", kind: "gear", description: "..." }] }
+		}));
+
+		registerReadyHook();
+		const callback = Hooks.once.mock.calls.at(-1)[1];
+		callback();
+
+		expect(findMove("exchange-blows").name).toBe("Trade Fire");
+		expect(findEquipment("custom:ready-hook-gear")).toMatchObject({ name: "Ready Hook Gear" });
 	});
 });

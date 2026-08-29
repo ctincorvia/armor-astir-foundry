@@ -192,5 +192,72 @@
 			"name": "Salvaged AI Core",
 			"description": "Derelict AI cores are easier to find than ever in the wreckage fields of the Kessler Drift, and are often a great source of information and advice. Recover one, and all the newest rumours will find your ear. Descriptive tags: Sturdy, Chattering, Autonomous."
 		}
+	},
+	"additions": {
+		"moves": [
+			{
+				"key": "custom:overclock-surge",
+				"name": "Overclock Surge",
+				"traits": ["channel"],
+				"description": "When you push your Astir's reactor past every safety interlock to force out one desperate burst of power, roll +CHANNEL.",
+				"results": {
+					"success": "The surge holds. Mark overheating and do something impossible.",
+					"mixed": "The surge holds, but the strain shows — Mark overheating, take a peril, and do something impossible.",
+					"failure": "Something critical blows out. Mark 'overheating' and take a peril of the Director's choice."
+				}
+			},
+			{
+				"key": "custom:field-repairs",
+				"name": "Field Repairs",
+				"traits": [],
+				"description": "Once per Sortie, spend ten minutes with a toolkit and your own two hands to patch an Astir back into fighting shape.  Remove a peril related to mechanical damage from an Astir or Ardent.",
+				"uses": [{ "key": "field-repairs", "label": "Used this Sortie" }]
+			},
+			{
+				"key": "custom:combat-reflexes",
+				"name": "Combat Reflexes",
+				"traits": [],
+				"description": "Years of drilling have sharpened your instincts past what training alone should allow. Once per Scene, gain advantage on strike decisively or exchange blows.",
+				"uses": [{ "key": "combat-reflexes", "label": "Used this Scene" }],
+				"grantsRollModifier": [
+					{
+						"advantage": "advantage",
+						"moveKeys": ["exchange-blows", "strike-decisively"],
+						"costsUse": "combat-reflexes"
+					}
+				]
+			},
+			{
+				"key": "custom:ghost-protocol",
+				"name": "Ghost Protocol",
+				"traits": [],
+				"description": "This Astir carries a suite of low-emission countermeasures.  Enemies can never track you between scenes."
+			}
+		],
+		"equipment": [
+			{
+				"key": "custom:hardsuit-protective-plating",
+				"name": "Hardsuit Protective Plating",
+				"kind": "gear",
+				"description": "A close-fitting suit of reinforced plates worn under or over a Channeler's normal attire, built to blunt the worst of what a Sortie can throw at its wearer.",
+				"tags": ["bulky", "ward"]
+			},
+			{
+				"key": "custom:sub-compact-smg",
+				"name": "Sub-Compact SMG",
+				"kind": "weapon",
+				"scale": "foot",
+				"description": "A cut-down submachine gun favoured for how easily it disappears under a coat — reliable up close, but it won't do much against anything with real armour.",
+				"tags": ["ranged", "concealable", "weak"]
+			}
+		],
+		"astirWeapons": [
+			{
+				"key": "custom:leviathan-heavy-assault-cannon",
+				"name": "Leviathan Heavy Assault Cannon",
+				"description": "A shoulder-mounted cannon built to punch through an enemy Astir's armour in a single, thunderous volley — devastating, but slow to bring back online after firing.",
+				"tags": ["ranged", "two-handed", "reload", "impact"]
+			}
+		]
 	}
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	MOVE_POOLS,
 	choosePlaybookMove,
@@ -12,6 +12,7 @@ import {
 } from "../scripts/moves/playbook-moves.js";
 import { ALL_MOVES } from "../scripts/moves/all-moves.js";
 import { startingMoveKeysByPlaybook } from "../scripts/moves/starting-moves.js";
+import { applyCustomContent, resetCustomContent } from "../scripts/custom-content/custom-content-apply.js";
 
 const BULLHEADED = "the-impostor:bullheaded";
 // Deny is the one real Cantrip with traits/results — plays the same functional role the old
@@ -425,6 +426,62 @@ describe("playbookMoveSections - startingMoveKeys", () => {
 		const withEmptyMap = playbookMoveSections("The Alpha", [], STARTING_MOVE_KEYS_FIXTURE_POOLS, new Map());
 
 		expect(withDefault).toEqual(withEmptyMap);
+	});
+});
+
+describe("playbookMoveSections - customMoves", () => {
+	it("does not render a Custom Moves section at all when the custom-move fixture is empty", () => {
+		const sections = playbookMoveSections("The Alpha", [], FIXTURE_POOLS, new Map(), []);
+
+		expect(sections.some((section) => section.key === "custom-moves")).toBe(false);
+	});
+
+	it("renders a labeled Custom Moves section containing the expected moves when non-empty", () => {
+		const customMoves = [{ key: "custom:one", name: "Custom One", traits: [], description: "<p>c1</p>" }];
+		const sections = playbookMoveSections("The Alpha", [], FIXTURE_POOLS, new Map(), customMoves);
+		const custom = sections.find((section) => section.key === "custom-moves");
+
+		expect(custom).toBeDefined();
+		expect(custom.label).toBe("Custom Moves");
+		expect(custom.moves.map((move) => move.key)).toEqual(["custom:one"]);
+	});
+
+	it("filters out a custom move already in selectedKeys", () => {
+		const customMoves = [{ key: "custom:one", name: "Custom One", traits: [], description: "<p>c1</p>" }];
+		const sections = playbookMoveSections("The Alpha", ["custom:one"], FIXTURE_POOLS, new Map(), customMoves);
+
+		expect(sections.some((section) => section.key === "custom-moves")).toBe(false);
+	});
+
+	// selectedExclusiveGroups (playbook-moves.js) resolves a selected key's own exclusiveGroup via
+	// findPlaybookMove, which reads the real ALL_PLAYBOOK_MOVES catalog rather than whatever fixture
+	// is passed as customMoves — so exercising the exclusion for real requires actually registering
+	// the custom moves through applyCustomContent (which does push into ALL_PLAYBOOK_MOVES), not just
+	// passing a bare fixture array. A bare fixture would make excludedGroups always empty, silently
+	// passing this assertion for the wrong reason (plain selectedKeys filtering alone).
+	describe("exclusiveGroup exclusion, via real custom-content registration", () => {
+		afterEach(() => {
+			resetCustomContent();
+		});
+
+		it("excludes a custom move whose own exclusiveGroup is already covered by a different selected custom move", () => {
+			applyCustomContent({
+				moves: [
+					{ key: "custom:group-a", name: "Group A", traits: [], description: "a", exclusiveGroup: "custom-group" },
+					{ key: "custom:group-b", name: "Group B", traits: [], description: "b", exclusiveGroup: "custom-group" },
+					{ key: "custom:unrelated", name: "Unrelated", traits: [], description: "u" }
+				]
+			});
+
+			const sections = playbookMoveSections("The Alpha", ["custom:group-a"], FIXTURE_POOLS);
+			const custom = sections.find((section) => section.key === "custom-moves");
+			const keys = custom.moves.map((move) => move.key);
+
+			expect(keys).not.toContain("custom:group-a");
+			expect(keys).not.toContain("custom:group-b");
+			// An unrelated custom move from the same catalog is unaffected by the exclusion.
+			expect(keys).toContain("custom:unrelated");
+		});
 	});
 });
 

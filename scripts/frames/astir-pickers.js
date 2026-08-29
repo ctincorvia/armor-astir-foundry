@@ -5,6 +5,7 @@ import {
 	withTagLabels
 } from "../equipment/equipment.js";
 import { MOVE_POOLS, PLAYBOOK_MOVE_PICKER_TEMPLATE, pickerSection } from "../moves/playbook-moves.js";
+import { CUSTOM_MOVE_CATALOG } from "../moves/custom-move-catalog.js";
 import { ASTIR_PART_CATALOG } from "./astir-parts.js";
 import { ASTIR_MOVE_CATALOG } from "./astir-moves.js";
 import { ASTIR_WEAPON_CATALOG } from "./astir-weapons.js";
@@ -115,7 +116,8 @@ export function astirMoveSections(
 	selectedKeys = [],
 	pools = MOVE_POOLS,
 	astirCatalog = ASTIR_MOVE_CATALOG,
-	installedPartKeys = []
+	installedPartKeys = [],
+	customMoves = CUSTOM_MOVE_CATALOG
 ) {
 	const sections = [];
 	const extraTooltip = (move) => partRequirementTooltip(unmetPartRequirements(move, installedPartKeys));
@@ -138,6 +140,12 @@ export function astirMoveSections(
 		{ extraTooltip }
 	);
 	if (astirSection) sections.push(astirSection);
+
+	// Every custom move added via the reflavor Config screen's custom-content system appears here
+	// too, unconditionally — see docs/domains/reflavor.md's moves subsection and
+	// playbook-moves.js#playbookMoveSections' identical block.
+	const customSection = pickerSection({ key: "custom-moves", label: "Custom Moves", moves: customMoves }, selectedKeys, { extraTooltip });
+	if (customSection) sections.push(customSection);
 
 	return sections;
 }

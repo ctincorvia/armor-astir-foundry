@@ -181,6 +181,16 @@ describe("applyReflavor", () => {
 		expect(findMove("exchange-blows").activateChoices).toBeUndefined();
 	});
 
+	it("silently skips the sibling \"additions\" top-level key rather than warning about it", () => {
+		const warnings = applyReflavor({
+			additions: { equipment: [{ key: "custom:x", name: "X", kind: "gear", description: "..." }] },
+			moves: { "exchange-blows": { name: "Trade Fire" } }
+		});
+
+		expect(warnings).not.toContain("Unknown reflavor section \"additions\" was ignored.");
+		expect(findMove("exchange-blows").name).toBe("Trade Fire");
+	});
+
 	it("warns on an unknown top-level section but still applies other valid sections", () => {
 		const warnings = applyReflavor({
 			bogusSection: { x: {} },

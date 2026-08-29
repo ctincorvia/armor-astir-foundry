@@ -46,11 +46,18 @@ const TAG_FIELDS = {
 };
 
 // Astir/Ardent weapons only ever concatenate at load — see ardent.js's own comment on
-// ARDENT_FEATURE_WEAPONS being deliberately excluded from ASTIR_WEAPON_CATALOG. The concatenated
-// array is a fresh wrapper, but every entry inside it is still the same shared object every other
-// derivation (ardentWeapons(), etc.) reaches — mutating one mutates all of them, per this domain's
-// core architectural finding (see docs/domains/reflavor.md).
-const ASTIR_AND_ARDENT_FEATURE_WEAPONS = [...ASTIR_WEAPON_CATALOG, ...ARDENT_FEATURE_WEAPONS];
+// ARDENT_FEATURE_WEAPONS being deliberately excluded from ASTIR_WEAPON_CATALOG. Unlike the other
+// four sections, this one is a zero-arg function rather than a plain array: a precomputed spread
+// (the old `const ASTIR_AND_ARDENT_FEATURE_WEAPONS = [...]`) would be fixed at module-load time,
+// before scripts/custom-content/ could ever push a Director-authored weapon into ASTIR_WEAPON_CATALOG
+// — that weapon would show up in every picker but never become reflavor-overridable. Recomputing on
+// every call keeps this section current with whatever ASTIR_WEAPON_CATALOG holds right now, at the
+// small cost of a fresh (but reference-identical-per-entry) array wrapper each time — see
+// resolveSectionCatalog below, which every reader of a section's catalog must go through instead of
+// reading `section.catalog` directly.
+function astirAndArdentFeatureWeapons() {
+	return [...ASTIR_WEAPON_CATALOG, ...ARDENT_FEATURE_WEAPONS];
+}
 
 // Maps each JSON upload's top-level section name to the live catalog it targets and the fields
 // writable on that catalog's entries. `astirParts`'s catalog (ARDENT_PART_CATALOG) already
@@ -62,5 +69,12 @@ export const REFLAVOR_SECTIONS = {
 	equipment: { catalog: EQUIPMENT_CATALOG, fields: EQUIPMENT_FIELDS },
 	equipmentTags: { catalog: EQUIPMENT_TAGS, fields: TAG_FIELDS },
 	astirParts: { catalog: ARDENT_PART_CATALOG, fields: MOVE_FIELDS },
-	astirWeapons: { catalog: ASTIR_AND_ARDENT_FEATURE_WEAPONS, fields: EQUIPMENT_FIELDS }
+	astirWeapons: { catalog: astirAndArdentFeatureWeapons, fields: EQUIPMENT_FIELDS }
 };
+
+// Every reader of a section's catalog (reflavor-apply.js, reflavor-export.js) must call this rather
+// than reading `section.catalog` directly — four of the five sections store a plain array, but
+// `astirWeapons` stores a zero-arg function instead (see astirAndArdentFeatureWeapons above).
+export function resolveSectionCatalog(section) {
+	return typeof section.catalog === "function" ? section.catalog() : section.catalog;
+}

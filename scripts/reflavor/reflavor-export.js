@@ -1,4 +1,4 @@
-import { REFLAVOR_SECTIONS } from "./reflavor-schema.js";
+import { REFLAVOR_SECTIONS, resolveSectionCatalog } from "./reflavor-schema.js";
 import { readOverridableFields } from "./reflavor-apply.js";
 import { saveDataToFile } from "../compat.js";
 
@@ -15,7 +15,7 @@ export function buildReflavorTemplate() {
 	for (const [sectionName, section] of Object.entries(REFLAVOR_SECTIONS)) {
 		const sectionTemplate = {};
 
-		for (const entry of section.catalog) {
+		for (const entry of resolveSectionCatalog(section)) {
 			const fields = readOverridableFields(entry, section.fields);
 			const entryTemplate = {};
 			for (const [fieldName, value] of Object.entries(fields)) {
@@ -26,6 +26,19 @@ export function buildReflavorTemplate() {
 
 		template[sectionName] = sectionTemplate;
 	}
+
+	// Sibling top-level key alongside the override sections above — see
+	// scripts/custom-content/custom-content-schema.js for the shape each array's entries must
+	// match. Shipped empty (rather than one filled-in example) since the override sections above
+	// already show every existing entry's own shape by example — a Director authoring a new
+	// Equipment/Astir Weapon/Astir Part entry works from an existing catalog entry (e.g.
+	// scripts/equipment/equipment-catalog.js) as the shape reference instead.
+	template.additions = {
+		equipment: [],
+		astirWeapons: [],
+		astirParts: [],
+		moves: []
+	};
 
 	return template;
 }

@@ -1,7 +1,8 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { APPROACHES } from "../scripts/core/approaches.js";
 import { DRAIN_GROUP, findEquipmentTag, wirePickerTabs } from "../scripts/equipment/equipment.js";
 import { findPlaybookMove } from "../scripts/moves/playbook-moves.js";
+import { applyCustomContent, resetCustomContent } from "../scripts/custom-content/custom-content-apply.js";
 import {
 	ASTIR_CORES,
 	ASTIR_MOVE_CATALOG,
@@ -803,6 +804,60 @@ describe("astirMoveSections", () => {
 		const [first] = astirMoveSections("The Alpha", [], gatedPools, FIXTURE_ASTIR_CATALOG, []);
 
 		expect(first.moves[0]).toEqual(expect.objectContaining({ disabled: true, tooltip: "Requires fixture-part:matrix Astir Part" }));
+	});
+});
+
+describe("astirMoveSections — customMoves", () => {
+	it("does not render a Custom Moves section at all when the custom-move fixture is empty", () => {
+		const sections = astirMoveSections("The Alpha", [], FIXTURE_POOLS, FIXTURE_ASTIR_CATALOG, [], []);
+
+		expect(sections.some((s) => s.key === "custom-moves")).toBe(false);
+	});
+
+	it("renders a labeled Custom Moves section containing the expected moves when non-empty", () => {
+		const customMoves = [{ key: "custom:one", name: "Custom One", traits: [], description: "<p>c1</p>" }];
+		const sections = astirMoveSections("The Alpha", [], FIXTURE_POOLS, FIXTURE_ASTIR_CATALOG, [], customMoves);
+		const custom = sections.find((s) => s.key === "custom-moves");
+
+		expect(custom).toBeDefined();
+		expect(custom.label).toBe("Custom Moves");
+		expect(custom.moves.map((m) => m.key)).toEqual(["custom:one"]);
+	});
+
+	it("filters out a custom move already in selectedKeys", () => {
+		const customMoves = [{ key: "custom:one", name: "Custom One", traits: [], description: "<p>c1</p>" }];
+		const sections = astirMoveSections("The Alpha", ["custom:one"], FIXTURE_POOLS, FIXTURE_ASTIR_CATALOG, [], customMoves);
+
+		expect(sections.some((s) => s.key === "custom-moves")).toBe(false);
+	});
+
+	// See playbook-moves.test.js's identical note: selectedExclusiveGroups (playbook-moves.js) always
+	// resolves a selected key's own exclusiveGroup via findPlaybookMove, which reads the real
+	// ALL_PLAYBOOK_MOVES catalog rather than any fixture passed as customMoves here — so exercising
+	// this exclusion for real requires actually registering the custom moves through
+	// applyCustomContent (which does push into ALL_PLAYBOOK_MOVES), not just a bare fixture array.
+	describe("exclusiveGroup exclusion, via real custom-content registration", () => {
+		afterEach(() => {
+			resetCustomContent();
+		});
+
+		it("excludes a custom move whose own exclusiveGroup is already covered by a different selected custom move", () => {
+			applyCustomContent({
+				moves: [
+					{ key: "custom:group-a", name: "Group A", traits: [], description: "a", exclusiveGroup: "custom-group" },
+					{ key: "custom:group-b", name: "Group B", traits: [], description: "b", exclusiveGroup: "custom-group" },
+					{ key: "custom:unrelated", name: "Unrelated", traits: [], description: "u" }
+				]
+			});
+
+			const sections = astirMoveSections("The Alpha", ["custom:group-a"], FIXTURE_POOLS, FIXTURE_ASTIR_CATALOG);
+			const custom = sections.find((s) => s.key === "custom-moves");
+			const keys = custom.moves.map((m) => m.key);
+
+			expect(keys).not.toContain("custom:group-a");
+			expect(keys).not.toContain("custom:group-b");
+			expect(keys).toContain("custom:unrelated");
+		});
 	});
 });
 

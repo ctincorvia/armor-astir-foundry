@@ -1,5 +1,6 @@
 import { TRAITS } from "../core/traits.js";
 import { MOVE_POOLS } from "./move-pools/index.js";
+import { CUSTOM_MOVE_CATALOG } from "./custom-move-catalog.js";
 import { renderTemplate } from "../compat.js";
 
 export const PLAYBOOK_MOVE_PICKER_TEMPLATE = "modules/armor-astir/templates/playbook-move-picker.hbs";
@@ -144,7 +145,13 @@ export function pickerSection(pool, selectedKeys, { note = pool.note, open = fal
 // Commander's unconditional Ace Crew/Debrief grants from the picker. A playbook's own starting
 // moves stay pickable in its own pool section (the `own` computation below), unaffected. Defaults
 // to an empty Map so omitting it reproduces today's exact (unfiltered) behavior.
-export function playbookMoveSections(playbookName, selectedKeys = [], pools = MOVE_POOLS, startingMoveKeys = new Map()) {
+export function playbookMoveSections(
+	playbookName,
+	selectedKeys = [],
+	pools = MOVE_POOLS,
+	startingMoveKeys = new Map(),
+	customMoves = CUSTOM_MOVE_CATALOG
+) {
 	const sections = [];
 
 	const own = pools.find((pool) => pool.playbookName && pool.playbookName === playbookName);
@@ -171,6 +178,13 @@ export function playbookMoveSections(playbookName, selectedKeys = [], pools = MO
 			sections: others
 		});
 	}
+
+	// Every custom move added via the reflavor Config screen's custom-content system appears in its
+	// own "Custom Moves" section, unconditionally — see docs/domains/reflavor.md's moves subsection.
+	// pickerSection's existing "drop when empty" treatment (already relied on for Cantrips/Soldier
+	// Moves) means this section simply never renders while CUSTOM_MOVE_CATALOG is empty.
+	const customSection = pickerSection({ key: "custom-moves", label: "Custom Moves", moves: customMoves }, selectedKeys);
+	if (customSection) sections.push(customSection);
 
 	return sections;
 }

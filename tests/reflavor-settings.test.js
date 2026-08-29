@@ -4,9 +4,12 @@ import { MODULE_ID } from "../scripts/main.js";
 import { registerReflavorSettings, applyStoredReflavor } from "../scripts/reflavor/reflavor-settings.js";
 import { ReflavorConfig } from "../scripts/reflavor/reflavor-config.js";
 import { ALL_MOVES } from "../scripts/moves/all-moves.js";
+import { EQUIPMENT_CATALOG } from "../scripts/equipment/equipment.js";
 import { resetToBaseline } from "../scripts/reflavor/reflavor-apply.js";
+import { resetCustomContent } from "../scripts/custom-content/custom-content-apply.js";
 
 const findMove = (key) => ALL_MOVES.find((move) => move.key === key);
+const findEquipment = (key) => EQUIPMENT_CATALOG.find((item) => item.key === key);
 
 beforeEach(() => {
 	vi.clearAllMocks();
@@ -14,6 +17,7 @@ beforeEach(() => {
 
 afterEach(() => {
 	resetToBaseline();
+	resetCustomContent();
 });
 
 describe("registerReflavorSettings", () => {
@@ -69,5 +73,31 @@ describe("applyStoredReflavor", () => {
 
 		expect(warnSpy).toHaveBeenCalled();
 		expect(findMove("exchange-blows").name).toBe("Exchange Blows");
+	});
+
+	it("also applies a stored addition alongside a valid stored reflavor", () => {
+		vi.spyOn(game.settings, "get").mockReturnValue(JSON.stringify({
+			moves: { "exchange-blows": { name: "Trade Fire" } },
+			additions: { equipment: [{ key: "custom:new-gear", name: "New Gear", kind: "gear", description: "..." }] }
+		}));
+
+		applyStoredReflavor();
+
+		expect(findMove("exchange-blows").name).toBe("Trade Fire");
+		expect(findEquipment("custom:new-gear")).toMatchObject({ name: "New Gear" });
+	});
+
+	it("still applies the reflavor overrides when the stored additions fail validation", () => {
+		vi.spyOn(game.settings, "get").mockReturnValue(JSON.stringify({
+			moves: { "exchange-blows": { name: "Trade Fire" } },
+			additions: { equipment: [{ key: "not-namespaced", name: "X", kind: "gear", description: "..." }] }
+		}));
+		const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+
+		expect(() => applyStoredReflavor()).not.toThrow();
+
+		expect(warnSpy).toHaveBeenCalled();
+		expect(findMove("exchange-blows").name).toBe("Trade Fire");
+		expect(findEquipment("not-namespaced")).toBeUndefined();
 	});
 });

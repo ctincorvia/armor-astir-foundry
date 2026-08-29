@@ -1,6 +1,7 @@
 import { MODULE_ID } from "../module-id.js";
 import { ReflavorConfig } from "./reflavor-config.js";
 import { applyReflavor, validateReflavor } from "./reflavor-apply.js";
+import { applyCustomContent, validateCustomContent } from "../custom-content/custom-content-apply.js";
 
 // The raw uploaded JSON text, persisted world-scoped (one reskin per campaign — see
 // docs/domains/reflavor.md) and never exposed on the settings sheet directly (config: false) — the
@@ -41,4 +42,16 @@ export function applyStoredReflavor() {
 	}
 
 	applyReflavor(overrides);
+
+	// A sibling top-level key on the same stored JSON (see custom-content-schema.js) — validated and
+	// applied independently of the overrides above, so a world with valid overrides but a corrupted
+	// "additions" section still gets its reflavor applied rather than losing both to one bad section.
+	const additions = overrides?.additions;
+	const { errors: additionErrors } = validateCustomContent(additions);
+	if (additionErrors.length) {
+		console.warn(`${MODULE_ID} | Stored custom content failed validation and was not applied.`, additionErrors);
+		return;
+	}
+
+	applyCustomContent(additions);
 }
