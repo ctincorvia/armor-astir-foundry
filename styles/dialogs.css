@@ -9,6 +9,127 @@
 	padding: 0 var(--aa-space-2) var(--aa-space-2);
 }
 
+/* The Custom Move Field Reference dialog (scripts/reflavor/reflavor-help.js) — its content is a
+   whole Markdown doc rendered via showdown, far longer than a single move's description, so it
+   needs its own scroll ceiling rather than growing to fill the window. Mirrors the move-roll
+   dialog's own .dialog-content scroll treatment above, just with an explicit cap since a Dialog
+   has no inherent height limit of its own to scroll within. */
+.armor-astir.custom-move-reference-dialog .dialog-content {
+	max-height: 70vh;
+	overflow-y: auto;
+}
+
+/* The "?" button next to "Add a Custom Entry" (templates/reflavor-config.hbs) reuses the sheet's own
+   .move-info class/glyph for visual consistency, but ReflavorConfig's root only carries "armor-astir"
+   (see reflavor-config.js's defaultOptions) — sheet-tabs.css's own .armor-astir.sheet .move-info rule
+   never matches here, since this FormApplication is not an ActorSheet and carries no "sheet" class.
+   Re-declared verbatim, scoped to this panel's own id, rather than widening the sheet-tabs.css rule's
+   selector to cover a FormApplication it otherwise has nothing to do with. */
+.armor-astir#armor-astir-reflavor-config .move-info {
+	flex: 0 0 auto;
+	width: 20px;
+	height: 20px;
+	box-sizing: border-box;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	padding: 0;
+	margin-left: var(--aa-space-1);
+	border: 1px solid var(--aa-primary);
+	border-radius: var(--aa-radius);
+	background: transparent;
+	color: var(--aa-primary-dark);
+	line-height: 1;
+	font-size: 14px;
+	font-weight: 700;
+	cursor: pointer;
+}
+
+.armor-astir#armor-astir-reflavor-config .move-info:hover {
+	background: var(--aa-primary-tint);
+}
+
+.armor-astir#armor-astir-reflavor-config .move-info:active {
+	background: var(--aa-primary-tint);
+	transform: scale(0.96);
+}
+
+/* Basic typographic rules for the Markdown-rendered reference content (scripts/reflavor/reflavor-help.js)
+   — showdown produces plain h1-h4/p/code/pre/table/ul/ol markup with no styling of its own, unlike
+   this module's other rich text (move descriptions), which is hand-authored HTML already matching
+   the sheet's own type scale. Sized/colored off the existing --aa-* tokens rather than new values. */
+.custom-move-reference-content h1,
+.custom-move-reference-content h2,
+.custom-move-reference-content h3,
+.custom-move-reference-content h4 {
+	margin: var(--aa-space-3) 0 var(--aa-space-1);
+	font-weight: 700;
+	color: var(--aa-primary-dark);
+}
+
+.custom-move-reference-content h1:first-child,
+.custom-move-reference-content h2:first-child,
+.custom-move-reference-content h3:first-child,
+.custom-move-reference-content h4:first-child {
+	margin-top: 0;
+}
+
+.custom-move-reference-content p,
+.custom-move-reference-content ul,
+.custom-move-reference-content ol {
+	margin: 0 0 var(--aa-space-2);
+	font-size: 12px;
+}
+
+.custom-move-reference-content ul,
+.custom-move-reference-content ol {
+	padding-left: var(--aa-space-4);
+}
+
+.custom-move-reference-content code {
+	padding: 1px 4px;
+	border-radius: var(--aa-radius);
+	background: var(--aa-primary-tint);
+	font-family: monospace;
+	font-size: 11px;
+}
+
+.custom-move-reference-content pre {
+	margin: 0 0 var(--aa-space-2);
+	padding: var(--aa-space-2);
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+	background: var(--aa-primary-tint);
+	font-family: monospace;
+	font-size: 11px;
+	white-space: pre-wrap;
+	word-break: break-word;
+}
+
+.custom-move-reference-content pre code {
+	padding: 0;
+	background: none;
+}
+
+.custom-move-reference-content table {
+	margin: 0 0 var(--aa-space-2);
+	border-collapse: collapse;
+	font-size: 12px;
+}
+
+.custom-move-reference-content th,
+.custom-move-reference-content td {
+	padding: var(--aa-space-1) var(--aa-space-2);
+	border: var(--aa-border);
+	text-align: left;
+}
+
+.custom-move-reference-content th {
+	background: var(--aa-primary-tint);
+	color: var(--aa-primary-dark);
+	font-weight: 700;
+}
+
 /* The Downtime Scene "?" dialog (see downtime-scene-dialog.js/downtime-scene-dialog.hbs) — the
    move-info dialog's own structured-content counterpart: two headers (You / Everyone else can)
    plus a bulleted list instead of one block of rich text. */

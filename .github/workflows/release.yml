@@ -37,7 +37,7 @@ jobs:
         run: npm run pullJSONtoLDB
 
       - name: Create module.zip
-        run: zip -r module.zip module.json LICENSE README.md scripts styles templates packs
+        run: zip -r module.zip module.json LICENSE README.md scripts styles templates packs docs
 
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2

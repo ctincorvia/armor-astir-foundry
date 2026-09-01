@@ -21,7 +21,7 @@
 ### Adding move content
 Adding rules text is a pure data change; adding a *mechanic* is not. Classify which one you're doing before planning — the costs are very different (see "What breaks" below).
 
-**A Director can also author brand-new moves at runtime, without touching this file** — see `docs/domains/reflavor.md`'s "Adding brand-new catalog entries" moves subsection for the custom-content upload system that does this. Its allowed fields cover most of the shape table below, but `usesWeapon`, `variableDicePool`/`successOptions`, and `requiresParts` are not currently authorable through custom content even though they're valid on a hand-authored catalog move here — see that subsection for why each was left out of v1.
+**A Director can also author brand-new moves at runtime, without touching this file** — see `docs/domains/reflavor.md`'s "Adding brand-new catalog entries" moves subsection for the custom-content upload system that does this. Its allowed fields cover most of the shape table below, but `usesWeapon`, `variableDicePool`/`successOptions`, and `requiresParts` are not currently authorable through custom content even though they're valid on a hand-authored catalog move here — see that subsection for why each was left out of v1. `docs/custom-moves.md` is the GM-facing, field-by-field reference for everything a custom move actually can set, including an in-app viewer launched from the custom-content panel's own "?" button.
 
 **Deriving a move's shape from its rules text.** Match on the phrasing, not the flavor:
 

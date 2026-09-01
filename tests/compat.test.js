@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
 	chatRenderHook,
 	generation,
+	getRoute,
 	loadTemplates,
 	readTextFromFile,
 	renderTemplate,
@@ -132,6 +133,30 @@ describe("renderTemplate/loadTemplates/readTextFromFile/saveDataToFile", () => {
 		const result = saveDataToFile("data", "text/json", "file.json");
 
 		expect(bareGlobal).toHaveBeenCalledWith("data", "text/json", "file.json");
+		expect(result).toBe("bare-result");
+	});
+
+	it("calls the namespaced foundry.utils.getRoute when present, not the bare global", () => {
+		const namespaced = vi.fn().mockReturnValue("namespaced-result");
+		const bareGlobal = vi.fn().mockReturnValue("bare-result");
+		vi.stubGlobal("foundry", { utils: { getRoute: namespaced } });
+		vi.stubGlobal("getRoute", bareGlobal);
+
+		const result = getRoute("modules/armor-astir/docs/custom-moves.md");
+
+		expect(namespaced).toHaveBeenCalledWith("modules/armor-astir/docs/custom-moves.md");
+		expect(bareGlobal).not.toHaveBeenCalled();
+		expect(result).toBe("namespaced-result");
+	});
+
+	it("falls back to the bare global getRoute when foundry.utils has no getRoute", () => {
+		const bareGlobal = vi.fn().mockReturnValue("bare-result");
+		vi.stubGlobal("foundry", { utils: {} });
+		vi.stubGlobal("getRoute", bareGlobal);
+
+		const result = getRoute("modules/armor-astir/docs/custom-moves.md");
+
+		expect(bareGlobal).toHaveBeenCalledWith("modules/armor-astir/docs/custom-moves.md");
 		expect(result).toBe("bare-result");
 	});
 });

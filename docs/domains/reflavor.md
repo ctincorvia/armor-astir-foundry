@@ -144,6 +144,10 @@ alongside the five existing override sections, injecting brand-new entries into 
 `ASTIR_WEAPON_CATALOG`, `ASTIR_PART_CATALOG`, and (Moves — see below) `CUSTOM_MOVE_CATALOG`/
 `ALL_MOVES`/`ALL_PLAYBOOK_MOVES`/`ASTIR_MOVE_CATALOG`.
 
+For the moves section specifically, `docs/custom-moves.md` is the GM-facing field-by-field
+reference for every field a custom move can set — see it before hand-typing Advanced JSON, and the
+"?" button next to "Add a Custom Entry" in the config panel renders it in-app, offline.
+
 It is deliberately a separate engine from reflavor-apply.js's baseline/reset machinery rather than a
 new REFLAVOR_SECTIONS entry: reflavor's whole model is "snapshot a pristine baseline, reset to it,
 then reapply overrides on top," which only makes sense for content that already existed before the

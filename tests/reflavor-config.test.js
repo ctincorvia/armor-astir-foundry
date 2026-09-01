@@ -6,6 +6,11 @@ import { ALL_MOVES } from "../scripts/moves/all-moves.js";
 import { EQUIPMENT_CATALOG } from "../scripts/equipment/equipment.js";
 import { applyReflavor, resetToBaseline } from "../scripts/reflavor/reflavor-apply.js";
 import { applyCustomContent, resetCustomContent } from "../scripts/custom-content/custom-content-apply.js";
+import { showCustomMoveFieldReference } from "../scripts/reflavor/reflavor-help.js";
+
+vi.mock("../scripts/reflavor/reflavor-help.js", () => ({
+	showCustomMoveFieldReference: vi.fn()
+}));
 
 const findMove = (key) => ALL_MOVES.find((move) => move.key === key);
 const findEquipment = (key) => EQUIPMENT_CATALOG.find((item) => item.key === key);
@@ -45,6 +50,7 @@ function fakeReflavorHtml() {
 	const state = {
 		fileHandler: null,
 		downloadHandler: null,
+		customMoveHelpHandler: null,
 		clearHandler: null,
 		summaryHtml: "",
 		saveDisabled: undefined,
@@ -89,6 +95,9 @@ function fakeReflavorHtml() {
 			}
 			if (selector === "[data-reflavor-download]") {
 				return { on: (event, handler) => { if (event === "click") state.downloadHandler = handler; } };
+			}
+			if (selector === "[data-custom-move-help]") {
+				return { on: (event, handler) => { if (event === "click") state.customMoveHelpHandler = handler; } };
 			}
 			if (selector === "[data-reflavor-clear]") {
 				return { on: (event, handler) => { if (event === "click") state.clearHandler = handler; } };
@@ -492,6 +501,16 @@ describe("ReflavorConfig#activateListeners", () => {
 
 		expect(event.preventDefault).toHaveBeenCalled();
 		expect(saveDataToFile).toHaveBeenCalled();
+	});
+
+	it("wires the custom-move-help button to showCustomMoveFieldReference", () => {
+		const config = new ReflavorConfig();
+		const state = fakeReflavorHtml();
+		config.activateListeners(state.html);
+
+		state.customMoveHelpHandler();
+
+		expect(showCustomMoveFieldReference).toHaveBeenCalled();
 	});
 
 	it("wires the clear button to reset the catalogs and injected additions, clear the setting, and re-render", async () => {

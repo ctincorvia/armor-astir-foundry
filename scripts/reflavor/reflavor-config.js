@@ -2,6 +2,7 @@ import { MODULE_ID } from "../module-id.js";
 import { applyReflavor, resetToBaseline, validateReflavor } from "./reflavor-apply.js";
 import { applyCustomContent, resetCustomContent, validateCustomContent } from "../custom-content/custom-content-apply.js";
 import { downloadReflavorTemplate } from "./reflavor-export.js";
+import { showCustomMoveFieldReference } from "./reflavor-help.js";
 import { readTextFromFile } from "../compat.js";
 import { REFLAVOR_SECTIONS, resolveSectionCatalog } from "./reflavor-schema.js";
 import { CUSTOM_CONTENT_SECTIONS } from "../custom-content/custom-content-schema.js";
@@ -250,6 +251,8 @@ export class ReflavorConfig extends FormApplication {
 			event.preventDefault();
 			downloadReflavorTemplate();
 		});
+
+		html.find("[data-custom-move-help]").on("click", () => showCustomMoveFieldReference());
 
 		html.find("[data-reflavor-clear]").on("click", async (event) => {
 			event.preventDefault();

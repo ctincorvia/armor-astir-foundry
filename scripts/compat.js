@@ -33,6 +33,10 @@ export function saveDataToFile(...args) {
 	return api("foundry.utils.saveDataToFile", "saveDataToFile")(...args);
 }
 
+export function getRoute(...args) {
+	return api("foundry.utils.getRoute", "getRoute")(...args);
+}
+
 export function generation() {
 	return Number(lookup("game.release.generation") ?? 12);
 }
