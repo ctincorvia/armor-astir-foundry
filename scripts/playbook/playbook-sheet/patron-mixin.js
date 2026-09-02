@@ -17,7 +17,7 @@ export const PatronSheetMixin = {
 	_witchBoons() {
 		return this.actor.system.attributes?.witch?.boons ?? [];
 	},
-	// getData's Patron section (Social tab, gated on isWitch) — every catalog Boon, flagged with
+	// getData's Patron section (Downtime tab, gated on isWitch) — every catalog Boon, flagged with
 	// whether this actor currently holds it, so the template can render the full list with a
 	// `held` CSS toggle rather than only the ones actually owned.
 	_witchData() {

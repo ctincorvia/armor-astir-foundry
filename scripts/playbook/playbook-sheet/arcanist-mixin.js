@@ -53,7 +53,7 @@ export const ArcanistSheetMixin = {
 			.filter((move) => move.rollable)
 			.map(({ key, name }) => ({ key, name }));
 	},
-	// getData's Prepare Rituals section (Social tab, gated on isArcanist) — one entry per fixed slot
+	// getData's Prepare Rituals section (Downtime tab, gated on isArcanist) — one entry per fixed slot
 	// (always 3, whether or not it's currently filled), the Wardhold readout, and whether Adapt
 	// Rituals can currently do anything (the Adaptive Rituals move picked, and at least one prepared
 	// slot that isn't already spent).
