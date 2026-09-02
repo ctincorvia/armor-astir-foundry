@@ -7,7 +7,7 @@ describe("AuthorityActorSheet.defaultOptions", () => {
 		expect(AuthorityActorSheet.defaultOptions).toEqual({
 			classes: ["armor-astir", "sheet", "actor", "world-actor", "authority"],
 			template: AUTHORITY_SHEET_TEMPLATE,
-			width: 640,
+			width: 900,
 			scrollY: [".window-content"]
 		});
 	});

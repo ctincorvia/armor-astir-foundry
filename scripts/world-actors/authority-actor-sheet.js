@@ -26,7 +26,8 @@ export class AuthorityActorSheet extends WorldActorSheet {
 	static get defaultOptions() {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			classes: ["armor-astir", "sheet", "actor", "world-actor", "authority"],
-			template: AUTHORITY_SHEET_TEMPLATE
+			template: AUTHORITY_SHEET_TEMPLATE,
+			width: 900
 		});
 	}
 

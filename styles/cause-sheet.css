@@ -3,15 +3,19 @@
    .entry-counter-row/.trait-value rules from world-actor-shared.css (loaded alongside this file —
    see module.json); only what's unique to this one sheet lives here. */
 
-/* Faction cards (regular and Wayward) now carry a kind select and up to two outcome-prose blocks
-   alongside name/counter/flags/description — too tall for a hairline-row list, so both lists lay
-   out as vertical cards, the same reasoning Authority's Division cards already established. Own
-   copy rather than folding into authority-sheet.css's card rules, same "duplicate small shared-
-   looking rules across sheets" reasoning as world-actor-shared.css's .crew-step comment. */
+/* Faction cards (regular and Wayward) carry a kind select and up to two outcome-prose blocks
+   alongside name/counter/flags/description — a shape close to Authority's Pillar cards (name,
+   Grip counter row, description), so both lists lay out as a 3-column grid the same way
+   authority-sheet.css's .pillar-list does, rather than Division's stacked full-width cards:
+   unlike a Division, a Faction doesn't nest any child cards of its own, and this list sits at the
+   Cause sheet's top level (full 640px width) rather than squeezed inside a padded parent card, so
+   the Pillar precedent is the closer fit. Own copy rather than folding into authority-sheet.css's
+   card rules, same "duplicate small shared-looking rules across sheets" reasoning as
+   world-actor-shared.css's .crew-step comment. */
 .armor-astir.sheet .faction-list,
 .armor-astir.sheet .wayward-faction-list {
-	display: flex;
-	flex-direction: column;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
 	gap: var(--aa-space-3);
 	margin: 0;
 	padding: 0;

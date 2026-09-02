@@ -36,26 +36,26 @@
 	color: var(--aa-primary-dark);
 }
 
-/* Divisions are always exactly three fixed slots (see authority-actor-sheet.js), stacked as full-
-   width cards rather than laid out side by side — a Division card is much taller than a simple
-   name+description entry now (kind select, two outcome blocks, and three nested Pillar cards), so
-   it can't fit three across in a 640px-wide sheet the way it used to. */
+/* Divisions are always exactly three fixed slots (see authority-actor-sheet.js), laid out side by
+   side in one row (the sheet's default width is widened in authority-actor-sheet.js's
+   defaultOptions to give this row room). Each Division card's own Pillar list stacks vertically
+   instead of going 3-across, so a Division column stays readable at its narrower width. */
 .armor-astir.sheet .division-list {
-	display: flex;
-	flex-direction: column;
+	display: grid;
+	grid-template-columns: repeat(3, 1fr);
 	gap: var(--aa-space-3);
 	margin: 0;
 	padding: 0;
 	list-style: none;
 }
 
-/* Pillars are always exactly three fixed slots per Division (see authority-actor-sheet.js), laid
-   out side by side inside their owning Division card, unlike the vertical freeform lists in
-   world-actor-shared.css. */
+/* Pillars are always exactly three fixed slots per Division (see authority-actor-sheet.js). Stacked
+   vertically here, not side by side — the owning Division card is already only 1/3 of the sheet's
+   width now that Divisions lay out in a row, so a nested 3-column Pillar grid would be too cramped. */
 .armor-astir.sheet .pillar-list {
-	display: grid;
-	grid-template-columns: repeat(3, 1fr);
-	gap: var(--aa-space-3);
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-1);
 	margin: 0;
 	padding: 0;
 	list-style: none;
