@@ -24,4 +24,44 @@
 			<button type="button" class="tier-step" data-delta="1" aria-label="Increase Tier">+</button>
 		</div>
 	</section>
+	<section class="rival">
+		<h3>Rival</h3>
+		<label class="rival-active-label">
+			<input type="checkbox" class="rival-active-checkbox" {{#if rival.active}}checked{{/if}}/>
+			Mark this NPC as a Rival
+		</label>
+		{{#if rival.active}}
+		<div class="rival-details">
+			<div class="form-group">
+				<label>Target</label>
+				<input type="text" name="system.attributes.rival.target" value="{{rival.target}}" placeholder="Who does this NPC oppose?"/>
+			</div>
+			<div class="form-group">
+				<label>Need</label>
+				<input type="text" name="system.attributes.rival.need" value="{{rival.need}}" placeholder="What does this NPC need?"/>
+			</div>
+			<div class="form-group">
+				<label>Want</label>
+				<input type="text" name="system.attributes.rival.want" value="{{rival.want}}" placeholder="What does this NPC want?"/>
+			</div>
+			<div class="trait">
+				<label class="trait-label">Hold</label>
+				<div class="trait-control">
+					<button type="button" class="rival-hold-step" data-delta="-1" aria-label="Decrease Hold">-</button>
+					<span class="trait-value">{{rival.hold}}</span>
+					<button type="button" class="rival-hold-step" data-delta="1" aria-label="Increase Hold">+</button>
+				</div>
+			</div>
+			<div class="rival-leverage">
+				<h4>Leverage</h4>
+				<p>When your counterpart interferes with your Need or indulges you in your Want, hold 1. You may spend this hold whenever 1-for-1 to do the following:</p>
+				<ul>
+					<li>Make them act in confidence or in desperation.</li>
+					<li>Ask a challenging question that must be answered.</li>
+					<li>Appear somewhere you aren't expected.</li>
+				</ul>
+			</div>
+		</div>
+		{{/if}}
+	</section>
 </form>

@@ -453,7 +453,7 @@ describe("createWorldActor", () => {
 				folder: null,
 				system: {
 					details: { description: { value: "" } },
-					attributes: { approach: "", tier: TIER_MIN }
+					attributes: { approach: "", tier: TIER_MIN, rival: { active: false, target: "", need: "", want: "", hold: 0 } }
 				}
 			},
 			{ renderSheet: true }

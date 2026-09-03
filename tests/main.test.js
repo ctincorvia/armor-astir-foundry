@@ -44,7 +44,7 @@ describe("registerInitHook", () => {
 		callback();
 
 		expect(loadTemplates).toHaveBeenCalledWith([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS, ...CAUSE_SHEET_PARTIALS]);
-		expect([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS, ...CAUSE_SHEET_PARTIALS]).toHaveLength(19);
+		expect([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS, ...CAUSE_SHEET_PARTIALS]).toHaveLength(20);
 	});
 
 	it("registers the reflavor world setting and GM-only menu when the hook fires", () => {

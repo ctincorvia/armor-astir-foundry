@@ -34,7 +34,8 @@ export const AUTHORITY_SHEET_PARTIALS = [
 	"modules/armor-astir/templates/authority-sheet/divisions.hbs",
 	"modules/armor-astir/templates/authority-sheet/pillars.hbs",
 	"modules/armor-astir/templates/authority-sheet/assets.hbs",
-	"modules/armor-astir/templates/authority-sheet/notable-actors.hbs"
+	"modules/armor-astir/templates/authority-sheet/notable-actors.hbs",
+	"modules/armor-astir/templates/authority-sheet/schemes.hbs"
 ];
 
 export const CAUSE_SHEET_PARTIALS = [

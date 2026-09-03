@@ -1,3 +1,9 @@
+# Local-machine Foundry headless dev scripts (hardcoded paths specific to one dev's machine --
+# see their own docstrings) and the __pycache__ their sibling-module import generates
+tools/run_foundry_headless.py
+tools/stop_foundry_headless.py
+tools/__pycache__/
+
 # Logs
 logs
 *.log

@@ -36,13 +36,14 @@
 	color: var(--aa-primary-dark);
 }
 
-/* Shared by Crew's stepper, the NPC sheet's Tier stepper (see npc-actor-sheet.js's _onTierStep),
-   and every generic entry-list counter step (Authority's Division Strength/Disfavor and Pillar
-   GRIP, Cause's Faction Grip — see world-actor-sheet.js's _onEntryCounterStep) — same small +/-
-   control everywhere it appears. */
+/* Shared by Crew's stepper, the NPC sheet's Tier and Rival Hold steppers (see
+   npc-actor-sheet.js's _onTierStep/_onRivalHoldStep), and every generic entry-list counter step
+   (Authority's Division Strength/Disfavor and Pillar GRIP, Cause's Faction Grip — see
+   world-actor-sheet.js's _onEntryCounterStep) — same small +/- control everywhere it appears. */
 .armor-astir.sheet .crew-step,
 .armor-astir.sheet .crew-support-hold-step,
 .armor-astir.sheet .tier-step,
+.armor-astir.sheet .rival-hold-step,
 .armor-astir.sheet .entry-list-counter-step {
 	width: 22px;
 	height: 22px;
@@ -57,6 +58,7 @@
 .armor-astir.sheet .crew-step:hover,
 .armor-astir.sheet .crew-support-hold-step:hover,
 .armor-astir.sheet .tier-step:hover,
+.armor-astir.sheet .rival-hold-step:hover,
 .armor-astir.sheet .entry-list-counter-step:hover {
 	border-color: var(--aa-primary);
 	color: var(--aa-primary-dark);
@@ -189,4 +191,59 @@
 .armor-astir.sheet .entry-list-remove:hover {
 	border-color: var(--aa-danger);
 	color: var(--aa-danger);
+}
+
+.armor-astir.sheet .rival-active-label {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	gap: var(--aa-space-1);
+	font-weight: bold;
+	cursor: pointer;
+}
+
+.armor-astir.sheet .rival-details {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-2);
+	margin-top: var(--aa-space-3);
+}
+
+/* Static rules text, not a tracker — same callout treatment as sheet-layout.css's
+   .gravity-trigger/.gravity-trigger-text for the same reason (secondary color marks it as
+   background prose, not something to edit), kept as its own copy per this file's usual reasoning
+   for not reaching into sheet-layout.css for a one-off addition. */
+.armor-astir.sheet .rival-leverage {
+	margin-top: var(--aa-space-2);
+	padding: var(--aa-space-2) var(--aa-space-3);
+	border-left: 3px solid var(--aa-secondary);
+	border-radius: var(--aa-radius);
+	background: var(--aa-secondary-tint);
+}
+
+.armor-astir.sheet .rival-leverage h4 {
+	margin: 0 0 var(--aa-space-1) 0;
+	font-size: 12px;
+	font-weight: 700;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir.sheet .rival-leverage p,
+.armor-astir.sheet .rival-leverage ul {
+	margin: 0 0 var(--aa-space-1) 0;
+	font-size: 12px;
+	font-style: italic;
+	line-height: 1.5;
+	color: var(--aa-secondary-dark);
+}
+
+.armor-astir.sheet .rival-leverage ul {
+	padding-left: 1.25em;
+}
+
+.armor-astir.sheet .rival-leverage p:last-child,
+.armor-astir.sheet .rival-leverage ul:last-child {
+	margin-bottom: 0;
 }

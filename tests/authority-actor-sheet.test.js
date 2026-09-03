@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from "vitest";
 import { AuthorityActorSheet, AUTHORITY_SHEET_TEMPLATE, registerAuthorityActorSheet } from "../scripts/world-actors/authority-actor-sheet.js";
 import { DIVISION_KINDS } from "../scripts/world-actors/division-kinds.js";
+import { CLOCK_STEPS_MAX, CLOCK_STEPS_MIN } from "../scripts/core/clocks.js";
 
 describe("AuthorityActorSheet.defaultOptions", () => {
 	it("merges the authority sheet's classes/template onto the base world-actor options", () => {
 		expect(AuthorityActorSheet.defaultOptions).toEqual({
 			classes: ["armor-astir", "sheet", "actor", "world-actor", "authority"],
 			template: AUTHORITY_SHEET_TEMPLATE,
-			width: 900,
+			width: 1350,
 			scrollY: [".window-content"]
 		});
 	});
@@ -200,7 +201,7 @@ describe("AuthorityActorSheet#getData", () => {
 		expect(data.stability.steps.filter((s) => s.filled)).toHaveLength(1);
 	});
 
-	it("reads divisions (with nested pillars), assets, and notable actors off the actor", () => {
+	it("reads divisions (with nested pillars), assets, notable actors, and schemes off the actor", () => {
 		const sheet = new AuthorityActorSheet();
 		sheet.actor = {
 			system: {
@@ -208,7 +209,8 @@ describe("AuthorityActorSheet#getData", () => {
 					divisions: [{ id: "d1", name: "The Wardens", description: "" }],
 					pillars: [{ id: "p1", divisionId: "d1", name: "Fear", description: "", grip: 0, felled: false }],
 					assets: [{ id: "a1", name: "Orbital cannon", description: "" }],
-					notableActors: [{ id: "n1", name: "The Warden", description: "" }]
+					notableActors: [{ id: "n1", name: "The Warden", description: "" }],
+					schemes: [{ id: "s1", label: "Cut the supply lines", progress: 2, steps: 6 }]
 				}
 			}
 		};
@@ -221,6 +223,24 @@ describe("AuthorityActorSheet#getData", () => {
 		]);
 		expect(data.assets).toEqual([{ id: "a1", name: "Orbital cannon", description: "" }]);
 		expect(data.notableActors).toEqual([{ id: "n1", name: "The Warden", description: "" }]);
+		expect(data.schemes.min).toBe(CLOCK_STEPS_MIN);
+		expect(data.schemes.max).toBe(CLOCK_STEPS_MAX);
+		expect(data.schemes.list).toEqual([
+			{
+				id: "s1",
+				label: "Cut the supply lines",
+				progress: 2,
+				steps: 6,
+				progressSteps: [
+					{ step: 1, filled: true },
+					{ step: 2, filled: true },
+					{ step: 3, filled: false },
+					{ step: 4, filled: false },
+					{ step: 5, filled: false },
+					{ step: 6, filled: false }
+				]
+			}
+		]);
 	});
 
 	it("defaults every list to empty when unset", () => {
@@ -232,6 +252,19 @@ describe("AuthorityActorSheet#getData", () => {
 		expect(data.divisions).toEqual([]);
 		expect(data.assets).toEqual([]);
 		expect(data.notableActors).toEqual([]);
+		expect(data.schemes.list).toEqual([]);
+	});
+});
+
+describe("AuthorityActorSheet#getData - schemes - branch edges", () => {
+	it("treats a missing steps field as CLOCK_STEPS_DEFAULT and a missing progress field as 0", () => {
+		const sheet = new AuthorityActorSheet();
+		sheet.actor = { system: { attributes: { schemes: [{ id: "s1", label: "A" }] } } };
+
+		const data = sheet.getData({});
+
+		expect(data.schemes.list[0].progressSteps).toHaveLength(6);
+		expect(data.schemes.list[0].progressSteps.every((step) => !step.filled)).toBe(true);
 	});
 });
 
@@ -250,6 +283,12 @@ describe("AuthorityActorSheet#activateListeners", () => {
 		// .entry-list-counter-step handler (see world-actor-sheet.test.js) rather than a
 		// bespoke Authority-only binding.
 		expect(html.find).toHaveBeenCalledWith(".entry-list-counter-step");
+		// Schemes reuses the player sheet's own Clocks widget classes (see authority-actor-sheet.js).
+		expect(html.find).toHaveBeenCalledWith(".clock-add");
+		expect(html.find).toHaveBeenCalledWith(".clock-remove");
+		expect(html.find).toHaveBeenCalledWith(".clock-label-input");
+		expect(html.find).toHaveBeenCalledWith(".clock-steps-input");
+		expect(html.find).toHaveBeenCalledWith(".clock-step");
 	});
 });
 
@@ -297,6 +336,73 @@ describe("AuthorityActorSheet#_onStabilityStep", () => {
 		sheet._onStabilityStep({ currentTarget: { dataset: { step: "3" } } });
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.stability.value": 3 });
+	});
+});
+
+describe("AuthorityActorSheet#_onSchemeAdd", () => {
+	it("appends a new scheme via clocks.js's addClock", () => {
+		const sheet = new AuthorityActorSheet();
+		sheet.actor = { system: { attributes: { schemes: [] } }, update: vi.fn() };
+
+		sheet._onSchemeAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.schemes": [{ id: "test-id", label: "", progress: 0, steps: 6 }]
+		});
+	});
+});
+
+describe("AuthorityActorSheet#_onSchemeRemove", () => {
+	it("removes the matching scheme", () => {
+		const sheet = new AuthorityActorSheet();
+		const clock = { id: "s1", label: "A", progress: 0, steps: 6 };
+		sheet.actor = { system: { attributes: { schemes: [clock] } }, update: vi.fn() };
+
+		sheet._onSchemeRemove({ currentTarget: { dataset: { clockId: "s1" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.schemes": [] });
+	});
+});
+
+describe("AuthorityActorSheet#_onSchemeLabelChange", () => {
+	it("updates the matching scheme's label, trimmed", () => {
+		const sheet = new AuthorityActorSheet();
+		const clock = { id: "s1", label: "Old", progress: 0, steps: 6 };
+		sheet.actor = { system: { attributes: { schemes: [clock] } }, update: vi.fn() };
+
+		sheet._onSchemeLabelChange({ currentTarget: { dataset: { clockId: "s1" }, value: " New " } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.schemes": [{ ...clock, label: "New" }]
+		});
+	});
+});
+
+describe("AuthorityActorSheet#_onSchemeStepsChange", () => {
+	it("updates the matching scheme's step count", () => {
+		const sheet = new AuthorityActorSheet();
+		const clock = { id: "s1", label: "A", progress: 0, steps: 6 };
+		sheet.actor = { system: { attributes: { schemes: [clock] } }, update: vi.fn() };
+
+		sheet._onSchemeStepsChange({ currentTarget: { dataset: { clockId: "s1" }, value: "4" } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.schemes": [{ ...clock, steps: 4 }]
+		});
+	});
+});
+
+describe("AuthorityActorSheet#_onSchemeStep", () => {
+	it("fills up to the clicked step", () => {
+		const sheet = new AuthorityActorSheet();
+		const clock = { id: "s1", label: "A", progress: 0, steps: 6 };
+		sheet.actor = { system: { attributes: { schemes: [clock] } }, update: vi.fn() };
+
+		sheet._onSchemeStep({ currentTarget: { dataset: { clockId: "s1", step: "3" } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.schemes": [{ ...clock, progress: 3 }]
+		});
 	});
 });
 

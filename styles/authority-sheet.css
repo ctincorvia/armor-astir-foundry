@@ -3,6 +3,19 @@
    .entry-list/.entry-counter/.trait-value rules from world-actor-shared.css (loaded alongside
    this file — see module.json); only what's unique to this one sheet lives here. */
 
+/* Stability, Divisions, and the Assets/Schemes row are plain <section>/<div> blocks with no panel
+   treatment of their own (unlike the tabbed playbook sheet, this sheet never matches
+   sheet-chrome.css's ".tab.active > section" bordered-panel rule), so without this they and the
+   header above them stack flush with zero vertical gap. padding-top only, not top+bottom, so two
+   adjacent elements don't double the gap to 8px — each element pulls its own top edge down from
+   whatever precedes it. The row's own nested Assets/Actors/Schemes sections already have a 12px
+   gap between them from .assets-schemes-column's flex gap, so they're deliberately left alone. */
+.armor-astir.sheet.authority .stability,
+.armor-astir.sheet.authority .divisions,
+.armor-astir.sheet.authority .assets-schemes-row {
+	padding-top: var(--aa-space-1);
+}
+
 /* Authority's Stability track — a 9-segment pip row, same look as sheet-layout.css's
    spotlight/gravity-clock/clock steps but its own copy, same reasoning as world-actor-shared.css's
    .crew-step. */
@@ -39,10 +52,16 @@
 /* Divisions are always exactly three fixed slots (see authority-actor-sheet.js), laid out side by
    side in one row (the sheet's default width is widened in authority-actor-sheet.js's
    defaultOptions to give this row room). Each Division card's own Pillar list stacks vertically
-   instead of going 3-across, so a Division column stays readable at its narrower width. */
+   instead of going 3-across, so a Division column stays readable at its narrower width.
+   grid-template-rows names 7 shared row tracks (name, approach, Strength/Disfavor, description,
+   Passive Outcome, Active Outcomes, Pillars) that every card's own subgrid below plugs into, so a
+   row's height is always the tallest of that row across all three Divisions — this is what keeps
+   Passive/Active Outcome boxes (whose catalog text length varies per Division kind) lined up
+   instead of each card free-floating to its own content height. */
 .armor-astir.sheet .division-list {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
+	grid-template-rows: repeat(7, auto);
 	gap: var(--aa-space-3);
 	margin: 0;
 	padding: 0;
@@ -61,10 +80,32 @@
 	list-style: none;
 }
 
-/* Direct-child combinators, not descendant selectors: a Pillar card is now nested inside a
-   Division card's own DOM (see authority-sheet/pillars.hbs), so a plain descendant selector here
-   would double up the card treatment onto every Pillar too. */
-.armor-astir.sheet .division-list > .entry-list-item,
+/* A Division card subgrids into its parent's 7 row tracks (see .division-list above) rather than
+   flexing its children in document order, so each field type lands on the same row track — and
+   therefore the same height — across all three cards regardless of which conditional boxes
+   (Passive/Active Outcome, unset until a kind is chosen) any one Division happens to have. row-gap
+   doesn't inherit onto a subgridded axis by default, so it's redeclared here at the tighter
+   per-field spacing rather than the parent's between-card gap. A Pillar card, nested one level
+   deeper via authority-sheet/pillars.hbs, isn't part of this row grid at all — plain flex, same as
+   before. */
+.armor-astir.sheet .division-list > .entry-list-item {
+	display: grid;
+	grid-template-rows: subgrid;
+	grid-row: 1 / -1;
+	gap: var(--aa-space-1);
+	padding: var(--aa-space-2);
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+}
+
+.armor-astir.sheet .division-list > .entry-list-item > .division-name { grid-row: 1; }
+.armor-astir.sheet .division-list > .entry-list-item > .division-kind { grid-row: 2; }
+.armor-astir.sheet .division-list > .entry-list-item > .entry-counter-row { grid-row: 3; }
+.armor-astir.sheet .division-list > .entry-list-item > .division-description { grid-row: 4; }
+.armor-astir.sheet .division-list > .entry-list-item > .division-passive-outcome { grid-row: 5; }
+.armor-astir.sheet .division-list > .entry-list-item > .division-active-outcomes { grid-row: 6; }
+.armor-astir.sheet .division-list > .entry-list-item > .pillar-list { grid-row: 7; }
+
 .armor-astir.sheet .pillar-list > .entry-list-item {
 	display: flex;
 	flex-direction: column;
@@ -111,4 +152,19 @@
 
 .armor-astir.sheet .division-active-outcomes li {
 	margin: 0;
+}
+
+/* Bottom row pairing Assets/Notable Actors against Schemes (see authority-actor-sheet.js's
+   _schemesData) in a second column — same two-column grid shape as .division-list's row above,
+   just sized for two stacked sections per column instead of three fixed Division cards. */
+.armor-astir.sheet .assets-schemes-row {
+	display: grid;
+	grid-template-columns: repeat(2, 1fr);
+	gap: var(--aa-space-3);
+}
+
+.armor-astir.sheet .assets-schemes-column {
+	display: flex;
+	flex-direction: column;
+	gap: var(--aa-space-3);
 }

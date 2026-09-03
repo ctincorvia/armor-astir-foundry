@@ -18,7 +18,8 @@ export class CauseActorSheet extends WorldActorSheet {
 	static get defaultOptions() {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			classes: ["armor-astir", "sheet", "actor", "world-actor", "cause"],
-			template: CAUSE_SHEET_TEMPLATE
+			template: CAUSE_SHEET_TEMPLATE,
+			width: 960
 		});
 	}
 

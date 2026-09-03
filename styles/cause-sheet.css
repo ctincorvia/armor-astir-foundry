@@ -3,34 +3,74 @@
    .entry-counter-row/.trait-value rules from world-actor-shared.css (loaded alongside this file —
    see module.json); only what's unique to this one sheet lives here. */
 
+/* Factions and Wayward Factions are plain <section> blocks with no panel treatment of their own
+   (same reasoning as authority-sheet.css's equivalent rule), so without this they and the header
+   above them stack flush with zero vertical gap. padding-top only, not top+bottom, so adjacent
+   elements don't double the gap to 8px. */
+.armor-astir.sheet.cause .factions,
+.armor-astir.sheet.cause .wayward-factions {
+	padding-top: var(--aa-space-1);
+}
+
 /* Faction cards (regular and Wayward) carry a kind select and up to two outcome-prose blocks
-   alongside name/counter/flags/description — a shape close to Authority's Pillar cards (name,
-   Grip counter row, description), so both lists lay out as a 3-column grid the same way
-   authority-sheet.css's .pillar-list does, rather than Division's stacked full-width cards:
-   unlike a Division, a Faction doesn't nest any child cards of its own, and this list sits at the
-   Cause sheet's top level (full 640px width) rather than squeezed inside a padded parent card, so
-   the Pillar precedent is the closer fit. Own copy rather than folding into authority-sheet.css's
-   card rules, same "duplicate small shared-looking rules across sheets" reasoning as
-   world-actor-shared.css's .crew-step comment. */
+   alongside name/counter/flags/description, but unlike Authority's Division cards they don't nest
+   any child cards of their own, and this list sits at the Cause sheet's full top-level width
+   (640px, unwidened — see world-actor-sheet.js's defaultOptions) rather than squeezed inside a
+   padded parent card, so a 3-column grid of Faction cards stays readable. Own copy rather than
+   folding into authority-sheet.css's card rules, same "duplicate small shared-looking rules across
+   sheets" reasoning as world-actor-shared.css's .crew-step comment.
+   grid-auto-rows names a repeating pattern of 6 row tracks (name/remove row, kind select,
+   Grip/flags row, Opposes, Outcome, description) that every card's own subgrid below plugs into,
+   so a row's height is always the tallest of that row within its group of (up to) three Factions
+   — same fix, and same reasoning, as authority-sheet.css's .division-list rows for Passive/Active
+   Outcome. Unlike Division (always exactly 3, never wraps), a Faction list is unbounded and wraps
+   to as many rows of 3 as it needs, so this has to use grid-auto-rows (an implicit, repeating
+   pattern the grid re-applies to every new row it creates as items overflow 3 columns) rather than
+   a fixed-count grid-template-rows — a fixed count would give every card the same absolute 6-line
+   span regardless of which row of cards it's actually in, which is what broke wrapping the first
+   time this was tried: every 4th+ card had nowhere non-overlapping left in that fixed span, so the
+   grid packed them into new implicit columns instead of a second row. */
 .armor-astir.sheet .faction-list,
 .armor-astir.sheet .wayward-faction-list {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
+	grid-auto-rows: repeat(6, auto);
 	gap: var(--aa-space-3);
 	margin: 0;
 	padding: 0;
 	list-style: none;
 }
 
+/* A Faction card subgrids into whichever 6-track row-group its own grid-row: span 6 lands it in
+   (see grid-auto-rows above) rather than flexing its children in document order, so each field
+   type lands on the same relative row track — and therefore the same height — as its two row-mates
+   regardless of which conditional Opposes/Outcome boxes (unset until a kind is chosen — see
+   faction-kinds.js) any one Faction happens to have. row-gap doesn't inherit onto a subgridded axis
+   by default, so it's redeclared here at the tighter per-field spacing rather than the parent
+   list's between-card gap. */
 .armor-astir.sheet .faction-list > .entry-list-item,
 .armor-astir.sheet .wayward-faction-list > .entry-list-item {
-	display: flex;
-	flex-direction: column;
+	display: grid;
+	grid-template-rows: subgrid;
+	grid-row: span 6;
 	gap: var(--aa-space-1);
 	padding: var(--aa-space-2);
 	border: var(--aa-border);
 	border-radius: var(--aa-radius);
 }
+
+.armor-astir.sheet .faction-list > .entry-list-item > .entry-list-row,
+.armor-astir.sheet .wayward-faction-list > .entry-list-item > .entry-list-row { grid-row: 1; }
+.armor-astir.sheet .faction-list > .entry-list-item > .faction-kind,
+.armor-astir.sheet .wayward-faction-list > .entry-list-item > .faction-kind { grid-row: 2; }
+.armor-astir.sheet .faction-list > .entry-list-item > .entry-counter-row,
+.armor-astir.sheet .wayward-faction-list > .entry-list-item > .entry-counter-row { grid-row: 3; }
+.armor-astir.sheet .faction-list > .entry-list-item > .faction-opposes,
+.armor-astir.sheet .wayward-faction-list > .entry-list-item > .faction-opposes { grid-row: 4; }
+.armor-astir.sheet .faction-list > .entry-list-item > .faction-outcome,
+.armor-astir.sheet .wayward-faction-list > .entry-list-item > .faction-outcome { grid-row: 5; }
+.armor-astir.sheet .faction-list > .entry-list-item > .faction-description,
+.armor-astir.sheet .wayward-faction-list > .entry-list-item > .faction-description { grid-row: 6; }
 
 .armor-astir.sheet .faction-kind {
 	width: 100%;

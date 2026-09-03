@@ -1,0 +1,29 @@
+<section class="clocks">
+	<div class="section-header">
+		<h3>Schemes</h3>
+		<div class="section-header-actions">
+			<button type="button" class="clock-add icon-add-button" title="Add Scheme" aria-label="Add Scheme">+</button>
+		</div>
+	</div>
+	<ol class="clock-list">
+		{{#each schemes.list}}
+		<li class="clock-item" data-clock-id="{{id}}">
+			<div class="clock-header">
+				<input type="text" class="clock-label-input" data-clock-id="{{id}}" value="{{label}}" placeholder="Scheme label…"/>
+				<div class="clock-steps-control">
+					<label>Steps</label>
+					<input type="number" class="clock-steps-input" data-clock-id="{{id}}" value="{{steps}}" min="{{../schemes.min}}" max="{{../schemes.max}}"/>
+				</div>
+				<button type="button" class="clock-remove" data-clock-id="{{id}}" aria-label="Remove scheme">✕</button>
+			</div>
+			<ol class="clock-track">
+				{{#each progressSteps}}
+				<li class="clock-step-item">
+					<button type="button" class="clock-step{{#if filled}} filled{{/if}}" data-clock-id="{{../id}}" data-step="{{step}}" aria-label="Scheme step {{step}}"></button>
+				</li>
+				{{/each}}
+			</ol>
+		</li>
+		{{/each}}
+	</ol>
+</section>

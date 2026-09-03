@@ -179,7 +179,7 @@ export const WORLD_ACTOR_KINDS = [
 		name: "NPC",
 		buildSystem: () => ({
 			details: { description: { value: "" } },
-			attributes: { approach: "", tier: TIER_MIN }
+			attributes: { approach: "", tier: TIER_MIN, rival: { active: false, target: "", need: "", want: "", hold: 0 } }
 		})
 	}
 ];

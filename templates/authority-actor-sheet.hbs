@@ -8,6 +8,13 @@
 	</header>
 	{{> "modules/armor-astir/templates/authority-sheet/stability.hbs"}}
 	{{> "modules/armor-astir/templates/authority-sheet/divisions.hbs"}}
-	{{> "modules/armor-astir/templates/authority-sheet/assets.hbs"}}
-	{{> "modules/armor-astir/templates/authority-sheet/notable-actors.hbs"}}
+	<div class="assets-schemes-row">
+		<div class="assets-schemes-column">
+			{{> "modules/armor-astir/templates/authority-sheet/assets.hbs"}}
+			{{> "modules/armor-astir/templates/authority-sheet/notable-actors.hbs"}}
+		</div>
+		<div class="assets-schemes-column">
+			{{> "modules/armor-astir/templates/authority-sheet/schemes.hbs"}}
+		</div>
+	</div>
 </form>

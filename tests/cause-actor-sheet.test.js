@@ -7,7 +7,7 @@ describe("CauseActorSheet.defaultOptions", () => {
 		expect(CauseActorSheet.defaultOptions).toEqual({
 			classes: ["armor-astir", "sheet", "actor", "world-actor", "cause"],
 			template: CAUSE_SHEET_TEMPLATE,
-			width: 640,
+			width: 960,
 			scrollY: [".window-content"]
 		});
 	});

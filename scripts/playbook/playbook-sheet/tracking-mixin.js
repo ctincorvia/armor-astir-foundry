@@ -8,7 +8,7 @@ import {
 	setClockProgress,
 	updateClockLabel,
 	updateClockSteps
-} from "../clocks.js";
+} from "../../core/clocks.js";
 
 // Ceiling across every playbook today (see claude.md's Dangers notes) — none currently need the
 // occasionally-mentioned 4, so this stays a flat constant rather than a per-playbook field until

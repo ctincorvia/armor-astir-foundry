@@ -31,6 +31,14 @@ export class NpcActorSheet extends ActorSheet {
 		data.approachOptions = APPROACHES;
 		const tierValue = this.actor.system.attributes?.tier ?? TIER_MIN;
 		data.tier = { value: tierValue, min: TIER_MIN, max: TIER_MAX };
+		const rival = this.actor.system.attributes?.rival ?? {};
+		data.rival = {
+			active: rival.active ?? false,
+			target: rival.target ?? "",
+			need: rival.need ?? "",
+			want: rival.want ?? "",
+			hold: rival.hold ?? 0
+		};
 		return data;
 	}
 
@@ -38,6 +46,8 @@ export class NpcActorSheet extends ActorSheet {
 		super.activateListeners(html);
 		html.find(".npc-approach-select").on("change", this._onApproachChange.bind(this));
 		html.find(".tier-step").on("click", this._onTierStep.bind(this));
+		html.find(".rival-active-checkbox").on("change", this._onRivalActiveToggle.bind(this));
+		html.find(".rival-hold-step").on("click", this._onRivalHoldStep.bind(this));
 	}
 
 	_onApproachChange(event) {
@@ -50,6 +60,18 @@ export class NpcActorSheet extends ActorSheet {
 		const next = Math.min(TIER_MAX, Math.max(TIER_MIN, current + Number(delta)));
 		if (next === current) return;
 		this.actor.update({ "system.attributes.tier": next });
+	}
+
+	_onRivalActiveToggle(event) {
+		this.actor.update({ "system.attributes.rival.active": event.currentTarget.checked });
+	}
+
+	_onRivalHoldStep(event) {
+		const { delta } = event.currentTarget.dataset;
+		const current = this.actor.system.attributes?.rival?.hold ?? 0;
+		const next = Math.max(0, current + Number(delta));
+		if (next === current) return;
+		this.actor.update({ "system.attributes.rival.hold": next });
 	}
 }
 
