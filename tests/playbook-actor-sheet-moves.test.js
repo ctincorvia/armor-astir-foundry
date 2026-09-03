@@ -30,18 +30,17 @@ describe("PlaybookActorSheet#getData - moves", () => {
 				label: "Basic Moves",
 				moves: [
 					{
-						key: "exchange-blows",
-						name: "Exchange Blows",
+						key: "read-the-room",
+						name: "Read the Room",
 						traits: [
-							{ key: "clash", label: "CLASH", value: 1 },
-							{ key: "talk", label: "TALK", value: -1 }
+							{ key: "sense", label: "SENSE", value: 0 }
 						],
 						gated: false,
 						rollable: true,
 						activatable: false,
 						summonable: false,
 						descriptionGated: false,
-						trackHold: false,
+						trackHold: true,
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
@@ -61,23 +60,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						summonable: false,
 						descriptionGated: false,
 						trackHold: false,
-						separateHoldPool: false,
-						hold: 0,
-						uses: [],
-						trackers: []
-					},
-					{
-						key: "read-the-room",
-						name: "Read the Room",
-						traits: [
-							{ key: "sense", label: "SENSE", value: 0 }
-						],
-						gated: false,
-						rollable: true,
-						activatable: false,
-						summonable: false,
-						descriptionGated: false,
-						trackHold: true,
 						separateHoldPool: false,
 						hold: 0,
 						uses: [],
@@ -104,6 +86,42 @@ describe("PlaybookActorSheet#getData - moves", () => {
 						key: "help-or-hinder",
 						name: "Help or Hinder",
 						traits: [],
+						gated: false,
+						rollable: true,
+						activatable: false,
+						summonable: false,
+						descriptionGated: false,
+						trackHold: false,
+						separateHoldPool: false,
+						hold: 0,
+						uses: [],
+						trackers: []
+					},
+					{
+						key: "exchange-blows",
+						name: "Exchange Blows",
+						traits: [
+							{ key: "clash", label: "CLASH", value: 1 },
+							{ key: "talk", label: "TALK", value: -1 }
+						],
+						gated: false,
+						rollable: true,
+						activatable: false,
+						summonable: false,
+						descriptionGated: false,
+						trackHold: false,
+						separateHoldPool: false,
+						hold: 0,
+						uses: [],
+						trackers: []
+					},
+					{
+						key: "strike-decisively",
+						name: "Strike Decisively",
+						traits: [
+							{ key: "clash", label: "CLASH", value: 1 },
+							{ key: "talk", label: "TALK", value: -1 }
+						],
 						gated: false,
 						rollable: true,
 						activatable: false,
@@ -144,24 +162,6 @@ describe("PlaybookActorSheet#getData - moves", () => {
 							{ key: "talk", label: "TALK", value: -1 },
 							{ key: "know", label: "KNOW", value: 0 },
 							{ key: "channel", label: "CHANNEL", value: 0 }
-						],
-						gated: false,
-						rollable: true,
-						activatable: false,
-						summonable: false,
-						descriptionGated: false,
-						trackHold: false,
-						separateHoldPool: false,
-						hold: 0,
-						uses: [],
-						trackers: []
-					},
-					{
-						key: "strike-decisively",
-						name: "Strike Decisively",
-						traits: [
-							{ key: "clash", label: "CLASH", value: 1 },
-							{ key: "talk", label: "TALK", value: -1 }
 						],
 						gated: false,
 						rollable: true,
@@ -286,7 +286,8 @@ describe("PlaybookActorSheet#getData - moves", () => {
 
 		const data = sheet.getData();
 
-		expect(data.moveGroups[0].moves[0].traits).toEqual([{ key: "talk", label: "TALK", value: 0 }]);
+		expect(data.moveGroups[0].moves.find((m) => m.key === "exchange-blows").traits)
+			.toEqual([{ key: "talk", label: "TALK", value: 0 }]);
 	});
 
 	// Regression guard: Crew Support's hold tracker (see moves-mixin.js's _moveGroupMoves) must

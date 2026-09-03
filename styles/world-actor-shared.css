@@ -193,6 +193,17 @@
 	color: var(--aa-danger);
 }
 
+/* Pins the Rival checkbox to the left and the Hold stepper (only rendered once Rival is checked)
+   to the right, same space-between shape as this file's .crew-row above but kept as its own class
+   since this is the NPC sheet, not Carrier's. */
+.armor-astir.sheet .rival-header-row {
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	justify-content: space-between;
+	gap: var(--aa-space-3);
+}
+
 .armor-astir.sheet .rival-active-label {
 	display: flex;
 	flex-direction: row;

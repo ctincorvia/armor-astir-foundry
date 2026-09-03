@@ -124,7 +124,16 @@ export const MovesSheetMixin = {
 		const heatUp = BASIC_MOVES.find((m) => m.key === "heat-up");
 		const subsystems = SPECIAL_MOVES.find((m) => m.key === "subsystems");
 		const moveGroups = [
-			{ label: "Basic Moves", moves: this._moveGroupMoves(BASIC_MOVES.filter((m) => m !== heatUp)) },
+			{
+				label: "Basic Moves",
+				// displayOrder (basic-moves.js) is a sheet-display concern only — it deliberately does
+				// not match BASIC_MOVES' own declaration order, so sort here rather than reordering the
+				// array itself. .slice() first since .sort() mutates in place and BASIC_MOVES is a
+				// shared module-level export other code also reads.
+				moves: this._moveGroupMoves(
+					BASIC_MOVES.filter((m) => m !== heatUp).slice().sort((a, b) => a.displayOrder - b.displayOrder)
+				)
+			},
 			{
 				label: "Playbook Moves",
 				moves: this._moveGroupMoves(resolvePlaybookMoves(this._playbookMoves())),

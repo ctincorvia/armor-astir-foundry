@@ -26,10 +26,20 @@
 	</section>
 	<section class="rival">
 		<h3>Rival</h3>
-		<label class="rival-active-label">
-			<input type="checkbox" class="rival-active-checkbox" {{#if rival.active}}checked{{/if}}/>
-			Mark this NPC as a Rival
-		</label>
+		<div class="rival-header-row">
+			<label class="rival-active-label">
+				<input type="checkbox" class="rival-active-checkbox" {{#if rival.active}}checked{{/if}}/>
+				Mark this NPC as a Rival
+			</label>
+			{{#if rival.active}}
+			<div class="entry-counter">
+				<label>Hold</label>
+				<button type="button" class="rival-hold-step" data-delta="-1" aria-label="Decrease Hold">-</button>
+				<span class="trait-value">{{rival.hold}}</span>
+				<button type="button" class="rival-hold-step" data-delta="1" aria-label="Increase Hold">+</button>
+			</div>
+			{{/if}}
+		</div>
 		{{#if rival.active}}
 		<div class="rival-details">
 			<div class="form-group">
@@ -43,14 +53,6 @@
 			<div class="form-group">
 				<label>Want</label>
 				<input type="text" name="system.attributes.rival.want" value="{{rival.want}}" placeholder="What does this NPC want?"/>
-			</div>
-			<div class="trait">
-				<label class="trait-label">Hold</label>
-				<div class="trait-control">
-					<button type="button" class="rival-hold-step" data-delta="-1" aria-label="Decrease Hold">-</button>
-					<span class="trait-value">{{rival.hold}}</span>
-					<button type="button" class="rival-hold-step" data-delta="1" aria-label="Increase Hold">+</button>
-				</div>
 			</div>
 			<div class="rival-leverage">
 				<h4>Leverage</h4>

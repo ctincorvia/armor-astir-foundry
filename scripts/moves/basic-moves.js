@@ -6,6 +6,9 @@ export const BASIC_MOVES = [
 	{
 		key: "exchange-blows",
 		name: "Exchange Blows",
+		// Sheet display order only (see moves-mixin.js's Basic Moves sort) — does not reflect this
+		// array's own declaration order, which stays independent.
+		displayOrder: 5,
 		traits: ["clash", "talk"],
 		// Evaluated in PlaybookActorSheet (mirrors requiresChannelDisabled/forcesDesperationAtMaxPerils):
 		// _onMoveRoll prompts the player to choose which weapon (or Unarmed — both this move and Strike
@@ -28,6 +31,7 @@ export const BASIC_MOVES = [
 	{
 		key: "weather-the-storm",
 		name: "Weather the Storm",
+		displayOrder: 2,
 		traits: ["defy", "know", "sense"],
 		description:
 			"<p>When you attempt to ignore the 'witty' barbs of ambitious politicians, try and walk across a thin " +
@@ -51,6 +55,7 @@ export const BASIC_MOVES = [
 	{
 		key: "read-the-room",
 		name: "Read the Room",
+		displayOrder: 1,
 		traits: ["sense"],
 		description:
 			"<p>When you're trying to figure out which side a battle is in favour of, whether or not a holding " +
@@ -100,6 +105,7 @@ export const BASIC_MOVES = [
 	{
 		key: "dispel-uncertainties",
 		name: "Dispel Uncertainties",
+		displayOrder: 3,
 		traits: ["know"],
 		description:
 			"<p>When you offer an answer to a difficult question, rack your brains for what you know about a " +
@@ -123,6 +129,7 @@ export const BASIC_MOVES = [
 	{
 		key: "help-or-hinder",
 		name: "Help or Hinder",
+		displayOrder: 4,
 		traits: [],
 		// Flavor-only: which side of the roll the player is on doesn't change the math, since the
 		// rules text below already covers both outcomes in one sentence per tier.
@@ -160,6 +167,7 @@ export const BASIC_MOVES = [
 	{
 		key: "weave-magic",
 		name: "Weave Magic",
+		displayOrder: 7,
 		traits: ["channel"],
 		// Actor-state-dependent, evaluated in PlaybookActorSheet (mirrors bite-the-dust's
 		// forcesDesperationAtMaxPerils above): Paradigm's own Tenets move ("roll +CHANNEL with
@@ -182,6 +190,7 @@ export const BASIC_MOVES = [
 	{
 		key: "cool-off",
 		name: "Cool Off",
+		displayOrder: 9,
 		traits: ["defy", "sense", "clash", "talk", "know", "channel"],
 		description:
 			"<p>When you attempt to vent heat from an Astir, to calm yourself from spiralling emotions, or to " +
@@ -201,6 +210,7 @@ export const BASIC_MOVES = [
 	{
 		key: "strike-decisively",
 		name: "Strike Decisively",
+		displayOrder: 6,
 		traits: ["clash", "talk"],
 		// See exchange-blows above — same weapon-choice treatment.
 		usesWeapon: true,
@@ -234,6 +244,7 @@ export const BASIC_MOVES = [
 	{
 		key: "heat-up",
 		name: "Heat Up",
+		displayOrder: 8,
 		traits: [],
 		// No roll of its own — see PlaybookActorSheet#_availableHeatUp and rollMove's heatUpOffer
 		// in move-roll.js. The actual mechanic is a button offered on every OTHER roll's chat card.
@@ -244,6 +255,7 @@ export const BASIC_MOVES = [
 	{
 		key: "bite-the-dust",
 		name: "Bite the Dust",
+		displayOrder: 10,
 		traits: ["defy"],
 		// Actor-state-dependent, evaluated in PlaybookActorSheet (mirrors b-plot's
 		// requiresChannelDisabled above) rather than here: once a character is DEFENSELESS (at max
