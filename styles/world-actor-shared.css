@@ -8,6 +8,14 @@
 	min-width: 480px;
 }
 
+/* The NPC sheet has no Playbook field (see sheet-chrome.css's .playbook-swap, which is what
+   pushes Approach/Tier to the header's right edge on the playbook sheet) — this is the NPC-only
+   equivalent, applied to its own Approach field directly since there's no Playbook sibling ahead
+   of it to carry the margin instead. */
+.armor-astir.sheet.npc .approach-swap {
+	margin-left: auto;
+}
+
 /* Carrier's Crew and Crew Support Hold steppers share one row — space-between pins Crew to the
    left edge and the Crew Support Hold label+stepper to the right, since there are only ever these
    two children (not a list of many rows), so the grid-column-alignment concern the styling doc's

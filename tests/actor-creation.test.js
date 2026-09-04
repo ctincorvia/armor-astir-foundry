@@ -406,9 +406,9 @@ describe("createWorldActor", () => {
 					attributes: {
 						stability: { value: 9 },
 						divisions: [
-							{ id: "id-1", name: "", description: "", strength: 5, disfavor: 0, kind: "" },
-							{ id: "id-2", name: "", description: "", strength: 4, disfavor: 0, kind: "" },
-							{ id: "id-3", name: "", description: "", strength: 4, disfavor: 0, kind: "" }
+							{ id: "id-1", name: "", description: "", strength: 5, disfavor: 0, losses: 0, kind: "" },
+							{ id: "id-2", name: "", description: "", strength: 4, disfavor: 0, losses: 0, kind: "" },
+							{ id: "id-3", name: "", description: "", strength: 4, disfavor: 0, losses: 0, kind: "" }
 						],
 						pillars: [
 							{ id: "id-4", divisionId: "id-1", name: "", description: "", grip: 0, felled: false },
@@ -441,7 +441,7 @@ describe("createWorldActor", () => {
 		);
 	});
 
-	it("creates an npc actor with a blank approach and tier at TIER_MIN", async () => {
+	it("creates an npc actor with a blank approach, tier at TIER_MIN, and empty equipment/ardents", async () => {
 		Actor.create.mockResolvedValue({ id: "new-npc" });
 
 		await createWorldActor(NPC_KIND);
@@ -453,7 +453,13 @@ describe("createWorldActor", () => {
 				folder: null,
 				system: {
 					details: { description: { value: "" } },
-					attributes: { approach: "", tier: TIER_MIN, rival: { active: false, target: "", need: "", want: "", hold: 0 } }
+					attributes: {
+						approach: "",
+						tier: TIER_MIN,
+						rival: { active: false, target: "", need: "", want: "", hold: 0 },
+						equipment: [],
+						ardents: []
+					}
 				}
 			},
 			{ renderSheet: true }

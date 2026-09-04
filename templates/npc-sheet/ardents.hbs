@@ -1,0 +1,76 @@
+<section class="ardents">
+	<div class="section-header">
+		<h3>Ardents</h3>
+		<div class="section-header-actions">
+			<button type="button" class="ardent-create icon-add-button" title="Add an Ardent" aria-label="Add an Ardent">+</button>
+		</div>
+	</div>
+	{{#each ardents}}
+	<div class="ardent">
+		<div class="section-header">
+			<input type="text" class="ardent-name-input" data-ardent-id="{{id}}" value="{{name}}" placeholder="Ardent name…"/>
+			<div class="section-header-actions">
+				<button type="button" class="ardent-delete icon-add-button" data-ardent-id="{{id}}" title="Delete Ardent" aria-label="Delete Ardent">✕</button>
+			</div>
+		</div>
+		<div class="astir-identity-fields">
+			<div class="form-group">
+				<label>Approach</label>
+				<select class="ardent-approach-select" data-ardent-id="{{id}}">
+					{{selectOptions approachOptions selected=approach valueAttr="key" labelAttr="label" blank="— Choose —"}}
+				</select>
+			</div>
+			<div class="equipment-tier-control">
+				<button type="button" class="equipment-tier-step ardent-tier-step ardent-tier-decrement" data-ardent-id="{{id}}" data-delta="-1">-</button>
+				<span class="equipment-tier-value">Tier {{tier}}</span>
+				<button type="button" class="equipment-tier-step ardent-tier-step ardent-tier-increment" data-ardent-id="{{id}}" data-delta="1">+</button>
+			</div>
+		</div>
+		<div class="trait-meters">
+			<label class="piloted-label">
+				<input type="checkbox" class="ardent-piloted-checkbox" data-ardent-id="{{id}}" {{#if piloted}}checked{{/if}}/>
+				Piloted
+			</label>
+		</div>
+		<div class="section-header">
+			<h3>Parts</h3>
+			{{#unless loadoutFull}}
+			<div class="section-header-actions">
+				<button type="button" class="ardent-part-add icon-add-button" data-ardent-id="{{id}}" title="Add an Ardent Part" aria-label="Add an Ardent Part">+</button>
+			</div>
+			{{/unless}}
+		</div>
+		<ol class="move-list">
+			{{#each parts}}
+			<li class="move{{#if disabled}} move-disabled{{/if}}">
+				<span class="move-name">{{name}}</span>
+				<div class="move-row-controls">
+					<span class="astir-part-tier">Tier {{tier}}</span>
+					<span class="astir-part-type">{{partType}}</span>
+					<label class="part-disabled-label">
+						<input type="checkbox" class="part-disabled-checkbox" data-part="{{key}}" {{#if disabled}}checked{{/if}}/>
+						Disabled
+					</label>
+					<button type="button" class="move-info" data-move="{{key}}" aria-label="{{name}} rules text">?</button>
+					<button type="button" class="ardent-part-remove" data-ardent-id="{{../id}}" data-part="{{key}}" aria-label="Remove Ardent part">✕</button>
+				</div>
+			</li>
+			{{/each}}
+		</ol>
+		<div class="section-header">
+			<h3>Weapons</h3>
+			{{#unless loadoutFull}}
+			<div class="section-header-actions">
+				<button type="button" class="ardent-weapon-catalog-add icon-add-button" data-ardent-id="{{id}}" title="Pick Ardent Weapon from Catalog" aria-label="Pick Ardent Weapon from Catalog">+</button>
+				<button type="button" class="ardent-weapon-add icon-add-button labeled-add-button" data-ardent-id="{{id}}" title="Create Custom Ardent Weapon" aria-label="Create Custom Ardent Weapon">Custom</button>
+			</div>
+			{{/unless}}
+		</div>
+		<ol class="equipment-list">
+			{{#each weapons}}
+			{{> "modules/armor-astir/templates/shared/equipment-card.hbs" controls=true disabledToggle=true}}
+			{{/each}}
+		</ol>
+	</div>
+	{{/each}}
+</section>

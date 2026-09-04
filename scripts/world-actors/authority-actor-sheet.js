@@ -29,9 +29,12 @@ export const PILLARS_PER_DIVISION = 3;
 // Each Division also carries a `kind` key (chosen by the GM, unset at creation) resolved against
 // the DIVISION_KINDS catalog in _divisionsData to attach its passive/active outcome text fresh on
 // every render — catalog-in-code, key-on-actor, same convention as astir-parts.js's partType.
-// Division Strength/Disfavor and Pillar GRIP are all stepped via WorldActorSheet's generic
+// Division Strength/Disfavor/Losses and Pillar GRIP are all stepped via WorldActorSheet's generic
 // _onEntryCounterStep (see the template's data-min/data-max), so there's no bespoke stepper code
-// left in this class.
+// left in this class. A Division's `vulnerable` flag (losses >= strength) is derived fresh every
+// render in _divisionsData rather than stored, same as every other derived field in this module —
+// it drives the template's red VULNERABLE warning badge (reusing the Playbook sheet's
+// .defenseless-label class).
 export class AuthorityActorSheet extends WorldActorSheet {
 	static get defaultOptions() {
 		return foundry.utils.mergeObject(super.defaultOptions, {
@@ -53,6 +56,7 @@ export class AuthorityActorSheet extends WorldActorSheet {
 			return {
 				...division,
 				kindOptions: DIVISION_KINDS,
+				vulnerable: (division.losses ?? 0) >= (division.strength ?? 0),
 				passiveOutcome: kind?.passive ?? "",
 				activeOutcomes: kind?.active ?? [],
 				pillars: pillars

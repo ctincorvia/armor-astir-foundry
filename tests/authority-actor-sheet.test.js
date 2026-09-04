@@ -156,6 +156,70 @@ describe("AuthorityActorSheet#_divisionsData", () => {
 		expect(data[0].activeOutcomes).toEqual([]);
 	});
 
+	it("marks a division not vulnerable when losses is below strength", () => {
+		const sheet = new AuthorityActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					divisions: [{ id: "d1", name: "The Wardens", description: "", strength: 5, losses: 2 }],
+					pillars: []
+				}
+			}
+		};
+
+		const data = sheet._divisionsData();
+
+		expect(data[0].vulnerable).toBe(false);
+	});
+
+	it("marks a division vulnerable when losses equals strength", () => {
+		const sheet = new AuthorityActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					divisions: [{ id: "d1", name: "The Wardens", description: "", strength: 5, losses: 5 }],
+					pillars: []
+				}
+			}
+		};
+
+		const data = sheet._divisionsData();
+
+		expect(data[0].vulnerable).toBe(true);
+	});
+
+	it("marks a division vulnerable when losses exceeds strength", () => {
+		const sheet = new AuthorityActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					divisions: [{ id: "d1", name: "The Wardens", description: "", strength: 4, losses: 6 }],
+					pillars: []
+				}
+			}
+		};
+
+		const data = sheet._divisionsData();
+
+		expect(data[0].vulnerable).toBe(true);
+	});
+
+	it("defaults a division's missing losses to 0 for vulnerability", () => {
+		const sheet = new AuthorityActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					divisions: [{ id: "d1", name: "The Wardens", description: "", strength: 0 }],
+					pillars: []
+				}
+			}
+		};
+
+		const data = sheet._divisionsData();
+
+		expect(data[0].vulnerable).toBe(true);
+	});
+
 	it("attaches the full DIVISION_KINDS catalog as kindOptions on every division", () => {
 		const sheet = new AuthorityActorSheet();
 		sheet.actor = {

@@ -1,0 +1,48 @@
+<div class="tab" data-group="primary" data-tab="equipment">
+	<section class="equipment">
+		<div class="section-header">
+			<h3>Weapons</h3>
+			<div class="section-header-actions">
+				<button type="button" class="equipment-catalog-add icon-add-button" data-kind="weapon" title="Pick Weapon from Catalog" aria-label="Pick Weapon from Catalog">+</button>
+				<button type="button" class="equipment-add icon-add-button labeled-add-button" data-kind="weapon" title="Add Weapon" aria-label="Add Weapon">Custom</button>
+			</div>
+		</div>
+		<ol class="equipment-list">
+			{{#each equipment.weapons}}
+			{{> "modules/armor-astir/templates/shared/equipment-card.hbs" controls=true disabledToggle=true}}
+			{{/each}}
+		</ol>
+		{{#if equipment.astirWeapons.length}}
+		<div class="section-header">
+			<h3>Astir Weapons</h3>
+		</div>
+		<ol class="equipment-list">
+			{{#each equipment.astirWeapons}}
+			{{> "modules/armor-astir/templates/shared/equipment-card.hbs" disabledToggle=true}}
+			{{/each}}
+		</ol>
+		{{/if}}
+		{{#if equipment.ardentWeapons.length}}
+		<div class="section-header">
+			<h3>Ardent Weapons</h3>
+		</div>
+		<ol class="equipment-list">
+			{{#each equipment.ardentWeapons}}
+			{{> "modules/armor-astir/templates/shared/equipment-card.hbs" disabledToggle=true}}
+			{{/each}}
+		</ol>
+		{{/if}}
+		<div class="section-header">
+			<h3>Gear</h3>
+			<div class="section-header-actions">
+				<button type="button" class="equipment-catalog-add icon-add-button" data-kind="gear" title="Pick Gear from Catalog" aria-label="Pick Gear from Catalog">+</button>
+				<button type="button" class="equipment-add icon-add-button labeled-add-button" data-kind="gear" title="Add Gear" aria-label="Add Gear">Custom</button>
+			</div>
+		</div>
+		<ol class="equipment-list">
+			{{#each equipment.gear}}
+			{{> "modules/armor-astir/templates/shared/equipment-card.hbs" controls=true}}
+			{{/each}}
+		</ol>
+	</section>
+</div>

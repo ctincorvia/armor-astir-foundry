@@ -61,7 +61,7 @@
 .armor-astir.sheet .division-list {
 	display: grid;
 	grid-template-columns: repeat(3, 1fr);
-	grid-template-rows: repeat(7, auto);
+	grid-template-rows: repeat(8, auto);
 	gap: var(--aa-space-3);
 	margin: 0;
 	padding: 0;
@@ -101,10 +101,11 @@
 .armor-astir.sheet .division-list > .entry-list-item > .division-name { grid-row: 1; }
 .armor-astir.sheet .division-list > .entry-list-item > .division-kind { grid-row: 2; }
 .armor-astir.sheet .division-list > .entry-list-item > .entry-counter-row { grid-row: 3; }
-.armor-astir.sheet .division-list > .entry-list-item > .division-description { grid-row: 4; }
-.armor-astir.sheet .division-list > .entry-list-item > .division-passive-outcome { grid-row: 5; }
-.armor-astir.sheet .division-list > .entry-list-item > .division-active-outcomes { grid-row: 6; }
-.armor-astir.sheet .division-list > .entry-list-item > .pillar-list { grid-row: 7; }
+.armor-astir.sheet .division-list > .entry-list-item > .defenseless-label { grid-row: 4; }
+.armor-astir.sheet .division-list > .entry-list-item > .division-description { grid-row: 5; }
+.armor-astir.sheet .division-list > .entry-list-item > .division-passive-outcome { grid-row: 6; }
+.armor-astir.sheet .division-list > .entry-list-item > .division-active-outcomes { grid-row: 7; }
+.armor-astir.sheet .division-list > .entry-list-item > .pillar-list { grid-row: 8; }
 
 .armor-astir.sheet .pillar-list > .entry-list-item {
 	display: flex;

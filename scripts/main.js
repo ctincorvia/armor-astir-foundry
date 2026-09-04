@@ -42,10 +42,22 @@ export const CAUSE_SHEET_PARTIALS = [
 	"modules/armor-astir/templates/cause-sheet/faction-card.hbs"
 ];
 
+export const NPC_SHEET_PARTIALS = [
+	"modules/armor-astir/templates/npc-sheet/tab-rival.hbs",
+	"modules/armor-astir/templates/npc-sheet/tab-equipment.hbs",
+	"modules/armor-astir/templates/npc-sheet/tab-astir.hbs",
+	"modules/armor-astir/templates/npc-sheet/ardents.hbs"
+];
+
 export function registerInitHook() {
 	Hooks.once("init", () => {
 		console.log(`${MODULE_ID} | Initialized`);
-		loadTemplates([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS, ...CAUSE_SHEET_PARTIALS]);
+		loadTemplates([
+			...PLAYBOOK_SHEET_PARTIALS,
+			...AUTHORITY_SHEET_PARTIALS,
+			...CAUSE_SHEET_PARTIALS,
+			...NPC_SHEET_PARTIALS
+		]);
 		registerReflavorSettings();
 	});
 }

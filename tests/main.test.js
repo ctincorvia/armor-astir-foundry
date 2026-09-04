@@ -4,6 +4,7 @@ import {
 	PLAYBOOK_SHEET_PARTIALS,
 	AUTHORITY_SHEET_PARTIALS,
 	CAUSE_SHEET_PARTIALS,
+	NPC_SHEET_PARTIALS,
 	registerInitHook,
 	registerReadyHook
 } from "../scripts/main.js";
@@ -38,13 +39,17 @@ describe("registerInitHook", () => {
 		logSpy.mockRestore();
 	});
 
-	it("preloads the playbook, authority, and cause sheet partials when the hook fires", () => {
+	it("preloads the playbook, authority, cause, and npc sheet partials when the hook fires", () => {
 		registerInitHook();
 		const callback = Hooks.once.mock.calls.at(-1)[1];
 		callback();
 
-		expect(loadTemplates).toHaveBeenCalledWith([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS, ...CAUSE_SHEET_PARTIALS]);
-		expect([...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS, ...CAUSE_SHEET_PARTIALS]).toHaveLength(20);
+		expect(loadTemplates).toHaveBeenCalledWith([
+			...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS, ...CAUSE_SHEET_PARTIALS, ...NPC_SHEET_PARTIALS
+		]);
+		expect([
+			...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS, ...CAUSE_SHEET_PARTIALS, ...NPC_SHEET_PARTIALS
+		]).toHaveLength(24);
 	});
 
 	it("registers the reflavor world setting and GM-only menu when the hook fires", () => {

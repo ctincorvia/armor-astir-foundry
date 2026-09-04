@@ -20,7 +20,16 @@
 					<span class="trait-value">{{disfavor}}</span>
 					<button type="button" class="entry-list-counter-step" data-list="divisions" data-entry-id="{{id}}" data-field="disfavor" data-delta="1" data-min="0" data-max="10" aria-label="Increase Disfavor">+</button>
 				</div>
+				<div class="entry-counter">
+					<label>Losses</label>
+					<button type="button" class="entry-list-counter-step" data-list="divisions" data-entry-id="{{id}}" data-field="losses" data-delta="-1" data-min="0" data-max="10" aria-label="Decrease Losses">-</button>
+					<span class="trait-value">{{losses}}</span>
+					<button type="button" class="entry-list-counter-step" data-list="divisions" data-entry-id="{{id}}" data-field="losses" data-delta="1" data-min="0" data-max="10" aria-label="Increase Losses">+</button>
+				</div>
 			</div>
+			{{#if vulnerable}}
+			<p class="defenseless-label">VULNERABLE</p>
+			{{/if}}
 			<textarea class="entry-list-field division-description" data-list="divisions" data-entry-id="{{id}}" data-field="description" placeholder="Describe this hostile organization…">{{description}}</textarea>
 			{{#if passiveOutcome}}
 			<div class="division-passive-outcome">

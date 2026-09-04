@@ -144,14 +144,16 @@ export const WORLD_ACTOR_KINDS = [
 		// Three Divisions, each with exactly three Pillars (see authority-actor-sheet.js) — Divisions
 		// are built first so their ids exist before Pillars are derived from them, seeding each
 		// Pillar's divisionId foreign key. Neither list has an add/remove control on the sheet.
-		// Divisions additionally seed Strength (0-5, starting at 5/4/4) and Disfavor (0-10, always
-		// starting at 0); `kind` is left unset ("") since picking it is a GM rules decision, not
+		// Divisions additionally seed Strength (0-5, starting at 5/4/4), Disfavor (0-10, always
+		// starting at 0), and Losses (0-10, always starting at 0 — same range as Disfavor, chosen
+		// so there's headroom to keep tracking losses past the point a Division first becomes
+		// Vulnerable); `kind` is left unset ("") since picking it is a GM rules decision, not
 		// something the code should seed. Pillars seed grip: 0 and felled: false.
 		buildSystem: () => {
 			const divisions = [
-				blankEntry({ strength: 5, disfavor: 0, kind: "" }),
-				blankEntry({ strength: 4, disfavor: 0, kind: "" }),
-				blankEntry({ strength: 4, disfavor: 0, kind: "" })
+				blankEntry({ strength: 5, disfavor: 0, losses: 0, kind: "" }),
+				blankEntry({ strength: 4, disfavor: 0, losses: 0, kind: "" }),
+				blankEntry({ strength: 4, disfavor: 0, losses: 0, kind: "" })
 			];
 			return {
 				attributes: {
@@ -179,7 +181,13 @@ export const WORLD_ACTOR_KINDS = [
 		name: "NPC",
 		buildSystem: () => ({
 			details: { description: { value: "" } },
-			attributes: { approach: "", tier: TIER_MIN, rival: { active: false, target: "", need: "", want: "", hold: 0 } }
+			attributes: {
+				approach: "",
+				tier: TIER_MIN,
+				rival: { active: false, target: "", need: "", want: "", hold: 0 },
+				equipment: [],
+				ardents: []
+			}
 		})
 	}
 ];
