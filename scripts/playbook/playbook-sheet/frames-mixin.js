@@ -1,4 +1,4 @@
-import { ASTIR_TIER_MIN, resolveAstirParts } from "../../frames/astir.js";
+import { ASTIR_DEFAULT_IMG, ASTIR_TIER_MIN, resolveAstirParts } from "../../frames/astir.js";
 import { ARDENT_DEFAULT_NAME, ARDENT_PART_CATALOG, ARDENT_TIER_DEFAULT, chooseFrame } from "../../frames/ardent.js";
 import { baseEquipmentTagKey, findEquipmentTag } from "../../equipment/equipment.js";
 import { HOLD_MIN } from "../../moves/moves.js";
@@ -116,7 +116,18 @@ export const FramesSheetMixin = {
 			));
 		}
 		this.actor.update(updates);
+		this._syncTokenImage(kind, astir);
 		return true;
+	},
+	// Ardents have no image of their own, so mounting one reverts the token to the actor's own
+	// portrait just like a full dismount — and a placed token's image isn't kept in sync with the
+	// prototype after placement, so the prototype and every currently-placed token need separate writes.
+	_syncTokenImage(kind, astir) {
+		const img = kind === "astir" ? (astir?.img || ASTIR_DEFAULT_IMG) : this.actor.img;
+		this.actor.update({ "prototypeToken.texture.src": img });
+		for (const token of this.actor.getActiveTokens(false, true)) {
+			token.update({ "texture.src": img });
+		}
 	},
 	_onAstirPilotedToggle(event) {
 		if (!this._astir()) return;

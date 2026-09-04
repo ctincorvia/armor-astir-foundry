@@ -16,7 +16,7 @@ vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal)
 }));
 
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
-import { ASTIR_PART_CATALOG, astirMaxPower } from "../scripts/frames/astir.js";
+import { ASTIR_DEFAULT_IMG, ASTIR_PART_CATALOG, astirMaxPower } from "../scripts/frames/astir.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { chooseFrame, ARDENT_FEATURE_PARTS } from "../scripts/frames/ardent.js";
 import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
@@ -45,7 +45,12 @@ beforeEach(() => {
 describe("PlaybookActorSheet#_onAstirPilotedToggle", () => {
 	it("writes the checkbox's checked state", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { astir: { id: "a1" } } }, update: vi.fn() };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1" } } },
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
+		};
 
 		sheet._onAstirPilotedToggle({ currentTarget: { checked: true } });
 
@@ -75,7 +80,12 @@ describe("PlaybookActorSheet#_onAstirPilotedToggle", () => {
 
 	it("still allows unchecking the box while Power is negative", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { astir: { id: "a1", power: -1, piloted: true } } }, update: vi.fn() };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: -1, piloted: true } } },
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
+		};
 
 		sheet._onAstirPilotedToggle({ currentTarget: { checked: false } });
 
@@ -239,7 +249,9 @@ describe("PlaybookActorSheet#_onArdentPilotedToggle", () => {
 					ardents: [{ id: "ar1", piloted: false }, { id: "ar2", piloted: false }]
 				}
 			},
-			update: vi.fn()
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
 		};
 
 		sheet._onArdentPilotedToggle({ currentTarget: { dataset: { ardentId: "ar1" }, checked: true } });
@@ -252,7 +264,12 @@ describe("PlaybookActorSheet#_onArdentPilotedToggle", () => {
 
 	it("dismounts when unchecked", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", piloted: true }] } }, update: vi.fn() };
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", piloted: true }] } },
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
+		};
 
 		sheet._onArdentPilotedToggle({ currentTarget: { dataset: { ardentId: "ar1" }, checked: false } });
 
@@ -279,7 +296,9 @@ describe("PlaybookActorSheet#_onMountUp - multiple frames", () => {
 					ardents: [{ id: "ar1", name: "Warhound", piloted: false }]
 				}
 			},
-			update: vi.fn()
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
 		};
 		chooseFrame.mockResolvedValue({ kind: "ardent", id: "ar1" });
 
@@ -310,7 +329,12 @@ describe("PlaybookActorSheet#_onMountUp - multiple frames", () => {
 
 	it("mounts an Ardent directly with no prompt when it's the only frame", async () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { ardents: [{ id: "ar1", piloted: false }] } }, update: vi.fn() };
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", piloted: false }] } },
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
+		};
 
 		await sheet._onMountUp();
 
@@ -324,7 +348,9 @@ describe("PlaybookActorSheet#_onDismount - with Ardents", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: { attributes: { ardents: [{ id: "ar1", piloted: true }, { id: "ar2", piloted: false }] } },
-			update: vi.fn()
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
 		};
 
 		sheet._onDismount();
@@ -403,7 +429,12 @@ describe("PlaybookActorSheet#_onMountUp", () => {
 
 	it("sets piloted to true", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: false } } }, update: vi.fn() };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", piloted: false } } },
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
+		};
 
 		sheet._onMountUp();
 
@@ -445,11 +476,105 @@ describe("PlaybookActorSheet#_onDismount", () => {
 
 	it("sets piloted to false", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { attributes: { astir: { id: "a1", piloted: true } } }, update: vi.fn() };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", piloted: true } } },
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
+		};
 
 		sheet._onDismount();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.astir.piloted": false });
+	});
+});
+
+describe("PlaybookActorSheet#_setMountedFrame - token image sync", () => {
+	it("mounting the Astir writes the prototype token's texture to the Astir's own image", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", piloted: false, img: "astirs/mech.webp" } } },
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
+		};
+
+		sheet._onMountUp();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "prototypeToken.texture.src": "astirs/mech.webp" });
+	});
+
+	it("falls back to ASTIR_DEFAULT_IMG when the mounted Astir has no image of its own", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", piloted: false } } },
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
+		};
+
+		sheet._onMountUp();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "prototypeToken.texture.src": ASTIR_DEFAULT_IMG });
+	});
+
+	it("mounting an Ardent writes the prototype token's texture back to the actor's own portrait", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", piloted: false }] } },
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
+		};
+
+		sheet._onMountUp();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "prototypeToken.texture.src": "actors/hero.webp" });
+	});
+
+	it("dismounting via _onDismount reverts the prototype token's texture to the actor's own portrait", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", piloted: true, img: "astirs/mech.webp" } } },
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
+		};
+
+		sheet._onDismount();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "prototypeToken.texture.src": "actors/hero.webp" });
+	});
+
+	it("unchecking the Astir's Piloted checkbox reverts the prototype token's texture to the actor's own portrait", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", piloted: true, img: "astirs/mech.webp" } } },
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [])
+		};
+
+		sheet._onAstirPilotedToggle({ currentTarget: { checked: false } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "prototypeToken.texture.src": "actors/hero.webp" });
+	});
+
+	it("updates every currently-placed token's own texture to match, alongside the prototype", () => {
+		const sheet = new PlaybookActorSheet();
+		const tokenA = { update: vi.fn() };
+		const tokenB = { update: vi.fn() };
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", piloted: false, img: "astirs/mech.webp" } } },
+			img: "actors/hero.webp",
+			update: vi.fn(),
+			getActiveTokens: vi.fn(() => [tokenA, tokenB])
+		};
+
+		sheet._onMountUp();
+
+		expect(tokenA.update).toHaveBeenCalledWith({ "texture.src": "astirs/mech.webp" });
+		expect(tokenB.update).toHaveBeenCalledWith({ "texture.src": "astirs/mech.webp" });
 	});
 });
 
