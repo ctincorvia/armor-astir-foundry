@@ -50,6 +50,9 @@ export const ENDURING_SUPPORT = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-su
 // grantsRollModifier sources (Roll Modifiers section — see
 // tests/playbook-actor-sheet-roll-modifiers.test.js and the-*.js/cantrips.js catalog entries).
 export const WATCH_THIS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-commander:watch-this");
+// Fire-Eater (cantrips.js) — the one grantsRollModifier entry that carries both requiresOverheating
+// and costsPeril/clearsOverheating on the same spec.
+export const FIRE_EATER = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:fire-eater");
 export const SHARPER_KNIVES = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:sharper-knives");
 export const IDENTIFY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:identify");
 export const NEW_PERSPECTIVE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-arcanist:new-perspective");

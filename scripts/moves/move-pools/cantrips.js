@@ -67,8 +67,11 @@ export const CANTRIPS_POOL = {
 			key: "cantrips:dont-die-yet",
 			name: "Don't Die Yet",
 			// No stated usage cap (contrast Seek Allies/Personal Familiar below), so nothing to
-			// track — the grant is narrated each time it comes up.
+			// track — the grant is narrated each time it comes up. Only the self-targeting half is
+			// mechanized (deliberately ungated, same fiction-conditioned precedent as Goliath Shield);
+			// the up-to-four-allies half has no cross-actor hook, so it stays prose-only.
 			traits: [],
+			grantsRollModifier: [{ moveKeys: ["bite-the-dust"], advantage: "advantage" }],
 			description:
 				"<p>When you enter battle with a group of allies, give up to four people (including " +
 				"yourself) advantage when they next bite the dust.</p>"
@@ -110,11 +113,15 @@ export const CANTRIPS_POOL = {
 		{
 			key: "cantrips:fire-eater",
 			name: "Fire-Eater",
-			// No new plumbing needed: taking a peril is already the existing Danger "Add"
-			// controls (system.attributes.dangers), and acting with confidence is already the
-			// Effect select in the roll dialog (roll-effects.js) — this move just combines two
-			// controls that already exist, rather than needing one of its own.
+			// costsPeril + clearsOverheating (move-grants-mixin.js) combine into one grantsRollModifier
+			// gate; requiresOverheating already existed (Goliath Shield), the other two are new.
 			traits: [],
+			grantsRollModifier: [{
+				effect: "confidence",
+				requiresOverheating: true,
+				costsPeril: true,
+				clearsOverheating: true
+			}],
 			description:
 				"<p>You may take a peril (seared, volatile, overcharged) to untick 'overheating' from your " +
 				"Astir and act with confidence.</p>"
@@ -163,7 +170,12 @@ export const CANTRIPS_POOL = {
 			key: "cantrips:personal-familiar",
 			name: "Personal Familiar",
 			traits: [],
-			uses: [{ key: "sortie", label: "Ignored a disadvantage this Sortie", period: "Sortie" }],
+			uses: [{ key: "sortie", label: "Used this Sortie", period: "Sortie" }],
+			grantsRollModifier: [{
+				advantage: "advantage",
+				requiresAdvantage: ["disadvantage", "disadvantage2"],
+				costsUse: "sortie"
+			}],
 			downtimeAbility: "Once per Downtime, your familiar reports back on a Scene you weren't present for.",
 			description:
 				"<p>You have a small familiar that aids you, like an animal companion or spirit or summoned " +

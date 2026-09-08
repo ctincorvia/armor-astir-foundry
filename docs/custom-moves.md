@@ -266,13 +266,17 @@ catalog) needs to already exist for the grant to do anything.
   **at most one** of: `requiresOverheating: true` (Astir must be overheating),
   `costsSpotlight: 1` (a number of Spotlight points), `costsHold: { "amount": 1 }` (this Move's own
   hold pool, or another Move's via an optional `moveKey`), `costsPotion: "..."` (an Astir Potion
-  key), `costsUse: "..."` (a `uses` checkbox key on this same Move), or `costsTracker: {
+  key), `costsUse: "..."` (a `uses` checkbox key on this same Move), `costsTracker: {
   "trackerKey": "...", "amount": 1 }` (a `numericTrackers` pool on this same Move, or another
-  Move's via an optional `moveKey`). You can also add `requiresAdvantage` (array of advantage-state
-  keys, e.g. `["disadvantage", "disadvantage2"]` — the option only shows while the roll's *current*
-  advantage state matches one of these), `moveKeys` (array, restricts which Moves' roll dialogs show
-  this option — omit for "every roll"), `forced: true` (pre-checked and impossible to uncheck,
-  rather than an optional pick), and `buttonLabel` (string, overrides the row's default label).
+  Move's via an optional `moveKey`), or `costsPeril: true` (appends a fresh peril-type Danger,
+  gated on room under the Danger cap rather than any hold/uses/tracker pool). You can also add
+  `requiresAdvantage` (array of advantage-state keys, e.g. `["disadvantage", "disadvantage2"]` —
+  the option only shows while the roll's *current* advantage state matches one of these),
+  `moveKeys` (array, restricts which Moves' roll dialogs show this option — omit for "every roll"),
+  `forced: true` (pre-checked and impossible to uncheck, rather than an optional pick),
+  `clearsOverheating: true` (an independent, additive side effect on spend — not a resource gate,
+  so it can accompany one, e.g. alongside `requiresOverheating: true` on the same entry), and
+  `buttonLabel` (string, overrides the row's default label).
   ```json
   "grantsRollModifier": [
     { "advantage": "advantage", "moveKeys": ["exchange-blows", "strike-decisively"], "costsUse": "combat-reflexes" }

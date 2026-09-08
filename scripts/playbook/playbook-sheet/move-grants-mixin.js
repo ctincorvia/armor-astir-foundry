@@ -484,32 +484,37 @@ export const MoveGrantsSheetMixin = {
 		return "system.resources.hold.value";
 	},
 	// The resource-kind dispatcher for a single grantsRollModifier spec (see docs/domains/moves.md
-	// for the full field list) — one branch per gate kind, mirroring
+	// for the full field list) — one gate check per gate kind, mirroring
 	// _availableAutomaticSuccess's own cost/useKey/costsPeril dispatch above. Returns
 	// {available, reason} rather than a plain boolean, so a disabled row in the dialog can show why
-	// (see _rollModifiersForMove/move-roll-dialog.hbs's disabledReason).
+	// (see _rollModifiersForMove/move-roll-dialog.hbs's disabledReason). Every gate a spec actually
+	// carries is checked and ANDed together (Fire-Eater's requiresOverheating + costsPeril is the
+	// one catalog entry that carries two at once — see cantrips.js), so this can't stop at the first
+	// match the way single-gate callers might expect; the reported reason is whichever gate failed
+	// first.
 	_rollModifierAvailability(spec, source) {
+		const gates = [];
 		if (spec.requiresOverheating) {
 			const available = Boolean(this._astir()?.overheating);
-			return { available, reason: available ? null : "Not overheating" };
+			gates.push({ available, reason: "Not overheating" });
 		}
 		if (spec.costsSpotlight) {
 			const value = this.actor.system.attributes?.spotlight?.value ?? 0;
 			const available = value >= spec.costsSpotlight;
-			return { available, reason: available ? null : `Needs ${spec.costsSpotlight} Spotlight` };
+			gates.push({ available, reason: `Needs ${spec.costsSpotlight} Spotlight` });
 		}
 		if (spec.costsHold) {
 			const moveKey = spec.costsHold.moveKey ?? source.key;
 			const available = this._moveHoldValue(moveKey) >= spec.costsHold.amount;
-			return { available, reason: available ? null : `Needs ${spec.costsHold.amount} hold` };
+			gates.push({ available, reason: `Needs ${spec.costsHold.amount} hold` });
 		}
 		if (spec.costsPotion) {
 			const available = !this._astir()?.potions?.[spec.costsPotion];
-			return { available, reason: available ? null : `No ${spec.costsPotion} Potion left` };
+			gates.push({ available, reason: `No ${spec.costsPotion} Potion left` });
 		}
 		if (spec.costsUse) {
 			const available = !this.actor.system.attributes?.moveUses?.[source.key]?.[spec.costsUse];
-			return { available, reason: available ? null : "Already used" };
+			gates.push({ available, reason: "Already used" });
 		}
 		// The Arcanist's Warding ritual (see arcanist-mixin.js's _ritualRollModifierSource) — the
 		// first grantsRollModifier gate that reads/writes a numericTrackers pool instead of `hold`, a
@@ -525,9 +530,17 @@ export const MoveGrantsSheetMixin = {
 			const available = current >= amount;
 			const label = ALL_MOVES.find((m) => m.key === targetKey)?.numericTrackers
 				?.find((tracker) => tracker.key === trackerKey)?.label ?? trackerKey;
-			return { available, reason: available ? null : `Needs ${amount} ${label}` };
+			gates.push({ available, reason: `Needs ${amount} ${label}` });
 		}
-		return { available: true, reason: null };
+		// Fire-Eater's own peril spend (see cantrips.js) — unlike Dark Rebirth's costsPeril on
+		// grantsAutomaticSuccess, this move's own rules text has no "if you have no perils"
+		// precondition, so the only gate is room for one more Danger.
+		if (spec.costsPeril) {
+			const available = this._dangers().length < this._dangerMax();
+			gates.push({ available, reason: "No room for another Danger" });
+		}
+		const failing = gates.find((gate) => !gate.available);
+		return failing ? { available: false, reason: failing.reason } : { available: true, reason: null };
 	},
 	// The move-roll dialog's own Roll Modifiers section (see move-dialogs.js's configureMoveRoll) --
 	// every catalog entry whose moveKeys is absent or matches the move about to be rolled is always
@@ -637,6 +650,21 @@ export const MoveGrantsSheetMixin = {
 					const path = `system.attributes.moveTrackers.${targetKey}.${trackerKey}`;
 					const current = updates[path] ?? (this.actor.system.attributes?.moveTrackers?.[targetKey]?.[trackerKey] ?? 0);
 					updates[path] = Math.max(0, current - amount);
+				} else if (spec.costsPeril) {
+					// Fire-Eater's own peril spend (see cantrips.js) — appends a fresh Danger the same
+					// way handleAutomaticSuccess's own costsPeril branch does (move-chat-listeners.js),
+					// reading any already-batched append from this same call first (see costsTracker
+					// above for why: two checked entries sharing one pool in a single batch must each
+					// apply their own write, not both compute off the same stale stored value).
+					const path = "system.attributes.dangers";
+					const current = updates[path] ?? (this.actor.system.attributes?.dangers ?? []);
+					updates[path] = [...current, { id: foundry.utils.randomID(), type: "peril", label: source.name }];
+				}
+				// Fire-Eater's own overheating clear (see cantrips.js) — additive, not a resource gate,
+				// so it's checked independently of the cost branch above rather than folded into the
+				// else-if chain: a spec can carry both a cost and this side effect at once.
+				if (spec.clearsOverheating) {
+					updates["system.attributes.astir.overheating"] = false;
 				}
 			}
 		}

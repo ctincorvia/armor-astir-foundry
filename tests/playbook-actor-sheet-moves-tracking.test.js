@@ -56,7 +56,7 @@ describe("PlaybookActorSheet#getData - move uses", () => {
 		};
 
 		expect(playbookGroup(sheet.getData()).moves[0].uses).toEqual([
-			{ key: "sortie", label: "Ignored a disadvantage this Sortie", checked: true }
+			{ key: "sortie", label: "Used this Sortie", checked: true }
 		]);
 	});
 

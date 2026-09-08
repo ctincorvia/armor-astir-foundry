@@ -20,6 +20,7 @@ import {
 	EMBRACE_CHAOS,
 	EXCHANGE_BLOWS,
 	FIELD_TESTING,
+	FIRE_EATER,
 	IDENTIFY,
 	MANAWHEELS,
 	PREPARE_RITUALS,
@@ -282,6 +283,81 @@ describe("PlaybookActorSheet#_rollModifierAvailability", () => {
 		expect(sheet._rollModifierAvailability(sharperKnivesSpec, SHARPER_KNIVES)).toEqual({
 			available: true,
 			reason: null
+		});
+	});
+
+	// Fire-Eater's own peril spend (cantrips.js) — unlike Dark Rebirth's costsPeril on
+	// grantsAutomaticSuccess, there's no "zero perils held" precondition here, just room under
+	// DANGER_MAX.
+	describe("costsPeril", () => {
+		const [fireEaterSpec] = FIRE_EATER.grantsRollModifier;
+
+		it("available with room under DANGER_MAX, unavailable (with a reason) once full", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = {
+				system: { attributes: { astir: { id: "a1", overheating: true }, dangers: [] } }
+			};
+			expect(sheet._rollModifierAvailability(fireEaterSpec, FIRE_EATER)).toEqual({ available: true, reason: null });
+
+			sheet.actor.system.attributes.dangers = [
+				{ id: "d1", type: "peril" }, { id: "d2", type: "risk" }, { id: "d3", type: "peril" }
+			];
+			expect(sheet._rollModifierAvailability(fireEaterSpec, FIRE_EATER)).toEqual({
+				available: false,
+				reason: "No room for another Danger"
+			});
+		});
+
+		it("treats a missing dangers array as empty, i.e. available", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = { system: { attributes: { astir: { id: "a1", overheating: true } } } };
+
+			expect(sheet._rollModifierAvailability(fireEaterSpec, FIRE_EATER)).toEqual({ available: true, reason: null });
+		});
+	});
+
+	// A spec with two gates at once (Fire-Eater's requiresOverheating + costsPeril, the one catalog
+	// entry that carries more than one) — both must be satisfied, and the reported reason is
+	// whichever gate actually failed.
+	describe("combined gates (requiresOverheating + costsPeril)", () => {
+		const [fireEaterSpec] = FIRE_EATER.grantsRollModifier;
+
+		it("available once both gates are satisfied", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = {
+				system: { attributes: { astir: { id: "a1", overheating: true }, dangers: [] } }
+			};
+
+			expect(sheet._rollModifierAvailability(fireEaterSpec, FIRE_EATER)).toEqual({ available: true, reason: null });
+		});
+
+		it("reports the overheating reason when not overheating, regardless of Danger room", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = {
+				system: { attributes: { astir: { id: "a1", overheating: false }, dangers: [] } }
+			};
+
+			expect(sheet._rollModifierAvailability(fireEaterSpec, FIRE_EATER)).toEqual({
+				available: false,
+				reason: "Not overheating"
+			});
+		});
+
+		it("reports the Danger-room reason when overheating but full on Dangers", () => {
+			const sheet = new PlaybookActorSheet();
+			sheet.actor = {
+				system: {
+					attributes: {
+						astir: { id: "a1", overheating: true },
+						dangers: [{ id: "d1", type: "peril" }, { id: "d2", type: "risk" }, { id: "d3", type: "peril" }]
+					}
+				}
+			};
+
+			expect(sheet._rollModifierAvailability(fireEaterSpec, FIRE_EATER)).toEqual({
+				available: false,
+				reason: "No room for another Danger"
+			});
 		});
 	});
 
@@ -801,6 +877,69 @@ describe("PlaybookActorSheet#_spendRollModifiers", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			[`system.attributes.moveUses.${ARTIFACT.key}.expended`]: true
+		});
+	});
+
+	// Fire-Eater's own peril spend (cantrips.js) — appends a fresh peril Danger, the same shape
+	// handleAutomaticSuccess's own costsPeril branch writes (move-chat-listeners.js).
+	it("costsPeril (Fire-Eater): appends a fresh peril Danger", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [FIRE_EATER.key],
+					astir: { id: "a1", overheating: true },
+					dangers: []
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._spendRollModifiers([FIRE_EATER.key]);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.dangers": [{ id: "test-id", type: "peril", label: FIRE_EATER.name }],
+			"system.attributes.astir.overheating": false
+		});
+	});
+
+	it("costsPeril: treats a missing dangers array as empty before appending", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { playbookMoves: [FIRE_EATER.key], astir: { id: "a1", overheating: true } } },
+			update: vi.fn()
+		};
+
+		await sheet._spendRollModifiers([FIRE_EATER.key]);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.dangers": [{ id: "test-id", type: "peril", label: FIRE_EATER.name }],
+			"system.attributes.astir.overheating": false
+		});
+	});
+
+	// clearsOverheating is additive, not a resource gate -- it composes with costsPeril on the same
+	// spec (see the Fire-Eater test above) rather than being its own exclusive branch.
+	it("clearsOverheating: writes false independently of any resource gate outcome", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					playbookMoves: [FIRE_EATER.key],
+					astir: { id: "a1", overheating: true },
+					dangers: [{ id: "d1", type: "peril" }, { id: "d2", type: "risk" }]
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._spendRollModifiers([FIRE_EATER.key]);
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.dangers": [
+				{ id: "d1", type: "peril" }, { id: "d2", type: "risk" }, { id: "test-id", type: "peril", label: FIRE_EATER.name }
+			],
+			"system.attributes.astir.overheating": false
 		});
 	});
 

@@ -492,12 +492,31 @@ describe("validateMoveFields — grantsRollModifier", () => {
 
 	it("allows only one resource gate at a time", () => {
 		expect(errorsFor({ grantsRollModifier: [{ advantage: "up", requiresOverheating: true, costsSpotlight: 1 }] }))
-			.toContain("moves addition \"custom:field-test\"'s \"grantsRollModifier[0]\" can only set one resource gate (requiresOverheating, costsSpotlight, costsHold, costsPotion, costsUse, costsTracker).");
+			.toContain("moves addition \"custom:field-test\"'s \"grantsRollModifier[0]\" can only set one resource gate (requiresOverheating, costsSpotlight, costsHold, costsPotion, costsUse, costsTracker, costsPeril).");
 	});
 
 	it("rejects a requiresOverheating value other than literal true", () => {
 		expect(errorsFor({ grantsRollModifier: [{ advantage: "up", requiresOverheating: 1 }] }))
 			.toContain("moves addition \"custom:field-test\"'s \"grantsRollModifier[0]\"'s \"requiresOverheating\" must be true.");
+	});
+
+	it("rejects a costsPeril value other than literal true", () => {
+		expect(errorsFor({ grantsRollModifier: [{ advantage: "up", costsPeril: 1 }] }))
+			.toContain("moves addition \"custom:field-test\"'s \"grantsRollModifier[0]\"'s \"costsPeril\" must be true.");
+	});
+
+	it("accepts costsPeril: true alone", () => {
+		expect(errorsFor({ grantsRollModifier: [{ advantage: "up", costsPeril: true }] })).toEqual([]);
+	});
+
+	it("rejects a clearsOverheating value other than literal true", () => {
+		expect(errorsFor({ grantsRollModifier: [{ advantage: "up", clearsOverheating: 1 }] }))
+			.toContain("moves addition \"custom:field-test\"'s \"grantsRollModifier[0]\"'s \"clearsOverheating\" must be true.");
+	});
+
+	it("accepts clearsOverheating: true alongside a resource gate, since it's additive rather than exclusive", () => {
+		expect(errorsFor({ grantsRollModifier: [{ advantage: "up", requiresOverheating: true, clearsOverheating: true }] }))
+			.toEqual([]);
 	});
 
 	it("accepts requiresOverheating: true alone", () => {

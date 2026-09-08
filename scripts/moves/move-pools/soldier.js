@@ -104,16 +104,21 @@ export const SOLDIER_POOL = {
 			key: "soldier:the-arity-method",
 			name: "The Arity Method",
 			traits: [],
-			uses: [{ key: "sortie", label: "Used this Sortie", period: "Sortie" }],
-			// "Succeed as if you'd rolled a 10+" — same automatic-success button Hot-blooded/Once
-			// the War's Over grant, but paid from this move's own `uses` checkbox above (via
-			// useKey, rather than a hold cost) and restricted to bite-the-dust only, matching
-			// "when you would bite the dust" — see PlaybookActorSheet#_availableAutomaticSuccess.
-			// The second sentence (confidence + advantage on the *next* Exchange Blows/Strike
-			// Decisively roll) is a distinct one-shot buff-for-a-future-roll mechanic this module
-			// has no hook for yet, so it stays descriptive only — see docs/domains/moves.md's "systems that do
-			// not exist yet".
+			uses: [
+				{ key: "sortie", label: "Used this Sortie", period: "Sortie" },
+				{ key: "buff", label: "Confidence + advantage spent", period: "Sortie" }
+			],
+			// Each sentence spends its own uses checkbox independently: bite-the-dust's automatic
+			// success (useKey: "sortie") vs. the buff on the next Exchange Blows/Strike Decisively
+			// roll, which is costsUse: "buff" on a grantsRollModifier entry (see move-grants-mixin.js).
 			grantsAutomaticSuccess: { useKey: "sortie", moves: ["bite-the-dust"] },
+			grantsRollModifier: [{
+				key: "soldier:the-arity-method:buff",
+				moveKeys: ["exchange-blows", "strike-decisively"],
+				advantage: "advantage",
+				effect: "confidence",
+				costsUse: "buff"
+			}],
 			description:
 				"<p>Once per Sortie, when you would bite the dust, succeed as if you'd rolled a 10+. Act " +
 				"with confidence and advantage the next time you would exchange blows or strike " +

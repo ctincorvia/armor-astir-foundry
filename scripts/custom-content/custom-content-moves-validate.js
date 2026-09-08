@@ -179,7 +179,9 @@ function validateGrantsDowngradeHold(entry, errors, context) {
 	}
 }
 
-const ROLL_MODIFIER_GATE_KEYS = ["requiresOverheating", "costsSpotlight", "costsHold", "costsPotion", "costsUse", "costsTracker"];
+const ROLL_MODIFIER_GATE_KEYS = [
+	"requiresOverheating", "costsSpotlight", "costsHold", "costsPotion", "costsUse", "costsTracker", "costsPeril"
+];
 
 function validateRollModifierEntry(value, errors, context, index) {
 	const label = `${context}'s "grantsRollModifier[${index}]"`;
@@ -200,6 +202,15 @@ function validateRollModifierEntry(value, errors, context, index) {
 	}
 	if ("requiresOverheating" in value && value.requiresOverheating !== true) {
 		errors.push(`${label}'s "requiresOverheating" must be true.`);
+	}
+	if ("costsPeril" in value && value.costsPeril !== true) {
+		errors.push(`${label}'s "costsPeril" must be true.`);
+	}
+	// clearsOverheating is an additive side-effect flag, not a resource gate (see cantrips.js's
+	// Fire-Eater and move-grants-mixin.js's _spendRollModifiers) — deliberately outside
+	// ROLL_MODIFIER_GATE_KEYS's mutual-exclusion check above, since it can legally accompany one.
+	if ("clearsOverheating" in value && value.clearsOverheating !== true) {
+		errors.push(`${label}'s "clearsOverheating" must be true.`);
 	}
 	if ("costsSpotlight" in value && typeof value.costsSpotlight !== "number") {
 		errors.push(`${label}'s "costsSpotlight" must be a number.`);
