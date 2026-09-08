@@ -5,6 +5,7 @@ import { findPlaybookMove } from "../scripts/moves/playbook-moves.js";
 import { applyCustomContent, resetCustomContent } from "../scripts/custom-content/custom-content-apply.js";
 import {
 	ASTIR_CORES,
+	ASTIR_MAX_PARTS,
 	ASTIR_MOVE_CATALOG,
 	ASTIR_PART_CATALOG,
 	ASTIR_POWER_BASE,
@@ -13,6 +14,7 @@ import {
 	ASTIR_TIER_MIN,
 	ASTIR_WEAPON_CATALOG,
 	astirCoreApproaches,
+	astirMaxParts,
 	astirMaxPower,
 	astirMaxWeaponPower,
 	astirMoveSections,
@@ -262,11 +264,17 @@ describe("astirMaxPower", () => {
 		{ key: "astir-part:a", name: "A", traits: [], description: "a", powerCost: 1 },
 		{ key: "astir-part:b", name: "B", traits: [], description: "b", powerCost: 2 },
 		{ key: "astir-part:no-cost", name: "C", traits: [], description: "c" },
-		{ key: "astir-part:conduit", name: "Conduit", traits: [], description: "d", weaponPowerBonus: 2 }
+		{ key: "astir-part:conduit", name: "Conduit", traits: [], description: "d", weaponPowerBonus: 2 },
+		{ key: "astir-part:uncanny-speed", name: "Uncanny Speed", traits: [], description: "e", powerCapacityBonus: 1 }
 	];
 
 	it("starts at the base when no parts are equipped", () => {
 		expect(astirMaxPower([], [], FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE);
+	});
+
+	it("raises max power by an equipped part's powerCapacityBonus, net against any powerCost", () => {
+		expect(astirMaxPower(["astir-part:uncanny-speed"], [], FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE + 1);
+		expect(astirMaxPower(["astir-part:a", "astir-part:uncanny-speed"], [], FIXTURE_PARTS)).toBe(ASTIR_POWER_BASE);
 	});
 
 	it("subtracts every equipped part's powerCost from the base", () => {
@@ -312,6 +320,32 @@ describe("astirMaxPower", () => {
 			{ id: "3", kind: "weapon", astir: true, tags: ["drain-2"] }
 		];
 		expect(astirMaxPower([], veryHeavy, FIXTURE_PARTS)).toBeLessThan(0);
+	});
+});
+
+describe("astirMaxParts", () => {
+	it("returns the base cap with no moves passed", () => {
+		expect(astirMaxParts()).toBe(ASTIR_MAX_PARTS);
+		expect(astirMaxParts([])).toBe(ASTIR_MAX_PARTS);
+	});
+
+	it("is bumped by a picked move carrying astirPartCapBonus", () => {
+		const moves = [{ key: "soldier:red-comet", astirPartCapBonus: 1 }];
+		expect(astirMaxParts(moves)).toBe(ASTIR_MAX_PARTS + 1);
+	});
+
+	it("ignores a picked move with no astirPartCapBonus", () => {
+		const moves = [{ key: "the-scout:bullheaded" }];
+		expect(astirMaxParts(moves)).toBe(ASTIR_MAX_PARTS);
+	});
+
+	it("sums astirPartCapBonus across every picked move carrying one", () => {
+		const moves = [
+			{ key: "soldier:red-comet", astirPartCapBonus: 1 },
+			{ key: "fixture:another-bonus", astirPartCapBonus: 2 },
+			{ key: "the-scout:bullheaded" }
+		];
+		expect(astirMaxParts(moves)).toBe(ASTIR_MAX_PARTS + 3);
 	});
 });
 
@@ -449,6 +483,23 @@ describe("chooseAstirPart", () => {
 
 		expect(renderTemplate).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
 			items: [{ ...FIXTURE_PARTS[1], tagLabels: [] }]
+		}));
+	});
+
+	// Uncanny Speed (astir-parts.js) is only ever granted automatically by Soldier's Red Comet — it
+	// must never be offerable through this manual "+" picker, even when it isn't already selected.
+	it("never offers a hiddenFromCatalog entry, even when it isn't already selected", async () => {
+		const HIDDEN_PARTS = [
+			...FIXTURE_PARTS,
+			{ key: "astir-part:uncanny-speed", name: "Uncanny Speed", traits: [], description: "e", hiddenFromCatalog: true }
+		];
+
+		chooseAstirPart([], HIDDEN_PARTS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(renderTemplate).toHaveBeenCalledWith(expect.any(String), expect.objectContaining({
+			items: FIXTURE_PARTS.map((part) => ({ ...part, tagLabels: [] }))
 		}));
 	});
 

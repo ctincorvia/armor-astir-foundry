@@ -26,14 +26,16 @@ function splitWeaponDrain(partKeys, equipment, catalog) {
 	return { capacity, absorbed, remainder: drain - absorbed };
 }
 
-// An Astir's max Power is its base minus every equipped part's cost, floored at ASTIR_POWER_MIN —
+// An Astir's max Power is its base minus every equipped part's cost (net of any part's own
+// powerCapacityBonus — Uncanny Speed's own +1, see astir-parts.js), floored at ASTIR_POWER_MIN —
 // then minus whatever Weapon Drain didn't fit in the Weapon Power pool (see splitWeaponDrain). That
 // remainder is NOT floored: a heavily-Drained loadout can legitimately push max Power negative (see
 // PlaybookActorSheet's Piloted guard — negative Power means the Astir can't be piloted until the
 // loadout changes). Derived on read (never stored), the same equipmentValue/advancements.topCount
 // precedent, so it can't drift after a part or weapon is added/edited/removed.
 export function astirMaxPower(partKeys = [], equipment = [], catalog = ASTIR_PART_CATALOG) {
-	const cost = resolveAstirParts(partKeys, catalog).reduce((sum, part) => sum + (part.powerCost ?? 0), 0);
+	const cost = resolveAstirParts(partKeys, catalog)
+		.reduce((sum, part) => sum + (part.powerCost ?? 0) - (part.powerCapacityBonus ?? 0), 0);
 	const partsOnlyMax = Math.max(ASTIR_POWER_MIN, ASTIR_POWER_BASE - cost);
 	return partsOnlyMax - splitWeaponDrain(partKeys, equipment, catalog).remainder;
 }

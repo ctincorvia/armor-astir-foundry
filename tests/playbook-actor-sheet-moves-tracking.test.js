@@ -6,9 +6,11 @@ vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal)
 }));
 
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
+import { astirMaxPower, astirMaxWeaponPower } from "../scripts/frames/astir.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
+import { RED_COMET, UNCANNY_SPEED } from "./helpers/move-fixtures.js";
 
 beforeEach(() => {
 	findCarrierActors.mockClear();
@@ -274,6 +276,51 @@ describe("PlaybookActorSheet#_grantedMoveEquipmentUpdate", () => {
 		sheet.actor = { system: { attributes: { equipment: [existing] } } };
 
 		expect(sheet._grantedMoveEquipmentUpdate(CLASSICAL_SPELLCASTING.key)).toEqual({});
+	});
+});
+
+describe("PlaybookActorSheet#_grantedMoveAstirPartUpdate", () => {
+	it("returns an empty patch for a move with no grantsAstirPart", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", power: 4, parts: [] } } } };
+
+		expect(sheet._grantedMoveAstirPartUpdate(HASTE.key)).toEqual({});
+	});
+
+	it("grants Uncanny Speed into astir.parts on first pick of Red Comet, recomputing Power via the same update", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", power: 4, parts: [] } } } };
+
+		expect(sheet._grantedMoveAstirPartUpdate(RED_COMET.key)).toEqual({
+			"system.attributes.astir.parts": [UNCANNY_SPEED.key],
+			"system.attributes.astir.power": Math.min(4, astirMaxPower([UNCANNY_SPEED.key])),
+			"system.attributes.astir.weaponPower": Math.min(0, astirMaxWeaponPower([UNCANNY_SPEED.key]))
+		});
+	});
+
+	it("treats a missing astir.parts as empty when granting", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", power: 4 } } } };
+
+		expect(sheet._grantedMoveAstirPartUpdate(RED_COMET.key)).toEqual({
+			"system.attributes.astir.parts": [UNCANNY_SPEED.key],
+			"system.attributes.astir.power": Math.min(4, astirMaxPower([UNCANNY_SPEED.key])),
+			"system.attributes.astir.weaponPower": Math.min(0, astirMaxWeaponPower([UNCANNY_SPEED.key]))
+		});
+	});
+
+	it("no-ops if Uncanny Speed is already present", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { astir: { id: "a1", power: 4, parts: [UNCANNY_SPEED.key] } } } };
+
+		expect(sheet._grantedMoveAstirPartUpdate(RED_COMET.key)).toEqual({});
+	});
+
+	it("no-ops if the actor has no Astir at all", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: {} } };
+
+		expect(sheet._grantedMoveAstirPartUpdate(RED_COMET.key)).toEqual({});
 	});
 });
 

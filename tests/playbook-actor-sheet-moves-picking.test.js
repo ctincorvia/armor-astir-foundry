@@ -14,9 +14,11 @@ vi.mock("../scripts/moves/starting-moves.js", async (importOriginal) => ({
 	chooseStartingMoves: vi.fn()
 }));
 
+import { astirMaxPower } from "../scripts/frames/astir.js";
 import { ALL_PLAYBOOK_MOVES, choosePlaybookMove } from "../scripts/moves/playbook-moves.js";
 import { chooseStartingMoves } from "../scripts/moves/starting-moves.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+import { UNCANNY_SPEED } from "./helpers/move-fixtures.js";
 
 const DENY = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:deny");
 const BULLHEADED = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:bullheaded");
@@ -27,6 +29,7 @@ const I_KNOW_YOU = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-revenant:i-know
 const CLASSICAL_SPELLCASTING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:classical-spellcasting");
 const ADVANCED_EVOCATION = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:advanced-evocation");
 const EMBRACE_CHAOS = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:embrace-chaos");
+const RED_COMET = ALL_PLAYBOOK_MOVES.find((m) => m.key === "soldier:red-comet");
 
 beforeEach(() => {
 	choosePlaybookMove.mockClear();
@@ -554,6 +557,48 @@ describe("PlaybookActorSheet#_onPlaybookMoveAdd", () => {
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
 			"system.attributes.playbookMoves": [CLASSICAL_SPELLCASTING.key]
+		});
+	});
+
+	// Soldier's Red Comet's own grantsAstirPart (see _grantedMoveAstirPartUpdate's own tests for the
+	// granted Part's exact shape) — folded into this same update alongside grantsEquipment's, so
+	// picking the move and receiving its Astir Part land as one undo step.
+	it("also grants Red Comet's Uncanny Speed Astir Part in the same update", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { name: "Soldier" },
+				attributes: { playbookMoves: [], astir: { id: "a1", power: 4, parts: [] } }
+			},
+			update: vi.fn()
+		};
+		choosePlaybookMove.mockResolvedValue(RED_COMET.key);
+
+		await sheet._onPlaybookMoveAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.playbookMoves": [RED_COMET.key],
+			"system.attributes.astir.parts": [UNCANNY_SPEED.key],
+			"system.attributes.astir.power": Math.min(4, astirMaxPower([UNCANNY_SPEED.key])),
+			"system.attributes.astir.weaponPower": 0
+		});
+	});
+
+	it("does not grant Uncanny Speed a second time when the actor already has it installed", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				playbook: { name: "Soldier" },
+				attributes: { playbookMoves: [], astir: { id: "a1", power: 4, parts: [UNCANNY_SPEED.key] } }
+			},
+			update: vi.fn()
+		};
+		choosePlaybookMove.mockResolvedValue(RED_COMET.key);
+
+		await sheet._onPlaybookMoveAdd();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.playbookMoves": [RED_COMET.key]
 		});
 	});
 });

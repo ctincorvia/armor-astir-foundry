@@ -36,6 +36,7 @@ export const LET_LOOSE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:
 export const DONT_FOLLOW_ME = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-impostor:dont-follow-me");
 export const PATRON = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-witch:patron");
 export const INDOMITABLE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "soldier:indomitable");
+export const RED_COMET = ALL_PLAYBOOK_MOVES.find((m) => m.key === "soldier:red-comet");
 export const TRUTH_MAKING = ALL_PLAYBOOK_MOVES.find((m) => m.key === "cantrips:truth-making");
 export const A_GREENER_WORLD = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-advocate:a-greener-world");
 export const SHARP_TONGUE = ALL_PLAYBOOK_MOVES.find((m) => m.key === "the-diplomat:sharp-tongue");
@@ -88,6 +89,7 @@ export const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:art
 export const FLOURISH_COMPONENT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:flourish-component");
 export const SPELL_ROUTINES = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:spell-routines");
 export const CHROMATIC_FOCUS = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:chromatic-focus");
+export const UNCANNY_SPEED = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:uncanny-speed");
 
 // ARDENT_FEATURE_PARTS
 export const CHROMATIC_RESERVES = ARDENT_FEATURE_PARTS.find((p) => p.key === "ardent-feature:chromatic-reserves");

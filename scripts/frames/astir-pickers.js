@@ -19,7 +19,7 @@ import { renderTemplate } from "../compat.js";
 // what it renders. `title` is overridable so ardent.js can reuse this same picker (against a
 // filtered catalog — see ardentParts) with Ardent-appropriate copy, rather than a second dialog.
 export async function chooseAstirPart(selectedKeys = [], catalog = ASTIR_PART_CATALOG, { title = "Add an Astir Part" } = {}) {
-	const items = catalog.filter((part) => !selectedKeys.includes(part.key));
+	const items = catalog.filter((part) => !selectedKeys.includes(part.key) && !part.hiddenFromCatalog);
 	const { tagGroups, hasTags } = buildTagReference(items);
 	const content = await renderTemplate(EQUIPMENT_CATALOG_PICKER_TEMPLATE, {
 		items: items.map((item) => withTagLabels(item)),

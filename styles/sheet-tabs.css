@@ -350,6 +350,14 @@
 	border-bottom: var(--aa-border);
 }
 
+/* Each row's separator comes from the row above it, so the first row in a list has no line
+   above it unless we add one here. Scoped to real list rows via the child combinator so the
+   move roll dialog's single standalone weapon card (border-bottom: none, dialogs.css) is
+   untouched — it's never inside .equipment-list. */
+.armor-astir.sheet .equipment-list > .equipment-item:first-child {
+	border-top: var(--aa-border);
+}
+
 .armor-astir.sheet .equipment-header,
 .armor-astir.move-roll-dialog .equipment-header {
 	display: flex;

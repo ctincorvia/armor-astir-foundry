@@ -313,5 +313,19 @@ export const ASTIR_PART_CATALOG = [
 			"<p>Your Director might ask you to take Complex Spellwork to offset a particularly " +
 			"powerful or rule-bending Astir Move. This tracks the minimum cost, 1 Power — your " +
 			"Director may rule that a given Move costs more (up to 4).</p>"
+	},
+	{
+		key: "astir-part:uncanny-speed",
+		name: "Uncanny Speed",
+		partType: "Passive",
+		traits: [],
+		powerCapacityBonus: 1,
+		// Only ever granted automatically by Soldier's Red Comet (see move-pools/soldier.js and
+		// move-tracking-mixin.js's _grantedMoveAstirPartUpdate) — never offered through the normal +
+		// picker, hence hiddenFromCatalog (see astir-pickers.js's chooseAstirPart).
+		hiddenFromCatalog: true,
+		description:
+			"<p>Any Astir you channel gains an extra Artifact part called 'Uncanny Speed', and its " +
+			"Power capacity is increased by 1.</p>"
 	}
 ];

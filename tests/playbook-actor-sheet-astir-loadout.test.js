@@ -26,7 +26,7 @@ import {
 	chooseAstirWeapon
 } from "../scripts/frames/astir.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
-import { ALCHEMICAL_SUITE, SPELL_ROUTINES } from "./helpers/move-fixtures.js";
+import { ALCHEMICAL_SUITE, RED_COMET, SPELL_ROUTINES } from "./helpers/move-fixtures.js";
 
 beforeEach(() => {
 	chooseAstirPart.mockClear();
@@ -117,6 +117,60 @@ describe("PlaybookActorSheet#_onAstirPartAdd", () => {
 		expect(ui.notifications.warn).toHaveBeenCalled();
 		expect(chooseAstirPart).not.toHaveBeenCalled();
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	// Soldier's Red Comet raises the Parts cap by 1 (see astir.js#astirMaxParts) — the guard/warning
+	// has to read that raised cap, not the bare ASTIR_MAX_PARTS constant.
+	it("still warns at a cap of 2 without Red Comet picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		const [partA, partB] = ASTIR_PART_CATALOG;
+		sheet.actor = {
+			system: { attributes: { astir: { id: "a1", power: 4, parts: [partA.key, partB.key] }, playbookMoves: [] } },
+			update: vi.fn()
+		};
+
+		await sheet._onAstirPartAdd();
+
+		expect(ui.notifications.warn).toHaveBeenCalledWith("An Astir can carry at most 2 Parts.");
+		expect(chooseAstirPart).not.toHaveBeenCalled();
+	});
+
+	it("raises the cap to 3 once Red Comet is picked, allowing a 3rd part", async () => {
+		const sheet = new PlaybookActorSheet();
+		const [partA, partB] = ASTIR_PART_CATALOG;
+		const partKey = ASTIR_PART_CATALOG[2].key;
+		sheet.actor = {
+			system: {
+				attributes: { astir: { id: "a1", power: 4, parts: [partA.key, partB.key] }, playbookMoves: [RED_COMET.key] }
+			},
+			update: vi.fn()
+		};
+		chooseAstirPart.mockResolvedValue(partKey);
+
+		await sheet._onAstirPartAdd();
+
+		expect(ui.notifications.warn).not.toHaveBeenCalled();
+		expect(chooseAstirPart).toHaveBeenCalledWith([partA.key, partB.key]);
+		expect(sheet.actor.update).toHaveBeenCalled();
+	});
+
+	it("warns with a cap of 3 once the Astir already has 3 parts and Red Comet is picked", async () => {
+		const sheet = new PlaybookActorSheet();
+		const [partA, partB, partC] = ASTIR_PART_CATALOG;
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", power: 4, parts: [partA.key, partB.key, partC.key] },
+					playbookMoves: [RED_COMET.key]
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._onAstirPartAdd();
+
+		expect(ui.notifications.warn).toHaveBeenCalledWith("An Astir can carry at most 3 Parts.");
+		expect(chooseAstirPart).not.toHaveBeenCalled();
 	});
 
 	it("accounts for existing Astir weapon Drain when re-clamping power", async () => {
@@ -975,6 +1029,40 @@ describe("PlaybookActorSheet#getData - astir extraParts/extraWeapons", () => {
 		};
 
 		expect(sheet.getData().astir.partsFull).toBe(false);
+	});
+
+	// Soldier's Red Comet raises the Parts cap by 1 (see astir.js#astirMaxParts) — partsFull has to
+	// reflect that raised cap, not the bare ASTIR_MAX_PARTS constant.
+	it("leaves partsFull false at 2 parts (the un-raised cap) once Red Comet raises the cap to 3", () => {
+		const sheet = new PlaybookActorSheet();
+		const [partA, partB] = ASTIR_PART_CATALOG;
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", tier: 3, power: 4, parts: [partA.key, partB.key], extraParts: [], move: null },
+					playbookMoves: [RED_COMET.key]
+				}
+			}
+		};
+
+		expect(sheet.getData().astir.partsFull).toBe(false);
+	});
+
+	it("flags partsFull once the Parts pool reaches the raised cap of 3 with Red Comet picked", () => {
+		const sheet = new PlaybookActorSheet();
+		const [partA, partB, partC] = ASTIR_PART_CATALOG;
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", tier: 3, power: 4, parts: [partA.key, partB.key, partC.key], extraParts: [], move: null },
+					playbookMoves: [RED_COMET.key]
+				}
+			}
+		};
+
+		expect(sheet.getData().astir.partsFull).toBe(true);
 	});
 
 	it("defaults an extraPart's tier to ASTIR_TIER_MIN when the Astir has none set", () => {

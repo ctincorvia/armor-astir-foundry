@@ -41,6 +41,16 @@ export const ASTIR_TIER_MAX = 4;
 // be counted against this.
 export const ASTIR_MAX_PARTS = 2;
 
+// The effective Parts cap for a given actor: ASTIR_MAX_PARTS plus any move-level astirPartCapBonus
+// summed across the actor's picked playbook moves (Soldier's Red Comet is the only source today) —
+// mirrors ardent.js's ardentFeatureBonus/ardentFeatureMax idiom. Callers pass resolved move objects
+// (resolvePlaybookMoves(this._playbookMoves())), not raw keys, matching astirMaxPower's own
+// resolved-object convention. NPCs never call this — they have no playbook moves to bonus from, so
+// they stay on the bare ASTIR_MAX_PARTS constant.
+export function astirMaxParts(pickedMoves = []) {
+	return ASTIR_MAX_PARTS + pickedMoves.reduce((sum, move) => sum + (move.astirPartCapBonus ?? 0), 0);
+}
+
 export const ASTIR_POWER_MIN = 0;
 export const ASTIR_POWER_BASE = 4;
 

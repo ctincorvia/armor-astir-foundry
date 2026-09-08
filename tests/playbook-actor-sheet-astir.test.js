@@ -13,7 +13,7 @@ import {
 	astirMaxWeaponPower
 } from "../scripts/frames/astir.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
-import { ALCHEMICAL_SUITE, SPELL_ROUTINES, WEAPON_CONDUIT } from "./helpers/move-fixtures.js";
+import { ALCHEMICAL_SUITE, RED_COMET, SPELL_ROUTINES, UNCANNY_SPEED, WEAPON_CONDUIT } from "./helpers/move-fixtures.js";
 
 describe("PlaybookActorSheet#getData - astir", () => {
 	it("is available when channel is missing from stats (reads as enabled)", () => {
@@ -144,6 +144,27 @@ describe("PlaybookActorSheet#getData - astir", () => {
 		const data = sheet.getData();
 
 		expect(data.astir.power).toEqual({ value: 4, max: astirMaxPower([partKey], []), negative: false });
+	});
+
+	// Soldier's Red Comet auto-grants Uncanny Speed (see move-tracking-mixin.js's
+	// _grantedMoveAstirPartUpdate), whose own powerCapacityBonus raises max Power by 1 while
+	// installed (astir-power.js's astirMaxPower) — getData's power.max has to reflect it.
+	it("reports max power raised by Uncanny Speed's powerCapacityBonus once Red Comet is present", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, overheating: false, parts: [UNCANNY_SPEED.key], move: null },
+					playbookMoves: [RED_COMET.key]
+				}
+			}
+		};
+
+		const data = sheet.getData();
+
+		expect(data.astir.power).toEqual({ value: 4, max: astirMaxPower([UNCANNY_SPEED.key], []), negative: false });
+		expect(data.astir.power.max).toBe(ASTIR_POWER_BASE + 1);
 	});
 
 	it("resolves parts to their name, power cost, and the Astir's own tier", () => {

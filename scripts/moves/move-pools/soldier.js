@@ -26,10 +26,14 @@ export const SOLDIER_POOL = {
 		{
 			key: "soldier:red-comet",
 			name: "Red Comet",
-			// Astir parts/Power capacity aren't their own tracked entities in this module yet (see
-			// Cool Off in moves.js) — descriptive only, same treatment as Cantrips' Red Comet-style
-			// passive grants.
 			traits: [],
+			// Auto-grants the Uncanny Speed Astir Part (astir-parts.js) the moment this move is
+			// newly picked (see move-tracking-mixin.js's _grantedMoveAstirPartUpdate), which also
+			// raises Astir Power capacity by 1 while installed (Uncanny Speed's own
+			// powerCapacityBonus, read by astir-power.js's astirMaxPower). astirPartCapBonus raises
+			// this character's Astir Part cap by 1 to make room for it (astir.js's astirMaxParts).
+			grantsAstirPart: "astir-part:uncanny-speed",
+			astirPartCapBonus: 1,
 			description:
 				"<p>Any Astir you channel gains an extra Artifact part called 'Uncanny Speed', and its " +
 				"Power capacity is increased by 1.</p>"

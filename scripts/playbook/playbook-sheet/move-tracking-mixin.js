@@ -91,6 +91,24 @@ export const MoveTrackingSheetMixin = {
 		if (current.some((item) => item.name === grant.name)) return {};
 		return { "system.attributes.equipment": [...current, this._startingGearEntry(grant)] };
 	},
+	// Soldier's Red Comet (see move-pools/soldier.js) — the same auto-grant-on-pick shape as
+	// _grantedMoveEquipmentUpdate above, just onto the Astir's regular parts pool instead of
+	// equipment. Deduped by key already being present, so re-picking a removed move re-grants
+	// Uncanny Speed back exactly once; manually removing just the part while keeping the move is
+	// never clawed back, mirroring equipment's own no-claw-back precedent.
+	_grantedMoveAstirPartUpdate(moveKey) {
+		const grant = resolvePlaybookMoves([moveKey])[0]?.grantsAstirPart;
+		if (!grant) return {};
+		const astir = this._astir();
+		if (!astir) return {};
+		const current = astir.parts ?? [];
+		if (current.includes(grant)) return {};
+		const parts = [...current, grant];
+		return {
+			"system.attributes.astir.parts": parts,
+			...this._astirPowerUpdates(astir, { parts })
+		};
+	},
 	// The "+" on the Playbook Moves section. The picker is passed the actor's playbook name (so it
 	// knows which pool is "yours") and its current picks (so an already-taken move isn't offered
 	// again) — see playbookMoveSections. It resolves null on cancel, on close, and when the dialog
@@ -102,7 +120,8 @@ export const MoveTrackingSheetMixin = {
 
 		await this.actor.update({
 			"system.attributes.playbookMoves": [...current, key],
-			...this._grantedMoveEquipmentUpdate(key)
+			...this._grantedMoveEquipmentUpdate(key),
+			...this._grantedMoveAstirPartUpdate(key)
 		});
 	},
 	_onPlaybookMoveRemove(event) {

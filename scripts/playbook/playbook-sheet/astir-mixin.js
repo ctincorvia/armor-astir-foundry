@@ -1,12 +1,12 @@
 import {
 	ASTIR_CORES,
 	ASTIR_DEFAULT_IMG,
-	ASTIR_MAX_PARTS,
 	ASTIR_POWER_BASE,
 	ASTIR_POWER_MIN,
 	ASTIR_TIER_MAX,
 	ASTIR_TIER_MIN,
 	astirCoreApproaches,
+	astirMaxParts,
 	astirMaxPower,
 	astirMaxWeaponPower,
 	chooseAstirMove,
@@ -56,6 +56,9 @@ export const AstirSheetMixin = {
 	_astirData(astir, astirParts, astirMove, equipment, astirWeapons) {
 		const customizationEnabled = isMoveCustomizationEnabled();
 		const overrides = moveCustomizationOverrides(this.actor, customizationEnabled);
+		// Soldier's Red Comet (astirPartCapBonus) raises this cap above ASTIR_MAX_PARTS — see
+		// astir.js#astirMaxParts.
+		const partsCap = astirMaxParts(resolvePlaybookMoves(this._playbookMoves()));
 		return {
 			available: !this.actor.system.stats?.channel?.disabled
 				|| playbookGrantsHomeInsteadOfChannel(this.actor.system.playbook?.name)
@@ -124,7 +127,7 @@ export const AstirSheetMixin = {
 					guidedMoveChoice: this.actor.system.attributes?.guidedMoveChoices?.[part.key] ?? "",
 					...(customizationEnabled && isCustomizableMoveKey(part.key) && { customizable: true })
 				})),
-				partsFull: (astir.parts ?? []).length >= ASTIR_MAX_PARTS,
+				partsFull: (astir.parts ?? []).length >= partsCap,
 				// A part key is unique across the regular and Extra pools, so Spell Routines can land
 				// in either one — this mapping carries the same guidedMoveChoosable/guidedMoveChoice
 				// fields as the regular parts mapping above for that reason.
@@ -306,9 +309,10 @@ export const AstirSheetMixin = {
 	async _onAstirPartAdd() {
 		const astir = this._astir();
 		if (!astir) return;
+		const partsCap = astirMaxParts(resolvePlaybookMoves(this._playbookMoves()));
 		const current = astir.parts ?? [];
-		if (current.length >= ASTIR_MAX_PARTS) {
-			ui.notifications.warn(`An Astir can carry at most ${ASTIR_MAX_PARTS} Parts.`);
+		if (current.length >= partsCap) {
+			ui.notifications.warn(`An Astir can carry at most ${partsCap} Parts.`);
 			return;
 		}
 		const key = await chooseAstirPart(current);

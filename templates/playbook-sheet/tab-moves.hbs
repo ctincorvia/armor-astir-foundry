@@ -80,10 +80,10 @@
 										<button type="button" class="move-variable-dice-roll{{#if gated}} disabled{{/if}}" data-move="{{key}}" {{#if gated}}disabled{{/if}}>Roll</button>
 										{{/if}}
 										<button type="button" class="move-description{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}}>Chat</button>
-										<button type="button" class="move-info{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}} aria-label="{{name}} rules text">?</button>
 										{{#if customizable}}
 										<button type="button" class="move-customize" data-move="{{key}}" aria-label="Edit {{name}}">Edit</button>
 										{{/if}}
+										<button type="button" class="move-info{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}} aria-label="{{name}} rules text">?</button>
 										{{#if ../removable}}
 										<button type="button" class="playbook-move-remove" data-move="{{key}}" aria-label="Remove playbook move">✕</button>
 										{{/if}}
