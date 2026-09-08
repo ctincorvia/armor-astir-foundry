@@ -37,6 +37,23 @@ export function getRoute(...args) {
 	return api("foundry.utils.getRoute", "getRoute")(...args);
 }
 
+// createTextEditor/serializeEditorContent: v13+ moved the ProseMirror editor and text-editor APIs
+// under foundry.applications.ux / foundry.prosemirror namespaces, but the pre-v13 bare globals
+// (TextEditor, ProseMirror) are still live (non-deprecated) aliases for them, unlike Dialog/
+// Application/FormApplication. TextEditor.implementation resolves to "the current TextEditor
+// engine" on v13+; on v12 the class itself has no .implementation getter, so this falls back to
+// the class itself.
+export function createTextEditor(options, content) {
+	const TextEditorClass = lookup("foundry.applications.ux.TextEditor") ?? globalThis.TextEditor;
+	const implementation = TextEditorClass.implementation ?? TextEditorClass;
+	return implementation.create(options, content);
+}
+
+export function serializeEditorContent(editor) {
+	const PM = lookup("foundry.prosemirror") ?? globalThis.ProseMirror;
+	return PM.dom.serializeString(editor.view.state.doc.content);
+}
+
 export function generation() {
 	return Number(lookup("game.release.generation") ?? 12);
 }

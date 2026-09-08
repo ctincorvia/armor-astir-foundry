@@ -93,7 +93,9 @@ export default [
 				mergeObject: "readonly",
 				fromUuidSync: "readonly",
 				readTextFromFile: "readonly",
-				saveDataToFile: "readonly"
+				saveDataToFile: "readonly",
+				TextEditor: "readonly",
+				ProseMirror: "readonly"
 			}
 		}
 	},

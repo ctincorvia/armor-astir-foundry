@@ -128,6 +128,21 @@ vi.stubGlobal("ChatMessage", {
 vi.stubGlobal("renderTemplate", vi.fn().mockResolvedValue(""));
 vi.stubGlobal("loadTemplates", vi.fn().mockResolvedValue([]));
 
+// Standalone ProseMirror editor stubs — see scripts/compat.js's createTextEditor/
+// serializeEditorContent, first used by move-customization-dialogs.js.
+vi.stubGlobal("TextEditor", {
+	create: vi.fn().mockResolvedValue({
+		view: { dom: document.createElement("div"), state: { doc: { content: "stub-doc-content" } } },
+		destroy: vi.fn()
+	})
+});
+
+vi.stubGlobal("ProseMirror", {
+	dom: {
+		serializeString: vi.fn(() => "")
+	}
+});
+
 // File-IO globals ReflavorConfig/reflavor-export.js are this repo's first users of.
 vi.stubGlobal("readTextFromFile", vi.fn());
 vi.stubGlobal("saveDataToFile", vi.fn());

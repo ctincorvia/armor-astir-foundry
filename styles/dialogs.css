@@ -538,6 +538,35 @@
 	padding-bottom: var(--aa-space-1);
 }
 
+/* The description field is a mounted ProseMirror editor (move-customization-dialogs.js's render
+   callback). Foundry's own core CSS supplies the entire menu/dropdown/layout treatment (toolbar
+   background, collapsible Format dropdowns, internal scroll) but every one of those rules is
+   scoped under a `.prosemirror` ancestor (see menu.mjs's _wrapEditor, which injects
+   .menu-container/.editor-container as children of whatever element carries that class) — so the
+   template wraps the actual mount target (.editor-content) in a `.prosemirror` div rather than
+   mounting directly onto a bare one. Without that wrapper class none of core's collapse CSS
+   applies and every dropdown renders permanently expanded as a plain nested list. `--min-height`
+   overrides core's own 150px default (read by its own `.prosemirror { min-height: var(--min-height) }`
+   rule); max-height + overflow:hidden caps growth so a long description scrolls inside the
+   editor's own content area (already overflow:auto per core CSS) instead of growing the dialog. */
+.armor-astir.move-customization-editor .move-customization-description-editor {
+	--min-height: 160px;
+	box-sizing: border-box;
+	max-height: 320px;
+	overflow: hidden;
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+}
+
+.armor-astir.move-customization-editor .move-customization-description-editor:focus-within {
+	border-color: var(--aa-primary);
+	box-shadow: 0 0 0 2px var(--aa-primary-tint);
+}
+
+.armor-astir.move-customization-editor .move-customization-description-editor .editor-content {
+	padding: 0 var(--aa-space-2);
+}
+
 /* A 2x2 grid — Name/Kind/Tier top-left, Description top-right, Range bottom-left, Tags
    bottom-right — rather than two uneven-height columns, so the whole form is scannable in one
    view instead of one long single-column stack — see the Add Equipment dialog's own width/height
