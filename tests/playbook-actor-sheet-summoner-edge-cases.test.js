@@ -157,7 +157,7 @@ describe("PlaybookActorSheet#_onDowntimeAllyRelease - nullish defaults", () => {
 		sheet._onDowntimeAllyRelease();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.downtimeAlly": null,
+			"system.attributes.-=downtimeAlly": null,
 			"system.attributes.astir.power": 2
 		});
 	});

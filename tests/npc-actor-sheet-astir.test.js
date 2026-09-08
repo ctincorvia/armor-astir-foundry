@@ -251,7 +251,7 @@ describe("NpcActorSheet#_onAstirDelete", () => {
 		sheet._onAstirDelete();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.astir": null,
+			"system.attributes.-=astir": null,
 			"system.attributes.equipment": [{ id: "2", kind: "gear" }]
 		});
 	});

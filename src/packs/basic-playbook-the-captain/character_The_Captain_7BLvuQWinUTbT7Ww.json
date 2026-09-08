@@ -32,6 +32,7 @@
 		"name": "The Captain",
 		"actorLink": true,
 		"disposition": 1,
+		"depth": 0,
 		"texture": {
 			"src": "icons/svg/mystery-man.svg"
 		}
@@ -49,7 +50,7 @@
 		"modifiedTime": null,
 		"lastModifiedBy": null
 	},
-	"_id": "6YrbdenI",
+	"_id": "7BLvuQWinUTbT7Ww",
 	"sort": 0,
-	"_key": "!actors!6YrbdenI"
+	"_key": "!actors!7BLvuQWinUTbT7Ww"
 }

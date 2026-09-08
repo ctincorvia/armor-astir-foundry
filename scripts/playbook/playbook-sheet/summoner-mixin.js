@@ -183,7 +183,7 @@ export const SummonerSheetMixin = {
 		const ally = this._downtimeAlly();
 		if (!ally) return;
 		const astir = this._astir();
-		const updates = { "system.attributes.downtimeAlly": null };
+		const updates = { "system.attributes.-=downtimeAlly": null };
 		if (astir && ally.powerInvested) {
 			const max = astirMaxPower(this._astirPartKeys(astir), this._equipment());
 			updates["system.attributes.astir.power"] = Math.min(max, (astir.power ?? 0) + ally.powerInvested);

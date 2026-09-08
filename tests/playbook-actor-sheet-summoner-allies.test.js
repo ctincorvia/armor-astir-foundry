@@ -299,7 +299,7 @@ describe("PlaybookActorSheet#_onDowntimeAllyRelease", () => {
 
 		sheet._onDowntimeAllyRelease();
 
-		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.downtimeAlly": null });
+		expect(sheet.actor.update).toHaveBeenCalledWith({ "system.attributes.-=downtimeAlly": null });
 	});
 
 	it("refunds the full Power investment to the Astir, clamped to its derived max", () => {
@@ -318,7 +318,7 @@ describe("PlaybookActorSheet#_onDowntimeAllyRelease", () => {
 		sheet._onDowntimeAllyRelease();
 
 		expect(sheet.actor.update).toHaveBeenCalledWith({
-			"system.attributes.downtimeAlly": null,
+			"system.attributes.-=downtimeAlly": null,
 			"system.attributes.astir.power": 4
 		});
 	});

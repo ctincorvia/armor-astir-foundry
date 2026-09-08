@@ -105,7 +105,7 @@ export const NpcAstirSheetMixin = {
 	_onAstirDelete() {
 		if (!this._astir()) return;
 		this.actor.update({
-			"system.attributes.astir": null,
+			"system.attributes.-=astir": null,
 			"system.attributes.equipment": this._equipment().filter((item) => !item.astir)
 		});
 	},
