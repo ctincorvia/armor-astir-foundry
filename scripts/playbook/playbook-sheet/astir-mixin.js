@@ -18,6 +18,7 @@ import {
 import { configureEquipment } from "../../equipment/equipment.js";
 import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { playbookGrantsHomeInsteadOfChannel } from "../../moves/starting-moves.js";
+import { customizedMove, isCustomizableMoveKey, isMoveCustomizationEnabled, moveCustomizationOverrides } from "../../moves/move-customization.js";
 
 // The Astir itself — its own identity/loadout fields, plus every reactive Astir Part effect
 // (Potions, doubles-regen Power, spend-driven Expended) that only ever applies to the Astir
@@ -53,6 +54,8 @@ export const AstirSheetMixin = {
 	// astirParts/astirMove/equipment/astirWeapons are all computed once in getData (shared with the
 	// Moves/Equipment data methods) and passed in here rather than recomputed.
 	_astirData(astir, astirParts, astirMove, equipment, astirWeapons) {
+		const customizationEnabled = isMoveCustomizationEnabled();
+		const overrides = moveCustomizationOverrides(this.actor, customizationEnabled);
 		return {
 			available: !this.actor.system.stats?.channel?.disabled
 				|| playbookGrantsHomeInsteadOfChannel(this.actor.system.playbook?.name)
@@ -109,7 +112,7 @@ export const AstirSheetMixin = {
 				// regular loadout and the Sortie-scoped Extra Parts pool render as two distinct lists.
 				parts: resolveAstirParts(astir.parts ?? []).map((part) => ({
 					key: part.key,
-					name: part.name,
+					name: customizedMove(part, overrides).name,
 					powerCost: part.powerCost,
 					partType: part.partType,
 					tier: astir.tier ?? ASTIR_TIER_MIN,
@@ -118,7 +121,8 @@ export const AstirSheetMixin = {
 					// _guidedMoveOptions below) — every other part renders this as false/blank, since
 					// only grantsGuided carries a choosable target move at all.
 					guidedMoveChoosable: Boolean(part.grantsGuided),
-					guidedMoveChoice: this.actor.system.attributes?.guidedMoveChoices?.[part.key] ?? ""
+					guidedMoveChoice: this.actor.system.attributes?.guidedMoveChoices?.[part.key] ?? "",
+					...(customizationEnabled && isCustomizableMoveKey(part.key) && { customizable: true })
 				})),
 				partsFull: (astir.parts ?? []).length >= ASTIR_MAX_PARTS,
 				// A part key is unique across the regular and Extra pools, so Spell Routines can land
@@ -126,13 +130,14 @@ export const AstirSheetMixin = {
 				// fields as the regular parts mapping above for that reason.
 				extraParts: resolveAstirParts(astir.extraParts ?? []).map((part) => ({
 					key: part.key,
-					name: part.name,
+					name: customizedMove(part, overrides).name,
 					powerCost: part.powerCost,
 					partType: part.partType,
 					tier: astir.tier ?? ASTIR_TIER_MIN,
 					disabled: this._isPartDisabled(part.key),
 					guidedMoveChoosable: Boolean(part.grantsGuided),
-					guidedMoveChoice: this.actor.system.attributes?.guidedMoveChoices?.[part.key] ?? ""
+					guidedMoveChoice: this.actor.system.attributes?.guidedMoveChoices?.[part.key] ?? "",
+					...(customizationEnabled && isCustomizableMoveKey(part.key) && { customizable: true })
 				})),
 				move: astirMove ? { key: astirMove.key, name: astirMove.name } : null,
 				weapons: astirWeapons.filter((w) => !w.extra),

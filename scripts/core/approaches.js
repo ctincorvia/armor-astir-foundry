@@ -15,7 +15,7 @@ export const APPROACHES = [
 export const PLAYBOOK_APPROACHES = {
 	"the-scout": ["mundane"],
 	"the-commander": ["mundane"],
-	"the-impostor": ["arcane", "elemental"],
+	"the-impostor": ["profane", "elemental"],
 	"the-diplomat": ["mundane"],
 	"the-arcanist": ["arcane", "elemental"],
 	"the-paradigm": ["divine", "profane"],

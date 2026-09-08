@@ -76,7 +76,7 @@ describe("PlaybookActorSheet#getData", () => {
 
 		const data = sheet.getData();
 
-		expect(data.approachOptions.map((a) => a.key)).toEqual(["arcane", "elemental"]);
+		expect(data.approachOptions.map((a) => a.key)).toEqual(["profane", "elemental"]);
 	});
 
 	it("gives the actor's playbook its gravity trigger", () => {
@@ -413,6 +413,21 @@ describe("PlaybookActorSheet#activateListeners", () => {
 
 		expect(html.find).toHaveBeenCalledWith(".arcanist-rituals-prepare");
 		expect(html.find).toHaveBeenCalledWith(".arcanist-rituals-adapt");
+		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
+	});
+
+	// The move/Astir Part customization Edit button (move-roll-mixin.js's _onMoveCustomize) — bound
+	// next to the pre-existing move-description/move-info wiring, same click-handler shape.
+	it("binds a click handler to the move-customize Edit button", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { playbook: { name: PLAYBOOKS[0].name } } };
+
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".move-customize");
 		expect(on).toHaveBeenCalledWith("click", expect.any(Function));
 	});
 });

@@ -17,6 +17,14 @@ import {
 } from "../../moves/moves.js";
 import { ALL_MOVES } from "../../moves/all-moves.js";
 import { findWitchBoon, resolveWitchBoons } from "../witch.js";
+import {
+	customizedMove,
+	isCustomizableMoveKey,
+	isMoveCustomizationEnabled,
+	moveCustomizationOverrides,
+	saveMoveCustomization
+} from "../../moves/move-customization.js";
+import { configureMoveCustomization } from "../../moves/move-customization-dialogs.js";
 
 // The Roll/Activate/Description/Info button handlers and the shared _rollMove pipeline every move
 // source (basic, special, playbook, Astir) runs through — see moves-mixin.js's file comment for how
@@ -29,7 +37,8 @@ export const MoveRollSheetMixin = {
 	// it renders Chat/Info (and, for the Aspect ritual, Activate) buttons in its own Prepared
 	// Rituals group the same read-only way a Boon does.
 	_resolveAnyMove(key) {
-		return ALL_MOVES.find((m) => m.key === key) ?? findWitchBoon(key) ?? this._preparedRitualEntry(key);
+		const move = ALL_MOVES.find((m) => m.key === key) ?? findWitchBoon(key) ?? this._preparedRitualEntry(key);
+		return move ? customizedMove(move, moveCustomizationOverrides(this.actor)) : move;
 	},
 	async _onMoveRoll(event) {
 		const clicked = this._resolveAnyMove(event.currentTarget.dataset.move);
@@ -40,7 +49,7 @@ export const MoveRollSheetMixin = {
 		// own (nonexistent) roll. Resolved before the weapon-choice flow below so that flow runs
 		// against the real target move — Exchange Blows is usesWeapon, Bureaucrat itself never is.
 		const move = clicked.quickRollsMove
-			? ALL_MOVES.find((m) => m.key === clicked.quickRollsMove.moveKey)
+			? this._resolveAnyMove(clicked.quickRollsMove.moveKey)
 			: clicked;
 		if (!move) return;
 
@@ -678,5 +687,22 @@ export const MoveRollSheetMixin = {
 		if (!move) return;
 
 		await showMoveDescription(move);
+	},
+	// The Edit button (moves-mixin.js/astir-mixin.js/ardent-mixin.js's `customizable` flag, only
+	// ever rendered while the setting is on and the clicked key is eligible) — re-checked here too
+	// since a stale render or a manually-dispatched event could otherwise reach this handler for an
+	// ineligible key. isCustomizableMoveKey's own eligibility set (move-customization.js) is built
+	// from ALL_PLAYBOOK_MOVES/ASTIR_PART_CATALOG, both already folded into ALL_MOVES (see
+	// all-moves.js), so an eligible key always resolves here — no unreachable "not found" branch to
+	// carry. Saves onto the current effective display (post-reflavor, post-override), so re-opening
+	// the dialog always shows the player's last edit.
+	async _onMoveCustomize(event) {
+		const key = event.currentTarget.dataset.move;
+		if (!isMoveCustomizationEnabled() || !isCustomizableMoveKey(key)) return;
+
+		const result = await configureMoveCustomization(this._resolveAnyMove(key));
+		if (!result) return;
+
+		await saveMoveCustomization(this.actor, key, result);
 	}
 };

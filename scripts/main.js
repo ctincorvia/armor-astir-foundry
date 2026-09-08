@@ -5,6 +5,7 @@ import { registerAuthorityActorSheet } from "./world-actors/authority-actor-shee
 import { registerCauseActorSheet } from "./world-actors/cause-actor-sheet.js";
 import { registerNpcActorSheet } from "./world-actors/npc-actor-sheet.js";
 import { registerReflavorSettings, applyStoredReflavor } from "./reflavor/reflavor-settings.js";
+import { registerMoveCustomizationSettings } from "./moves/move-customization-settings.js";
 import { MODULE_ID } from "./module-id.js";
 import { loadTemplates } from "./compat.js";
 
@@ -59,6 +60,7 @@ export function registerInitHook() {
 			...NPC_SHEET_PARTIALS
 		]);
 		registerReflavorSettings();
+		registerMoveCustomizationSettings();
 	});
 }
 

@@ -1,22 +1,22 @@
 {
 	"moves": {
 		"astir:refresh-matrix": {
-			"name": "Rapid Recycler",
-			"description": "<p>This Astir's Drone Bay runs on a tighter, more efficient cycle, letting each Drone re-arm faster than most.</p><p>Your Drones gain the Blitz tag, and lose the Limited tag if they carry it (today, only Attack Drone does).</p>"
+			"name": "Predator-Protocol Drone Bay",
+			"description": "<p>This Astir's Drone Bay runs cleaner and faster than baseline.</p><p>Your Drones gain the Blitz tag, and lose the Limited tag.</p>"
 		}
 	},
 	"astirParts": {
 		"astir-part:extra-arms": {
 			"name": "Additional Arms",
-			"description": "<p>Bolting a second set of arms onto a chassis is easy. Wiring them into the pilot's own reflexes without them fighting each other is the hard part.</p><p>Two extra arms and hands.</p>"
+			"description": "<p>Bolting a second set of arms onto a chassis is easy. Making them useful is the hard part.</p><p>Two extra arms and hands.</p>"
 		},
 		"astir-part:divination-codex": {
 			"name": "Tactical Databank",
 			"description": "<p>A constantly-updated archive of enemy doctrine, terrain surveys and battlefield telemetry, cross-referenced and served up to a networked pilot in a heartbeat.</p><p>Ask 1 question from the Read the Room list.</p>"
 		},
 		"astir-part:flourish-component": {
-			"name": "Backup Capacitor Bank",
-			"description": "<p>Where a standard reactor relies on one clean power curve, this rig keeps a second bank charged in reserve, ready to catch the surplus the instant the main line spikes past spec.</p><p>Regain 1 Power when you roll doubles (once per roll).</p>"
+			"name": "Hybrid Reactor Core",
+			"description": "<p>A an augmented core constantly recycles heat and kinetic energy from continuous operation.</p><p>Regain 1 Power when you roll doubles (once per roll).</p>"
 		},
 		"astir-part:familiar-matrix": {
 			"name": "Drone Bay",
@@ -35,14 +35,14 @@
 		},
 		"astir-part:resistance-charms": {
 			"name": "Specialized System Hardening",
-			"description": "<p>While it's difficult to offer broad protection against every kind of damage, more specific hazards are relatively simple to harden an Astir against.</p><p>Examples:</p><ul><li>Redundant Actuators (lowers dangers from limb loss). Crawl. Climb. Rip. Tear. Many hands make light work.</li><li>Failsafe Relays (lowers dangers from comms disruption). Hear you loud and clear, 9th. Everyone else went quiet.</li><li>Grounded Conduits (lowers dangers from electricity). Don't be the fool caught out in a storm. Plan ahead.</li></ul><p>Lowers dangers from one chosen source: Peril becomes a Risk, Risk becomes Nothing.</p>"
+			"description": "<p>While it's difficult to offer broad protection against every kind of damage, more specific hazards are relatively simple to harden an Astir against.</p><p>Examples:</p><ul><li>Redundant manipulator systems (lowers dangers from limb loss). Crawl. Climb. Rip. Tear. Many hands make light work.</li><li>Shielded Comm Arrays (lowers dangers from comms disruption). Hear you loud and clear, 9th. Everyone else went quiet.</li><li>Dedicated Groundings (lowers dangers from electricity). Don't be the fool caught out in a storm. Plan ahead.</li></ul><p>Lowers dangers from one chosen source: Peril becomes a Risk, Risk becomes Nothing.</p>"
 		},
 		"astir-part:heat-condensers": {
 			"name": "Advanced Cooling System",
-			"description": "<p>Stopping to vent heat mid-fight can make you a sitting duck—it makes sense then that many pilots who'd rather not risk it invest in specialized coolant radiators.</p><p>Untick 'overheating' from your Astir.</p>"
+			"description": "<p>Specialized burst radiators enable some astir pilots to regularly push their systems past recommended limits with little risk.</p><p>Untick 'overheating' from your Astir.</p>"
 		},
 		"ardent-feature:armour-plating": {
-			"name": "Composite Hull Plating",
+			"name": "Composite Plating",
 			"description": "<p>Layered composite plating bolted directly onto the frame, thick enough to matter without slowing the Ardent down too badly.</p><p>You may use this once per Sortie to reduce an incoming source of harm from a peril to a risk, or from a risk to nothing (+ward).</p>"
 		},
 		"ardent-feature:chromatic-reserves": {
@@ -53,7 +53,7 @@
 	"astirWeapons": {
 		"astir-fists": {
 			"name": "Reinforced Fists",
-			"description": "Every Astir can fall back on its reinforced fists, but they don't make for graceful brawlers. Also seen as Concealed Vibro-Blades, Close-Range Chainguns, or a Mining Drill."
+			"description": "Every Astir can fall back on its reinforced fists, but most make for clumsy brawlers. Also seen as Concealed Vibro-Blades, Close-Range Chainguns, or a Mining Drill."
 		},
 		"forceknife": {
 			"name": "Vibroblade",
@@ -61,7 +61,7 @@
 		},
 		"force-repeater": {
 			"name": "Auxiliary Machine Gun",
-			"description": "A fully automatic, large caliber machine gun firing kinetic rounds, serving as an effective reserve weapon. Also seen as a Sidearm, Mining Laser, or Point-Defense Turret."
+			"description": "A fully automatic, small caliber machine gun firing kinetic rounds, serving as an effective reserve weapon. Also seen as a Sidearm, Mining Laser, or Point-Defense Turret."
 		},
 		"rayrifle": {
 			"name": "Beam Rifle",
@@ -81,11 +81,11 @@
 		},
 		"forceblade": {
 			"name": "Beam Saber",
-			"description": "Your typical, garden-variety sword made out of a projected energy blade. It cuts well and won't explode - what else do you want? Also seen as a Thermal Cutter or a Pneumatic Hammer."
+			"description": "Your standard, garden-variety sword made from projected energy. It cuts well and won't explode - what else do you want? Also seen as a Thermal Cutter or a Pneumatic Hammer."
 		},
 		"blazewands": {
 			"name": "Thermite Arrays",
-			"description": "Arranged in paired racks and loaded with thermite charges, short-range launchers are a common and potent weapon when it comes to arming Astirs. Also seen as Acid Pods or a Plasma Mortar."
+			"description": "Arranged in paired racks and loaded with thermite charges, these short-range launchers are a common and potent weapon when it comes to arming Astirs. Also seen as Acid Pods or a Plasma Mortar."
 		},
 		"novawhip": {
 			"name": "Nanite Whip",
@@ -93,7 +93,7 @@
 		},
 		"overcharged-bolts": {
 			"name": "Gauss Cannon",
-			"description": "If you need something punchier, you can take perfectly standard Astir hardware—a basic railgun, for example—and simply feed it far, far more reactor power than expected. Also seen as an Ion Cannon, Gauss Rifle, or an Overcharged Railgun."
+			"description": "If you need something punchier, you can take perfectly standard Astir hardware—a kinetic launcher, for example—and simply feed it far, far more reactor power than expected. Also seen as an Ion Cannon, Gauss Rifle, or an Overcharged Railgun."
 		},
 		"chaos-revolver": {
 			"name": "Fusion Pistol",
@@ -113,7 +113,7 @@
 		},
 		"claw-familiar": {
 			"name": "Crow Drone",
-			"description": "Sharp-clawed constructs of servo-driven metal and composite plating.  Winged and black, their silhouettes earned them the 'Crow Drone' moniker. Also seen as Hunter-Killer Units, Phantom Drones, or Saw Drones. Drone — requires a Drone Control Bay Astir Part; rolls +CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear automatically during Downtime."
+			"description": "Sharp-clawed, rocket powered drones made from metal and composite plating.  Winged and black, their silhouettes earned them the 'Crow Drone' moniker. Also seen as Hunter-Killer Units, Phantom Drones, or Saw Drones. Drone — requires a Drone Control Bay Astir Part; rolls +CHANNEL for Exchange Blows and Strike Decisively; perils from its loss clear automatically during Downtime."
 		},
 		"ardent-feature:bolt-sigils": {
 			"name": "Electrified Edge",

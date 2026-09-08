@@ -9,6 +9,7 @@ import { BASIC_MOVES, SPECIAL_MOVES } from "../../moves/moves.js";
 import { ARDENT_DEFAULT_NAME, ARDENT_PART_CATALOG } from "../../frames/ardent.js";
 import { resolveWitchBoons } from "../witch.js";
 import { findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
+import { customizedMove, isCustomizableMoveKey, isMoveCustomizationEnabled, moveCustomizationOverrides } from "../../moves/move-customization.js";
 
 // Basic, Special and Playbook moves' shared roll pipeline (see claude.md's Moves sections) — move
 // definitions themselves live in moves.js/playbook-moves.js/astir.js/ardent.js; this mixin owns
@@ -249,6 +250,8 @@ export const MovesSheetMixin = {
 	},
 	_moveGroupMoves(moves) {
 		const channelDisabled = this._channelDisabled();
+		const customizationEnabled = isMoveCustomizationEnabled();
+		const overrides = moveCustomizationOverrides(this.actor, customizationEnabled);
 		// Never Quite Free (see playbook-moves.js's disablesMove) — the inverse of
 		// grantsUnpilotedAstirMove: a picked move can explicitly gate a different move rather
 		// than ungate one. Resolved once here, same shape channelDisabled already establishes,
@@ -262,6 +265,7 @@ export const MovesSheetMixin = {
 		const playbookMoveKeys = this._playbookMoves();
 		const installedPartKeys = this._astirParts().map((part) => part.key);
 		return moves.map((move) => {
+			const displayMove = customizedMove(move, overrides);
 			const traits = this._moveTraits(move);
 			// Read-the-room's roll-tiered hold lives in pbta's shared system.resources.hold
 			// field; every flatHold move's roll-less hold is tracked separately, one pool per
@@ -349,7 +353,7 @@ export const MovesSheetMixin = {
 				: null;
 			return {
 				key: move.key,
-				name: move.name,
+				name: displayMove.name,
 				traits,
 				// True when a move normally rolls a stat trait but every one of those traits is
 				// currently disabled for this actor (e.g. Weave Magic without Channel — a move
@@ -490,7 +494,12 @@ export const MovesSheetMixin = {
 				// `false`) for every other move, same reasoning as summonedAllyInfo/gatedTooltip above:
 				// avoids touching every other move's entry in the moveGroups toEqual test for a flag
 				// that, structurally, only one move in the game's content will ever set.
-				...(move.variableDicePool && { variableDiceRoll: true })
+				...(move.variableDicePool && { variableDiceRoll: true }),
+				// Renders the Edit button (move-roll-mixin.js's _onMoveCustomize) — gated on both the
+				// GM setting and catalog eligibility (move-customization.js), so Basic/Special Moves,
+				// the Astir's unique move and true Ardent Features never get one. Omitted (not `false`)
+				// for the same reason as variableDiceRoll above.
+				...(customizationEnabled && isCustomizableMoveKey(move.key) && { customizable: true })
 			};
 		});
 	}

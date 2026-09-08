@@ -9,6 +9,7 @@ import {
 	registerReadyHook
 } from "../scripts/main.js";
 import { ALL_MOVES } from "../scripts/moves/all-moves.js";
+import { ENABLE_MOVE_CUSTOMIZATION_SETTING } from "../scripts/moves/move-customization.js";
 import { EQUIPMENT_CATALOG } from "../scripts/equipment/equipment.js";
 import { resetToBaseline } from "../scripts/reflavor/reflavor-apply.js";
 import { resetCustomContent } from "../scripts/custom-content/custom-content-apply.js";
@@ -59,6 +60,14 @@ describe("registerInitHook", () => {
 
 		expect(game.settings.register).toHaveBeenCalledWith(MODULE_ID, "reflavorData", expect.any(Object));
 		expect(game.settings.registerMenu).toHaveBeenCalledWith(MODULE_ID, "reflavorMenu", expect.any(Object));
+	});
+
+	it("registers the move customization world setting when the hook fires", () => {
+		registerInitHook();
+		const callback = Hooks.once.mock.calls.at(-1)[1];
+		callback();
+
+		expect(game.settings.register).toHaveBeenCalledWith(MODULE_ID, ENABLE_MOVE_CUSTOMIZATION_SETTING, expect.any(Object));
 	});
 });
 

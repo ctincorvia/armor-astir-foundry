@@ -247,7 +247,8 @@
 }
 
 .armor-astir.sheet .move-description,
-.armor-astir.sheet .equipment-edit {
+.armor-astir.sheet .equipment-edit,
+.armor-astir.sheet .move-customize {
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
 	background: transparent;
@@ -262,12 +263,14 @@
 }
 
 .armor-astir.sheet .move-description:not(.disabled):hover,
-.armor-astir.sheet .equipment-edit:hover {
+.armor-astir.sheet .equipment-edit:hover,
+.armor-astir.sheet .move-customize:hover {
 	background: var(--aa-primary-tint);
 }
 
 .armor-astir.sheet .move-description:not(.disabled):active,
-.armor-astir.sheet .equipment-edit:active {
+.armor-astir.sheet .equipment-edit:active,
+.armor-astir.sheet .move-customize:active {
 	background: var(--aa-primary-tint);
 	transform: scale(0.96);
 }

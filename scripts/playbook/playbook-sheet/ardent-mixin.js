@@ -19,6 +19,7 @@ import {
 	buildArdent,
 	isAceFeaturePart
 } from "../../frames/ardent.js";
+import { customizedMove, isCustomizableMoveKey, isMoveCustomizationEnabled, moveCustomizationOverrides } from "../../moves/move-customization.js";
 
 // Ardents (see docs/domains/frames.md's Ardents section) — a cheaper, more limited pilotable frame than the
 // Astir, and unlike it a character may have any number. Mounting (Piloted) is shared, generic
@@ -55,6 +56,8 @@ export const ArdentSheetMixin = {
 	// passed in here rather than recomputed.
 	_ardentsData(ardents, equipment, ardentWeaponEntriesById) {
 		const ardentFeatureCap = ardentFeatureMax(resolvePlaybookMoves(this._playbookMoves()));
+		const customizationEnabled = isMoveCustomizationEnabled();
+		const overrides = moveCustomizationOverrides(this.actor, customizationEnabled);
 		return ardents.map((ardent) => {
 			const allParts = resolveAstirParts(ardent.parts ?? [], ARDENT_PART_CATALOG);
 			const parts = allParts.filter((part) => !isAceFeaturePart(part.key));
@@ -72,10 +75,15 @@ export const ArdentSheetMixin = {
 			const featureWeapons = allWeapons.filter((weapon) => weapon.commanderFeature);
 			const mapPart = (part) => ({
 				key: part.key,
-				name: part.name,
+				name: customizedMove(part, overrides).name,
 				partType: part.partType,
 				tier: ardent.tier ?? ARDENT_TIER_DEFAULT,
-				disabled: this._isPartDisabled(part.key)
+				disabled: this._isPartDisabled(part.key),
+				// A genuine ARDENT_PART_CATALOG part (== ASTIR_PART_CATALOG — see ardent.js) is
+				// eligible; a true Ardent Feature (ARDENT_FEATURE_PARTS) fails isCustomizableMoveKey
+				// and is naturally excluded, since it isn't in either catalog move-customization.js
+				// builds its eligibility set from.
+				...(customizationEnabled && isCustomizableMoveKey(part.key) && { customizable: true })
 			});
 			return {
 				id: ardent.id,

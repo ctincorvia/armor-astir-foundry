@@ -81,6 +81,9 @@
 										{{/if}}
 										<button type="button" class="move-description{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}}>Chat</button>
 										<button type="button" class="move-info{{#if descriptionGated}} disabled{{/if}}" data-move="{{key}}" {{#if descriptionGated}}disabled{{/if}} aria-label="{{name}} rules text">?</button>
+										{{#if customizable}}
+										<button type="button" class="move-customize" data-move="{{key}}" aria-label="Edit {{name}}">Edit</button>
+										{{/if}}
 										{{#if ../removable}}
 										<button type="button" class="playbook-move-remove" data-move="{{key}}" aria-label="Remove playbook move">✕</button>
 										{{/if}}

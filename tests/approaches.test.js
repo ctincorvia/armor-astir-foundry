@@ -21,8 +21,8 @@ describe("availableApproaches", () => {
 		expect(availableApproaches("the-commander").map((a) => a.key)).toEqual(["mundane"]);
 	});
 
-	it("restricts The Impostor to Arcane or Elemental", () => {
-		expect(availableApproaches("the-impostor").map((a) => a.key)).toEqual(["arcane", "elemental"]);
+	it("restricts The Impostor to profane or elemental", () => {
+		expect(availableApproaches("the-impostor").map((a) => a.key)).toEqual(["profane", "elemental"]);
 	});
 
 	it("restricts The Arcanist to Arcane or Elemental", () => {

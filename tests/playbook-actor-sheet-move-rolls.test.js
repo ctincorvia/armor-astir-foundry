@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	...(await importOriginal()),
@@ -14,9 +14,16 @@ vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal)
 	chooseCarrier: vi.fn()
 }));
 
+vi.mock("../scripts/moves/move-customization-dialogs.js", async (importOriginal) => ({
+	...(await importOriginal()),
+	configureMoveCustomization: vi.fn()
+}));
+
 import { BASIC_MOVES, configureMoveRoll, rollMove } from "../scripts/moves/moves.js";
 import { UNARMED } from "../scripts/equipment/equipment.js";
 import { findCarrierActors, chooseCarrier } from "../scripts/world-actors/carrier-actor-sheet.js";
+import { configureMoveCustomization } from "../scripts/moves/move-customization-dialogs.js";
+import { MODULE_ID } from "../scripts/module-id.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
 	EXCHANGE_BLOWS, STRIKE_DECISIVELY, BITE_THE_DUST, WEAVE_MAGIC, LEAD_A_SORTIE, DENY, I_KNOW_YOU, BUREAUCRAT,
@@ -804,5 +811,114 @@ describe("PlaybookActorSheet#_onMoveRoll - Masking Boon full round trip", () => 
 			tier: "success",
 			resultText: MASKING_BOON.results.success
 		}));
+	});
+});
+
+// _resolveAnyMove's own move-customization wiring (move-customization.js) — every caller
+// (_onMoveRoll above, _onMoveActivate, _onMoveDescription, _onMoveInfo, move-tracking-mixin.js)
+// gets a customized name/description for free through this one choke point.
+describe("PlaybookActorSheet#_resolveAnyMove - move customization overrides", () => {
+	afterEach(() => {
+		game.settings.get.mockReset();
+	});
+
+	it("returns the move unchanged by reference when the setting is off, without ever calling actor.getFlag", () => {
+		const sheet = new PlaybookActorSheet();
+		const getFlag = vi.fn();
+		sheet.actor = { system: {}, getFlag };
+
+		expect(sheet._resolveAnyMove(DENY.key)).toBe(DENY);
+		expect(getFlag).not.toHaveBeenCalled();
+	});
+
+	it("applies a saved override's name/description onto an eligible move when the setting is on", () => {
+		game.settings.get.mockReturnValue(true);
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {},
+			getFlag: vi.fn(() => ({ [DENY.key]: { name: "Refuse", description: "A custom refusal." } }))
+		};
+
+		expect(sheet._resolveAnyMove(DENY.key)).toEqual({ ...DENY, name: "Refuse", description: "A custom refusal." });
+	});
+
+	it("leaves an ineligible move (a Basic Move) unchanged even with a stray override on record", () => {
+		game.settings.get.mockReturnValue(true);
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {},
+			getFlag: vi.fn(() => ({ [EXCHANGE_BLOWS.key]: { name: "Trade Blows", description: "x" } }))
+		};
+
+		expect(sheet._resolveAnyMove(EXCHANGE_BLOWS.key)).toBe(EXCHANGE_BLOWS);
+	});
+
+	it("returns null for an unrecognized key regardless of the setting, without ever calling actor.getFlag", () => {
+		game.settings.get.mockReturnValue(true);
+		const sheet = new PlaybookActorSheet();
+		const getFlag = vi.fn();
+		sheet.actor = { system: {}, getFlag };
+
+		expect(sheet._resolveAnyMove("not-a-real-move")).toBeNull();
+		expect(getFlag).not.toHaveBeenCalled();
+	});
+});
+
+describe("PlaybookActorSheet#_onMoveCustomize", () => {
+	afterEach(() => {
+		game.settings.get.mockReset();
+		configureMoveCustomization.mockReset();
+	});
+
+	it("does nothing when the customization setting is off", async () => {
+		const sheet = new PlaybookActorSheet();
+		const update = vi.fn();
+		const getFlag = vi.fn();
+		sheet.actor = { system: {}, getFlag, update };
+
+		await sheet._onMoveCustomize({ currentTarget: { dataset: { move: DENY.key } } });
+
+		expect(configureMoveCustomization).not.toHaveBeenCalled();
+		expect(getFlag).not.toHaveBeenCalled();
+		expect(update).not.toHaveBeenCalled();
+	});
+
+	it("does nothing for an ineligible key even when the setting is on", async () => {
+		game.settings.get.mockReturnValue(true);
+		const sheet = new PlaybookActorSheet();
+		const update = vi.fn();
+		sheet.actor = { system: {}, getFlag: vi.fn(), update };
+
+		await sheet._onMoveCustomize({ currentTarget: { dataset: { move: EXCHANGE_BLOWS.key } } });
+
+		expect(configureMoveCustomization).not.toHaveBeenCalled();
+		expect(update).not.toHaveBeenCalled();
+	});
+
+	it("opens the dialog against the current effective display and saves a confirmed result", async () => {
+		game.settings.get.mockReturnValue(true);
+		configureMoveCustomization.mockResolvedValue({ name: "Refuse", description: "A custom refusal." });
+		const sheet = new PlaybookActorSheet();
+		const update = vi.fn();
+		sheet.actor = { system: {}, getFlag: vi.fn(() => ({})), update };
+
+		await sheet._onMoveCustomize({ currentTarget: { dataset: { move: DENY.key } } });
+
+		expect(configureMoveCustomization).toHaveBeenCalledWith(DENY);
+		expect(update).toHaveBeenCalledWith({
+			[`flags.${MODULE_ID}.moveCustomizations`]: { [DENY.key]: { name: "Refuse", description: "A custom refusal." } }
+		});
+	});
+
+	it("does not save anything when the dialog is cancelled", async () => {
+		game.settings.get.mockReturnValue(true);
+		configureMoveCustomization.mockResolvedValue(null);
+		const sheet = new PlaybookActorSheet();
+		const update = vi.fn();
+		sheet.actor = { system: {}, getFlag: vi.fn(() => ({})), update };
+
+		await sheet._onMoveCustomize({ currentTarget: { dataset: { move: DENY.key } } });
+
+		expect(update).not.toHaveBeenCalled();
 	});
 });

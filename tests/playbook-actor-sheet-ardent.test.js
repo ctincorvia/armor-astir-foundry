@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Only the picker dialogs are mocked — the catalogs and helpers stay real, so the sheet is
 // exercised against the actual Astir Part/Weapon content Ardents can also use.
@@ -1173,5 +1173,43 @@ describe("PlaybookActorSheet#getData - ardents extraParts/extraWeapons", () => {
 		};
 
 		expect(sheet.getData().ardents[0].loadoutFull).toBe(false);
+	});
+});
+
+// The Edit button's own `customizable` flag (move-customization.js) — a genuine ARDENT_PART_CATALOG
+// part (== ASTIR_PART_CATALOG, see ardent.js) is eligible, so this is gated purely on the world
+// setting; a true Ardent Feature is covered separately (playbook-actor-sheet-commander.test.js).
+describe("PlaybookActorSheet#getData - ardent parts/extraParts customizable flag", () => {
+	afterEach(() => {
+		game.settings.get.mockReset();
+	});
+
+	it("omits customizable from parts/extraParts when the setting is off, without ever calling actor.getFlag", () => {
+		const sheet = new PlaybookActorSheet();
+		const getFlag = vi.fn();
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", parts: [WARDING.key], extraParts: [ARTIFACT.key] }] } },
+			getFlag
+		};
+
+		const [ardent] = sheet.getData().ardents;
+
+		expect(ardent.parts[0].customizable).toBeUndefined();
+		expect(ardent.extraParts[0].customizable).toBeUndefined();
+		expect(getFlag).not.toHaveBeenCalled();
+	});
+
+	it("marks parts and extraParts customizable, and shows an overridden name, when the setting is on", () => {
+		game.settings.get.mockReturnValue(true);
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", parts: [WARDING.key], extraParts: [ARTIFACT.key] }] } },
+			getFlag: vi.fn(() => ({ [WARDING.key]: { name: "Renamed Ward", description: "Custom." } }))
+		};
+
+		const [ardent] = sheet.getData().ardents;
+
+		expect(ardent.parts[0]).toMatchObject({ customizable: true, name: "Renamed Ward" });
+		expect(ardent.extraParts[0]).toMatchObject({ customizable: true, name: ARTIFACT.name });
 	});
 });

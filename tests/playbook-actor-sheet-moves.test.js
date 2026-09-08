@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // findCarrierActors defaults to no Carriers in the world, matching this file's existing
 // fixtures' behavior under the real implementation (game.actors.filter defaults to [] — see
@@ -11,7 +11,7 @@ vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal)
 
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
-import { MASKING_BOON, TRICKSTERS_BOON } from "./helpers/move-fixtures.js";
+import { DENY, MASKING_BOON, TRICKSTERS_BOON } from "./helpers/move-fixtures.js";
 
 beforeEach(() => {
 	findCarrierActors.mockClear();
@@ -446,5 +446,60 @@ describe("PlaybookActorSheet#getData - moves - Prepared Rituals", () => {
 
 		expect(entry.rollable).toBe(false);
 		expect(entry.activatable).toBe(false);
+	});
+});
+
+// The Edit button's own `customizable` flag (move-customization.js), added to _moveGroupMoves'
+// per-move shape via the file's existing conditional-spread idiom — see moves-mixin.js.
+describe("PlaybookActorSheet#getData - moves - customizable flag", () => {
+	afterEach(() => {
+		game.settings.get.mockReset();
+	});
+
+	it("omits customizable from every move when the setting is off, without ever calling actor.getFlag", () => {
+		const sheet = new PlaybookActorSheet();
+		const getFlag = vi.fn();
+		sheet.actor = { system: { stats: {}, attributes: { playbookMoves: [DENY.key] } }, getFlag };
+
+		const data = sheet.getData();
+
+		for (const group of data.moveGroups) {
+			for (const move of group.moves) expect(move.customizable).toBeUndefined();
+		}
+		expect(getFlag).not.toHaveBeenCalled();
+	});
+
+	it("marks an eligible Playbook Move customizable, and leaves Basic/Special Moves alone, when the setting is on", () => {
+		game.settings.get.mockReturnValue(true);
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: {}, attributes: { playbookMoves: [DENY.key] } },
+			getFlag: vi.fn(() => ({}))
+		};
+
+		const data = sheet.getData();
+
+		const playbookMoves = data.moveGroups.find((group) => group.label === "Playbook Moves");
+		expect(playbookMoves.moves.find((move) => move.key === DENY.key).customizable).toBe(true);
+
+		const basicMoves = data.moveGroups.find((group) => group.label === "Basic Moves");
+		for (const move of basicMoves.moves) expect(move.customizable).toBeUndefined();
+
+		const specialMoves = data.moveGroups.find((group) => group.label === "Special Moves");
+		for (const move of specialMoves.moves) expect(move.customizable).toBeUndefined();
+	});
+
+	it("shows the overridden name on the Playbook Moves list when the setting is on", () => {
+		game.settings.get.mockReturnValue(true);
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { stats: {}, attributes: { playbookMoves: [DENY.key] } },
+			getFlag: vi.fn(() => ({ [DENY.key]: { name: "Refuse", description: "A custom refusal." } }))
+		};
+
+		const data = sheet.getData();
+
+		const playbookMoves = data.moveGroups.find((group) => group.label === "Playbook Moves");
+		expect(playbookMoves.moves.find((move) => move.key === DENY.key).name).toBe("Refuse");
 	});
 });

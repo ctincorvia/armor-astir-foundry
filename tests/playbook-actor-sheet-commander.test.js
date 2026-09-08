@@ -407,6 +407,27 @@ describe("PlaybookActorSheet#getData - Ardent Feature pool split", () => {
 		]);
 	});
 
+	// A true Ardent Feature (ARDENT_FEATURE_PARTS) is never customizable — it fails
+	// isCustomizableMoveKey (move-customization.js's eligibility set is built from
+	// ALL_PLAYBOOK_MOVES/ASTIR_PART_CATALOG only), so it must stay unmarked even with the setting on.
+	it("never marks a true Ardent Feature part customizable, even with the customization setting on", () => {
+		game.settings.get.mockReturnValue(true);
+		const sheet = new PlaybookActorSheet();
+		const featurePart = ARDENT_FEATURE_PARTS[0];
+		sheet.actor = {
+			system: {
+				attributes: { ardents: [{ id: "ar1", name: "Custom Ardent", tier: 2, parts: [featurePart.key] }] }
+			},
+			getFlag: vi.fn(() => ({}))
+		};
+
+		const data = sheet.getData();
+
+		expect(data.ardents[0].featureParts[0].customizable).toBeUndefined();
+
+		game.settings.get.mockReset();
+	});
+
 	it("splits an Ardent's commanderFeature weapons out of the baseline weapons list", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {

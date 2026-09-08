@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Only the picker dialogs are mocked — the catalogs and helpers stay real, so the sheet is
 // exercised against the actual Astir Part/Move/Weapon content.
@@ -1046,5 +1046,44 @@ describe("PlaybookActorSheet#getData - astir extraParts/extraWeapons", () => {
 		};
 
 		expect(sheet.getData().astir.potions).toEqual({ red: false, blue: false, yellow: false });
+	});
+});
+
+// The Edit button's own `customizable` flag (move-customization.js) — every ASTIR_PART_CATALOG
+// entry is eligible, so this is gated purely on the world setting.
+describe("PlaybookActorSheet#getData - astir parts/extraParts customizable flag", () => {
+	afterEach(() => {
+		game.settings.get.mockReset();
+	});
+
+	it("omits customizable from parts/extraParts when the setting is off, without ever calling actor.getFlag", () => {
+		const sheet = new PlaybookActorSheet();
+		const [partA, partB] = ASTIR_PART_CATALOG;
+		const getFlag = vi.fn();
+		sheet.actor = {
+			system: { stats: {}, attributes: { astir: { id: "a1", tier: 3, power: 4, parts: [partA.key], extraParts: [partB.key], move: null } } },
+			getFlag
+		};
+
+		const data = sheet.getData();
+
+		expect(data.astir.parts[0].customizable).toBeUndefined();
+		expect(data.astir.extraParts[0].customizable).toBeUndefined();
+		expect(getFlag).not.toHaveBeenCalled();
+	});
+
+	it("marks parts and extraParts customizable, and shows an overridden name, when the setting is on", () => {
+		game.settings.get.mockReturnValue(true);
+		const sheet = new PlaybookActorSheet();
+		const [partA, partB] = ASTIR_PART_CATALOG;
+		sheet.actor = {
+			system: { stats: {}, attributes: { astir: { id: "a1", tier: 3, power: 4, parts: [partA.key], extraParts: [partB.key], move: null } } },
+			getFlag: vi.fn(() => ({ [partA.key]: { name: "Renamed Part", description: "Custom." } }))
+		};
+
+		const data = sheet.getData();
+
+		expect(data.astir.parts[0]).toMatchObject({ customizable: true, name: "Renamed Part" });
+		expect(data.astir.extraParts[0]).toMatchObject({ customizable: true, name: partB.name });
 	});
 });

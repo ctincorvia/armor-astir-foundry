@@ -513,7 +513,8 @@
 	color: var(--aa-primary-dark);
 }
 
-.armor-astir.equipment-editor .form-group {
+.armor-astir.equipment-editor .form-group,
+.armor-astir.move-customization-editor .form-group {
 	display: flex;
 	flex-direction: column;
 	align-items: stretch;
@@ -529,7 +530,8 @@
    with extra space above the text. Scoped to a direct .form-group child so it only catches these
    six field labels, not the per-option labels nested deeper (.equipment-editor-tag-option,
    .equipment-editor-weapon-range-option), which already carry their own distinct styling. */
-.armor-astir.equipment-editor .form-group > label {
+.armor-astir.equipment-editor .form-group > label,
+.armor-astir.move-customization-editor .form-group > label {
 	line-height: 1;
 	font-weight: 700;
 	color: var(--aa-primary-dark);
