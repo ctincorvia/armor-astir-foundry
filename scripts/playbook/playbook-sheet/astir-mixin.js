@@ -156,15 +156,12 @@ export const AstirSheetMixin = {
 	_astirParts() {
 		return resolveAstirParts(this._astirPartKeys());
 	},
-	// Recomputes Power/Weapon Power against a prospective parts/equipment state and, when the result
-	// is negative, forces Piloted off with a warning — an Astir with negative Power represents an
-	// unsustainable loadout and can't be piloted (see docs/domains/frames.md's Piloted note; mirrors
-	// _onAstirPilotedToggle's own guard against manually re-checking it in that state). Returns the
-	// patch to spread into whatever update call triggered the recompute (a part or Astir weapon
-	// add/edit/remove).
-	_astirPowerUpdates(astir, { parts = this._astirPartKeys(astir), equipment = this._equipment() } = {}) {
-		const power = Math.min(astir.power ?? 0, astirMaxPower(parts, equipment));
-		const weaponPower = Math.min(astir.weaponPower ?? 0, astirMaxWeaponPower(parts, equipment));
+	// Shared clamp-and-guard tail for both _astirPowerUpdates and _astirPowerRestoreUpdates: builds the
+	// Power/Weapon Power update patch and, when the resulting Power is negative, forces Piloted off
+	// with a warning — an Astir with negative Power represents an unsustainable loadout and can't be
+	// piloted (see docs/domains/frames.md's Piloted note; mirrors _onAstirPilotedToggle's own guard
+	// against manually re-checking it in that state).
+	_astirPowerBoundsUpdates(astir, power, weaponPower) {
 		const updates = {
 			"system.attributes.astir.power": power,
 			"system.attributes.astir.weaponPower": weaponPower
@@ -174,6 +171,23 @@ export const AstirSheetMixin = {
 			ui.notifications.warn("This Astir's Power is negative — Piloted has been turned off.");
 		}
 		return updates;
+	},
+	// Recomputes Power/Weapon Power against a prospective parts/equipment state, clamping downward
+	// only — used when a part or Astir weapon add/edit/remove may have lowered the max. Returns the
+	// patch to spread into whatever update call triggered the recompute.
+	_astirPowerUpdates(astir, { parts = this._astirPartKeys(astir), equipment = this._equipment() } = {}) {
+		return this._astirPowerBoundsUpdates(
+			astir,
+			Math.min(astir.power ?? 0, astirMaxPower(parts, equipment)),
+			Math.min(astir.weaponPower ?? 0, astirMaxWeaponPower(parts, equipment))
+		);
+	},
+	// Refresh Sortie's "Power comes back at the start of a new Sortie" reset — unlike
+	// _astirPowerUpdates' downward-only reclamp (a reaction to something else lowering the max),
+	// this sets Power/Weapon Power straight to their derived max. Reuses the same piloted-off
+	// guard for the (rare) case a heavily-Drained loadout's max is itself negative.
+	_astirPowerRestoreUpdates(astir, { parts = this._astirPartKeys(astir), equipment = this._equipment() } = {}) {
+		return this._astirPowerBoundsUpdates(astir, astirMaxPower(parts, equipment), astirMaxWeaponPower(parts, equipment));
 	},
 	// Flourish Component's "regain 1 Power when you roll doubles" — clamped to the derived max the
 	// same way _onAstirPowerStep's manual stepper already is.

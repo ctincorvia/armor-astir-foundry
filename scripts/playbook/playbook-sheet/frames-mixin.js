@@ -392,12 +392,11 @@ export const FramesSheetMixin = {
 				ardent.extraParts?.length ? { ...ardent, extraParts: [] } : ardent
 			));
 		}
-		// Extra Parts/Weapons are gone after this click, so Power/Weapon Power reclamp against the
-		// regular-only loadout — the same recompute a manual part/weapon removal already triggers via
-		// _astirPowerUpdates — in case an Extra Part granted Weapon Power capacity or an Extra Weapon
-		// carried Drain.
+		// Power/Weapon Power come back to full on Refresh Sortie, computed against the post-Extra-
+		// Parts-wipe loadout (regular parts/equipment only, since Extra Parts/Weapons are gone by
+		// this point in the update).
 		if (astir) {
-			Object.assign(updates, this._astirPowerUpdates(astir, {
+			Object.assign(updates, this._astirPowerRestoreUpdates(astir, {
 				parts: astir.parts ?? [],
 				equipment: updates["system.attributes.equipment"] ?? this._equipment()
 			}));

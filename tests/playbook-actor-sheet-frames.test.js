@@ -16,7 +16,7 @@ vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal)
 }));
 
 import { PLAYBOOKS } from "../scripts/actor-creation.js";
-import { ASTIR_DEFAULT_IMG, ASTIR_PART_CATALOG, astirMaxPower } from "../scripts/frames/astir.js";
+import { ASTIR_DEFAULT_IMG, ASTIR_PART_CATALOG, astirMaxPower, astirMaxWeaponPower } from "../scripts/frames/astir.js";
 import { ALL_PLAYBOOK_MOVES } from "../scripts/moves/playbook-moves.js";
 import { chooseFrame, ARDENT_FEATURE_PARTS } from "../scripts/frames/ardent.js";
 import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
@@ -939,11 +939,33 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.downtimeTokens.value": 2,
 			[`system.attributes.moveTrackers.${CHROMATIC_RESERVES.key}.uses`]: 3,
 			[`system.attributes.moveTrackers.${TACTICAL_GENIUS.key}.hold`]: 1,
-			// The end-of-method Power reclamp against the regular-only loadout (no Extra Parts stored
-			// here) — Alchemical Suite's own -2 Power cost, already reflected before this refresh.
-			"system.attributes.astir.power": 0,
+			// The end-of-method Power restore-to-max against the regular-only loadout (no Extra Parts
+			// stored here) — base 4 minus Alchemical Suite's own -2 Power cost = 2; no Weapon Conduit,
+			// so Weapon Power's max (and restored value) stays 0.
+			"system.attributes.astir.power": 2,
 			"system.attributes.astir.weaponPower": 0
 		});
+	});
+
+	it("restores both Power and Weapon Power to their derived max, not just the pre-refresh value clamped downward", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", power: 1, weaponPower: 0, parts: [WEAPON_CONDUIT.key] }
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onRefreshSortie();
+
+		expect(sheet.actor.update).toHaveBeenCalledWith(
+			expect.objectContaining({
+				"system.attributes.astir.power": astirMaxPower([WEAPON_CONDUIT.key], []),
+				"system.attributes.astir.weaponPower": astirMaxWeaponPower([WEAPON_CONDUIT.key], [])
+			})
+		);
 	});
 
 	it("does not add a potions field when Alchemical Suite is not installed", () => {
