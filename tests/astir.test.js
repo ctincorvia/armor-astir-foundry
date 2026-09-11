@@ -909,6 +909,19 @@ describe("astirMoveSections — customMoves", () => {
 			expect(keys).not.toContain("custom:group-b");
 			expect(keys).toContain("custom:unrelated");
 		});
+
+		it("does not also render a registered custom move in the Astir Moves section", () => {
+			applyCustomContent({
+				moves: [{ key: "custom:dupe-check", name: "Dupe Check", traits: [], description: "d" }]
+			});
+
+			const sections = astirMoveSections("The Alpha", [], FIXTURE_POOLS, undefined, []);
+			const custom = sections.find((s) => s.key === "custom-moves");
+			const astirMoves = sections.find((s) => s.key === "astir-moves");
+
+			expect(custom.moves.map((m) => m.key)).toContain("custom:dupe-check");
+			expect(astirMoves?.moves.map((m) => m.key) ?? []).not.toContain("custom:dupe-check");
+		});
 	});
 });
 

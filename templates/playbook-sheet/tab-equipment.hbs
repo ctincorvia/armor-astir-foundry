@@ -1,5 +1,6 @@
 				<div class="tab" data-group="primary" data-tab="equipment">
 					<section class="equipment">
+						{{#unless equipment.mounted}}
 						<div class="section-header">
 							<h3>Weapons</h3>
 							<div class="section-header-actions">
@@ -16,6 +17,7 @@
 							{{> "modules/armor-astir/templates/shared/equipment-card.hbs" controls=true disabledToggle=true}}
 							{{/each}}
 						</ol>
+						{{/unless}}
 						{{#if equipment.astirWeapons.length}}
 						<div class="section-header">
 							<h3>Astir Weapons</h3>

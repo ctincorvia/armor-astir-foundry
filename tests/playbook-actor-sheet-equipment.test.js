@@ -11,6 +11,7 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 		const data = sheet.getData();
 
 		expect(data.equipment).toEqual({
+			mounted: false,
 			weapons: [],
 			astirWeapons: [],
 			ardentWeapons: [],
@@ -172,8 +173,8 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 				// raises it and no frame is mounted.
 				tier: 1,
 				weaponMoves: [
-					{ key: "exchange-blows", name: "Exchange Blows", gated: false, tooltip: null },
-					{ key: "strike-decisively", name: "Strike Decisively", gated: false, tooltip: null }
+					{ key: "exchange-blows", name: "Exchange Blows", gated: false },
+					{ key: "strike-decisively", name: "Strike Decisively", gated: false }
 				],
 				isAstir: false,
 				commanderFeature: false,
@@ -483,6 +484,58 @@ describe("PlaybookActorSheet#getData - equipment", () => {
 
 		expect(ardentMountedData.equipment.astirWeapons).toEqual([]);
 		expect(ardentMountedData.equipment.ardentWeapons.map((w) => w.id)).toEqual(["2"]);
+	});
+
+	it("hides a foot-scale weapon from the Equipment tab once the Astir is piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", tier: 3, parts: [], piloted: true },
+					equipment: [
+						{ id: "1", kind: "weapon", name: "Rifle", description: "", tags: [], spent: [], scale: "foot", tier: 2 }
+					]
+				}
+			}
+		};
+
+		expect(sheet.getData().equipment.weapons).toEqual([]);
+	});
+
+	it("hides a foot-scale weapon from the Equipment tab once an Ardent is piloted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					ardents: [{ id: "ar1", tier: 2, parts: [], piloted: true }],
+					equipment: [
+						{ id: "1", kind: "weapon", name: "Rifle", description: "", tags: [], spent: [], scale: "foot", tier: 2 }
+					]
+				}
+			}
+		};
+
+		expect(sheet.getData().equipment.weapons).toEqual([]);
+	});
+
+	it("a foot-scale weapon reappears on the Equipment tab once dismounted", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					astir: { id: "a1", tier: 3, parts: [], piloted: true },
+					equipment: [
+						{ id: "1", kind: "weapon", name: "Rifle", description: "", tags: [], spent: [], scale: "foot", tier: 2 }
+					]
+				}
+			}
+		};
+
+		expect(sheet.getData().equipment.weapons).toEqual([]);
+
+		sheet.actor.system.attributes.astir.piloted = false;
+
+		expect(sheet.getData().equipment.weapons.map((w) => w.id)).toEqual(["1"]);
 	});
 });
 

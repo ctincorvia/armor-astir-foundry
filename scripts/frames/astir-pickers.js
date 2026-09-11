@@ -110,7 +110,9 @@ export async function chooseAstirWeapon(catalog = ASTIR_WEAPON_CATALOG, installe
 // `installedPartKeys` gates any move whose own requiresParts isn't fully met (mechanism only today
 // — ASTIR_MOVE_CATALOG's placeholder entry carries none — but every section built here, including
 // the actor's own playbook/Cantrips pools, gets the same Astir-Part gating via pickerSection's
-// extraTooltip hook, for whenever real content adds one).
+// extraTooltip hook, for whenever real content adds one). Astir Moves excludes any key also in
+// customMoves, since custom-content registration pushes into ASTIR_MOVE_CATALOG too (for
+// findAstirMove's lookup) and would otherwise render in both sections.
 export function astirMoveSections(
 	playbookName,
 	selectedKeys = [],
@@ -134,16 +136,16 @@ export function astirMoveSections(
 		if (section) sections.push(section);
 	}
 
+	const customMoveKeys = new Set(customMoves.map((move) => move.key));
 	const astirSection = pickerSection(
-		{ key: "astir-moves", label: "Astir Moves", moves: astirCatalog },
+		{ key: "astir-moves", label: "Astir Moves", moves: astirCatalog.filter((move) => !customMoveKeys.has(move.key)) },
 		selectedKeys,
 		{ extraTooltip }
 	);
 	if (astirSection) sections.push(astirSection);
 
-	// Every custom move added via the reflavor Config screen's custom-content system appears here
-	// too, unconditionally — see docs/domains/reflavor.md's moves subsection and
-	// playbook-moves.js#playbookMoveSections' identical block.
+	// Custom moves added via the reflavor Config screen's custom-content system — see
+	// docs/domains/reflavor.md's moves subsection.
 	const customSection = pickerSection({ key: "custom-moves", label: "Custom Moves", moves: customMoves }, selectedKeys, { extraTooltip });
 	if (customSection) sections.push(customSection);
 

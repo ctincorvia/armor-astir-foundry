@@ -71,13 +71,20 @@ export const EquipmentSheetMixin = {
 	// recomputed — see getData's own comment on why. Weapons get their own header per claude.md;
 	// gear is everything that isn't a weapon. astirWeapons/ardentWeapons are further filtered to
 	// the currently mounted frame (mirroring _weaponFrameId's gating of quick-roll buttons/spends
-	// elsewhere) since this is the read-only Equipment tab; weapons/gear aren't, since those are
-	// the plain unmounted-equipment lists with no frame to be mounted at all.
+	// elsewhere) since this is the read-only Equipment tab; mundane weapons get the same
+	// treatment — hidden entirely whenever any frame is mounted, mirroring Astir/Ardent weapons
+	// being hidden whenever their own frame isn't the one mounted — since a mundane weapon
+	// belongs to the character on foot. gear isn't filtered at all, since it's never
+	// frame-specific.
 	_equipmentData(equipment, weaponMoves, astirWeapons, ardentWeaponEntriesById, ardents, startingGearPool, mountedFrameId) {
+		const mounted = mountedFrameId !== null;
 		return {
-			weapons: equipment
-				.filter((item) => item.kind === "weapon" && !item.astir && !item.ardent)
-				.map((item) => this._equipmentEntry(item, weaponMoves)),
+			mounted,
+			weapons: mounted
+				? []
+				: equipment
+					.filter((item) => item.kind === "weapon" && !item.astir && !item.ardent)
+					.map((item) => this._equipmentEntry(item, weaponMoves)),
 			astirWeapons: mountedFrameId === "astir" ? astirWeapons : [],
 			ardentWeapons: ardents
 				.filter((ardent) => ardent.id === mountedFrameId)
@@ -118,7 +125,8 @@ export const EquipmentSheetMixin = {
 	// a stepper/select. A mundane weapon likewise never stores its own tier — it derives from
 	// _conflictTier().base, the character's own on-foot Tier, rather than the frame's (`.effective`
 	// would read as whichever frame is currently mounted, which is meaningless here: a mundane
-	// weapon is already gated off entirely while mounted — see _weaponGateTooltip).
+	// weapon is already hidden from the Equipment tab entirely while mounted — see
+	// _equipmentData's `mounted` gate).
 	_equipmentEntry(entry, weaponMoves = [], frame = null) {
 		// A forcesEffect tag (Unreliable) shows the same "used this period" checkbox as a
 		// player-opted spend, even though checking it happens automatically after a roll rather

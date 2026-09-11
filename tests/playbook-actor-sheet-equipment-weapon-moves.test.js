@@ -17,8 +17,8 @@ describe("PlaybookActorSheet#getData - weaponMoves", () => {
 		const data = sheet.getData();
 
 		expect(data.equipment.weapons[0].weaponMoves).toEqual([
-			{ key: "exchange-blows", name: "Exchange Blows", gated: false, tooltip: null },
-			{ key: "strike-decisively", name: "Strike Decisively", gated: false, tooltip: null }
+			{ key: "exchange-blows", name: "Exchange Blows", gated: false },
+			{ key: "strike-decisively", name: "Strike Decisively", gated: false }
 		]);
 	});
 
@@ -36,28 +36,8 @@ describe("PlaybookActorSheet#getData - weaponMoves", () => {
 		const data = sheet.getData();
 
 		expect(data.equipment.weapons[0].weaponMoves).toEqual([
-			{ key: "exchange-blows", name: "Exchange Blows", gated: true, tooltip: null },
-			{ key: "strike-decisively", name: "Strike Decisively", gated: true, tooltip: null }
-		]);
-	});
-
-	it("gates a mundane weapon's weaponMoves once the Astir is piloted", () => {
-		const sheet = new PlaybookActorSheet();
-		sheet.actor = {
-			system: {
-				stats: { clash: { value: 0 }, talk: { value: 0 } },
-				attributes: {
-					astir: { id: "a1", tier: 3, parts: [], move: null, piloted: true },
-					equipment: [{ id: "eq1", kind: "weapon", name: "Halberd", description: "", tags: [], spent: [], scale: "foot", tier: 1 }]
-				}
-			}
-		};
-
-		const data = sheet.getData();
-
-		expect(data.equipment.weapons[0].weaponMoves).toEqual([
-			{ key: "exchange-blows", name: "Exchange Blows", gated: true, tooltip: "Personal weapons are disabled when mounted. Dismount to use this weapon." },
-			{ key: "strike-decisively", name: "Strike Decisively", gated: true, tooltip: "Personal weapons are disabled when mounted. Dismount to use this weapon." }
+			{ key: "exchange-blows", name: "Exchange Blows", gated: true },
+			{ key: "strike-decisively", name: "Strike Decisively", gated: true }
 		]);
 	});
 

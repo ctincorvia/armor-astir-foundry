@@ -405,9 +405,10 @@ describe("PlaybookActorSheet#getData - astir", () => {
 		// (see _astirData's own weapons/extraWeapons split), so the two are content-equal rather than
 		// the same array reference whenever nothing is flagged extra, as here. Equipment tab's own
 		// astirWeapons is additionally mounted-frame-only (see equipment-mixin.js), so the Astir is
-		// piloted above to keep this comparison meaningful.
+		// piloted above to keep this comparison meaningful. The foot-scale Rifle is hidden from the
+		// Equipment tab entirely while the Astir is piloted (see equipment-mixin.js's `mounted` gate).
 		expect(data.equipment.astirWeapons).toEqual(data.astir.weapons);
-		expect(data.equipment.weapons.map((w) => w.id)).toEqual(["2"]);
+		expect(data.equipment.weapons).toEqual([]);
 	});
 
 	it("defaults every optional field when only an id is stored", () => {

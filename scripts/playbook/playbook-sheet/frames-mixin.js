@@ -81,13 +81,12 @@ export const FramesSheetMixin = {
 		if (entry.ardent) return entry.ardent;
 		return null;
 	},
-	// Explains why a weapon's quick-roll buttons are gated by frame mismatch (see
+	// Explains why an Astir/Ardent weapon's quick-roll buttons are gated by frame mismatch (see
 	// frameWeaponMoves in getData) — only called once a mismatch is already known to exist, so
-	// frameId and mountedFrameId are never equal here.
+	// frameId and mountedFrameId are never equal here. A mundane weapon (frameId === null) never
+	// reaches this: it's hidden from the Equipment tab entirely while mounted instead of gated,
+	// so it has no mismatch tooltip to show (see _equipmentData's `mounted` gate).
 	_weaponGateTooltip(frameId, mountedFrameId) {
-		if (frameId === null) {
-			return "Personal weapons are disabled when mounted. Dismount to use this weapon.";
-		}
 		if (mountedFrameId === null) {
 			return "Astir and Ardent weapons are disabled while unmounted. Mount up to use this weapon.";
 		}

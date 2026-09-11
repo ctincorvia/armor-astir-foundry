@@ -163,11 +163,13 @@ export class PlaybookActorSheet extends ActorSheet {
 		// `../equipment.weaponMoves` template lookup. Reusing _moveGroupMoves (rather than
 		// hand-rolling gating) means these buttons inherit the exact same, already-tested `gated`
 		// semantics as the Moves tab's own Roll buttons for free.
-		// A weapon's quick-roll buttons only work while its own owning frame is the one currently
-		// mounted (see docs/domains/frames.md's Piloted note and _weaponFrameId) — a mundane weapon's frame id is
-		// null, so `frameWeaponMoves(null)` gates it whenever anything at all is mounted. Every
-		// frame's set is derived independently from the same ungated base rather than negating one
-		// another, so mounting frame A can never accidentally leave frame B's buttons enabled too.
+		// An Astir/Ardent weapon's quick-roll buttons only work while its own owning frame is the
+		// one currently mounted (see docs/domains/frames.md's Piloted note and _weaponFrameId) —
+		// each frame's set is derived independently from the same ungated base rather than
+		// negating one another, so mounting frame A can never accidentally leave frame B's
+		// buttons enabled too. A mundane weapon has no such mismatch to gate: it's hidden from
+		// the Equipment tab entirely whenever any frame is mounted instead (see _equipmentData's
+		// `mounted` gate), so its own weaponMoves are always the ungated base.
 		const baseWeaponMoves = this._moveGroupMoves(WEAPON_MOVES).map(({ key, name, gated }) => ({ key, name, gated }));
 		const mountedFrameId = mountedFrame?.id ?? null;
 		const frameWeaponMoves = (frameId) => baseWeaponMoves.map((move) => {
@@ -178,7 +180,7 @@ export class PlaybookActorSheet extends ActorSheet {
 				tooltip: frameMismatch ? this._weaponGateTooltip(frameId, mountedFrameId) : null
 			};
 		});
-		const weaponMoves = frameWeaponMoves(null);
+		const weaponMoves = baseWeaponMoves;
 		const astirWeaponMoves = frameWeaponMoves("astir");
 		const startingGearPool = findStartingGearPool(this.actor.system.playbook?.name);
 		// Astir weapons (equipment entries flagged astir: true — see astir.js) are only ever
