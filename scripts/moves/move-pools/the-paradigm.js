@@ -18,8 +18,12 @@ export const THE_PARADIGM_POOL = {
 			// playbook change are one-time narrated events, the same "choose a new playbook" treatment
 			// bite-the-dust's own failure text already gets. Left fully descriptive rather than adding a
 			// forced-Desperation flag or a tracked tenet/broken-flag structure.
-			traits: ["channel"],
-			results: { success: null, mixed: null, failure: null },
+			// No roll — traits is empty and there are no conditions, so `rollable` in
+			// PlaybookActorSheet stays false, same treatment as Subsystems/B-Plot. The real
+			// +CHANNEL roll this move's description narrates ("Roll +CHANNEL with desperation
+			// until you resolve this") is mechanized on Weave Magic via
+			// forcesDesperationOnShakenTenet (see basic-moves.js), not here.
+			traits: [],
 			downtimeAbility:
 				"Gain an extra Social Space or Private Quarters Scene during Downtime to tend to your " +
 				"crew's spiritual well-being.",
