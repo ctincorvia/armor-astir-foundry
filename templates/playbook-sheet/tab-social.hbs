@@ -116,9 +116,11 @@
 							<li class="entry-list-item" data-entry-id="{{id}}">
 								<div class="entry-list-row">
 									<input type="text" class="entry-list-field hook-field hook-description" data-entry-id="{{id}}" data-field="description" value="{{description}}" placeholder="Describe the {{#if ../isParadigm}}tenet{{else}}hook{{/if}}…"/>
+									{{#unless ../isParadigm}}
 									<select class="entry-list-field hook-field hook-depth-select" data-entry-id="{{id}}" data-field="depth">
 										{{selectOptions ../hooks.depths selected=depth valueAttr="key" labelAttr="label"}}
 									</select>
+									{{/unless}}
 									{{#if ../isParadigm}}
 									<label class="hook-flag-label">
 										<input type="checkbox" class="entry-list-field hook-field hook-shaken-checkbox" data-entry-id="{{id}}" data-field="shaken" {{#if shaken}}checked{{/if}}/>
