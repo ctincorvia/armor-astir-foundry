@@ -187,6 +187,34 @@ describe("PlaybookActorSheet#_onGuidedMoveChoiceChange", () => {
 	});
 });
 
+describe("PlaybookActorSheet#_onChannelMoveChoiceChange", () => {
+	it("writes the chosen move key to the actor, keyed by the granting part", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		sheet._onChannelMoveChoiceChange({
+			currentTarget: { dataset: { part: "astir-part:input-channel" }, value: "exchange-blows" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.channelMoveChoices.astir-part:input-channel": "exchange-blows"
+		});
+	});
+
+	it("writes an empty string back when the blank option is chosen", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { update: vi.fn() };
+
+		sheet._onChannelMoveChoiceChange({
+			currentTarget: { dataset: { part: "astir-part:input-channel" }, value: "" }
+		});
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.channelMoveChoices.astir-part:input-channel": ""
+		});
+	});
+});
+
 describe("PlaybookActorSheet#_onAstirTierStep", () => {
 	it("increments the tier", () => {
 		const sheet = new PlaybookActorSheet();

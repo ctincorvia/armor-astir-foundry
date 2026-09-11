@@ -35,7 +35,7 @@ export const ASTIR_PART_BEHAVIOR_FLAGS = [
 	"promptsApproachOverride",
 	"grantsPotionsOnRefreshSortie",
 	"grantsRollModifier",
-	"grantsChannelOnAnyMove",
+	"grantsChannelOnChosenMove",
 	"bonusDowntimeTokens",
 	"numericTrackers"
 ];

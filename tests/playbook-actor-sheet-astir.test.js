@@ -13,7 +13,7 @@ import {
 	astirMaxWeaponPower
 } from "../scripts/frames/astir.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
-import { ALCHEMICAL_SUITE, RED_COMET, SPELL_ROUTINES, UNCANNY_SPEED, WEAPON_CONDUIT } from "./helpers/move-fixtures.js";
+import { ALCHEMICAL_SUITE, INPUT_CHANNEL, RED_COMET, SPELL_ROUTINES, UNCANNY_SPEED, WEAPON_CONDUIT } from "./helpers/move-fixtures.js";
 
 describe("PlaybookActorSheet#getData - astir", () => {
 	it("is available when channel is missing from stats (reads as enabled)", () => {
@@ -182,7 +182,7 @@ describe("PlaybookActorSheet#getData - astir", () => {
 		expect(sheet.getData().astir.parts).toEqual([
 			{
 				key: part.key, name: part.name, powerCost: part.powerCost, partType: part.partType, tier: 3, disabled: false,
-				guidedMoveChoosable: false, guidedMoveChoice: ""
+				guidedMoveChoosable: false, guidedMoveChoice: "", channelMoveChoosable: false, channelMoveChoice: ""
 			}
 		]);
 	});
@@ -217,6 +217,38 @@ describe("PlaybookActorSheet#getData - astir", () => {
 		};
 
 		expect(sheet.getData().astir.parts[0].guidedMoveChoice).toBe("dispel-uncertainties");
+	});
+
+	it("marks Input Channel channelMoveChoosable, defaulting the choice to blank", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, overheating: false, parts: [INPUT_CHANNEL.key], move: null }
+				}
+			}
+		};
+
+		const [part] = sheet.getData().astir.parts;
+
+		expect(part.channelMoveChoosable).toBe(true);
+		expect(part.channelMoveChoice).toBe("");
+	});
+
+	it("reflects a stored channel move choice for Input Channel", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, overheating: false, parts: [INPUT_CHANNEL.key], move: null },
+					channelMoveChoices: { [INPUT_CHANNEL.key]: "dispel-uncertainties" }
+				}
+			}
+		};
+
+		expect(sheet.getData().astir.parts[0].channelMoveChoice).toBe("dispel-uncertainties");
 	});
 
 	it("offers only rollable moves as guidedMoveOptions, excluding Subsystems/Heat Up", () => {
@@ -568,6 +600,7 @@ describe("PlaybookActorSheet#activateListeners - astir", () => {
 			[".astir-core-select", "change"],
 			[".astir-approach-select", "change"],
 			[".guided-move-select", "change"],
+			[".channel-move-select", "change"],
 			[".astir-tier-step", "click"],
 			[".astir-power-step", "click"],
 			[".astir-weapon-power-step", "click"],

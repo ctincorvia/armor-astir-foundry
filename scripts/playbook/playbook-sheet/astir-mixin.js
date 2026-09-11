@@ -125,6 +125,11 @@ export const AstirSheetMixin = {
 					// only grantsGuided carries a choosable target move at all.
 					guidedMoveChoosable: Boolean(part.grantsGuided),
 					guidedMoveChoice: this.actor.system.attributes?.guidedMoveChoices?.[part.key] ?? "",
+					// Input Channel's own dropdown (see astir-parts.js's grantsChannelOnChosenMove
+					// comment) — same shape as guidedMoveChoosable/guidedMoveChoice above, just keyed
+					// to a separate channelMoveChoices field so the two grants can't collide.
+					channelMoveChoosable: Boolean(part.grantsChannelOnChosenMove),
+					channelMoveChoice: this.actor.system.attributes?.channelMoveChoices?.[part.key] ?? "",
 					...(customizationEnabled && isCustomizableMoveKey(part.key) && { customizable: true })
 				})),
 				partsFull: (astir.parts ?? []).length >= partsCap,
@@ -140,6 +145,8 @@ export const AstirSheetMixin = {
 					disabled: this._isPartDisabled(part.key),
 					guidedMoveChoosable: Boolean(part.grantsGuided),
 					guidedMoveChoice: this.actor.system.attributes?.guidedMoveChoices?.[part.key] ?? "",
+					channelMoveChoosable: Boolean(part.grantsChannelOnChosenMove),
+					channelMoveChoice: this.actor.system.attributes?.channelMoveChoices?.[part.key] ?? "",
 					...(customizationEnabled && isCustomizableMoveKey(part.key) && { customizable: true })
 				})),
 				move: astirMove ? { key: astirMove.key, name: astirMove.name } : null,
@@ -256,10 +263,19 @@ export const AstirSheetMixin = {
 		const { part: partKey } = event.currentTarget.dataset;
 		this.actor.update({ [`system.attributes.guidedMoveChoices.${partKey}`]: event.currentTarget.value });
 	},
-	// Spell Routines' dropdown options — every rollable move rendered anywhere in moveGroups
-	// (Basic, Playbook, Astir, each Ardent's, Special alike), deduped by key. Guided only ever
-	// takes effect inside _rollMove (move-roll-mixin.js), so an activatable/summonable move
-	// (flatHold, showsReadTheRoomQuestions, Eidolon Drive's Summon, ...) or Plan & Prepare's
+	// Input Channel's own dropdown (see getData's parts/extraParts mapping) — identical shape to
+	// _onGuidedMoveChoiceChange above, just writing the separate channelMoveChoices field so the
+	// two grants can't collide.
+	_onChannelMoveChoiceChange(event) {
+		const { part: partKey } = event.currentTarget.dataset;
+		this.actor.update({ [`system.attributes.channelMoveChoices.${partKey}`]: event.currentTarget.value });
+	},
+	// Shared dropdown options for both Spell Routines' (grantsGuided) and Input Channel's
+	// (grantsChannelOnChosenMove) chosen-move controls — every rollable move rendered anywhere in
+	// moveGroups (Basic, Playbook, Astir, each Ardent's, Special alike), deduped by key. Both
+	// grants only ever take effect inside _rollMove/_moveTraits (move-roll-mixin.js/
+	// move-traits-mixin.js), so an activatable/summonable move (flatHold,
+	// showsReadTheRoomQuestions, Eidolon Drive's Summon, ...) or Plan & Prepare's
 	// variableDiceRoll — none of which ever reach _rollMove/configureMoveRoll — would be a choice
 	// that silently never fires; only rollable: true moves are offered.
 	_guidedMoveOptions(moveGroups) {

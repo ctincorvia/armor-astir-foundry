@@ -166,9 +166,11 @@ export const ASTIR_PART_CATALOG = [
 		name: "Input Channel",
 		partType: "Passive",
 		traits: [],
-		// See PlaybookActorSheet#_moveTraits — offers CHANNEL on any move, bypassing both that
-		// move's own traits list and Channel's disabled gate.
-		grantsChannelOnAnyMove: true,
+		// Reuses the same chosen-move dropdown mechanism as Spell Routines' grantsGuided, scoped to
+		// exactly one move the player picks on the Astir tab (system.attributes.channelMoveChoices,
+		// keyed by this part's own key) rather than every move — see PlaybookActorSheet#_moveTraits/
+		// _channelFromPartFor and astir-mixin.js's _onChannelMoveChoiceChange/_guidedMoveOptions.
+		grantsChannelOnChosenMove: true,
 		description:
 			"<p>Conduit channels running directly from a component to the Channeler allow them to " +
 			"assert more direct magical control over it in times of need.</p>" +

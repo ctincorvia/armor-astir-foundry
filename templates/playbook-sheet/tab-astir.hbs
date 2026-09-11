@@ -117,6 +117,14 @@
 									</select>
 								</div>
 								{{/if}}
+								{{#if channelMoveChoosable}}
+								<div class="astir-part-guided-move-control">
+									<label class="astir-part-guided-move-label">Channel move</label>
+									<select class="channel-move-select" data-part="{{key}}">
+										{{selectOptions @root.guidedMoveOptions selected=channelMoveChoice valueAttr="key" labelAttr="name" blank="—"}}
+									</select>
+								</div>
+								{{/if}}
 							</li>
 							{{/each}}
 						</ol>
@@ -150,6 +158,14 @@
 									<label class="astir-part-guided-move-label">Guided move</label>
 									<select class="guided-move-select" data-part="{{key}}">
 										{{selectOptions @root.guidedMoveOptions selected=guidedMoveChoice valueAttr="key" labelAttr="name" blank="—"}}
+									</select>
+								</div>
+								{{/if}}
+								{{#if channelMoveChoosable}}
+								<div class="astir-part-guided-move-control">
+									<label class="astir-part-guided-move-label">Channel move</label>
+									<select class="channel-move-select" data-part="{{key}}">
+										{{selectOptions @root.guidedMoveOptions selected=channelMoveChoice valueAttr="key" labelAttr="name" blank="—"}}
 									</select>
 								</div>
 								{{/if}}

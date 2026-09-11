@@ -143,10 +143,10 @@ export class PlaybookActorSheet extends ActorSheet {
 		const mountedFrame = frames.find((frame) => frame.piloted) ?? null;
 		const ardents = this._ardents();
 		data.moveGroups = this._movesData(astir, astirParts, astirMove, mountedFrame, ardents, startingMovePool);
-		// Spell Routines' dropdown options (Astir tab) — every move currently rendered anywhere in
-		// moveGroups, deduped by key (see astir-mixin.js's _guidedMoveOptions). Classical
-		// Spellcasting's own narrower dropdown (Moves tab) uses data.basicMoveOptions instead, set
-		// alongside data.equipment below.
+		// Spell Routines' AND Input Channel's dropdown options (Astir tab) — every move currently
+		// rendered anywhere in moveGroups, deduped by key (see astir-mixin.js's _guidedMoveOptions).
+		// Classical Spellcasting's own narrower dropdown (Moves tab) uses data.basicMoveOptions
+		// instead, set alongside data.equipment below.
 		data.guidedMoveOptions = this._guidedMoveOptions(data.moveGroups);
 		// Classical Spellcasting's dropdown options (Moves tab) — every Basic Move, per its own
 		// "Choose a Basic Move" rules text (see moves-mixin.js's _basicMoveOptions).
@@ -338,6 +338,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".astir-core-select").on("change", this._onAstirCoreChange.bind(this));
 		html.find(".astir-approach-select").on("change", this._onAstirApproachChange.bind(this));
 		html.find(".guided-move-select").on("change", this._onGuidedMoveChoiceChange.bind(this));
+		html.find(".channel-move-select").on("change", this._onChannelMoveChoiceChange.bind(this));
 		html.find(".astir-tier-step").on("click", this._onAstirTierStep.bind(this));
 		html.find(".astir-power-step").on("click", this._onAstirPowerStep.bind(this));
 		html.find(".astir-weapon-power-step").on("click", this._onAstirWeaponPowerStep.bind(this));

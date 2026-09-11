@@ -721,16 +721,19 @@ describe("PlaybookActorSheet#_onMoveRoll - Ardent weapon choice", () => {
 });
 
 describe("PlaybookActorSheet#_moveTraits - Input Channel from a mounted Ardent", () => {
-	it("offers +CHANNEL when Input Channel is installed on the mounted Ardent", () => {
+	it("offers +CHANNEL on the chosen move when Input Channel is installed on the mounted Ardent", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				stats: { clash: { value: 1 }, channel: { value: 2, disabled: true } },
-				attributes: { ardents: [{ id: "ar1", parts: [INPUT_CHANNEL.key], piloted: true }] }
+				attributes: {
+					ardents: [{ id: "ar1", parts: [INPUT_CHANNEL.key], piloted: true }],
+					channelMoveChoices: { [INPUT_CHANNEL.key]: "exchange-blows" }
+				}
 			}
 		};
 
-		expect(sheet._moveTraits({ traits: ["clash"] })).toEqual([
+		expect(sheet._moveTraits({ key: "exchange-blows", traits: ["clash"] })).toEqual([
 			{ key: "clash", label: "CLASH", value: 1 },
 			{ key: "channel", label: "CHANNEL", value: 2 }
 		]);

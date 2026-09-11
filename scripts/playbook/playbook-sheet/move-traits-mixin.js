@@ -42,16 +42,19 @@ export const MoveTraitsSheetMixin = {
 				value: eidolonDrive.bonusUsed ? 1 : 3
 			});
 		}
-		// Input Channel (see astir.js) offers +CHANNEL on any move, bypassing both that move's own
-		// traits list and Channel's disabled gate — only while installed on the currently mounted
-		// frame (Astir or Ardent alike — see _mountedParts), and only added once (a move that
-		// already rolls +CHANNEL, e.g. Weave Magic, isn't given a second entry). Arcane Generator
-		// (see playbook-moves.js) grants the same push from a picked playbook move rather than
-		// installed hardware, but its own rules text is Astir-specific ("you may power and control
-		// an Astir ... you effectively have a CHANNEL of +1") — unlike Input Channel, which works
-		// from any mounted frame, Arcane Generator only applies while the Astir itself is mounted.
+		// Input Channel (see astir-parts.js) offers +CHANNEL on exactly one move the player chose on
+		// the Astir tab's dropdown (grantsChannelOnChosenMove/channelMoveChoices — see
+		// _channelFromPartFor below), bypassing both that move's own traits list and Channel's
+		// disabled gate — only while installed on the currently mounted frame (Astir or Ardent alike
+		// — see _mountedParts), and only added once (a move that already rolls +CHANNEL, e.g. Weave
+		// Magic, isn't given a second entry). Arcane Generator (see playbook-moves.js) grants the
+		// same push from a picked playbook move rather than installed hardware, but its own rules
+		// text is Astir-specific ("you may power and control an Astir ... you effectively have a
+		// CHANNEL of +1") — unlike Input Channel, which is scoped to one chosen move but works from
+		// any mounted frame, Arcane Generator applies to every move but only while the Astir itself
+		// is mounted.
 		if (!actorTraits.some((trait) => trait.key === "channel")
-			&& (this._mountedParts().some((part) => part.grantsChannelOnAnyMove)
+			&& (this._channelFromPartFor(move)
 				|| (this._mountedFrame()?.kind === "astir"
 					&& resolvePlaybookMoves(this._playbookMoves()).some((m) => m.grantsChannelOnAnyMove)))) {
 			// TRAITS is a fixed, six-entry constant (see traits.js) that always includes channel —
@@ -148,6 +151,13 @@ export const MoveTraitsSheetMixin = {
 			}];
 		}
 		return [...actorTraits, ...fixedTraits];
+	},
+	// Input Channel's chosen-move gate (see astir-parts.js's grantsChannelOnChosenMove and
+	// astir-mixin.js's channelMoveChoices dropdown) — true only when a mounted part grants it AND
+	// the player's stored choice for that part matches the move actually being rolled.
+	_channelFromPartFor(move) {
+		return this._mountedParts().some((part) =>
+			part.grantsChannelOnChosenMove && this.actor.system.attributes?.channelMoveChoices?.[part.key] === move.key);
 	},
 	// The single-Carrier case _moveTraits needs for display, and _rollMove's starting point
 	// before it decides whether the multi-Carrier prompt is even necessary.

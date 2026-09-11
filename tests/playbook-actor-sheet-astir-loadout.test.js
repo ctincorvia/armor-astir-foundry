@@ -26,7 +26,7 @@ import {
 	chooseAstirWeapon
 } from "../scripts/frames/astir.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
-import { ALCHEMICAL_SUITE, RED_COMET, SPELL_ROUTINES } from "./helpers/move-fixtures.js";
+import { ALCHEMICAL_SUITE, INPUT_CHANNEL, RED_COMET, SPELL_ROUTINES } from "./helpers/move-fixtures.js";
 
 beforeEach(() => {
 	chooseAstirPart.mockClear();
@@ -972,13 +972,13 @@ describe("PlaybookActorSheet#getData - astir extraParts/extraWeapons", () => {
 		expect(data.astir.parts).toEqual([
 			{
 				key: partA.key, name: partA.name, powerCost: partA.powerCost, partType: partA.partType, tier: 3, disabled: false,
-				guidedMoveChoosable: false, guidedMoveChoice: ""
+				guidedMoveChoosable: false, guidedMoveChoice: "", channelMoveChoosable: false, channelMoveChoice: ""
 			}
 		]);
 		expect(data.astir.extraParts).toEqual([
 			{
 				key: partB.key, name: partB.name, powerCost: partB.powerCost, partType: partB.partType, tier: 3, disabled: false,
-				guidedMoveChoosable: false, guidedMoveChoice: ""
+				guidedMoveChoosable: false, guidedMoveChoice: "", channelMoveChoosable: false, channelMoveChoice: ""
 			}
 		]);
 	});
@@ -999,6 +999,24 @@ describe("PlaybookActorSheet#getData - astir extraParts/extraWeapons", () => {
 
 		expect(part.guidedMoveChoosable).toBe(true);
 		expect(part.guidedMoveChoice).toBe("dispel-uncertainties");
+	});
+
+	it("reflects a stored channel move choice for an Input Channel installed via extraParts", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", tier: 3, power: 4, parts: [], extraParts: [INPUT_CHANNEL.key], move: null },
+					channelMoveChoices: { [INPUT_CHANNEL.key]: "dispel-uncertainties" }
+				}
+			}
+		};
+
+		const [part] = sheet.getData().astir.extraParts;
+
+		expect(part.channelMoveChoosable).toBe(true);
+		expect(part.channelMoveChoice).toBe("dispel-uncertainties");
 	});
 
 	it("flags partsFull once the regular Parts pool reaches ASTIR_MAX_PARTS, ignoring extraParts", () => {

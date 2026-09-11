@@ -289,7 +289,7 @@ reflavor's own reset-then-reapply already has.
 A custom Astir/Ardent Part may set any of `ASTIR_PART_BEHAVIOR_FLAGS` (`custom-content-schema.js`):
 `powerCost`, `weaponPowerBonus`, `uses`, `showsReadTheRoomQuestions`, `regainPowerOnDoubles`,
 `grantsGuided`, `promptsApproachOverride`, `grantsPotionsOnRefreshSortie`, `grantsRollModifier`,
-`grantsChannelOnAnyMove`, `bonusDowntimeTokens`, `numericTrackers` — every one of these is already a
+`grantsChannelOnChosenMove`, `bonusDowntimeTokens`, `numericTrackers` — every one of these is already a
 generic declarative flag `PlaybookActorSheet`'s mixins read off *any* Part object, not hardcoded to a
 specific built-in key (see `astir-parts.js`'s own file-level comment), so setting one on a custom Part
 activates real behavior immediately, with zero new sheet code. A field name outside this list (or

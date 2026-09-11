@@ -33,15 +33,18 @@ describe("PlaybookActorSheet#_moveTraits", () => {
 		expect(sheet._moveTraits(move)).toEqual([{ key: "cargo", label: "CARGO", value: 3 }]);
 	});
 
-	it("offers +CHANNEL on any move when piloted with Input Channel installed", () => {
+	it("offers +CHANNEL on the chosen move when piloted with Input Channel installed", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				stats: { clash: { value: 1 }, channel: { value: 2, disabled: true } },
-				attributes: { astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: true } }
+				attributes: {
+					astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: true },
+					channelMoveChoices: { [INPUT_CHANNEL.key]: "exchange-blows" }
+				}
 			}
 		};
-		const move = { traits: ["clash"] };
+		const move = { key: "exchange-blows", traits: ["clash"] };
 
 		expect(sheet._moveTraits(move)).toEqual([
 			{ key: "clash", label: "CLASH", value: 1 },
@@ -49,16 +52,35 @@ describe("PlaybookActorSheet#_moveTraits", () => {
 		]);
 	});
 
+	it("does not offer +CHANNEL on a different move than the one chosen", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 1 }, channel: { value: 2, disabled: true } },
+				attributes: {
+					astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: true },
+					channelMoveChoices: { [INPUT_CHANNEL.key]: "exchange-blows" }
+				}
+			}
+		};
+		const move = { key: "strike-decisively", traits: ["clash"] };
+
+		expect(sheet._moveTraits(move)).toEqual([{ key: "clash", label: "CLASH", value: 1 }]);
+	});
+
 	it("does not offer +CHANNEL when not piloted", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				stats: { clash: { value: 1 }, channel: { value: 2, disabled: true } },
-				attributes: { astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: false } }
+				attributes: {
+					astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: false },
+					channelMoveChoices: { [INPUT_CHANNEL.key]: "exchange-blows" }
+				}
 			}
 		};
 
-		expect(sheet._moveTraits({ traits: ["clash"] })).toEqual([{ key: "clash", label: "CLASH", value: 1 }]);
+		expect(sheet._moveTraits({ key: "exchange-blows", traits: ["clash"] })).toEqual([{ key: "clash", label: "CLASH", value: 1 }]);
 	});
 
 	it("does not offer +CHANNEL without Input Channel installed", () => {
@@ -70,7 +92,7 @@ describe("PlaybookActorSheet#_moveTraits", () => {
 			}
 		};
 
-		expect(sheet._moveTraits({ traits: ["clash"] })).toEqual([{ key: "clash", label: "CLASH", value: 1 }]);
+		expect(sheet._moveTraits({ key: "exchange-blows", traits: ["clash"] })).toEqual([{ key: "clash", label: "CLASH", value: 1 }]);
 	});
 
 	it("treats a missing channel stat value as 0", () => {
@@ -78,11 +100,14 @@ describe("PlaybookActorSheet#_moveTraits", () => {
 		sheet.actor = {
 			system: {
 				stats: { clash: { value: 1 } },
-				attributes: { astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: true } }
+				attributes: {
+					astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: true },
+					channelMoveChoices: { [INPUT_CHANNEL.key]: "exchange-blows" }
+				}
 			}
 		};
 
-		expect(sheet._moveTraits({ traits: ["clash"] })).toEqual([
+		expect(sheet._moveTraits({ key: "exchange-blows", traits: ["clash"] })).toEqual([
 			{ key: "clash", label: "CLASH", value: 1 },
 			{ key: "channel", label: "CHANNEL", value: 0 }
 		]);
@@ -93,11 +118,14 @@ describe("PlaybookActorSheet#_moveTraits", () => {
 		sheet.actor = {
 			system: {
 				stats: { channel: { value: 2, disabled: false } },
-				attributes: { astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: true } }
+				attributes: {
+					astir: { id: "a1", parts: [INPUT_CHANNEL.key], piloted: true },
+					channelMoveChoices: { [INPUT_CHANNEL.key]: "weave-magic" }
+				}
 			}
 		};
 
-		expect(sheet._moveTraits({ traits: ["channel"] })).toEqual([{ key: "channel", label: "CHANNEL", value: 2 }]);
+		expect(sheet._moveTraits({ key: "weave-magic", traits: ["channel"] })).toEqual([{ key: "channel", label: "CHANNEL", value: 2 }]);
 	});
 
 	it("offers +TALK on Read the Room when Facilitator is picked (addsTraitToMove)", () => {

@@ -91,6 +91,7 @@ export const WARDING = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:ward
 export const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:artifact");
 export const FLOURISH_COMPONENT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:flourish-component");
 export const SPELL_ROUTINES = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:spell-routines");
+export const INPUT_CHANNEL = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:input-channel");
 export const CHROMATIC_FOCUS = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:chromatic-focus");
 export const UNCANNY_SPEED = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:uncanny-speed");
 
