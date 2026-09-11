@@ -399,12 +399,29 @@ describe("rollMove", () => {
 		await rollMove(actor, EXCHANGE_BLOWS, clash);
 
 		const rollInstance = Roll.mock.results.at(-1).value;
-		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor });
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor, alias: null });
 		expect(rollInstance.toMessage).toHaveBeenCalledWith({
 			speaker: { actor: "speaker" },
 			flavor: "<div>flavor</div>",
 			flags: { "armor-astir": { advantageOffer: expect.any(Object) } }
 		});
+	});
+
+	it("uses the mounted frame's name as the speaker alias when the actor is piloting one", async () => {
+		const actor = {
+			system: {
+				stats: { clash: { value: 1 } },
+				details: { callsign: { value: "Ghost" } },
+				attributes: { astir: { piloted: true } }
+			}
+		};
+		const clash = TRAITS.find((t) => t.key === "clash");
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		renderTemplate.mockResolvedValue("<div>flavor</div>");
+
+		await rollMove(actor, EXCHANGE_BLOWS, clash);
+
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor, alias: "Ghost" });
 	});
 
 	it("shows Add Advantage/Add Disadvantage based on how far the current advantage state can still move", async () => {

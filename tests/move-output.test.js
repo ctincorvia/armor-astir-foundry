@@ -107,11 +107,21 @@ describe("postMoveDescription", () => {
 			name: EXCHANGE_BLOWS.name,
 			description: EXCHANGE_BLOWS.description
 		});
-		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor });
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor, alias: null });
 		expect(ChatMessage.create).toHaveBeenCalledWith({
 			speaker: { actor: "speaker" },
 			content: "<div>description</div>"
 		});
+	});
+
+	it("uses the mounted frame's name as the speaker alias when the actor is piloting one", async () => {
+		const actor = { system: { stats: {}, attributes: { ardents: [{ id: "a1", name: "Warden", piloted: true }] } } };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		renderTemplate.mockResolvedValue("<div>description</div>");
+
+		await postMoveDescription(actor, EXCHANGE_BLOWS);
+
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor, alias: "Warden" });
 	});
 
 	it("renders subsystems' description too, despite it having no results/roll", async () => {

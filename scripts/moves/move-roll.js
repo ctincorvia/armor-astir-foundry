@@ -18,6 +18,7 @@ import {
 	resolveTierValue
 } from "./move-results.js";
 import { renderTemplate } from "../compat.js";
+import { getMountedFrameName } from "../frames/mounted-frame.js";
 
 export const MOVE_CHAT_TEMPLATE = "modules/armor-astir/templates/move-chat.hbs";
 
@@ -46,7 +47,10 @@ export async function rollVariableDicePool(actor, move, { target, extraDice }) {
 		successOptions: successCount ? move.successOptions : null
 	});
 
-	const message = await roll.toMessage({ speaker: ChatMessage.getSpeaker({ actor }), flavor });
+	const message = await roll.toMessage({
+		speaker: ChatMessage.getSpeaker({ actor, alias: getMountedFrameName(actor) }),
+		flavor
+	});
 	return { message, dice, successCount };
 }
 
@@ -390,7 +394,7 @@ export async function rollMove(actor, move, trait, options = {}) {
 		}
 	};
 	const message = await roll.toMessage({
-		speaker: ChatMessage.getSpeaker({ actor }),
+		speaker: ChatMessage.getSpeaker({ actor, alias: getMountedFrameName(actor) }),
 		flavor,
 		...(Object.keys(cardFlags).length && { flags: { "armor-astir": cardFlags } })
 	});
@@ -442,7 +446,7 @@ export async function postGuidedResult(actor, move, options = {}) {
 	});
 
 	return ChatMessage.create({
-		speaker: ChatMessage.getSpeaker({ actor }),
+		speaker: ChatMessage.getSpeaker({ actor, alias: getMountedFrameName(actor) }),
 		content: flavor
 	});
 }
@@ -454,7 +458,7 @@ export async function postMoveDescription(actor, move) {
 	});
 
 	return ChatMessage.create({
-		speaker: ChatMessage.getSpeaker({ actor }),
+		speaker: ChatMessage.getSpeaker({ actor, alias: getMountedFrameName(actor) }),
 		content
 	});
 }

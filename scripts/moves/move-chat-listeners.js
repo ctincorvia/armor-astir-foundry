@@ -14,6 +14,7 @@ import { spendEquipmentTagsOnActor } from "../equipment/equipment.js";
 import { ALL_MOVES } from "./all-moves.js";
 import { resolvePlaybookMoves } from "./playbook-moves.js";
 import { chatRenderHook, renderTemplate, toJQuery } from "../compat.js";
+import { getMountedFrameName } from "../frames/mounted-frame.js";
 
 // Marks the reroll's tag spent (the same array/checkbox PlaybookActorSheet#_onEquipmentTagSpentToggle
 // drives), strikes through the original card's flavor in place to mark it superseded (see
@@ -287,7 +288,7 @@ async function handleExternalRollBonus(message, offer) {
 	// Mirrors the original roll's own visibility — a private/whispered roll's bonus announcement
 	// should stay just as private, not leak to the whole table.
 	await dieRoll.toMessage({
-		speaker: ChatMessage.getSpeaker({ actor }),
+		speaker: ChatMessage.getSpeaker({ actor, alias: getMountedFrameName(actor) }),
 		flavor,
 		whisper: message.whisper,
 		blind: message.blind

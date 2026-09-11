@@ -19,10 +19,20 @@ describe("postDowntimeSceneDetails", () => {
 		await postDowntimeSceneDetails(actor, FADE);
 
 		expect(renderTemplate).toHaveBeenCalledWith(DOWNTIME_SCENE_CHAT_TEMPLATE, FADE);
-		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor });
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor, alias: null });
 		expect(ChatMessage.create).toHaveBeenCalledWith({
 			speaker: { actor: "speaker" },
 			content: "<div>scene content</div>"
 		});
+	});
+
+	it("uses the mounted frame's name as the speaker alias when the actor is piloting one", async () => {
+		const actor = { system: { stats: {}, attributes: { astir: { piloted: true } }, details: { callsign: { value: "Ghost" } } } };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		renderTemplate.mockResolvedValue("<div>scene content</div>");
+
+		await postDowntimeSceneDetails(actor, FADE);
+
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor, alias: "Ghost" });
 	});
 });

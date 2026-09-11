@@ -131,10 +131,30 @@ describe("PlaybookActorSheet#_onMoveResolved - Trickster's Boon doubles activati
 
 		await sheet._onMoveResolved(EXCHANGE_BLOWS, DOUBLES, "success");
 
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor: sheet.actor, alias: null });
 		expect(ChatMessage.create).toHaveBeenCalledWith({
 			speaker: { actor: "speaker" },
 			content: `<p><strong>${TRICKSTERS_BOON.name}</strong> activates — ${TRICKSTERS_BOON.description}</p>`
 		});
+	});
+
+	it("uses the mounted frame's name as the speaker alias when posting the doubles activation note", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					witch: { boons: [TRICKSTERS_BOON.key] },
+					astir: { piloted: true }
+				},
+				details: { callsign: { value: "Ghost" } }
+			},
+			update: vi.fn()
+		};
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await sheet._onMoveResolved(EXCHANGE_BLOWS, DOUBLES, "success");
+
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor: sheet.actor, alias: "Ghost" });
 	});
 
 	it("posts nothing on doubles when Trickster's Boon isn't held", async () => {

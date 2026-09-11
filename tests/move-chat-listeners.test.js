@@ -1380,7 +1380,7 @@ describe("onRenderMoveChat/handleExternalRollBonus (Spend Inspiration)", () => {
 			name: "Bardic Inspiration",
 			description: "<p>Icon Player spends Bardic Inspiration to add a bonus d4 to Exchange Blows.</p>"
 		});
-		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor: icon });
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor: icon, alias: null });
 		const dieRollInstance = Roll.mock.results.at(-1).value;
 		expect(dieRollInstance.formula).toBe("1d4");
 		expect(dieRollInstance.toMessage).toHaveBeenCalledWith({
@@ -1389,6 +1389,34 @@ describe("onRenderMoveChat/handleExternalRollBonus (Spend Inspiration)", () => {
 			whisper: ["gm1"],
 			blind: true
 		});
+	});
+
+	it("uses the spending actor's mounted frame name as the speaker alias when it's piloting one", async () => {
+		const icon = iconActor({
+			system: {
+				attributes: {
+					playbookMoves: [BARDIC_INSPIRATION_KEY],
+					moveHold: { [BARDIC_INSPIRATION_KEY]: { value: 3 } },
+					ardents: [{ id: "a1", name: "Warden", piloted: true }]
+				}
+			}
+		});
+		game.actors.filter.mockImplementation((fn) => [icon].filter(fn));
+		const offer = baseAdvantageOffer();
+		const message = {
+			flags: { "armor-astir": { advantageOffer: offer } },
+			author: "author1",
+			whisper: [],
+			blind: false
+		};
+		const fake = fakeChatHtml();
+		mockBonusDieRoll(3);
+
+		onRenderMoveChat(message, fake.html);
+		fake.rollBonusHandler({ currentTarget: { disabled: false } });
+		await flushMicrotasks();
+
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor: icon, alias: "Warden" });
 	});
 
 	it("upgrades the bonus die to d6 when the spending actor has also picked Showstopper", async () => {

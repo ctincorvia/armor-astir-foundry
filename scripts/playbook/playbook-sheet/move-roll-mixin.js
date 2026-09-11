@@ -25,6 +25,7 @@ import {
 	saveMoveCustomization
 } from "../../moves/move-customization.js";
 import { configureMoveCustomization } from "../../moves/move-customization-dialogs.js";
+import { getMountedFrameName } from "../../frames/mounted-frame.js";
 
 // The Roll/Activate/Description/Info button handlers and the shared _rollMove pipeline every move
 // source (basic, special, playbook, Astir) runs through — see moves-mixin.js's file comment for how
@@ -532,7 +533,7 @@ export const MoveRollSheetMixin = {
 		if (dice && rolledDoubles(dice)) {
 			for (const boon of resolveWitchBoons(this._witchBoons()).filter((b) => b.activatesOnDoubles)) {
 				await ChatMessage.create({
-					speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+					speaker: ChatMessage.getSpeaker({ actor: this.actor, alias: getMountedFrameName(this.actor) }),
 					content: `<p><strong>${boon.name}</strong> activates — ${boon.description}</p>`
 				});
 			}
@@ -594,7 +595,7 @@ export const MoveRollSheetMixin = {
 			// fallback needed for a lookup that can't fail.
 			const readTheRoom = BASIC_MOVES.find((m) => m.key === "read-the-room");
 			await ChatMessage.create({
-				speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+				speaker: ChatMessage.getSpeaker({ actor: this.actor, alias: getMountedFrameName(this.actor) }),
 				flavor: `<h3>${move.name}</h3>`,
 				content: `<ul>${readTheRoom.questions.map((question) => `<li>${question}</li>`).join("")}</ul>`
 			});
@@ -611,7 +612,7 @@ export const MoveRollSheetMixin = {
 		if (move.activateChoices) {
 			const { prompt, options } = move.activateChoices;
 			await ChatMessage.create({
-				speaker: ChatMessage.getSpeaker({ actor: this.actor }),
+				speaker: ChatMessage.getSpeaker({ actor: this.actor, alias: getMountedFrameName(this.actor) }),
 				flavor: `<h3>${move.name}</h3>`,
 				content: `<p>${prompt}</p><ul>${options.map((option) => `<li>${option}</li>`).join("")}</ul>`
 			});

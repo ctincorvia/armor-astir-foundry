@@ -151,6 +151,7 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 
 		await sheet._onMoveActivate({ currentTarget: { dataset: { move: DIVINATION_CODEX.key } } });
 
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor: sheet.actor, alias: null });
 		expect(ChatMessage.create).toHaveBeenCalledWith({
 			speaker: { actor: "speaker" },
 			flavor: "<h3>Divination Codex</h3>",
@@ -162,6 +163,19 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, DIVINATION_CODEX);
 	});
 
+	it("uses the mounted frame's name as the speaker alias when posting Read the Room's question list", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { astir: { piloted: true } }, details: { callsign: { value: "Ghost" } } },
+			update: vi.fn()
+		};
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: DIVINATION_CODEX.key } } });
+
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor: sheet.actor, alias: "Ghost" });
+	});
+
 	it("posts the move's own prompt and options to chat for an activateChoices move (Facilitator)", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
@@ -169,6 +183,7 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 
 		await sheet._onMoveActivate({ currentTarget: { dataset: { move: FACILITATOR.key } } });
 
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor: sheet.actor, alias: null });
 		expect(ChatMessage.create).toHaveBeenCalledWith({
 			speaker: { actor: "speaker" },
 			flavor: "<h3>Facilitator</h3>",
@@ -177,6 +192,19 @@ describe("PlaybookActorSheet#_onMoveActivate", () => {
 		});
 		expect(sheet.actor.update).not.toHaveBeenCalled();
 		expect(postMoveDescription).toHaveBeenCalledWith(sheet.actor, FACILITATOR);
+	});
+
+	it("uses the mounted frame's name as the speaker alias when posting an activateChoices move's prompt", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "a1", name: "Warden", piloted: true }] } },
+			update: vi.fn()
+		};
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+
+		await sheet._onMoveActivate({ currentTarget: { dataset: { move: FACILITATOR.key } } });
+
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor: sheet.actor, alias: "Warden" });
 	});
 
 	it("does nothing for Enduring Support with no ally summoned", async () => {

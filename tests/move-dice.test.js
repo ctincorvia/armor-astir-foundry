@@ -274,11 +274,22 @@ describe("rollVariableDicePool", () => {
 		await rollVariableDicePool(actor, PLAN_AND_PREPARE, { target: 3, extraDice: 0 });
 
 		const rollInstance = Roll.mock.results.at(-1).value;
-		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor });
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor, alias: null });
 		expect(rollInstance.toMessage).toHaveBeenCalledWith({
 			speaker: { actor: "speaker" },
 			flavor: "<div>flavor</div>"
 		});
+	});
+
+	it("uses the mounted frame's name as the speaker alias when the actor is piloting one", async () => {
+		const actor = { id: "actor1", system: { attributes: { ardents: [{ id: "a1", name: "Warden", piloted: true }] } } };
+		ChatMessage.getSpeaker.mockReturnValue({ actor: "speaker" });
+		mockRoll({ dice: [4] });
+		renderTemplate.mockResolvedValue("<div>flavor</div>");
+
+		await rollVariableDicePool(actor, PLAN_AND_PREPARE, { target: 3, extraDice: 0 });
+
+		expect(ChatMessage.getSpeaker).toHaveBeenCalledWith({ actor, alias: "Warden" });
 	});
 
 	it("returns the chat message, the scored dice, and the success count", async () => {
