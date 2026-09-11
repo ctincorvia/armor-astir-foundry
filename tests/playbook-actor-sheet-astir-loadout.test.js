@@ -26,7 +26,8 @@ import {
 	chooseAstirWeapon
 } from "../scripts/frames/astir.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
-import { ALCHEMICAL_SUITE, INPUT_CHANNEL, RED_COMET, SPELL_ROUTINES } from "./helpers/move-fixtures.js";
+import { MODULE_ID } from "../scripts/module-id.js";
+import { ALCHEMICAL_SUITE, ARTIFACT, INPUT_CHANNEL, RED_COMET, RESISTANCE_CHARMS, SPELL_ROUTINES } from "./helpers/move-fixtures.js";
 
 beforeEach(() => {
 	chooseAstirPart.mockClear();
@@ -1156,7 +1157,9 @@ describe("PlaybookActorSheet#getData - astir extraParts/extraWeapons", () => {
 });
 
 // The Edit button's own `customizable` flag (move-customization.js) — every ASTIR_PART_CATALOG
-// entry is eligible, so this is gated purely on the world setting.
+// entry is eligible, so an ordinary part is gated purely on the world setting; Resistance Charms
+// and Artifact are the two exceptions that stay customizable even with the setting off (see
+// move-customization.js's ALWAYS_CUSTOMIZABLE_KEYS).
 describe("PlaybookActorSheet#getData - astir parts/extraParts customizable flag", () => {
 	afterEach(() => {
 		game.settings.get.mockReset();
@@ -1191,5 +1194,28 @@ describe("PlaybookActorSheet#getData - astir parts/extraParts customizable flag"
 
 		expect(data.astir.parts[0]).toMatchObject({ customizable: true, name: "Renamed Part" });
 		expect(data.astir.extraParts[0]).toMatchObject({ customizable: true, name: partB.name });
+	});
+
+	it("marks Artifact and Resistance Charms customizable and applies a stored override even with the setting off, calling actor.getFlag", () => {
+		const sheet = new PlaybookActorSheet();
+		const getFlag = vi.fn(() => ({
+			[ARTIFACT.key]: { name: "Heirloom", description: "Custom." },
+			[RESISTANCE_CHARMS.key]: { name: "Lucky Charm", description: "Custom." }
+		}));
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: {
+					astir: { id: "a1", tier: 3, power: 4, parts: [ARTIFACT.key], extraParts: [RESISTANCE_CHARMS.key], move: null }
+				}
+			},
+			getFlag
+		};
+
+		const data = sheet.getData();
+
+		expect(data.astir.parts[0]).toMatchObject({ customizable: true, name: "Heirloom" });
+		expect(data.astir.extraParts[0]).toMatchObject({ customizable: true, name: "Lucky Charm" });
+		expect(getFlag).toHaveBeenCalledWith(MODULE_ID, "moveCustomizations");
 	});
 });

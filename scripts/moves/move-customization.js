@@ -12,6 +12,11 @@ export const ENABLE_MOVE_CUSTOMIZATION_SETTING = "enableMoveCustomization";
 // customizable (see docs/domains/moves.md).
 const CUSTOMIZABLE_MOVE_KEYS = new Set([...ALL_PLAYBOOK_MOVES, ...ASTIR_PART_CATALOG].map((entry) => entry.key));
 
+// Resistance Charms and Artifact are pure-prose/freeform by design — their rules text leaves the
+// specifics up to the player — so they're always player-customizable regardless of the GM's world
+// setting.
+const ALWAYS_CUSTOMIZABLE_KEYS = new Set(["astir-part:resistance-charms", "astir-part:artifact"]);
+
 export function isMoveCustomizationEnabled() {
 	return Boolean(game.settings.get(MODULE_ID, ENABLE_MOVE_CUSTOMIZATION_SETTING));
 }
@@ -20,12 +25,21 @@ export function isCustomizableMoveKey(key) {
 	return CUSTOMIZABLE_MOVE_KEYS.has(key);
 }
 
+export function isMoveCustomizationActiveFor(key) {
+	return isCustomizableMoveKey(key) && (isMoveCustomizationEnabled() || ALWAYS_CUSTOMIZABLE_KEYS.has(key));
+}
+
 // The setting check must come before any actor.getFlag call — no code in this repo uses actor
 // flags today, and dozens of tests build sheet.actor as a bare object literal with no getFlag
-// method (see claude.md's Foundry module notes).
-export function moveCustomizationOverrides(actor, enabled = isMoveCustomizationEnabled()) {
-	if (!enabled) return {};
-	return actor.getFlag(MODULE_ID, "moveCustomizations") ?? {};
+// method (see claude.md's Foundry module notes). presentKeys lets a caller surface the two
+// always-customizable keys even with the setting off, without calling getFlag when none of them
+// are actually present in this render.
+export function moveCustomizationOverrides(actor, customizationEnabled = isMoveCustomizationEnabled(), presentKeys = []) {
+	if (customizationEnabled) return actor.getFlag(MODULE_ID, "moveCustomizations") ?? {};
+	const alwaysActiveKeys = presentKeys.filter((key) => ALWAYS_CUSTOMIZABLE_KEYS.has(key));
+	if (alwaysActiveKeys.length === 0) return {};
+	const stored = actor.getFlag(MODULE_ID, "moveCustomizations") ?? {};
+	return Object.fromEntries(alwaysActiveKeys.filter((key) => stored[key]).map((key) => [key, stored[key]]));
 }
 
 // Returns `move` unchanged by reference unless it's both eligible and actually overridden —

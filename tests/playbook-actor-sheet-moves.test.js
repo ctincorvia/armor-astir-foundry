@@ -11,7 +11,7 @@ vi.mock("../scripts/world-actors/carrier-actor-sheet.js", async (importOriginal)
 
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import { findCarrierActors } from "../scripts/world-actors/carrier-actor-sheet.js";
-import { DENY, MASKING_BOON, TRICKSTERS_BOON } from "./helpers/move-fixtures.js";
+import { ARTIFACT, DENY, MASKING_BOON, TRICKSTERS_BOON } from "./helpers/move-fixtures.js";
 
 beforeEach(() => {
 	findCarrierActors.mockClear();
@@ -501,5 +501,21 @@ describe("PlaybookActorSheet#getData - moves - customizable flag", () => {
 
 		const playbookMoves = data.moveGroups.find((group) => group.label === "Playbook Moves");
 		expect(playbookMoves.moves.find((move) => move.key === DENY.key).name).toBe("Refuse");
+	});
+
+	it("marks Artifact customizable in the Astir Moves group even with the setting off", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				stats: {},
+				attributes: { astir: { id: "a1", tier: 3, power: 4, parts: [ARTIFACT.key], move: null } }
+			},
+			getFlag: vi.fn(() => ({}))
+		};
+
+		const data = sheet.getData();
+
+		const astirMoves = data.moveGroups.find((group) => group.label === "Astir Moves");
+		expect(astirMoves.moves.find((move) => move.key === ARTIFACT.key).customizable).toBe(true);
 	});
 });

@@ -5,11 +5,12 @@ import {
 	ENABLE_MOVE_CUSTOMIZATION_SETTING,
 	customizedMove,
 	isCustomizableMoveKey,
+	isMoveCustomizationActiveFor,
 	isMoveCustomizationEnabled,
 	moveCustomizationOverrides,
 	saveMoveCustomization
 } from "../scripts/moves/move-customization.js";
-import { DENY, EXCHANGE_BLOWS } from "./helpers/move-fixtures.js";
+import { ARTIFACT, DENY, EXCHANGE_BLOWS, RESISTANCE_CHARMS } from "./helpers/move-fixtures.js";
 import { ASTIR_PART_CATALOG } from "../scripts/frames/astir-parts.js";
 import { ARDENT_FEATURE_PARTS } from "../scripts/frames/ardent.js";
 import { ASTIR_MOVE_CATALOG } from "../scripts/frames/astir-moves.js";
@@ -57,6 +58,38 @@ describe("isCustomizableMoveKey", () => {
 	});
 });
 
+describe("isMoveCustomizationActiveFor", () => {
+	it("is true when the setting is on for any eligible key", () => {
+		game.settings.get.mockReturnValue(true);
+
+		expect(isMoveCustomizationActiveFor(DENY.key)).toBe(true);
+	});
+
+	it("is true when the setting is off but the key is Resistance Charms", () => {
+		game.settings.get.mockReturnValue(false);
+
+		expect(isMoveCustomizationActiveFor(RESISTANCE_CHARMS.key)).toBe(true);
+	});
+
+	it("is true when the setting is off but the key is Artifact", () => {
+		game.settings.get.mockReturnValue(false);
+
+		expect(isMoveCustomizationActiveFor(ARTIFACT.key)).toBe(true);
+	});
+
+	it("is false when the setting is off for an ordinary eligible key", () => {
+		game.settings.get.mockReturnValue(false);
+
+		expect(isMoveCustomizationActiveFor(DENY.key)).toBe(false);
+	});
+
+	it("is false for an ineligible key regardless of the setting", () => {
+		game.settings.get.mockReturnValue(true);
+
+		expect(isMoveCustomizationActiveFor(EXCHANGE_BLOWS.key)).toBe(false);
+	});
+});
+
 describe("moveCustomizationOverrides", () => {
 	it("returns {} without ever calling actor.getFlag when the setting is off", () => {
 		const getFlag = vi.fn();
@@ -84,6 +117,39 @@ describe("moveCustomizationOverrides", () => {
 		const getFlag = vi.fn(() => undefined);
 
 		expect(moveCustomizationOverrides({ getFlag }, true)).toEqual({});
+	});
+
+	it("returns {} without calling actor.getFlag when the setting is off and presentKeys has no always-active key", () => {
+		const getFlag = vi.fn();
+
+		expect(moveCustomizationOverrides({ getFlag }, false, [DENY.key])).toEqual({});
+		expect(getFlag).not.toHaveBeenCalled();
+	});
+
+	it("filters the stored bucket down to only the always-active keys present in presentKeys, with the setting off", () => {
+		const stored = {
+			[ARTIFACT.key]: { name: "Heirloom", description: "A custom artifact." },
+			[DENY.key]: { name: "Refuse", description: "A custom refusal." }
+		};
+		const getFlag = vi.fn(() => stored);
+
+		const result = moveCustomizationOverrides({ getFlag }, false, [ARTIFACT.key, DENY.key]);
+
+		expect(getFlag).toHaveBeenCalledWith(MODULE_ID, "moveCustomizations");
+		expect(result).toEqual({ [ARTIFACT.key]: stored[ARTIFACT.key] });
+	});
+
+	it("drops an always-active key from presentKeys with nothing stored for it, with the setting off", () => {
+		const getFlag = vi.fn(() => ({}));
+
+		expect(moveCustomizationOverrides({ getFlag }, false, [ARTIFACT.key])).toEqual({});
+	});
+
+	it("falls back to {} internally when the setting is off, an always-active key is present, and getFlag returns nothing stored yet", () => {
+		const getFlag = vi.fn(() => undefined);
+
+		expect(moveCustomizationOverrides({ getFlag }, false, [ARTIFACT.key])).toEqual({});
+		expect(getFlag).toHaveBeenCalledWith(MODULE_ID, "moveCustomizations");
 	});
 });
 

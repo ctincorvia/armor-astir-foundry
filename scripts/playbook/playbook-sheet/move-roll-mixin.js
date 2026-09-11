@@ -19,7 +19,7 @@ import { ALL_MOVES } from "../../moves/all-moves.js";
 import { findWitchBoon, resolveWitchBoons } from "../witch.js";
 import {
 	customizedMove,
-	isCustomizableMoveKey,
+	isMoveCustomizationActiveFor,
 	isMoveCustomizationEnabled,
 	moveCustomizationOverrides,
 	saveMoveCustomization
@@ -39,7 +39,7 @@ export const MoveRollSheetMixin = {
 	// Rituals group the same read-only way a Boon does.
 	_resolveAnyMove(key) {
 		const move = ALL_MOVES.find((m) => m.key === key) ?? findWitchBoon(key) ?? this._preparedRitualEntry(key);
-		return move ? customizedMove(move, moveCustomizationOverrides(this.actor)) : move;
+		return move ? customizedMove(move, moveCustomizationOverrides(this.actor, isMoveCustomizationEnabled(), [key])) : move;
 	},
 	async _onMoveRoll(event) {
 		const clicked = this._resolveAnyMove(event.currentTarget.dataset.move);
@@ -699,7 +699,7 @@ export const MoveRollSheetMixin = {
 	// the dialog always shows the player's last edit.
 	async _onMoveCustomize(event) {
 		const key = event.currentTarget.dataset.move;
-		if (!isMoveCustomizationEnabled() || !isCustomizableMoveKey(key)) return;
+		if (!isMoveCustomizationActiveFor(key)) return;
 
 		const result = await configureMoveCustomization(this._resolveAnyMove(key));
 		if (!result) return;

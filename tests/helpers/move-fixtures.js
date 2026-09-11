@@ -89,6 +89,7 @@ export const WEAPON_CONDUIT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-pa
 export const ALCHEMICAL_SUITE = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:alchemical-suite");
 export const WARDING = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:warding");
 export const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:artifact");
+export const RESISTANCE_CHARMS = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:resistance-charms");
 export const FLOURISH_COMPONENT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:flourish-component");
 export const SPELL_ROUTINES = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:spell-routines");
 export const INPUT_CHANNEL = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:input-channel");

@@ -9,7 +9,7 @@ import { BASIC_MOVES, SPECIAL_MOVES } from "../../moves/moves.js";
 import { ARDENT_DEFAULT_NAME, ARDENT_PART_CATALOG } from "../../frames/ardent.js";
 import { resolveWitchBoons } from "../witch.js";
 import { findCarrierActors } from "../../world-actors/carrier-actor-sheet.js";
-import { customizedMove, isCustomizableMoveKey, isMoveCustomizationEnabled, moveCustomizationOverrides } from "../../moves/move-customization.js";
+import { customizedMove, isMoveCustomizationActiveFor, isMoveCustomizationEnabled, moveCustomizationOverrides } from "../../moves/move-customization.js";
 
 // Basic, Special and Playbook moves' shared roll pipeline (see claude.md's Moves sections) — move
 // definitions themselves live in moves.js/playbook-moves.js/astir.js/ardent.js; this mixin owns
@@ -251,7 +251,7 @@ export const MovesSheetMixin = {
 	_moveGroupMoves(moves) {
 		const channelDisabled = this._channelDisabled();
 		const customizationEnabled = isMoveCustomizationEnabled();
-		const overrides = moveCustomizationOverrides(this.actor, customizationEnabled);
+		const overrides = moveCustomizationOverrides(this.actor, customizationEnabled, moves.map((move) => move.key));
 		// Never Quite Free (see playbook-moves.js's disablesMove) — the inverse of
 		// grantsUnpilotedAstirMove: a picked move can explicitly gate a different move rather
 		// than ungate one. Resolved once here, same shape channelDisabled already establishes,
@@ -499,7 +499,7 @@ export const MovesSheetMixin = {
 				// GM setting and catalog eligibility (move-customization.js), so Basic/Special Moves,
 				// the Astir's unique move and true Ardent Features never get one. Omitted (not `false`)
 				// for the same reason as variableDiceRoll above.
-				...(customizationEnabled && isCustomizableMoveKey(move.key) && { customizable: true })
+				...(isMoveCustomizationActiveFor(move.key) && { customizable: true })
 			};
 		});
 	}

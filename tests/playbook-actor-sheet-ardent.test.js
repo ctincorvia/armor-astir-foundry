@@ -26,6 +26,7 @@ import { UNARMED, configureEquipment } from "../scripts/equipment/equipment.js";
 import { ASTIR_PART_CATALOG, chooseAstirPart, chooseAstirWeapon } from "../scripts/frames/astir.js";
 import { ARDENT_TIER_MAX, ARDENT_TIER_MIN, ardentParts, ardentWeapons } from "../scripts/frames/ardent.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
+import { MODULE_ID } from "../scripts/module-id.js";
 import { CHROMATIC_RESERVES } from "./helpers/move-fixtures.js";
 
 const DISPEL_UNCERTAINTIES = BASIC_MOVES.find((m) => m.key === "dispel-uncertainties");
@@ -1121,7 +1122,7 @@ describe("PlaybookActorSheet#getData - ardents extraParts/extraWeapons", () => {
 	it("resolves extraParts separately from parts and featureParts, with the same per-item shape", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
-			system: { attributes: { ardents: [{ id: "ar1", parts: [WARDING.key], extraParts: [ARTIFACT.key] }] } }
+			system: { attributes: { ardents: [{ id: "ar1", parts: [WARDING.key], extraParts: [INPUT_CHANNEL.key] }] } }
 		};
 
 		const [ardent] = sheet.getData().ardents;
@@ -1130,7 +1131,7 @@ describe("PlaybookActorSheet#getData - ardents extraParts/extraWeapons", () => {
 			{ key: WARDING.key, name: WARDING.name, partType: WARDING.partType, tier: ARDENT_TIER_MIN, disabled: false }
 		]);
 		expect(ardent.extraParts).toEqual([
-			{ key: ARTIFACT.key, name: ARTIFACT.name, partType: ARTIFACT.partType, tier: ARDENT_TIER_MIN, disabled: false }
+			{ key: INPUT_CHANNEL.key, name: INPUT_CHANNEL.name, partType: INPUT_CHANNEL.partType, tier: ARDENT_TIER_MIN, disabled: false }
 		]);
 	});
 
@@ -1166,7 +1167,7 @@ describe("PlaybookActorSheet#getData - ardents extraParts/extraWeapons", () => {
 		sheet.actor = {
 			system: {
 				attributes: {
-					ardents: [{ id: "ar1", parts: [], extraParts: [WARDING.key, ARTIFACT.key] }],
+					ardents: [{ id: "ar1", parts: [], extraParts: [WARDING.key, INPUT_CHANNEL.key] }],
 					equipment: [
 						{ id: "1", kind: "weapon", ardent: "ar1", extra: true },
 						{ id: "2", kind: "weapon", ardent: "ar1", extra: true }
@@ -1179,9 +1180,11 @@ describe("PlaybookActorSheet#getData - ardents extraParts/extraWeapons", () => {
 	});
 });
 
-// The Edit button's own `customizable` flag (move-customization.js) — a genuine ARDENT_PART_CATALOG
-// part (== ASTIR_PART_CATALOG, see ardent.js) is eligible, so this is gated purely on the world
-// setting; a true Ardent Feature is covered separately (playbook-actor-sheet-commander.test.js).
+// The Edit button's own `customizable` flag (move-customization.js) — an ordinary
+// ARDENT_PART_CATALOG part (== ASTIR_PART_CATALOG, see ardent.js) is gated purely on the world
+// setting; Resistance Charms and Artifact are always customizable regardless of the setting (see
+// move-customization.js's ALWAYS_CUSTOMIZABLE_KEYS); a true Ardent Feature is covered separately
+// (playbook-actor-sheet-commander.test.js).
 describe("PlaybookActorSheet#getData - ardent parts/extraParts customizable flag", () => {
 	afterEach(() => {
 		game.settings.get.mockReset();
@@ -1191,7 +1194,7 @@ describe("PlaybookActorSheet#getData - ardent parts/extraParts customizable flag
 		const sheet = new PlaybookActorSheet();
 		const getFlag = vi.fn();
 		sheet.actor = {
-			system: { attributes: { ardents: [{ id: "ar1", parts: [WARDING.key], extraParts: [ARTIFACT.key] }] } },
+			system: { attributes: { ardents: [{ id: "ar1", parts: [WARDING.key], extraParts: [INPUT_CHANNEL.key] }] } },
 			getFlag
 		};
 
@@ -1214,5 +1217,19 @@ describe("PlaybookActorSheet#getData - ardent parts/extraParts customizable flag
 
 		expect(ardent.parts[0]).toMatchObject({ customizable: true, name: "Renamed Ward" });
 		expect(ardent.extraParts[0]).toMatchObject({ customizable: true, name: ARTIFACT.name });
+	});
+
+	it("marks Artifact customizable and applies a stored override even with the setting off, calling actor.getFlag", () => {
+		const sheet = new PlaybookActorSheet();
+		const getFlag = vi.fn(() => ({ [ARTIFACT.key]: { name: "Heirloom", description: "Custom." } }));
+		sheet.actor = {
+			system: { attributes: { ardents: [{ id: "ar1", parts: [WARDING.key], extraParts: [ARTIFACT.key] }] } },
+			getFlag
+		};
+
+		const [ardent] = sheet.getData().ardents;
+
+		expect(ardent.extraParts[0]).toMatchObject({ customizable: true, name: "Heirloom" });
+		expect(getFlag).toHaveBeenCalledWith(MODULE_ID, "moveCustomizations");
 	});
 });

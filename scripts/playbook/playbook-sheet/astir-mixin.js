@@ -18,7 +18,7 @@ import {
 import { configureEquipment } from "../../equipment/equipment.js";
 import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { playbookGrantsHomeInsteadOfChannel } from "../../moves/starting-moves.js";
-import { customizedMove, isCustomizableMoveKey, isMoveCustomizationEnabled, moveCustomizationOverrides } from "../../moves/move-customization.js";
+import { customizedMove, isMoveCustomizationActiveFor, isMoveCustomizationEnabled, moveCustomizationOverrides } from "../../moves/move-customization.js";
 
 // The Astir itself — its own identity/loadout fields, plus every reactive Astir Part effect
 // (Potions, doubles-regen Power, spend-driven Expended) that only ever applies to the Astir
@@ -55,7 +55,7 @@ export const AstirSheetMixin = {
 	// Moves/Equipment data methods) and passed in here rather than recomputed.
 	_astirData(astir, astirParts, astirMove, equipment, astirWeapons) {
 		const customizationEnabled = isMoveCustomizationEnabled();
-		const overrides = moveCustomizationOverrides(this.actor, customizationEnabled);
+		const overrides = moveCustomizationOverrides(this.actor, customizationEnabled, this._astirPartKeys(astir));
 		// Soldier's Red Comet (astirPartCapBonus) raises this cap above ASTIR_MAX_PARTS — see
 		// astir.js#astirMaxParts.
 		const partsCap = astirMaxParts(resolvePlaybookMoves(this._playbookMoves()));
@@ -130,7 +130,7 @@ export const AstirSheetMixin = {
 					// to a separate channelMoveChoices field so the two grants can't collide.
 					channelMoveChoosable: Boolean(part.grantsChannelOnChosenMove),
 					channelMoveChoice: this.actor.system.attributes?.channelMoveChoices?.[part.key] ?? "",
-					...(customizationEnabled && isCustomizableMoveKey(part.key) && { customizable: true })
+					...(isMoveCustomizationActiveFor(part.key) && { customizable: true })
 				})),
 				partsFull: (astir.parts ?? []).length >= partsCap,
 				// A part key is unique across the regular and Extra pools, so Spell Routines can land
@@ -147,7 +147,7 @@ export const AstirSheetMixin = {
 					guidedMoveChoice: this.actor.system.attributes?.guidedMoveChoices?.[part.key] ?? "",
 					channelMoveChoosable: Boolean(part.grantsChannelOnChosenMove),
 					channelMoveChoice: this.actor.system.attributes?.channelMoveChoices?.[part.key] ?? "",
-					...(customizationEnabled && isCustomizableMoveKey(part.key) && { customizable: true })
+					...(isMoveCustomizationActiveFor(part.key) && { customizable: true })
 				})),
 				move: astirMove ? { key: astirMove.key, name: astirMove.name } : null,
 				weapons: astirWeapons.filter((w) => !w.extra),

@@ -27,7 +27,7 @@ import { MODULE_ID } from "../scripts/module-id.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
 import {
 	EXCHANGE_BLOWS, STRIKE_DECISIVELY, BITE_THE_DUST, WEAVE_MAGIC, LEAD_A_SORTIE, DENY, I_KNOW_YOU, BUREAUCRAT,
-	DONT_FOLLOW_ME, MANA_DEVOURER, MASKING_BOON
+	DONT_FOLLOW_ME, MANA_DEVOURER, MASKING_BOON, ARTIFACT
 } from "./helpers/move-fixtures.js";
 import { mockRoll } from "./helpers/move-test-helpers.js";
 
@@ -862,6 +862,16 @@ describe("PlaybookActorSheet#_resolveAnyMove - move customization overrides", ()
 		expect(sheet._resolveAnyMove("not-a-real-move")).toBeNull();
 		expect(getFlag).not.toHaveBeenCalled();
 	});
+
+	it("applies a saved override onto Artifact even with the setting off, since it's always customizable", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {},
+			getFlag: vi.fn(() => ({ [ARTIFACT.key]: { name: "Heirloom", description: "Custom." } }))
+		};
+
+		expect(sheet._resolveAnyMove(ARTIFACT.key)).toEqual({ ...ARTIFACT, name: "Heirloom", description: "Custom." });
+	});
 });
 
 describe("PlaybookActorSheet#_onMoveCustomize", () => {
@@ -920,5 +930,19 @@ describe("PlaybookActorSheet#_onMoveCustomize", () => {
 		await sheet._onMoveCustomize({ currentTarget: { dataset: { move: DENY.key } } });
 
 		expect(update).not.toHaveBeenCalled();
+	});
+
+	it("opens the dialog and saves for Artifact even with the setting off, since it's always customizable", async () => {
+		configureMoveCustomization.mockResolvedValue({ name: "Heirloom", description: "Custom." });
+		const sheet = new PlaybookActorSheet();
+		const update = vi.fn();
+		sheet.actor = { system: {}, getFlag: vi.fn(() => ({})), update };
+
+		await sheet._onMoveCustomize({ currentTarget: { dataset: { move: ARTIFACT.key } } });
+
+		expect(configureMoveCustomization).toHaveBeenCalledWith(ARTIFACT);
+		expect(update).toHaveBeenCalledWith({
+			[`flags.${MODULE_ID}.moveCustomizations`]: { [ARTIFACT.key]: { name: "Heirloom", description: "Custom." } }
+		});
 	});
 });
