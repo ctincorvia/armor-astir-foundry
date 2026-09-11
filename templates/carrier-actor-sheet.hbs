@@ -5,6 +5,12 @@
 			<label>Name</label>
 			<input type="text" name="name" value="{{actor.name}}" placeholder="Name"/>
 		</div>
+		<div class="approach-swap">
+			<label>Approach</label>
+			<select name="system.attributes.approach">
+				{{selectOptions approachOptions selected=approach valueAttr="key" labelAttr="label" blank="— Choose —"}}
+			</select>
+		</div>
 	</header>
 	<section class="crew">
 		<h3>Crew</h3>

@@ -1,8 +1,8 @@
 import { resolvePlaybookMoves } from "../../moves/playbook-moves.js";
 import { findAstirMove } from "../../frames/astir.js";
-import { getTargetedNpc } from "../../moves/target-tier.js";
+import { getTargetedNpc, tierMatchupAdvantage, tierRollModifier } from "../../moves/target-tier.js";
 import { TIER_MIN, findEquipmentTag } from "../../equipment/equipment.js";
-import { approachMatchupStack } from "../../moves/approach-matchup.js";
+import { approachMatchupEffect, approachRollModifier } from "../../moves/approach-matchup.js";
 import { ALL_MOVES } from "../../moves/all-moves.js";
 import { HOLD_MAX, HOLD_MIN } from "../../moves/moves.js";
 import { SPOTLIGHT_MIN } from "./progression-mixin.js";
@@ -112,10 +112,7 @@ export const MoveGrantsSheetMixin = {
 		const target = getTargetedNpc();
 		if (!target) return null;
 		const targetTier = target.system.attributes?.tier ?? TIER_MIN;
-		const tierStack = Math.sign(this._conflictTier().effective - targetTier);
-		if (tierStack === 1) return "advantage";
-		if (tierStack === -1) return "disadvantage";
-		return null;
+		return tierMatchupAdvantage(this._conflictTier().effective, targetTier);
 	},
 	// Approach-vs-Approach against a single targeted NPC — the Effect-axis half of the target-
 	// matchup pair, independent of Tier (see _targetTierAdvantage above). Countering a foe's
@@ -123,16 +120,15 @@ export const MoveGrantsSheetMixin = {
 	// Desperation; a tie, an unknown Approach on either side, or a non-adjacent pairing grants
 	// neither. Same usesWeapon gating as _targetTierAdvantage, for the same "declarative flag,
 	// evaluated generically" reason.
-	_targetMatchupEffect(move) {
+	_targetMatchupEffect(move, weapon) {
 		if (!move.usesWeapon) return null;
 		const target = getTargetedNpc();
 		if (!target) return null;
-		const attackerApproach = this._effectiveApproach().effective;
+		const attackerApproach = weapon?.fromCarrier
+			? (game.actors.get(weapon.carrierActorId)?.system.attributes?.approach ?? "")
+			: this._effectiveApproach().effective;
 		const targetApproach = target.system.attributes?.approach ?? "";
-		const stack = approachMatchupStack(attackerApproach, targetApproach);
-		if (stack === 1) return "confidence";
-		if (stack === -1) return "desperation";
-		return null;
+		return approachMatchupEffect(attackerApproach, targetApproach);
 	},
 	// Forced Roll Modifier wrapper for the granting move pair (Born Leader/Legacy) —
 	// see _grantingMoveForAdvantage above. No masking/precedence with the other Advantage-axis
@@ -206,42 +202,16 @@ export const MoveGrantsSheetMixin = {
 	// masking parameter, since it's independent of the other Advantage-axis sources by design (they
 	// compose).
 	_targetTierRollModifier(move) {
-		const advantage = this._targetTierAdvantage(move);
-		if (!advantage) return null;
-		return {
-			key: "target-tier-matchup",
-			label: advantage === "advantage" ? "Tier Advantage" : "Tier Disadvantage",
-			description: "This roll's Tier advantage/disadvantage against the currently targeted NPC.",
-			advantage,
-			effect: null,
-			requiresAdvantage: null,
-			reminderOnly: false,
-			disabled: false,
-			disabledReason: null,
-			forced: true
-		};
+		return tierRollModifier(this._targetTierAdvantage(move));
 	},
 	// Forced Roll Modifier wrapper for the Approach matchup (see _targetMatchupEffect) — masked
 	// (returns null) whenever the trimmed lockedEffect is already set, since the Roll button's own
 	// activeLockedEffect override at submit time means an unmasked entry here could silently
 	// override an emergency lock. Not masked against _forcedWeaponRollModifier below — the two
 	// compose with each other (see docs/domains/moves.md).
-	_targetMatchupRollModifier(move, lockedEffect) {
+	_targetMatchupRollModifier(move, lockedEffect, weapon) {
 		if (lockedEffect) return null;
-		const effect = this._targetMatchupEffect(move);
-		if (!effect) return null;
-		return {
-			key: "target-approach-matchup",
-			label: effect === "confidence" ? "Approach Confidence" : "Approach Desperation",
-			description: "This roll's Approach confidence/desperation against the currently targeted NPC.",
-			advantage: null,
-			effect,
-			requiresAdvantage: null,
-			reminderOnly: false,
-			disabled: false,
-			disabledReason: null,
-			forced: true
-		};
+		return approachRollModifier(this._targetMatchupEffect(move, weapon));
 	},
 	// Forced Roll Modifier wrapper for a forced weapon tag (Unreliable — see _forcedWeaponEffect).
 	// Same masking as _targetMatchupRollModifier above, and not masked against it — see that
@@ -614,7 +584,7 @@ export const MoveGrantsSheetMixin = {
 		if (tier) entries.push(tier);
 		const forcedWeapon = this._forcedWeaponRollModifier(weapon, lockedEffect);
 		if (forcedWeapon) entries.push(forcedWeapon);
-		const approach = this._targetMatchupRollModifier(move, lockedEffect);
+		const approach = this._targetMatchupRollModifier(move, lockedEffect, weapon);
 		if (approach) entries.push(approach);
 		return entries;
 	},

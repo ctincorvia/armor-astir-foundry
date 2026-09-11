@@ -2,6 +2,7 @@ import { WorldActorSheet } from "./world-actor-sheet.js";
 import { BASIC_MOVES, SPECIAL_MOVES, configureMoveRoll, postGuidedResult, rollMove } from "../moves/moves.js";
 import {
 	TIER_MAX,
+	TIER_MIN,
 	configureEquipment,
 	equipmentValue,
 	findEquipmentTag,
@@ -17,6 +18,9 @@ import {
 	WEAPON_SCALES
 } from "../equipment/equipment.js";
 import { SUPPORT_PLAYBOOK_SLUGS, resolveQuartersBenefits } from "../playbook/quarters.js";
+import { APPROACHES } from "../core/approaches.js";
+import { getTargetedNpc, tierMatchupAdvantage, tierRollModifier } from "../moves/target-tier.js";
+import { approachMatchupEffect, approachRollModifier } from "../moves/approach-matchup.js";
 
 export const CARRIER_SHEET_TEMPLATE = "modules/armor-astir/templates/carrier-actor-sheet.hbs";
 export const CARRIER_ACTOR_TYPE = "armor-astir.carrier";
@@ -151,6 +155,35 @@ export class CarrierActorSheet extends WorldActorSheet {
 		return weaponTagsAreGuided(this._weaponTagKeys(slot, entry));
 	}
 
+	// The Carrier's own Tier-vs-Tier matchup against a single targeted NPC (see
+	// docs/domains/world-actors.md, "World actors" / target-tier.js's getTargetedNpc) — the
+	// Carrier has no personal Tier stat, so the attacker's Tier is the specific weapon slot's own
+	// fixed Tier (WEAPON_SLOTS: primary Tier V, secondary Tier III), the same precedent
+	// equipment-mixin.js's entry.fromCarrier ? entry.tier : ... already establishes for a borrowed
+	// Carrier weapon on the Playbook side. Unlike move-grants-mixin.js's Playbook-side version,
+	// no `move` gate is needed here — _onWeaponMoveRoll only ever rolls a usesWeapon move.
+	_targetTierRollModifier(slot) {
+		const target = getTargetedNpc();
+		if (!target) return null;
+		const targetTier = target.system.attributes?.tier ?? TIER_MIN;
+		return tierRollModifier(tierMatchupAdvantage(slot.tier, targetTier));
+	}
+
+	// The Carrier's own Approach-vs-Approach matchup against a single targeted NPC — the Effect-
+	// axis sibling of _targetTierRollModifier above. Masked to null whenever lockedEffect is
+	// already set, same "compose, not compete" masking move-grants-mixin.js's own
+	// _targetMatchupRollModifier applies. Named _targetApproachRollModifier rather than reusing
+	// _targetMatchupRollModifier verbatim, since this version's signature has no move/weapon
+	// params (the Carrier's own Approach is always the attacker's).
+	_targetApproachRollModifier(lockedEffect) {
+		if (lockedEffect) return null;
+		const target = getTargetedNpc();
+		if (!target) return null;
+		const attackerApproach = this.actor.system.attributes?.approach ?? "";
+		const targetApproach = target.system.attributes?.approach ?? "";
+		return approachRollModifier(approachMatchupEffect(attackerApproach, targetApproach));
+	}
+
 	// Resolves an in-card button's data-equipment-id (the shared equipment-card.hbs partial
 	// addresses by id, not by slot key) back to the slot that holds it.
 	_weaponSlotForId(id) {
@@ -176,6 +209,8 @@ export class CarrierActorSheet extends WorldActorSheet {
 		data.crew = this.actor.system.stats?.crew?.value ?? 0;
 		data.crewSupportHold = this.actor.system.attributes?.crewSupportHold ?? 0;
 		data.description = this.actor.system.details?.description?.value ?? "";
+		data.approach = this.actor.system.attributes?.approach ?? "";
+		data.approachOptions = APPROACHES;
 		data.crewMembers = this._list("crewMembers");
 		const weapons = this._weapons();
 		data.weaponSlots = WEAPON_SLOTS.map((slot) => {
@@ -286,11 +321,16 @@ export class CarrierActorSheet extends WorldActorSheet {
 		const guided = this._weaponIsGuided(slot, weapon) ? "Guided" : null;
 		const rerollTag = this._availableRerollTag(move, slot, weapon);
 
+		const tierModifier = this._targetTierRollModifier(slot);
+		const approachModifier = this._targetApproachRollModifier(lockedEffect);
+		const rollModifiers = [tierModifier, approachModifier].filter(Boolean);
+
 		const config = await configureMoveRoll(move, traits, {
 			lockedEffect,
 			lockedEffectSource,
 			equipmentSpends,
 			narrativeTags,
+			rollModifiers,
 			...(guided && { guided }),
 			...(rerollTag && { rerollTag })
 		});

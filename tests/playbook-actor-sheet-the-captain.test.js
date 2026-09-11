@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../scripts/moves/moves.js", async (importOriginal) => ({
 	...(await importOriginal()),
@@ -541,6 +541,114 @@ describe("PlaybookActorSheet#_rollMove - fromCarrier weapon parity", () => {
 			}
 		});
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	// Fire Support: the Approach-matchup roll modifier for a fromCarrier weapon has to reflect the
+	// owning Carrier's own Approach, not the Captain's own (locked to mundane per
+	// PLAYBOOK_APPROACHES) — see move-grants-mixin.js's _targetMatchupEffect. The Captain's own
+	// Approach ("mundane") is neutral against the targeted NPC's ("divine") while the Carrier's own
+	// ("arcane") beats it, so a Confidence lock here can only be coming from the Carrier's Approach.
+	it("uses the owning Carrier's own Approach for the target matchup, not the Captain's own", async () => {
+		const sheet = new PlaybookActorSheet();
+		const carrierWeapon = {
+			id: "carrier-w1", kind: "weapon", name: "Broadside Cannon", tags: [], spent: [],
+			fromCarrier: true, carrierActorId: "carrier1"
+		};
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { approach: "mundane", equipment: [] }
+			},
+			update: vi.fn()
+		};
+		const carrier = {
+			id: "carrier1",
+			system: {
+				attributes: {
+					approach: "arcane",
+					weapons: { primary: { id: "carrier-w1", tags: [], spent: [] }, secondary: null }
+				}
+			},
+			update: vi.fn()
+		};
+		game.actors.get.mockReturnValue(carrier);
+		game.user.targets = new Set([{ actor: { type: "armor-astir.npc", system: { attributes: { tier: 1, approach: "divine" } } } }]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._rollMove(EXCHANGE_BLOWS, carrierWeapon);
+
+		const rollModifiers = configureMoveRoll.mock.calls.at(-1)[2].rollModifiers;
+		expect(rollModifiers).toContainEqual(expect.objectContaining({
+			key: "target-approach-matchup",
+			label: "Approach Confidence",
+			effect: "confidence"
+		}));
+	});
+
+	// The companion regression: a normal (non-fromCarrier) weapon still uses the Captain's own
+	// Approach, ignoring the world's Carrier entirely — even one whose own Approach, if wrongly
+	// substituted in, would flip the result. The Captain's own ("mundane") beats the targeted NPC's
+	// ("arcane") for Confidence; the stubbed Carrier's own ("divine") would instead be countered by
+	// it for Desperation, so a passing Confidence lock proves the Carrier's Approach was never read.
+	it("still uses the Captain's own Approach for a plain (non-fromCarrier) weapon, ignoring the Carrier entirely", async () => {
+		const sheet = new PlaybookActorSheet();
+		const rifle = {
+			id: "eq1", kind: "weapon", name: "Rifle", description: "", tags: [], spent: [], scale: "foot", tier: 1
+		};
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { approach: "mundane", equipment: [rifle] }
+			},
+			update: vi.fn()
+		};
+		const carrier = { id: "carrier1", system: { attributes: { approach: "divine" } } };
+		game.actors.get.mockReturnValue(carrier);
+		game.actors.get.mockClear();
+		game.user.targets = new Set([{ actor: { type: "armor-astir.npc", system: { attributes: { tier: 1, approach: "arcane" } } } }]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._rollMove(EXCHANGE_BLOWS, rifle);
+
+		const rollModifiers = configureMoveRoll.mock.calls.at(-1)[2].rollModifiers;
+		expect(rollModifiers).toContainEqual(expect.objectContaining({
+			key: "target-approach-matchup",
+			label: "Approach Confidence",
+			effect: "confidence"
+		}));
+		expect(game.actors.get).not.toHaveBeenCalled();
+	});
+
+	// A fromCarrier weapon whose owning Carrier can no longer be resolved (e.g. deleted from the
+	// world) falls back to a neutral ("") attacker Approach rather than throwing — see
+	// _targetMatchupEffect's optional-chained game.actors.get(...) lookup. A neutral Approach
+	// against any real one always resolves to null (approachMatchupStack), so no
+	// target-approach-matchup entry should surface at all.
+	it("treats an unresolvable Carrier (missing carrierActorId) as a neutral Approach, surfacing no Approach entry", async () => {
+		const sheet = new PlaybookActorSheet();
+		const carrierWeapon = {
+			id: "carrier-w1", kind: "weapon", name: "Broadside Cannon", tags: [], spent: [],
+			fromCarrier: true, carrierActorId: "missing-carrier"
+		};
+		sheet.actor = {
+			system: {
+				stats: { clash: { value: 0 }, talk: { value: 0 } },
+				attributes: { approach: "mundane", equipment: [] }
+			},
+			update: vi.fn()
+		};
+		game.actors.get.mockReturnValue(undefined);
+		game.user.targets = new Set([{ actor: { type: "armor-astir.npc", system: { attributes: { tier: 1, approach: "arcane" } } } }]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._rollMove(EXCHANGE_BLOWS, carrierWeapon);
+
+		const rollModifiers = configureMoveRoll.mock.calls.at(-1)[2].rollModifiers;
+		expect(rollModifiers.find((m) => m.key === "target-approach-matchup")).toBeUndefined();
+	});
+
+	afterEach(() => {
+		delete game.user.targets;
 	});
 });
 

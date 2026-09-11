@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { approachMatchupStack } from "../scripts/moves/approach-matchup.js";
+import { approachMatchupStack, approachMatchupEffect, approachRollModifier } from "../scripts/moves/approach-matchup.js";
 
 // The Approach type wheel (see approach-matchup.js): mundane beats arcane, arcane beats divine,
 // divine beats profane, profane beats elemental, elemental beats mundane, cyclically.
@@ -42,5 +42,56 @@ describe("approachMatchupStack", () => {
 		expect(approachMatchupStack("", "mundane")).toBe(0);
 		expect(approachMatchupStack("mundane", "")).toBe(0);
 		expect(approachMatchupStack("bogus", "mundane")).toBe(0);
+	});
+});
+
+describe("approachMatchupEffect", () => {
+	it("resolves a +1 stack (attacker counters target) to confidence", () => {
+		expect(approachMatchupEffect("mundane", "arcane")).toBe("confidence");
+	});
+
+	it("resolves a -1 stack (attacker is countered) to desperation", () => {
+		expect(approachMatchupEffect("arcane", "mundane")).toBe("desperation");
+	});
+
+	it("resolves a neutral (0) stack to null", () => {
+		expect(approachMatchupEffect("mundane", "mundane")).toBeNull();
+		expect(approachMatchupEffect("mundane", "divine")).toBeNull();
+	});
+});
+
+describe("approachRollModifier", () => {
+	it("returns null for a null effect", () => {
+		expect(approachRollModifier(null)).toBeNull();
+	});
+
+	it("builds a forced Confidence entry", () => {
+		expect(approachRollModifier("confidence")).toEqual({
+			key: "target-approach-matchup",
+			label: "Approach Confidence",
+			description: "This roll's Approach confidence/desperation against the currently targeted NPC.",
+			advantage: null,
+			effect: "confidence",
+			requiresAdvantage: null,
+			reminderOnly: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		});
+	});
+
+	it("builds a forced Desperation entry", () => {
+		expect(approachRollModifier("desperation")).toEqual({
+			key: "target-approach-matchup",
+			label: "Approach Desperation",
+			description: "This roll's Approach confidence/desperation against the currently targeted NPC.",
+			advantage: null,
+			effect: "desperation",
+			requiresAdvantage: null,
+			reminderOnly: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		});
 	});
 });

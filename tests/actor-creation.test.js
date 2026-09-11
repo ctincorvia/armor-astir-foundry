@@ -378,7 +378,8 @@ describe("createWorldActor", () => {
 					stats: { crew: { value: 0 } },
 					details: { description: { value: "" } },
 					attributes: { crewMembers: [], weapons: { primary: null, secondary: null }, crewSupportHold: 0 }
-				}
+				},
+				prototypeToken: { actorLink: true }
 			},
 			{ renderSheet: true }
 		);
@@ -424,7 +425,8 @@ describe("createWorldActor", () => {
 						assets: [],
 						notableActors: []
 					}
-				}
+				},
+				prototypeToken: { actorLink: true }
 			},
 			{ renderSheet: true }
 		);
@@ -436,7 +438,7 @@ describe("createWorldActor", () => {
 		await createWorldActor(CAUSE_KIND);
 
 		expect(Actor.create).toHaveBeenCalledWith(
-			{ name: "Cause", type: "armor-astir.cause", folder: null, system: { attributes: { factions: [], waywardFactions: [] } } },
+			{ name: "Cause", type: "armor-astir.cause", folder: null, system: { attributes: { factions: [], waywardFactions: [] } }, prototypeToken: { actorLink: true } },
 			{ renderSheet: true }
 		);
 	});
@@ -460,7 +462,8 @@ describe("createWorldActor", () => {
 						equipment: [],
 						ardents: []
 					}
-				}
+				},
+				prototypeToken: { actorLink: true }
 			},
 			{ renderSheet: true }
 		);

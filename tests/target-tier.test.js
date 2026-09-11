@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { getTargetedNpc } from "../scripts/moves/target-tier.js";
+import { getTargetedNpc, tierMatchupAdvantage, tierRollModifier } from "../scripts/moves/target-tier.js";
 
 afterEach(() => {
 	delete game.user.targets;
@@ -35,5 +35,55 @@ describe("getTargetedNpc", () => {
 		game.user.targets = new Set([{ actor: npc }, { actor: other }]);
 
 		expect(getTargetedNpc()).toBeNull();
+	});
+});
+
+describe("tierMatchupAdvantage", () => {
+	it("returns advantage when the attacker's Tier is higher", () => {
+		expect(tierMatchupAdvantage(3, 1)).toBe("advantage");
+	});
+
+	it("returns disadvantage when the attacker's Tier is lower", () => {
+		expect(tierMatchupAdvantage(1, 3)).toBe("disadvantage");
+	});
+
+	it("returns null when Tiers are equal", () => {
+		expect(tierMatchupAdvantage(2, 2)).toBeNull();
+	});
+});
+
+describe("tierRollModifier", () => {
+	it("returns null for a null advantage", () => {
+		expect(tierRollModifier(null)).toBeNull();
+	});
+
+	it("builds a forced Advantage entry", () => {
+		expect(tierRollModifier("advantage")).toEqual({
+			key: "target-tier-matchup",
+			label: "Tier Advantage",
+			description: "This roll's Tier advantage/disadvantage against the currently targeted NPC.",
+			advantage: "advantage",
+			effect: null,
+			requiresAdvantage: null,
+			reminderOnly: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		});
+	});
+
+	it("builds a forced Disadvantage entry", () => {
+		expect(tierRollModifier("disadvantage")).toEqual({
+			key: "target-tier-matchup",
+			label: "Tier Disadvantage",
+			description: "This roll's Tier advantage/disadvantage against the currently targeted NPC.",
+			advantage: "disadvantage",
+			effect: null,
+			requiresAdvantage: null,
+			reminderOnly: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		});
 	});
 });

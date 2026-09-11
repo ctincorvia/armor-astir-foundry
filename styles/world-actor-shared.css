@@ -8,11 +8,12 @@
 	min-width: 480px;
 }
 
-/* The NPC sheet has no Playbook field (see sheet-chrome.css's .playbook-swap, which is what
-   pushes Approach/Tier to the header's right edge on the playbook sheet) — this is the NPC-only
-   equivalent, applied to its own Approach field directly since there's no Playbook sibling ahead
-   of it to carry the margin instead. */
-.armor-astir.sheet.npc .approach-swap {
+/* Neither the NPC sheet nor the Carrier sheet has a Playbook field (see sheet-chrome.css's
+   .playbook-swap, which is what pushes Approach/Tier to the header's right edge on the playbook
+   sheet) — this is the shared equivalent for both, applied to each sheet's own Approach field
+   directly since there's no Playbook sibling ahead of it to carry the margin instead. */
+.armor-astir.sheet.npc .approach-swap,
+.armor-astir.sheet.carrier .approach-swap {
 	margin-left: auto;
 }
 

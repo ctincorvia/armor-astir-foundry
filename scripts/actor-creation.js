@@ -194,7 +194,7 @@ export const WORLD_ACTOR_KINDS = [
 
 export async function createWorldActor(kind, { folder = null } = {}) {
 	return Actor.create(
-		{ name: kind.name, type: kind.type, folder, system: kind.buildSystem() },
+		{ name: kind.name, type: kind.type, folder, system: kind.buildSystem(), prototypeToken: { actorLink: true } },
 		{ renderSheet: true }
 	);
 }

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 // Only the dialog is mocked — BASIC_MOVES/configureMoveRoll's real trait-building stays untouched
 // elsewhere, same reasoning playbook-actor-sheet.test.js already uses for these modules.
@@ -17,6 +17,7 @@ vi.mock("../scripts/equipment/equipment.js", async (importOriginal) => ({
 import { BASIC_MOVES, configureMoveRoll, postGuidedResult, rollMove } from "../scripts/moves/moves.js";
 import { TIER_MAX, configureEquipment, findEquipmentTag } from "../scripts/equipment/equipment.js";
 import { QUARTERS_BENEFITS } from "../scripts/playbook/quarters.js";
+import { APPROACHES } from "../scripts/core/approaches.js";
 import {
 	CarrierActorSheet,
 	CARRIER_SHEET_TEMPLATE,
@@ -79,7 +80,7 @@ describe("CarrierActorSheet#_weaponTagKeys", () => {
 });
 
 describe("CarrierActorSheet#getData", () => {
-	it("reads crew, crewSupportHold, description, and crew members off the actor", () => {
+	it("reads crew, crewSupportHold, description, approach, and crew members off the actor", () => {
 		const sheet = new CarrierActorSheet();
 		sheet.actor = {
 			system: {
@@ -87,7 +88,8 @@ describe("CarrierActorSheet#getData", () => {
 				details: { description: { value: "A sturdy old freighter." } },
 				attributes: {
 					crewMembers: [{ id: "1", name: "Vex", position: "Pilot", description: "" }],
-					crewSupportHold: 3
+					crewSupportHold: 3,
+					approach: "profane"
 				}
 			}
 		};
@@ -97,10 +99,12 @@ describe("CarrierActorSheet#getData", () => {
 		expect(data.crew).toBe(2);
 		expect(data.crewSupportHold).toBe(3);
 		expect(data.description).toBe("A sturdy old freighter.");
+		expect(data.approach).toBe("profane");
+		expect(data.approachOptions).toBe(APPROACHES);
 		expect(data.crewMembers).toEqual([{ id: "1", name: "Vex", position: "Pilot", description: "" }]);
 	});
 
-	it("defaults crew/crewSupportHold/description/crewMembers when unset", () => {
+	it("defaults crew/crewSupportHold/description/approach/crewMembers when unset", () => {
 		const sheet = new CarrierActorSheet();
 		sheet.actor = { system: {} };
 
@@ -109,6 +113,7 @@ describe("CarrierActorSheet#getData", () => {
 		expect(data.crew).toBe(0);
 		expect(data.crewSupportHold).toBe(0);
 		expect(data.description).toBe("");
+		expect(data.approach).toBe("");
 		expect(data.crewMembers).toEqual([]);
 	});
 
@@ -781,6 +786,214 @@ describe("CarrierActorSheet#_onWeaponMoveRoll", () => {
 		});
 		expect(rollMove).not.toHaveBeenCalled();
 		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+});
+
+// The Carrier's own direct weapon rolls' Tier-vs-Tier and Approach-vs-Approach matchups against a
+// single targeted NPC (see world-actors.md and move-grants-mixin.js's Playbook-side sibling this
+// mirrors) — WEAPON_SLOTS gives primary Tier V and secondary Tier III, so both slots are exercised
+// to prove the attacker's Tier comes from the specific slot rolled, not any actor-wide value.
+describe("CarrierActorSheet#_onWeaponMoveRoll - target matchups", () => {
+	function npcTarget(tier, approach) {
+		return { actor: { type: "armor-astir.npc", system: { attributes: { tier, approach } } } };
+	}
+
+	afterEach(() => {
+		delete game.user.targets;
+	});
+
+	it("passes an empty rollModifiers array when no NPC is targeted", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { approach: "mundane", weapons: { primary: { id: "w1", name: "Ram Cannon", tags: [], spent: [] } } }
+			}
+		};
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		expect(configureMoveRoll.mock.calls.at(-1)[2].rollModifiers).toEqual([]);
+	});
+
+	it("treats a targeted NPC missing its stored Tier as TIER_MIN", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { approach: "mundane", weapons: { primary: { id: "w1", name: "Ram Cannon", tags: [], spent: [] } } }
+			}
+		};
+		game.user.targets = new Set([{ actor: { type: "armor-astir.npc", system: { attributes: { approach: "mundane" } } } }]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		const tier = configureMoveRoll.mock.calls.at(-1)[2].rollModifiers.find((m) => m.key === "target-tier-matchup");
+		// TIER_MIN is 1, so the primary slot's Tier V is still higher -- Advantage.
+		expect(tier).toMatchObject({ advantage: "advantage" });
+	});
+
+	it("treats a targeted NPC missing its stored Approach as neutral, surfacing no Approach entry", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { approach: "mundane", weapons: { primary: { id: "w1", name: "Ram Cannon", tags: [], spent: [] } } }
+			}
+		};
+		game.user.targets = new Set([{ actor: { type: "armor-astir.npc", system: { attributes: { tier: 2 } } } }]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		const rollModifiers = configureMoveRoll.mock.calls.at(-1)[2].rollModifiers;
+		expect(rollModifiers.find((m) => m.key === "target-approach-matchup")).toBeUndefined();
+	});
+
+	it("locks Tier Advantage from the primary slot (Tier V) against a lower-Tier target, with a neutral Approach", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { approach: "mundane", weapons: { primary: { id: "w1", name: "Ram Cannon", tags: [], spent: [] } } }
+			}
+		};
+		game.user.targets = new Set([npcTarget(2, "mundane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		expect(configureMoveRoll.mock.calls.at(-1)[2].rollModifiers).toEqual([{
+			key: "target-tier-matchup",
+			label: "Tier Advantage",
+			description: "This roll's Tier advantage/disadvantage against the currently targeted NPC.",
+			advantage: "advantage",
+			effect: null,
+			requiresAdvantage: null,
+			reminderOnly: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		}]);
+	});
+
+	it("locks Tier Disadvantage from the secondary slot (Tier III) against a higher-Tier target", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { approach: "mundane", weapons: { secondary: { id: "w2", name: "Boarding Claw", tags: [], spent: [] } } }
+			}
+		};
+		game.user.targets = new Set([npcTarget(4, "mundane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w2" } } });
+
+		expect(configureMoveRoll.mock.calls.at(-1)[2].rollModifiers).toEqual([{
+			key: "target-tier-matchup",
+			label: "Tier Disadvantage",
+			description: "This roll's Tier advantage/disadvantage against the currently targeted NPC.",
+			advantage: "disadvantage",
+			effect: null,
+			requiresAdvantage: null,
+			reminderOnly: false,
+			disabled: false,
+			disabledReason: null,
+			forced: true
+		}]);
+	});
+
+	it("locks neither Tier Advantage nor Disadvantage against an equal-Tier target", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { approach: "mundane", weapons: { secondary: { id: "w2", name: "Boarding Claw", tags: [], spent: [] } } }
+			}
+		};
+		game.user.targets = new Set([npcTarget(3, "mundane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w2" } } });
+
+		expect(configureMoveRoll.mock.calls.at(-1)[2].rollModifiers).toEqual([]);
+	});
+
+	it("locks Approach Confidence from a favorable matchup, alongside Tier Advantage", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { approach: "mundane", weapons: { primary: { id: "w1", name: "Ram Cannon", tags: [], spent: [] } } }
+			}
+		};
+		game.user.targets = new Set([npcTarget(1, "arcane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		const rollModifiers = configureMoveRoll.mock.calls.at(-1)[2].rollModifiers;
+		expect(rollModifiers.map((m) => m.key)).toEqual(["target-tier-matchup", "target-approach-matchup"]);
+		const approach = rollModifiers.find((m) => m.key === "target-approach-matchup");
+		expect(approach).toMatchObject({ label: "Approach Confidence", effect: "confidence" });
+	});
+
+	it("locks Approach Desperation from an unfavorable matchup", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { approach: "arcane", weapons: { primary: { id: "w1", name: "Ram Cannon", tags: [], spent: [] } } }
+			}
+		};
+		game.user.targets = new Set([npcTarget(1, "mundane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		const approach = configureMoveRoll.mock.calls.at(-1)[2].rollModifiers.find((m) => m.key === "target-approach-matchup");
+		expect(approach).toMatchObject({ label: "Approach Desperation", effect: "desperation" });
+	});
+
+	it("treats a missing Carrier approach as neutral, even against a target with a real one", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: { weapons: { primary: { id: "w1", name: "Ram Cannon", tags: [], spent: [] } } }
+			}
+		};
+		game.user.targets = new Set([npcTarget(1, "arcane")]);
+		configureMoveRoll.mockResolvedValue(null);
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		const rollModifiers = configureMoveRoll.mock.calls.at(-1)[2].rollModifiers;
+		expect(rollModifiers.find((m) => m.key === "target-approach-matchup")).toBeUndefined();
+	});
+
+	it("masks the Approach matchup to null when a forced weapon tag (Unreliable) already locks Effect, but still surfaces Tier", async () => {
+		const sheet = new CarrierActorSheet();
+		sheet.actor = {
+			system: {
+				stats: { crew: { value: 0 } },
+				attributes: {
+					approach: "mundane",
+					weapons: { primary: { id: "w1", name: "Ram Cannon", tags: ["unreliable"], spent: [] }, secondary: null }
+				}
+			},
+			update: vi.fn()
+		};
+		game.user.targets = new Set([npcTarget(1, "arcane")]);
+		configureMoveRoll.mockResolvedValue({ trait: { key: "crew", label: "CREW", value: 0 }, effect: "desperation" });
+
+		await sheet._onWeaponMoveRoll({ currentTarget: { dataset: { move: "exchange-blows", equipmentId: "w1" } } });
+
+		const rollModifiers = configureMoveRoll.mock.calls.at(-1)[2].rollModifiers;
+		expect(rollModifiers.map((m) => m.key)).toEqual(["target-tier-matchup"]);
 	});
 });
 

@@ -20,3 +20,34 @@ export function approachMatchupStack(attacker, target) {
 	if ((b + 1) % length === a) return -1;
 	return 0;
 }
+
+// Resolves an approachMatchupStack signed count to the Effect-axis state it feeds (Confidence when
+// the attacker counters the target's Approach, Desperation when countered, null for a tie/neutral
+// pairing) — shared by move-grants-mixin.js's own _targetMatchupEffect (Playbook/Fire Support) and
+// carrier-actor-sheet.js's _targetApproachRollModifier (the Carrier's own direct rolls), so the two
+// don't each reimplement the same stack-to-effect mapping.
+export function approachMatchupEffect(attackerApproach, targetApproach) {
+	const stack = approachMatchupStack(attackerApproach, targetApproach);
+	if (stack === 1) return "confidence";
+	if (stack === -1) return "desperation";
+	return null;
+}
+
+// The forced Roll Modifier object shape for an Approach matchup result — shared the same way
+// approachMatchupEffect above is, so move-grants-mixin.js's _targetMatchupRollModifier and
+// carrier-actor-sheet.js's _targetApproachRollModifier build an identical entry.
+export function approachRollModifier(effect) {
+	if (!effect) return null;
+	return {
+		key: "target-approach-matchup",
+		label: effect === "confidence" ? "Approach Confidence" : "Approach Desperation",
+		description: "This roll's Approach confidence/desperation against the currently targeted NPC.",
+		advantage: null,
+		effect,
+		requiresAdvantage: null,
+		reminderOnly: false,
+		disabled: false,
+		disabledReason: null,
+		forced: true
+	};
+}
