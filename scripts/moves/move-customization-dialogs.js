@@ -21,7 +21,16 @@ export async function configureMoveCustomization(move) {
 			title: `Edit ${move.name}`,
 			content,
 			render: async (html) => {
-				editor = await createTextEditor({ target: html.find(".move-customization-description-editor .editor-content")[0] }, move.description ?? "");
+				const target = html.find(".move-customization-description-editor .editor-content")[0];
+				editor = await createTextEditor({ target }, move.description ?? "");
+				// Foundry's Dialog#_onKeyDown treats Enter as "confirm the dialog" everywhere except
+				// inside an actual <textarea> — ProseMirror's contenteditable doesn't qualify, so every
+				// paragraph break here would otherwise close the dialog via the Save button. Stopping
+				// propagation keeps ProseMirror's own Enter handling (new paragraph) intact while never
+				// letting the keydown reach that document-level listener.
+				target.addEventListener("keydown", (event) => {
+					if (event.key === "Enter") event.stopPropagation();
+				});
 			},
 			buttons: {
 				save: {

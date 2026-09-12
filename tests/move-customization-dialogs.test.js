@@ -3,10 +3,15 @@ import { describe, expect, it, vi } from "vitest";
 import { configureMoveCustomization } from "../scripts/moves/move-customization-dialogs.js";
 
 function fakeMoveCustomizationHtml(values) {
+	// Elements are cached per selector (rather than a fresh document.createElement on every call)
+	// so a test can call find() again after render() and get back the exact same node render()
+	// mounted the editor on/attached listeners to — needed by the Enter-keydown tests below.
+	const elements = {};
 	return {
 		find: (selector) => {
 			const value = values[selector];
-			return { val: () => value, 0: value ?? document.createElement("div") };
+			if (value !== undefined) return { val: () => value, 0: value };
+			return { val: () => value, 0: (elements[selector] ??= document.createElement("div")) };
 		}
 	};
 }
@@ -120,6 +125,46 @@ describe("configureMoveCustomization", () => {
 		await dialogOptions.render(fakeMoveCustomizationHtml({}));
 
 		expect(TextEditor.create).toHaveBeenCalledWith({ target: expect.any(Object) }, "");
+
+		dialogOptions.close();
+		await promise;
+	});
+
+	it("stops an Enter keydown on the description editor from reaching Foundry's document-level Dialog listener", async () => {
+		const promise = configureMoveCustomization({ key: "the-scout:bullheaded", name: "Bullheaded", description: "Stubborn." });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		const html = fakeMoveCustomizationHtml({});
+		await dialogOptions.render(html);
+		const target = html.find(".move-customization-description-editor .editor-content")[0];
+
+		const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+		const stopPropagation = vi.spyOn(event, "stopPropagation");
+		target.dispatchEvent(event);
+
+		expect(stopPropagation).toHaveBeenCalledTimes(1);
+
+		dialogOptions.close();
+		await promise;
+	});
+
+	it("leaves a non-Enter keydown on the description editor alone", async () => {
+		const promise = configureMoveCustomization({ key: "the-scout:bullheaded", name: "Bullheaded", description: "Stubborn." });
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const dialogOptions = Dialog.mock.calls.at(-1)[0];
+		const html = fakeMoveCustomizationHtml({});
+		await dialogOptions.render(html);
+		const target = html.find(".move-customization-description-editor .editor-content")[0];
+
+		const event = new KeyboardEvent("keydown", { key: "a", bubbles: true, cancelable: true });
+		const stopPropagation = vi.spyOn(event, "stopPropagation");
+		target.dispatchEvent(event);
+
+		expect(stopPropagation).not.toHaveBeenCalled();
 
 		dialogOptions.close();
 		await promise;
