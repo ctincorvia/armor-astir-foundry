@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { APPROACHES } from "../scripts/core/approaches.js";
 import { TRAITS } from "../scripts/core/traits.js";
 import { PlaybookActorSheet } from "../scripts/playbook/playbook-actor-sheet.js";
-import { BINDING, HELPING_HANDS } from "./helpers/move-fixtures.js";
+import { BINDING, HELPING_HANDS, BONDED_IN_BLOOD, SPRITECRAFT } from "./helpers/move-fixtures.js";
 
 describe("PlaybookActorSheet#_boundAllies/_eidolonDrive/_downtimeAlly", () => {
 	it("default to their empty/blank shapes when unset", () => {
@@ -90,6 +90,29 @@ describe("PlaybookActorSheet#_bindingMove/_helpingHandsMove", () => {
 	});
 });
 
+describe("PlaybookActorSheet#_grantsFreeAllies", () => {
+	it("is false with no granting move picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [] } } };
+
+		expect(sheet._grantsFreeAllies()).toBe(false);
+	});
+
+	it("is true with only Bonded In Blood picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [BONDED_IN_BLOOD.key] } } };
+
+		expect(sheet._grantsFreeAllies()).toBe(true);
+	});
+
+	it("is true with only Spritecraft picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [SPRITECRAFT.key] } } };
+
+		expect(sheet._grantsFreeAllies()).toBe(true);
+	});
+});
+
 describe("PlaybookActorSheet#_boundAlliesData", () => {
 	it("is null without Binding picked", () => {
 		const sheet = new PlaybookActorSheet();
@@ -122,13 +145,31 @@ describe("PlaybookActorSheet#_boundAlliesData", () => {
 		expect(sheet._boundAlliesData().canInvest).toBe(true);
 	});
 
+	it("disables canMarkFree without Bonded In Blood or Spritecraft picked", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [BINDING.key] } } };
+
+		expect(sheet._boundAlliesData().canMarkFree).toBe(false);
+	});
+
+	it("enables canMarkFree once Bonded In Blood is picked alongside Binding", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { playbookMoves: [BINDING.key, BONDED_IN_BLOOD.key] } } };
+
+		expect(sheet._boundAlliesData().canMarkFree).toBe(true);
+	});
+
 	it("maps each ally with defaults and flags the currently-summoned one", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {
 			system: {
 				attributes: {
 					playbookMoves: [BINDING.key],
-					boundAllies: [{ id: "a1", name: "Vex" }, { id: "a2", name: "Ossa", approach: "profane", trait: "know", powerInvested: 2 }],
+					boundAllies: [
+						{ id: "a1", name: "Vex" },
+						{ id: "a2", name: "Ossa", approach: "profane", trait: "know", powerInvested: 2 },
+						{ id: "a3", name: "Rook", free: true }
+					],
 					eidolonDrive: { summonedAllyId: "a2", bonusUsed: false }
 				}
 			}
@@ -137,8 +178,9 @@ describe("PlaybookActorSheet#_boundAlliesData", () => {
 		const { list } = sheet._boundAlliesData();
 
 		expect(list).toEqual([
-			{ id: "a1", name: "Vex", approach: "", trait: "", powerInvested: 0, summoned: false },
-			{ id: "a2", name: "Ossa", approach: "profane", trait: "know", powerInvested: 2, summoned: true }
+			{ id: "a1", name: "Vex", approach: "", trait: "", powerInvested: 0, free: false, summoned: false },
+			{ id: "a2", name: "Ossa", approach: "profane", trait: "know", powerInvested: 2, free: false, summoned: true },
+			{ id: "a3", name: "Rook", approach: "", trait: "", powerInvested: 0, free: true, summoned: false }
 		]);
 	});
 });

@@ -4,6 +4,7 @@ import { findAstirMove } from "../frames/astir.js";
 import { NpcEquipmentSheetMixin } from "./npc-sheet/equipment-mixin.js";
 import { NpcAstirSheetMixin } from "./npc-sheet/astir-mixin.js";
 import { NpcArdentSheetMixin } from "./npc-sheet/ardent-mixin.js";
+import { NpcMovesSheetMixin } from "./npc-sheet/moves-mixin.js";
 
 export const NPC_SHEET_TEMPLATE = "modules/armor-astir/templates/npc-actor-sheet.hbs";
 export const NPC_ACTOR_TYPE = "armor-astir.npc";
@@ -63,6 +64,7 @@ export class NpcActorSheet extends ActorSheet {
 		data.equipment = this._equipmentData(equipment, astirWeapons, ardentWeaponEntriesById, ardents);
 		data.astir = this._astirData(astir, astirParts, astirMove, equipment, astirWeapons);
 		data.ardents = this._ardentsData(ardents, equipment);
+		data.moves = this._movesData();
 		return data;
 	}
 
@@ -78,6 +80,9 @@ export class NpcActorSheet extends ActorSheet {
 		html.find(".equipment-remove").on("click", this._onEquipmentRemove.bind(this));
 		html.find(".equipment-disabled-checkbox").on("change", this._onEquipmentDisabledToggle.bind(this));
 		html.find(".move-info").on("click", this._onMoveInfo.bind(this));
+		html.find(".npc-move-add").on("click", this._onMoveAdd.bind(this));
+		html.find(".npc-move-remove").on("click", this._onMoveRemove.bind(this));
+		html.find(".move-description").on("click", this._onMoveDescription.bind(this));
 		html.find(".astir-create").on("click", this._onAstirCreate.bind(this));
 		html.find(".astir-delete").on("click", this._onAstirDelete.bind(this));
 		html.find(".astir-core-select").on("change", this._onAstirCoreChange.bind(this));
@@ -138,7 +143,7 @@ export class NpcActorSheet extends ActorSheet {
 		this.actor.update({ [`system.attributes.moveUses.${key}.disabled`]: event.currentTarget.checked });
 	}
 }
-Object.assign(NpcActorSheet.prototype, NpcEquipmentSheetMixin, NpcAstirSheetMixin, NpcArdentSheetMixin);
+Object.assign(NpcActorSheet.prototype, NpcEquipmentSheetMixin, NpcAstirSheetMixin, NpcArdentSheetMixin, NpcMovesSheetMixin);
 
 export function registerNpcActorSheet() {
 	Hooks.once("init", () => {

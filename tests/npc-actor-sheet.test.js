@@ -51,7 +51,7 @@ describe("NpcActorSheet#getData", () => {
 		expect(data.rival).toEqual({ active: false, target: "", need: "", want: "", hold: 0 });
 	});
 
-	it("also computes equipment/astir/ardents (see the domain-specific test files for their own shape)", () => {
+	it("also computes equipment/astir/ardents/moves (see the domain-specific test files for their own shape)", () => {
 		const sheet = new NpcActorSheet();
 		sheet.actor = { name: "Unnamed", system: {} };
 
@@ -60,6 +60,7 @@ describe("NpcActorSheet#getData", () => {
 		expect(data.equipment).toEqual({ weapons: [], astirWeapons: [], ardentWeapons: [], gear: [] });
 		expect(data.astir).toEqual({ exists: false, cores: expect.any(Array), tierMin: 3, tierMax: 4 });
 		expect(data.ardents).toEqual([]);
+		expect(data.moves).toEqual([]);
 	});
 });
 
@@ -98,7 +99,8 @@ describe("NpcActorSheet#activateListeners", () => {
 			".astir-weapon-catalog-add", ".astir-weapon-add",
 			".ardent-create", ".ardent-delete", ".ardent-name-input", ".ardent-approach-select",
 			".ardent-tier-step", ".ardent-piloted-checkbox", ".ardent-part-add", ".ardent-part-remove",
-			".ardent-weapon-catalog-add", ".ardent-weapon-add"
+			".ardent-weapon-catalog-add", ".ardent-weapon-add",
+			".npc-move-add", ".npc-move-remove", ".move-description"
 		];
 		for (const selector of bound) {
 			expect(html.find).toHaveBeenCalledWith(selector);

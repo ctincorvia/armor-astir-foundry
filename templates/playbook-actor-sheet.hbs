@@ -8,18 +8,26 @@
 				<a class="item" data-tab="moves">Moves</a>
 				<a class="item" data-tab="equipment">Equipment</a>
 				<a class="item" data-tab="astir">Astir &amp; Ardents</a>
+				{{#unless limited}}
 				<a class="item" data-tab="social">Social</a>
+				{{/unless}}
+				{{#unless limited}}
 				<a class="item" data-tab="advancement">Advancement</a>
 				<a class="item" data-tab="downtime">Downtime</a>
+				{{/unless}}
 				<a class="item" data-tab="cosmetic">Cosmetic</a>
 			</nav>
 			<section class="sheet-body">
 				{{> "modules/armor-astir/templates/playbook-sheet/tab-moves.hbs"}}
 				{{> "modules/armor-astir/templates/playbook-sheet/tab-equipment.hbs"}}
 				{{> "modules/armor-astir/templates/playbook-sheet/tab-astir.hbs"}}
+				{{#unless limited}}
 				{{> "modules/armor-astir/templates/playbook-sheet/tab-social.hbs"}}
+				{{/unless}}
+				{{#unless limited}}
 				{{> "modules/armor-astir/templates/playbook-sheet/tab-advancement.hbs"}}
 				{{> "modules/armor-astir/templates/playbook-sheet/tab-downtime.hbs"}}
+				{{/unless}}
 				{{> "modules/armor-astir/templates/playbook-sheet/tab-cosmetic.hbs"}}
 			</section>
 		</div>

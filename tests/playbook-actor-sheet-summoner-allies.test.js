@@ -84,6 +84,18 @@ describe("PlaybookActorSheet#_onBoundAllyInvestPower", () => {
 			"system.attributes.astir.power": 1
 		});
 	});
+
+	it("no-ops when the matching ally is Free, even with Power available", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { boundAllies: [{ id: "a1", powerInvested: 0, free: true }], astir: { power: 2 } } },
+			update: vi.fn()
+		};
+
+		sheet._onBoundAllyInvestPower({ currentTarget: { dataset: { entryId: "a1" } } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
 });
 
 describe("PlaybookActorSheet#_onBoundAllyRelease", () => {
@@ -179,6 +191,109 @@ describe("PlaybookActorSheet#_onBoundAllyRelease", () => {
 
 		const updates = sheet.actor.update.mock.calls.at(-1)[0];
 		expect(updates["system.attributes.eidolonDrive"]).toBeUndefined();
+	});
+});
+
+describe("PlaybookActorSheet#_onBoundAllyFreeToggle", () => {
+	it("no-ops when the entry can't be found", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { attributes: { boundAllies: [] } }, update: vi.fn() };
+
+		sheet._onBoundAllyFreeToggle({ currentTarget: { dataset: { entryId: "nope" }, checked: true } });
+
+		expect(sheet.actor.update).not.toHaveBeenCalled();
+	});
+
+	it("checks Free with nothing invested — only sets free: true, no astir.power key at all", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { boundAllies: [{ id: "a1", powerInvested: 0 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onBoundAllyFreeToggle({ currentTarget: { dataset: { entryId: "a1" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.boundAllies": [{ id: "a1", powerInvested: 0, free: true }]
+		});
+	});
+
+	it("checks Free with Power invested and an Astir present — refunds it, clamped to the Astir's derived max", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					boundAllies: [{ id: "a1", powerInvested: 3 }],
+					astir: { power: 3, parts: [] },
+					equipment: []
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onBoundAllyFreeToggle({ currentTarget: { dataset: { entryId: "a1" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.boundAllies": [{ id: "a1", powerInvested: 0, free: true }],
+			// Base Astir Power (4) is the clamp ceiling with no parts/equipment — 3 + 3 would be 6,
+			// clamped to 4.
+			"system.attributes.astir.power": 4
+		});
+	});
+
+	it("treats the Astir's own unset Power as 0 when refunding", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					boundAllies: [{ id: "a1", powerInvested: 2 }],
+					astir: { parts: [] },
+					equipment: []
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onBoundAllyFreeToggle({ currentTarget: { dataset: { entryId: "a1" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.boundAllies": [{ id: "a1", powerInvested: 0, free: true }],
+			"system.attributes.astir.power": 2
+		});
+	});
+
+	it("checks Free with Power invested but no Astir — clears powerInvested with no astir.power key at all", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: { attributes: { boundAllies: [{ id: "a1", powerInvested: 3 }] } },
+			update: vi.fn()
+		};
+
+		sheet._onBoundAllyFreeToggle({ currentTarget: { dataset: { entryId: "a1" }, checked: true } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.boundAllies": [{ id: "a1", powerInvested: 0, free: true }]
+		});
+	});
+
+	it("unchecking Free just sets free: false, with no Power-refund logic regardless of powerInvested", () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					boundAllies: [{ id: "a1", powerInvested: 2, free: true }],
+					astir: { power: 1, parts: [] },
+					equipment: []
+				}
+			},
+			update: vi.fn()
+		};
+
+		sheet._onBoundAllyFreeToggle({ currentTarget: { dataset: { entryId: "a1" }, checked: false } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.boundAllies": [{ id: "a1", powerInvested: 2, free: false }]
+		});
 	});
 });
 

@@ -460,7 +460,8 @@ describe("createWorldActor", () => {
 						tier: TIER_MIN,
 						rival: { active: false, target: "", need: "", want: "", hold: 0 },
 						equipment: [],
-						ardents: []
+						ardents: [],
+						npcMoves: []
 					}
 				},
 				prototypeToken: { actorLink: true }

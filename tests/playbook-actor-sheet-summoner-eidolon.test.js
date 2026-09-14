@@ -116,6 +116,26 @@ describe("PlaybookActorSheet#_onEidolonDriveSummon", () => {
 		expect(updates["system.attributes.boundAllies"]).toEqual([{ id: "a1", name: "Vex", powerInvested: 0 }]);
 	});
 
+	it("moves no Power at all when summoning a Free ally, even with an Astir present", async () => {
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = {
+			system: {
+				attributes: {
+					boundAllies: [{ id: "a1", name: "Vex", powerInvested: 0, free: true }],
+					astir: { power: 2, parts: [] },
+					equipment: []
+				}
+			},
+			update: vi.fn()
+		};
+
+		await sheet._onEidolonDriveSummon({ currentTarget: { dataset: { move: EIDOLON_DRIVE.key } } });
+
+		expect(sheet.actor.update).toHaveBeenCalledWith({
+			"system.attributes.eidolonDrive": { summonedAllyId: "a1", bonusUsed: false }
+		});
+	});
+
 	it("prompts chooseSummonAlly with more than one bound ally and summons the chosen one", async () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = {

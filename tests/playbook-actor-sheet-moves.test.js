@@ -309,6 +309,18 @@ describe("PlaybookActorSheet#getData - moves", () => {
 
 		expect(crewSupport.trackers).toEqual([{ key: "hold", label: "Hold", min: 0, max: 3, value: 2 }]);
 	});
+
+	it("omits Basic Moves for a Limited-permission viewer", () => {
+		const getDataSpy = vi.spyOn(ActorSheet.prototype, "getData").mockReturnValueOnce({ limited: true });
+		const sheet = new PlaybookActorSheet();
+		sheet.actor = { system: { stats: {} } };
+
+		const data = sheet.getData();
+
+		getDataSpy.mockRestore();
+
+		expect(data.moveGroups.some((group) => group.label === "Basic Moves")).toBe(false);
+	});
 });
 
 describe("PlaybookActorSheet#getData - moves - Patron Boons", () => {

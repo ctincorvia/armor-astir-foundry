@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
 	MOVE_POOLS,
+	OTHER_PLAYBOOKS_NOTE,
+	chooseNpcMove,
 	choosePlaybookMove,
 	findPlaybookMove,
 	moveRequirementTooltip,
@@ -301,6 +303,26 @@ describe("playbookMoveSections", () => {
 			.toHaveLength(2);
 	});
 
+	it("relabels the Other Playbooks section via the trailing options param", () => {
+		const sections = playbookMoveSections(undefined, [], FIXTURE_POOLS, new Map(), undefined, {
+			otherPlaybooksLabel: "Playbook Moves",
+			otherPlaybooksNote: "Any playbook's move pool."
+		});
+		const grouping = sections.find((section) => section.label === "Playbook Moves");
+
+		expect(grouping).toBeDefined();
+		expect(grouping.key).toBe("other-playbooks");
+		expect(grouping.note).toBe("Any playbook's move pool.");
+	});
+
+	it("reproduces today's exact Other Playbooks label/note when the options param is omitted", () => {
+		const sections = playbookMoveSections("The Alpha", [], FIXTURE_POOLS);
+		const others = sections.find((section) => section.key === "other-playbooks");
+
+		expect(others.label).toBe("Other Playbooks");
+		expect(others.note).toBe(OTHER_PLAYBOOKS_NOTE);
+	});
+
 	it("offers The Scout's own moves from the real pools", () => {
 		const [first] = playbookMoveSections("The Scout");
 
@@ -573,6 +595,73 @@ describe("choosePlaybookMove", () => {
 		expect(keys).not.toContain("the-commander:ace-crew");
 		expect(keys).not.toContain("the-commander:debrief");
 		expect(keys).toContain("the-commander:withdraw");
+	});
+});
+
+describe("chooseNpcMove", () => {
+	it("opens the picker titled for a plain move add, with no owning playbook", async () => {
+		chooseNpcMove();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		expect(Dialog.mock.calls.at(-1)[0].title).toBe("Add a Move");
+	});
+
+	it("renders Cantrips/Soldier Moves top-level and groups every playbook's pool under Playbook Moves", async () => {
+		chooseNpcMove();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { sections } = renderTemplate.mock.calls.at(-1)[1];
+
+		expect(sections.some((section) => section.key === "cantrips")).toBe(true);
+		expect(sections.some((section) => section.key === "soldier")).toBe(true);
+		expect(sections.some((section) => section.key === "the-scout")).toBe(false);
+
+		const grouping = sections.find((section) => section.key === "other-playbooks");
+		expect(grouping.label).toBe("Playbook Moves");
+		expect(grouping.sections.some((section) => section.key === "the-scout")).toBe(true);
+	});
+
+	it("renders no Custom Moves section while CUSTOM_MOVE_CATALOG is empty, the same as choosePlaybookMove", async () => {
+		chooseNpcMove();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { sections } = renderTemplate.mock.calls.at(-1)[1];
+
+		expect(sections.some((section) => section.key === "custom-moves")).toBe(false);
+	});
+
+	it("hides moves already picked, the same as choosePlaybookMove", async () => {
+		chooseNpcMove([...CANTRIP_KEYS, ...SOLDIER_KEYS]);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const { sections } = renderTemplate.mock.calls.at(-1)[1];
+
+		expect(sections.some((section) => section.key === "cantrips")).toBe(false);
+		expect(sections.some((section) => section.key === "soldier")).toBe(false);
+	});
+
+	it("resolves the checked move's key", async () => {
+		const promise = chooseNpcMove();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		Dialog.mock.calls.at(-1)[0].buttons.add.callback(fakePickerHtml(DENY));
+
+		expect(await promise).toBe(DENY);
+	});
+
+	it("resolves null when cancelled", async () => {
+		const promise = chooseNpcMove();
+		await Promise.resolve();
+		await Promise.resolve();
+
+		Dialog.mock.calls.at(-1)[0].buttons.cancel.callback();
+
+		expect(await promise).toBeNull();
 	});
 });
 

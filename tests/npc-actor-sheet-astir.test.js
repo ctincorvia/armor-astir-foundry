@@ -33,6 +33,7 @@ import {
 import { configureEquipment } from "../scripts/equipment/equipment.js";
 import { showMoveDescription } from "../scripts/moves/move-dialogs.js";
 import { NpcActorSheet } from "../scripts/world-actors/npc-actor-sheet.js";
+import { DENY } from "./helpers/move-fixtures.js";
 
 const WARDING = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:warding");
 const ARTIFACT = ASTIR_PART_CATALOG.find((p) => p.key === "astir-part:artifact");
@@ -674,6 +675,14 @@ describe("NpcActorSheet#_onMoveInfo", () => {
 		await sheet._onMoveInfo({ currentTarget: { dataset: { move: move.key } } });
 
 		expect(showMoveDescription).toHaveBeenCalledWith(move);
+	});
+
+	it("falls back to resolving a playbook/Cantrip move key when it's neither an Astir Part nor an Astir Move", async () => {
+		const sheet = new NpcActorSheet();
+
+		await sheet._onMoveInfo({ currentTarget: { dataset: { move: DENY.key } } });
+
+		expect(showMoveDescription).toHaveBeenCalledWith(DENY);
 	});
 
 	it("does nothing for a key that resolves to neither", async () => {

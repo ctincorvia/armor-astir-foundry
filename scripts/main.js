@@ -47,7 +47,8 @@ export const NPC_SHEET_PARTIALS = [
 	"modules/armor-astir/templates/npc-sheet/tab-rival.hbs",
 	"modules/armor-astir/templates/npc-sheet/tab-equipment.hbs",
 	"modules/armor-astir/templates/npc-sheet/tab-astir.hbs",
-	"modules/armor-astir/templates/npc-sheet/ardents.hbs"
+	"modules/armor-astir/templates/npc-sheet/ardents.hbs",
+	"modules/armor-astir/templates/npc-sheet/tab-moves.hbs"
 ];
 
 export function registerInitHook() {

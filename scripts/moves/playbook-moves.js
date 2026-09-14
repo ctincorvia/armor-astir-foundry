@@ -145,12 +145,17 @@ export function pickerSection(pool, selectedKeys, { note = pool.note, open = fal
 // Commander's unconditional Ace Crew/Debrief grants from the picker. A playbook's own starting
 // moves stay pickable in its own pool section (the `own` computation below), unaffected. Defaults
 // to an empty Map so omitting it reproduces today's exact (unfiltered) behavior.
+//
+// The trailing options object lets chooseNpcMove (below) reuse this exact tree-building logic with
+// no owning playbook, while relabeling the "Other Playbooks" grouping — that label/note implies
+// contrast against a "your own" pool an NPC doesn't have. Defaults reproduce today's exact strings.
 export function playbookMoveSections(
 	playbookName,
 	selectedKeys = [],
 	pools = MOVE_POOLS,
 	startingMoveKeys = new Map(),
-	customMoves = CUSTOM_MOVE_CATALOG
+	customMoves = CUSTOM_MOVE_CATALOG,
+	{ otherPlaybooksLabel = "Other Playbooks", otherPlaybooksNote = OTHER_PLAYBOOKS_NOTE } = {}
 ) {
 	const sections = [];
 
@@ -172,8 +177,8 @@ export function playbookMoveSections(
 	if (others.length) {
 		sections.push({
 			key: "other-playbooks",
-			label: "Other Playbooks",
-			note: OTHER_PLAYBOOKS_NOTE,
+			label: otherPlaybooksLabel,
+			note: otherPlaybooksNote,
 			open: false,
 			sections: others
 		});
@@ -189,18 +194,16 @@ export function playbookMoveSections(
 	return sections;
 }
 
-// Opens the "+" picker and resolves the chosen move's key, or null if the dialog was dismissed or
-// nothing was selected. Mirrors configureMoveRoll (moves.js) and choosePlaybook
-// (actor-creation.js) for the promise/Dialog shape. `startingMoveKeys` is threaded straight
-// through to playbookMoveSections (see its own comment) — callers pass
-// starting-moves.js's startingMoveKeysByPlaybook() in practice.
-export async function choosePlaybookMove(playbookName, selectedKeys = [], startingMoveKeys = new Map()) {
-	const sections = playbookMoveSections(playbookName, selectedKeys, MOVE_POOLS, startingMoveKeys);
+// Shared by choosePlaybookMove and chooseNpcMove below — renders the picker template for an
+// already-built section tree and resolves the checked move's key, or null if the dialog was
+// dismissed or nothing was selected. Mirrors configureMoveRoll (moves.js) and choosePlaybook
+// (actor-creation.js) for the promise/Dialog shape.
+async function openMovePickerDialog(sections, title) {
 	const content = await renderTemplate(PLAYBOOK_MOVE_PICKER_TEMPLATE, { sections });
 
 	return new Promise((resolve) => {
 		new Dialog({
-			title: "Add a Playbook Move",
+			title,
 			content,
 			buttons: {
 				add: {
@@ -230,4 +233,25 @@ export async function choosePlaybookMove(playbookName, selectedKeys = [], starti
 			resizable: true
 		}).render(true);
 	});
+}
+
+// Opens the "+" picker and resolves the chosen move's key, or null if the dialog was dismissed or
+// nothing was selected. `startingMoveKeys` is threaded straight through to playbookMoveSections
+// (see its own comment) — callers pass starting-moves.js's startingMoveKeysByPlaybook() in
+// practice.
+export async function choosePlaybookMove(playbookName, selectedKeys = [], startingMoveKeys = new Map()) {
+	const sections = playbookMoveSections(playbookName, selectedKeys, MOVE_POOLS, startingMoveKeys);
+	return openMovePickerDialog(sections, "Add a Playbook Move");
+}
+
+// The NPC sheet's "+" — same picker machinery as choosePlaybookMove, but with no owning playbook
+// (an NPC has none), so Cantrips/Soldier Moves render top-level and every playbook's pool is
+// grouped together under a plain "Playbook Moves" label instead of "Other Playbooks" (which
+// implies contrast against a "your own" pool that doesn't exist here).
+export async function chooseNpcMove(selectedKeys = []) {
+	const sections = playbookMoveSections(undefined, selectedKeys, MOVE_POOLS, new Map(), CUSTOM_MOVE_CATALOG, {
+		otherPlaybooksLabel: "Playbook Moves",
+		otherPlaybooksNote: "Any playbook's move pool."
+	});
+	return openMovePickerDialog(sections, "Add a Move");
 }

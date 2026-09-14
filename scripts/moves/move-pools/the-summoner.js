@@ -83,10 +83,13 @@ export const THE_SUMMONER_POOL = {
 			// the roll dialog is the fictional declaration itself, not a record of something already
 			// marked elsewhere. Allies "won't (or can't) abandon your service" is pure fiction with no
 			// tracked state to hook -- Release already requires an explicit player click regardless of
-			// how an ally was bound.
+			// how an ally was bound. grantsFreeAllies: true is a second, independent declarative flag
+			// on this same move -- see summoner-mixin.js's _grantsFreeAllies/_onBoundAllyFreeToggle for
+			// the per-ally "Free" checkbox it unlocks (a Free ally never holds Power at all).
 			traits: [],
 			grantsRollModifier: [{ advantage: "advantage",
 				label: "Bonded In Blood", description: "Take a peril binding this ally to take advantage." }],
+			grantsFreeAllies: true,
 			description:
 				"<p>You may voluntarily take a peril as part of binding an ally: this counts as an " +
 				"extra 1 Power's worth of binding, on top of any you choose to give. If you do so, " +
@@ -100,8 +103,11 @@ export const THE_SUMMONER_POOL = {
 			// Identical in shape to Commander's Withdraw ("start or advance a 4-step clock") —
 			// prose only; the player manually adds a 4-step Clock via the existing Clocks section
 			// (Social tab) and manages the resulting ally through the ordinary Bound Allies roster
-			// once it's ready.
+			// once it's ready. Its own text ("they reserve none of your Astir's Power") is exactly
+			// grantsFreeAllies's own condition, so this move grants that same flag too -- see
+			// summoner-mixin.js's _grantsFreeAllies/_onBoundAllyFreeToggle.
 			traits: [],
+			grantsFreeAllies: true,
 			downtimeAbility: "Create allies during Downtime as a long-term project by filling a 4-step clock.",
 			description:
 				"<p>You may magically create allies for yourself during Downtime as long-term " +

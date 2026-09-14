@@ -18,6 +18,7 @@ import {
 } from "../../frames/astir.js";
 import { configureEquipment } from "../../equipment/equipment.js";
 import { showMoveDescription } from "../../moves/move-dialogs.js";
+import { findPlaybookMove } from "../../moves/playbook-moves.js";
 
 // The Astir itself, ported from playbook/playbook-sheet/astir-mixin.js for an NPC actor. Trimmed
 // to a baseline per claude.md: no CHANNEL-availability gate (an NPC has no traits — the tab is
@@ -249,12 +250,13 @@ export const NpcAstirSheetMixin = {
 			...this._astirPowerUpdates(astir, { equipment })
 		});
 	},
-	// The "?" info button shared by the Astir/Ardent Parts lists and the Astir Move row — resolves
-	// against the Astir Part catalog first, then the Astir/playbook Move catalogs (see
-	// astir.js#findAstirMove), since a clicked key could be either.
+	// The "?" info button shared by the Astir/Ardent Parts lists, the Astir Move row, and the Moves
+	// tab — resolves against the Astir Part catalog first, then the Astir/playbook Move catalogs
+	// (see astir.js#findAstirMove), then playbook-moves.js's own catalog, since a clicked key could
+	// be any of the three.
 	async _onMoveInfo(event) {
 		const { move: key } = event.currentTarget.dataset;
-		const entry = findAstirPart(key) ?? findAstirMove(key);
+		const entry = findAstirPart(key) ?? findAstirMove(key) ?? findPlaybookMove(key);
 		if (!entry) return;
 
 		await showMoveDescription(entry);

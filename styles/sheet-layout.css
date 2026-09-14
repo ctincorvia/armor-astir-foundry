@@ -139,6 +139,7 @@
 .armor-astir.sheet .astir-part-remove,
 .armor-astir.sheet .astir-extra-part-remove,
 .armor-astir.sheet .astir-move-remove,
+.armor-astir.sheet .npc-move-remove,
 .armor-astir.sheet .astir-delete,
 .armor-astir.sheet .ardent-part-remove,
 .armor-astir.sheet .ardent-extra-part-remove {
@@ -165,6 +166,7 @@
 .armor-astir.sheet .astir-part-remove:hover,
 .armor-astir.sheet .astir-extra-part-remove:hover,
 .armor-astir.sheet .astir-move-remove:hover,
+.armor-astir.sheet .npc-move-remove:hover,
 .armor-astir.sheet .astir-delete:hover,
 .armor-astir.sheet .ardent-part-remove:hover,
 .armor-astir.sheet .ardent-extra-part-remove:hover {
@@ -619,5 +621,14 @@
 }
 
 .window-app.armor-astir.playbook .window-content::-webkit-scrollbar {
+	display: none;
+}
+
+/* Observer/Limited permission — DocumentSheet#getData sets cssClass to "locked" for any non-Owner
+   viewer (Observer included — `limited` below is exact-Limited only). Hides every interactive
+   button sheet-wide rather than merely disabling it, so a read-only viewer sees a clean sheet with
+   no dead chrome. Every control on this sheet is a real <button>, so one selector covers all of
+   them with no template changes. Scoped to .playbook only. */
+.armor-astir.sheet.playbook form.locked button {
 	display: none;
 }

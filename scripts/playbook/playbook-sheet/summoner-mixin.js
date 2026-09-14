@@ -66,6 +66,12 @@ export const SummonerSheetMixin = {
 	_helpingHandsMove() {
 		return resolvePlaybookMoves(this._playbookMoves()).find((m) => m.grantsDowntimeAllySlot);
 	},
+	// Bonded In Blood or Spritecraft (either one grants this, see playbook-moves.js's
+	// grantsFreeAllies) — some rather than find, since either move alone is enough to unlock the
+	// per-ally "Free" checkbox in _boundAlliesData.
+	_grantsFreeAllies() {
+		return resolvePlaybookMoves(this._playbookMoves()).some((m) => m.grantsFreeAllies);
+	},
 	// Bound Allies roster (Social tab) — null (section hidden) until Binding is picked, the same
 	// "object once a granting move/part is installed, else null" convention Ardent Repair Tokens/
 	// Adrift's Home clock already establish. Renders even with no Astir; canInvest gates the
@@ -78,12 +84,14 @@ export const SummonerSheetMixin = {
 			approaches: APPROACHES,
 			traits: TRAITS,
 			canInvest: Boolean(astir),
+			canMarkFree: this._grantsFreeAllies(),
 			list: this._boundAllies().map((ally) => ({
 				id: ally.id,
 				name: ally.name ?? "",
 				approach: ally.approach ?? "",
 				trait: ally.trait ?? "",
 				powerInvested: ally.powerInvested ?? 0,
+				free: ally.free ?? false,
 				summoned: ally.id === eidolonDrive.summonedAllyId
 			}))
 		};
@@ -129,7 +137,7 @@ export const SummonerSheetMixin = {
 		const { entryId } = event.currentTarget.dataset;
 		const allies = this._boundAllies();
 		const ally = allies.find((a) => a.id === entryId);
-		if (!ally) return;
+		if (!ally || ally.free) return;
 		this.actor.update({
 			"system.attributes.boundAllies": updateEntryField(allies, entryId, "powerInvested", (ally.powerInvested ?? 0) + 1),
 			"system.attributes.astir.power": current - 1
@@ -152,6 +160,30 @@ export const SummonerSheetMixin = {
 		if (this._eidolonDrive().summonedAllyId === entryId) {
 			updates["system.attributes.eidolonDrive"] = { summonedAllyId: null, bonusUsed: false };
 		}
+		this.actor.update(updates);
+	},
+	// Free toggle — a dedicated handler rather than folding into the generic
+	// _onBoundAllyFieldChange, since it carries the same Power-refund side effect
+	// _onBoundAllyRelease's clamp-to-max shape already establishes: checking Free on an ally that
+	// currently holds Power returns all of it to the Astir immediately, guaranteeing a Free ally
+	// holds 0 Power going forward. Unchecking Free is a plain field write with no side effect.
+	_onBoundAllyFreeToggle(event) {
+		const { entryId } = event.currentTarget.dataset;
+		const allies = this._boundAllies();
+		const ally = allies.find((a) => a.id === entryId);
+		if (!ally) return;
+		const free = event.currentTarget.checked;
+		let updatedAllies = updateEntryField(allies, entryId, "free", free);
+		const updates = {};
+		if (free && ally.powerInvested) {
+			updatedAllies = updateEntryField(updatedAllies, entryId, "powerInvested", 0);
+			const astir = this._astir();
+			if (astir) {
+				const max = astirMaxPower(this._astirPartKeys(astir), this._equipment());
+				updates["system.attributes.astir.power"] = Math.min(max, (astir.power ?? 0) + ally.powerInvested);
+			}
+		}
+		updates["system.attributes.boundAllies"] = updatedAllies;
 		this.actor.update(updates);
 	},
 	// Downtime Ally CRUD — a single slot rather than an id-keyed list (see _downtimeAlly), so this
@@ -224,7 +256,8 @@ export const SummonerSheetMixin = {
 		// Returns 1 Power to the summoned ally, mirroring _regainAstirPower's clamp-to-max shape in
 		// astir-mixin.js — a no-Astir actor never has anything invested to begin with (Invest Power
 		// is disabled without one, see _boundAlliesData), so there's nothing to return here either.
-		if (astir) {
+		// A Free ally (see _grantsFreeAllies) never holds Power at all, so summoning one moves none.
+		if (astir && !ally.free) {
 			updates["system.attributes.boundAllies"] = updateEntryField(
 				allies, ally.id, "powerInvested", Math.max(0, (ally.powerInvested ?? 0) - 1)
 			);

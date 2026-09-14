@@ -173,8 +173,14 @@
 									<select class="entry-list-field bound-ally-field bound-ally-trait" data-entry-id="{{id}}" data-field="trait">
 										{{selectOptions ../boundAllies.traits selected=trait valueAttr="key" labelAttr="label" blank="— Trait —"}}
 									</select>
+									{{#if ../boundAllies.canMarkFree}}
+									<label class="hook-flag-label">
+										<input type="checkbox" class="bound-ally-free-checkbox" data-entry-id="{{id}}" {{#if free}}checked{{/if}}/>
+										Free
+									</label>
+									{{/if}}
 									<span class="bound-ally-power">Power Invested: {{powerInvested}}</span>
-									<button type="button" class="bound-ally-invest icon-add-button labeled-add-button{{#unless ../boundAllies.canInvest}} disabled{{/unless}}" data-entry-id="{{id}}" {{#unless ../boundAllies.canInvest}}disabled{{/unless}} title="Invest 1 Power" aria-label="Invest 1 Power">+1 Power</button>
+									<button type="button" class="bound-ally-invest icon-add-button labeled-add-button{{#if free}} disabled{{else}}{{#unless ../boundAllies.canInvest}} disabled{{/unless}}{{/if}}" data-entry-id="{{id}}" {{#if free}}disabled{{else}}{{#unless ../boundAllies.canInvest}}disabled{{/unless}}{{/if}} title="Invest 1 Power" aria-label="Invest 1 Power">+1 Power</button>
 									<button type="button" class="bound-ally-release icon-add-button labeled-add-button" data-entry-id="{{id}}" aria-label="Release ally">Release</button>
 								</div>
 							</li>

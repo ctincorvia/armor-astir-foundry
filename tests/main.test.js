@@ -50,7 +50,7 @@ describe("registerInitHook", () => {
 		]);
 		expect([
 			...PLAYBOOK_SHEET_PARTIALS, ...AUTHORITY_SHEET_PARTIALS, ...CAUSE_SHEET_PARTIALS, ...NPC_SHEET_PARTIALS
-		]).toHaveLength(24);
+		]).toHaveLength(25);
 	});
 
 	it("registers the reflavor world setting and GM-only menu when the hook fires", () => {

@@ -143,6 +143,12 @@ export class PlaybookActorSheet extends ActorSheet {
 		const mountedFrame = frames.find((frame) => frame.piloted) ?? null;
 		const ardents = this._ardents();
 		data.moveGroups = this._movesData(astir, astirParts, astirMove, mountedFrame, ardents, startingMovePool);
+		// Limited-permission viewers do not get to see Basic Moves - filtered here (rather than a
+		// new discriminator field on the Basic Moves object literal in moves-mixin.js) so it
+		// touches zero existing object shapes the test suite asserts against via toEqual.
+		if (data.limited) {
+			data.moveGroups = data.moveGroups.filter((group) => group.label !== "Basic Moves");
+		}
 		// Spell Routines' AND Input Channel's dropdown options (Astir tab) — every move currently
 		// rendered anywhere in moveGroups, deduped by key (see astir-mixin.js's _guidedMoveOptions).
 		// Classical Spellcasting's own narrower dropdown (Moves tab) uses data.basicMoveOptions
@@ -303,6 +309,7 @@ export class PlaybookActorSheet extends ActorSheet {
 		html.find(".bound-ally-release").on("click", this._onBoundAllyRelease.bind(this));
 		html.find(".bound-ally-field").on("change", this._onBoundAllyFieldChange.bind(this));
 		html.find(".bound-ally-invest").on("click", this._onBoundAllyInvestPower.bind(this));
+		html.find(".bound-ally-free-checkbox").on("change", this._onBoundAllyFreeToggle.bind(this));
 		html.find(".downtime-ally-add").on("click", this._onDowntimeAllyAdd.bind(this));
 		html.find(".downtime-ally-release").on("click", this._onDowntimeAllyRelease.bind(this));
 		html.find(".downtime-ally-name-input").on("change", this._onDowntimeAllyNameChange.bind(this));
