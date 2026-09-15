@@ -71,8 +71,8 @@ export const THE_PARADIGM_POOL = {
 			// this stays descriptive too.
 			traits: [],
 			downtimeAbility:
-				"If you ignored risks to pursue a target, Tenets' extra Scene is lost next Downtime — " +
-				"spend it on yourself instead.",
+				"If you ignored risks to pursue a target using Avenger, you cannot perform your extra " +
+				"\"Social Space or Private Quarters\" scene",
 			description:
 				"<p>When an ally or yourself is put in peril, you may declare the responsible party (you " +
 				"are the judge of who is responsible in this context) your target. You may freely ignore " +
