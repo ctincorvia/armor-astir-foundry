@@ -65,6 +65,8 @@ export const THE_ICON_POOL = {
 			key: "the-icon:change-of-heart",
 			name: "Change Of Heart",
 			traits: [],
+			// "Whenever you give a performance" presumes Performance itself.
+			requiresMoves: ["the-icon:performance"],
 			description:
 				"<p>Whenever you give a performance, other players may loosen or deepen any of their " +
 				"Hooks as they please.</p>"

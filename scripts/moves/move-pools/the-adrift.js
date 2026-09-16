@@ -38,6 +38,8 @@ export const THE_ADRIFT_POOL = {
 			key: "the-adrift:walk-on-part-in-the-war",
 			name: "Walk-on Part In The War",
 			traits: [],
+			// Rolls +HOME, a Trait that only exists because Love, Love, Love substitutes it in.
+			requiresMoves: ["the-adrift:love-love-love"],
 			// "While piloting your Astir" — requiresAstirMounted mirrors The Old Blood's own
 			// requiresUnmounted (see moves-mixin.js's addsTraitToMove resolution), but the opposite
 			// polarity and specifically the Astir, not any mounted frame: an Ardent doesn't count,
@@ -65,6 +67,8 @@ export const THE_ADRIFT_POOL = {
 			key: "the-adrift:lead-role-in-a-cage",
 			name: "Lead Role In A Cage",
 			traits: [],
+			// Rolls +HOME, a Trait that only exists because Love, Love, Love substitutes it in.
+			requiresMoves: ["the-adrift:love-love-love"],
 			// "Roll with +HOME instead of the listed traits" reads like a hard lock, but the trigger
 			// ("when you're pressured into leading a Sortie") is a fictional judgment call, not every
 			// Lead a Sortie roll — so this only makes +HOME available as an option on Lead a Sortie's
@@ -85,6 +89,8 @@ export const THE_ADRIFT_POOL = {
 			// new needed here.
 			name: "Wish You Were Here",
 			traits: [],
+			// Advances the HOME clock Love, Love, Love creates — meaningless without it.
+			requiresMoves: ["the-adrift:love-love-love"],
 			downtimeAbility:
 				"Spend a Social Space or Private Quarters Scene alone during Downtime to clear a peril " +
 				"from yourself and advance your HOME clock.",
@@ -97,6 +103,8 @@ export const THE_ADRIFT_POOL = {
 			key: "the-adrift:if-i-go-there-will-be-trouble",
 			name: "If I Go There Will Be Trouble",
 			traits: [],
+			// Only makes sense alongside the character's own Love, Love, Love home ties.
+			requiresMoves: ["the-adrift:love-love-love"],
 			description:
 				"<p>You have decided to stay, no matter what. Swap to a new playbook, and take an extra move " +
 				"in addition to those you should start with. You may also rewrite as many of your Hooks as " +
@@ -109,6 +117,8 @@ export const THE_ADRIFT_POOL = {
 			// fictional judgment call ("act selfishly in pursuit of return home") that could apply to any
 			// roll — nothing in this module can detect that condition. Prose only.
 			traits: [],
+			// "Pursuit of your permanent return home" presumes Love, Love, Love's own home ties.
+			requiresMoves: ["the-adrift:love-love-love"],
 			description:
 				"<p>You are resigned to leaving, no matter what. When you act selfishly in pursuit of your " +
 				"permanent return home, do so with confidence.</p>"
@@ -121,6 +131,8 @@ export const THE_ADRIFT_POOL = {
 			// traits array only ever names real TRAITS keys. Self-targeting addsTraitToMove reuses the
 			// exact same generic HOME-injection machinery instead (see moves-mixin.js's _moveTraits).
 			traits: [],
+			// Rolls +HOME, a Trait that only exists because Love, Love, Love substitutes it in.
+			requiresMoves: ["the-adrift:love-love-love"],
 			addsTraitToMove: { moveKey: "the-adrift:draw-your-bath-and-load-your-gun", trait: "home" },
 			results: {
 				success: "You are able to keep up with any obligations or duties from your old life " +

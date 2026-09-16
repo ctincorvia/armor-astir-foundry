@@ -183,6 +183,8 @@ export const THE_IMPOSTOR_POOL = {
 			// with no enforcement of when that's appropriate (see this file's own top comment),
 			// so there's nothing further to build; prose only.
 			traits: [],
+			// A body-alteration event is meaningless without Arcane Augments' own magical bonding.
+			requiresMoves: ["the-impostor:arcane-augments"],
 			description:
 				"<p>You undergo deeper alteration and adjustments to your body. Discuss what it is with " +
 				"your Director, and either choose a move from another playbook to represent its effects, " +

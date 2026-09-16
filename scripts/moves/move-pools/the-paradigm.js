@@ -46,6 +46,8 @@ export const THE_PARADIGM_POOL = {
 			// makes usefulness itself uncertain, while this one keeps the information useful but makes
 			// its divine origin uncertain instead — a meaningfully different mixed-success text, not
 			// just an extra Trait option on the existing move.
+			// Consulting a deity presumes the deity relationship Tenets establishes.
+			requiresMoves: ["the-paradigm:tenets"],
 			results: {
 				success: "Your deity tells you something directly useful about the situation or subject " +
 					"at hand.",
@@ -70,6 +72,8 @@ export const THE_PARADIGM_POOL = {
 			// extra-Scene cost references the same untracked Downtime-Scene concept as Tenets above, so
 			// this stays descriptive too.
 			traits: [],
+			// The extra Scene it spends is Tenets' own — meaningless without it.
+			requiresMoves: ["the-paradigm:tenets"],
 			downtimeAbility:
 				"If you ignored risks to pursue a target using Avenger, you cannot perform your extra " +
 				"\"Social Space or Private Quarters\" scene",
@@ -123,6 +127,8 @@ export const THE_PARADIGM_POOL = {
 			// same treatment Exchange Blows already gives "+CLASH or +TALK, whichever is more
 			// appropriate" — no auto-select-the-higher-trait logic is built for either move.
 			traits: ["talk", "channel"],
+			// "Advocate for something related to one of your tenets" presumes Tenets.
+			requiresMoves: ["the-paradigm:tenets"],
 			results: {
 				success: "<p>Choose 2:</p>" +
 					"<ul>" +
@@ -154,6 +160,8 @@ export const THE_PARADIGM_POOL = {
 			key: "the-paradigm:consecrate-ground",
 			name: "Consecrate Ground",
 			traits: ["channel"],
+			// Imbuing an area with "divine power and presence" presumes Tenets' own deity relationship.
+			requiresMoves: ["the-paradigm:tenets"],
 			results: {
 				success: "<p>Choose 2:</p>" +
 					"<ul>" +
@@ -195,6 +203,8 @@ export const THE_PARADIGM_POOL = {
 			// freeform panel, not a tally), and bite-the-dust's own results.success text (moves.js) is
 			// deliberately left untouched by this move.
 			traits: [],
+			// "By divine decree" presumes the deity relationship Tenets establishes.
+			requiresMoves: ["the-paradigm:tenets"],
 			addsTraitToMove: { moveKey: "bite-the-dust", trait: "channel" },
 			addsSuccessReminderToMove: {
 				moveKeys: ["bite-the-dust"],

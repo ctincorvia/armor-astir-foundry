@@ -138,6 +138,8 @@ export const THE_CAPTAIN_POOL = {
 			key: "the-captain:fire-support",
 			name: "Fire Support",
 			traits: [],
+			// "The Carrier's crew" — presumes the crew-command relationship In Command establishes.
+			requiresMoves: ["the-captain:in-command"],
 			// "using +KNOW" — adds KNOW as a rollable option to Exchange Blows/Strike Decisively,
 			// the same addsTraitToMove shape Turn Unearthly (the-paradigm:turn-unearthly) uses.
 			addsTraitToMove: { moveKeys: ["exchange-blows", "strike-decisively"], trait: "know" },

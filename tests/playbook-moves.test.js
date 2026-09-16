@@ -96,6 +96,38 @@ describe("unmetMoveRequirements", () => {
 		expect(unmetMoveRequirements(move, [])).toEqual(["the-icon:touchstone"]);
 		expect(unmetMoveRequirements(move, ["the-icon:touchstone"])).toEqual([]);
 	});
+
+	it("returns every requiresAnyMoves key when none of them are picked (OR, not AND)", () => {
+		const move = { key: "a", requiresAnyMoves: ["b", "c"] };
+		expect(unmetMoveRequirements(move, [])).toEqual(["b", "c"]);
+	});
+
+	it("returns an empty list once one requiresAnyMoves key is picked", () => {
+		const move = { key: "a", requiresAnyMoves: ["b", "c"] };
+		expect(unmetMoveRequirements(move, ["b"])).toEqual([]);
+	});
+
+	it("returns an empty list once every requiresAnyMoves key is picked", () => {
+		const move = { key: "a", requiresAnyMoves: ["b", "c"] };
+		expect(unmetMoveRequirements(move, ["b", "c"])).toEqual([]);
+	});
+
+	it("reports only the unmet requiresMoves keys when requiresAnyMoves is already satisfied", () => {
+		const move = { key: "a", requiresMoves: ["b"], requiresAnyMoves: ["c", "d"] };
+		expect(unmetMoveRequirements(move, ["c"])).toEqual(["b"]);
+	});
+
+	it("reports only the unmet requiresAnyMoves keys when requiresMoves is already satisfied", () => {
+		const move = { key: "a", requiresMoves: ["b"], requiresAnyMoves: ["c", "d"] };
+		expect(unmetMoveRequirements(move, ["b"])).toEqual(["c", "d"]);
+	});
+
+	it("resolves against the real content: Chimaeric requires Earthly Ally or Titanic", () => {
+		const move = findPlaybookMove("the-advocate:chimaeric");
+		expect(unmetMoveRequirements(move, [])).toEqual(["the-advocate:earthly-ally", "the-advocate:titanic"]);
+		expect(unmetMoveRequirements(move, ["the-advocate:earthly-ally"])).toEqual([]);
+		expect(unmetMoveRequirements(move, ["the-advocate:titanic"])).toEqual([]);
+	});
 });
 
 describe("moveRequirementTooltip", () => {
@@ -403,6 +435,26 @@ describe("playbookMoveSections", () => {
 
 		expect(crown.disabled).toBe(false);
 		expect(crown.tooltip).toBeNull();
+	});
+
+	// Occult Lore's requiresMoves: ["the-witch:patron"] closes the leak this whole feature targets:
+	// Patron itself is already excluded from a Scout's Other Playbooks listing (via startingMoveKeys),
+	// so a Scout could otherwise pick Occult Lore cross-playbook with no way to ever satisfy it.
+	it("disables the-witch:occult-lore under a Scout's Other Playbooks section, since Patron is excluded there", () => {
+		const sections = playbookMoveSections("The Scout", [], MOVE_POOLS, startingMoveKeysByPlaybook());
+		const witch = sections.find((section) => section.key === "other-playbooks")
+			.sections.find((section) => section.key === "the-witch");
+		const occultLore = witch.moves.find((move) => move.key === "the-witch:occult-lore");
+
+		expect(occultLore.disabled).toBe(true);
+		expect(occultLore.tooltip).toContain("Patron");
+	});
+
+	it("does not disable the-witch:occult-lore in a Witch's own pool once Patron is picked", () => {
+		const [witch] = playbookMoveSections("The Witch", ["the-witch:patron"]);
+		const occultLore = witch.moves.find((move) => move.key === "the-witch:occult-lore");
+
+		expect(occultLore.disabled).toBe(false);
 	});
 });
 

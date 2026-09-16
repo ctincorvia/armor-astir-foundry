@@ -288,4 +288,21 @@ describe("MOVE_POOLS", () => {
 			costsHold: { amount: 1 }
 		}]);
 	});
+
+	// Guards every requiresMoves/requiresAnyMoves key added across MOVE_POOLS in one place, rather
+	// than one assertion per move — a typo'd key would otherwise silently permanently-gate a move
+	// (unmetMoveRequirements would never find it among any actor's picked keys).
+	it("resolves every requiresMoves and requiresAnyMoves key, across every pool, to a real move", () => {
+		const withRequirements = ALL_PLAYBOOK_MOVES.filter((move) => move.requiresMoves || move.requiresAnyMoves);
+		expect(withRequirements.length).toBeGreaterThan(0);
+
+		for (const move of withRequirements) {
+			for (const key of move.requiresMoves ?? []) {
+				expect(findPlaybookMove(key)).not.toBeNull();
+			}
+			for (const key of move.requiresAnyMoves ?? []) {
+				expect(findPlaybookMove(key)).not.toBeNull();
+			}
+		}
+	});
 });

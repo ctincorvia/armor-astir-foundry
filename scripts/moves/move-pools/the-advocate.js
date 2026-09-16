@@ -123,6 +123,10 @@ export const THE_ADVOCATE_POOL = {
 			key: "the-advocate:chimaeric",
 			name: "Chimaeric",
 			traits: [],
+			// OR, not AND: Earthly Ally and Titanic are a pickOneKeys pair (mutually exclusive at
+			// chargen), so a real Advocate only ever has one of the two — requiresMoves' plain AND
+			// filtering would wrongly gate this move for every Advocate who picked the other one.
+			requiresAnyMoves: ["the-advocate:earthly-ally", "the-advocate:titanic"],
 			// No creature-shapeshifting/"form" tracking system exists anywhere in this module (see
 			// docs/domains/moves.md's "systems that do not exist yet"). The Titanic branch's "choose a Part or
 			// Weapon to take as an Extra every Sortie" needs no new mechanism either — Astir Parts/

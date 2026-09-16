@@ -34,6 +34,8 @@ export const THE_ARCANIST_POOL = {
 			// References re-choosing prepare rituals' own (unmodeled) effect choice — prose only, same
 			// treatment docs/domains/moves.md's "systems that do not exist yet" gives every move like this.
 			traits: [],
+			// Re-choosing rituals is meaningless without Prepare Rituals' own ritual pool.
+			requiresMoves: ["the-arcanist:prepare-rituals"],
 			description:
 				"<p>When you fail a move on a 6-, you may re-choose any rituals you have remaining.</p>"
 		},

@@ -52,7 +52,15 @@ export function resolvePlaybookMoves(keys = []) {
 // (moves-mixin.js, gating an already-picked move's Roll button live if the prerequisite is later
 // removed).
 export function unmetMoveRequirements(move, pickedMoveKeys = []) {
-	return (move.requiresMoves ?? []).filter((key) => !pickedMoveKeys.includes(key));
+	const missing = (move.requiresMoves ?? []).filter((key) => !pickedMoveKeys.includes(key));
+	// requiresAnyMoves is a separate field (OR semantics) rather than folded into requiresMoves
+	// (AND semantics) because its callers are pickOneKeys pairs — Chimaeric's Earthly Ally/Titanic
+	// is the only current example — where a real character only ever has one of the two, so an AND
+	// filter would wrongly gate the move for every character who picked the other.
+	if (move.requiresAnyMoves?.length && !move.requiresAnyMoves.some((key) => pickedMoveKeys.includes(key))) {
+		missing.push(...move.requiresAnyMoves);
+	}
+	return missing;
 }
 
 // Turns a list of missing move keys (from unmetMoveRequirements) into the hover-tooltip text, or

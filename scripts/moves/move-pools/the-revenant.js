@@ -56,6 +56,8 @@ export const THE_REVENANT_POOL = {
 			key: "the-revenant:joyride",
 			name: "Joyride",
 			traits: ["channel"],
+			// Transferring "your spectral being" presumes the undeath Never Quite Free establishes.
+			requiresMoves: ["the-revenant:never-quite-free"],
 			// Two consequences here have no mechanical hook and stay narrated: (a) "your old Astir
 			// falls quiet and you take control of this one instead" — system.attributes.astir is a
 			// hard 1:1 singleton on the actor with zero cross-actor transfer architecture, so
@@ -92,6 +94,8 @@ export const THE_REVENANT_POOL = {
 			key: "the-revenant:aint-no-grave",
 			name: "Ain't No Grave",
 			traits: [],
+			// Its own text requires rolling Never Quite Free in desperation.
+			requiresMoves: ["the-revenant:never-quite-free"],
 			// The literal rules text ("roll never quite free ... to upgrade THAT [separate,
 			// already-posted] result") has no precedent anywhere in this codebase — every existing
 			// grantsAutomaticSuccess source only ever flags the *current* roll, never a different,
@@ -127,6 +131,8 @@ export const THE_REVENANT_POOL = {
 			key: "the-revenant:i-know-you",
 			name: "I Know You",
 			traits: [],
+			// "Before you died" presumes the undeath Never Quite Free establishes.
+			requiresMoves: ["the-revenant:never-quite-free"],
 			// "Roll +3" with no trait/stat selection — a hardcoded fixedTraits entry, the same
 			// shape Lead a Sortie's own CREW uses (moves.js), except the static value here is a
 			// placeholder: grantsFamiliarityTrait (below) makes it a real actor stat instead,
@@ -168,6 +174,8 @@ export const THE_REVENANT_POOL = {
 			key: "the-revenant:ancient-recall",
 			name: "Ancient Recall",
 			traits: [],
+			// "Your past life" presumes the undeath Never Quite Free establishes.
+			requiresMoves: ["the-revenant:never-quite-free"],
 			flatHold: 3,
 			// Mirrors Once the War's Over's own cost-per-spend shape, restricted via The Arity
 			// Method's `moves` field to exactly the two moves named in the rules text. No `period`:

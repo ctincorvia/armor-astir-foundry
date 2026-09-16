@@ -126,6 +126,8 @@ export const THE_WITHER_POOL = {
 			// no Activate control, no state mutation. "Take a peril instead of a risk" needs no code
 			// either -- Dangers are already manually typed risk/peril by the player (tracking-mixin.js).
 			traits: [],
+			// "When you use born to die" — inert without the move it modifies.
+			requiresMoves: ["the-wither:born-to-die"],
 			grantsRollModifier: [{ reminderOnly: true }],
 			description:
 				"<p>When you use born to die, you may take a peril instead of a risk. If you do, act with " +

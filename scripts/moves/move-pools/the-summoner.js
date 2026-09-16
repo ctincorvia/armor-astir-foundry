@@ -10,6 +10,10 @@ export const THE_SUMMONER_POOL = {
 			// requiredAstirMoveKey, wired into astir-mixin.js's _onAstirCreate/_onAstirMoveAdd). A
 			// fresh Astir starts with this already set; the picker skips straight to it too.
 			traits: [],
+			// Eidolon Drive is the Summoner's forced Astir Move, not in playbookMoves/grantedKeys, so it
+			// isn't otherwise excluded from every other playbook's "Other Playbooks" picker (see
+			// starting-moves.js's startingMoveKeysByPlaybook) — this closes that gap directly.
+			requiresMoves: ["the-summoner:binding"],
 			// Renders a Summon button in place of Roll/Activate (see moves-mixin.js's
 			// _moveGroupMoves) — its own roll options come from whatever move the player rolls
 			// next (see the unconditional eidolon-drive-ally trait push in _moveTraits), not from
@@ -69,6 +73,8 @@ export const THE_SUMMONER_POOL = {
 			// alongside the Attendant's static grantsApproachOverride, but as a dynamic per-roll
 			// snapshot rather than a fixed catalog value.
 			traits: [],
+			// Modifies/spends what Binding creates — inert without it.
+			requiresMoves: ["the-summoner:binding"],
 			activatesApproachOverride: true,
 			description:
 				"<p>After you summon an ally with your eidolon drive, you may use their approach " +
@@ -87,6 +93,8 @@ export const THE_SUMMONER_POOL = {
 			// on this same move -- see summoner-mixin.js's _grantsFreeAllies/_onBoundAllyFreeToggle for
 			// the per-ally "Free" checkbox it unlocks (a Free ally never holds Power at all).
 			traits: [],
+			// Modifies/spends what Binding creates — inert without it.
+			requiresMoves: ["the-summoner:binding"],
 			grantsRollModifier: [{ advantage: "advantage",
 				label: "Bonded In Blood", description: "Take a peril binding this ally to take advantage." }],
 			grantsFreeAllies: true,
@@ -107,6 +115,8 @@ export const THE_SUMMONER_POOL = {
 			// grantsFreeAllies's own condition, so this move grants that same flag too -- see
 			// summoner-mixin.js's _grantsFreeAllies/_onBoundAllyFreeToggle.
 			traits: [],
+			// Modifies/spends what Binding creates — inert without it.
+			requiresMoves: ["the-summoner:binding"],
 			grantsFreeAllies: true,
 			downtimeAbility: "Create allies during Downtime as a long-term project by filling a 4-step clock.",
 			description:
@@ -123,6 +133,8 @@ export const THE_SUMMONER_POOL = {
 			// something a move can attach on the fly; no analogous mechanism exists anywhere in
 			// this module. Prose only, per docs/domains/moves.md's "systems that do not exist yet".
 			traits: [],
+			// Modifies/spends what Binding creates — inert without it.
+			requiresMoves: ["the-summoner:binding"],
 			description:
 				"<p>When you summon an ally and immediately exchange blows or strike decisively via " +
 				"them, that attack is considered to have the bane tag.</p>"
@@ -131,6 +143,8 @@ export const THE_SUMMONER_POOL = {
 			key: "the-summoner:helping-hands",
 			name: "Helping Hands",
 			traits: [],
+			// Modifies/spends what Binding creates — inert without it.
+			requiresMoves: ["the-summoner:binding"],
 			// Renders the single-slot Downtime Ally control (Downtime tab — see
 			// summoner-mixin.js's _downtimeAllyData) once picked — a declarative flag,
 			// generically evaluated, the same pattern grantsBoundAlliesRoster establishes for
@@ -154,6 +168,8 @@ export const THE_SUMMONER_POOL = {
 			// mechanism exists anywhere in this module (every roll/state change is scoped to one
 			// actor's own sheet). Prose only, per docs/domains/moves.md's "systems that do not exist yet".
 			traits: [],
+			// Modifies/spends what Binding creates — inert without it.
+			requiresMoves: ["the-summoner:binding"],
 			downtimeAbility: "Open a portal between your linked Astirs during Downtime (or when you weave magic).",
 			description:
 				"<p>When another Channeler lays a hand on your eidolon drive, they may link their " +
@@ -165,6 +181,8 @@ export const THE_SUMMONER_POOL = {
 			key: "the-summoner:living-drive",
 			name: "Living Drive",
 			traits: [],
+			// Modifies/spends what Binding creates — inert without it.
+			requiresMoves: ["the-summoner:binding"],
 			// "You may use it outside of an Astir" — ungates Eidolon Drive's Summon button (and
 			// Roll/Activate generally, were it ever to gain one) from the Astir Moves group's
 			// mounted-frame check specifically (see moves-mixin.js's

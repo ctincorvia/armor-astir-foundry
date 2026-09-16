@@ -379,7 +379,8 @@ describe("PlaybookActorSheet#getData - playbook moves", () => {
 
 	it("shows a Roll button for a fixedTraits-only move with no actor stats to roll (I Know You)", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { stats: {}, attributes: { playbookMoves: [I_KNOW_YOU.key] } } };
+		// I Know You's own requiresMoves: ["the-revenant:never-quite-free"] needs it picked too.
+		sheet.actor = { system: { stats: {}, attributes: { playbookMoves: [I_KNOW_YOU.key, "the-revenant:never-quite-free"] } } };
 
 		const [move] = playbookGroup(sheet.getData()).moves;
 

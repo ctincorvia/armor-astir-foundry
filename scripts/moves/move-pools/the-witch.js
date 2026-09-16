@@ -37,6 +37,8 @@ export const THE_WITCH_POOL = {
 			key: "the-witch:occult-lore",
 			name: "Occult Lore",
 			traits: ["channel"],
+			// Consulting a patron presumes the patron relationship Patron establishes.
+			requiresMoves: ["the-witch:patron"],
 			results: {
 				success: null,
 				mixed: "The information is still directly useful, but using it would cause some " +
@@ -58,6 +60,8 @@ export const THE_WITCH_POOL = {
 			// (no Sortie-scoped Director-prompt system exists in this module), so that half stays
 			// descriptive; giving 1 Influence is the existing manual Influence stepper.
 			traits: [],
+			// Spends Patron's own Influence pool and boons — inert without it.
+			requiresMoves: ["the-witch:patron"],
 			description:
 				"<p>Your patron is unfathomable, and their interests obscure. Your Director should, once " +
 				"per Sortie, give you some minor goal or abstract requirement your patron demands of " +
@@ -109,6 +113,8 @@ export const THE_WITCH_POOL = {
 			// (see docs/domains/moves.md's "systems that do not exist yet" — weapon tags/profiles). Prose only;
 			// giving your patron 1 Influence is the existing manual Influence stepper.
 			traits: [],
+			// Spends Patron's own Influence pool — inert without it.
+			requiresMoves: ["the-witch:patron"],
 			description:
 				"<p>When you use a piece of equipment to make a move, e.g using a weapon to strike " +
 				"decisively, you can ignore one of its tags OR act as if it had an additional one of your " +
@@ -123,6 +129,8 @@ export const THE_WITCH_POOL = {
 			// part is damaged/destroyed" (Astir Parts are either installed or not — see astir.js), and
 			// Dangers are a freeform panel rather than a tally a move could conditionally clear one of.
 			traits: [],
+			// Relinquishing boons is meaningless without Patron's own boon pool.
+			requiresMoves: ["the-witch:patron"],
 			description:
 				"<p>If a part of your Astir is damaged or destroyed and you take a peril as a result, you " +
 				"may relinquish your boons; losing them until you receive boons again but fixing that " +
@@ -179,6 +187,8 @@ export const THE_WITCH_POOL = {
 			// can't reach one, and nothing in this module lets a roll borrow another playbook's move
 			// definition). Prose only, per docs/domains/moves.md's "systems that do not exist yet".
 			traits: [],
+			// Requesting help from a patron and spending its Influence presumes Patron.
+			requiresMoves: ["the-witch:patron"],
 			description:
 				"<p>When you request help from your patron, roll +CHANNEL and give your patron 1 " +
 				"Influence. On a 10+, hold 3. On a 7-9, hold 1, or be in peril and hold 3.</p>" +

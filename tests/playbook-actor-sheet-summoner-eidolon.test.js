@@ -267,7 +267,9 @@ describe("PlaybookActorSheet#getData - Living Drive ungates Eidolon Drive while 
 				stats: {},
 				playbook: { name: "The Summoner" },
 				attributes: {
-					playbookMoves: [LIVING_DRIVE.key],
+					// Eidolon Drive's own requiresMoves: ["the-summoner:binding"] (see moves.md's second-
+					// layer starting-move-dependent gating) needs Binding picked too, alongside Living Drive.
+					playbookMoves: [LIVING_DRIVE.key, BINDING.key],
 					boundAllies: [{ id: "a1" }],
 					astir: { id: "a1", core: "", approach: "", tier: 3, power: 4, parts: [], move: EIDOLON_DRIVE.key, piloted: false }
 				}
@@ -316,7 +318,8 @@ describe("PlaybookActorSheet#_moveGroupMoves - Eidolon Drive's Summon button", (
 
 	it("is ungated with at least one bound ally", () => {
 		const sheet = new PlaybookActorSheet();
-		sheet.actor = { system: { stats: {}, attributes: { boundAllies: [{ id: "a1" }] } } };
+		// Eidolon Drive's own requiresMoves: ["the-summoner:binding"] needs Binding picked too.
+		sheet.actor = { system: { stats: {}, attributes: { playbookMoves: [BINDING.key], boundAllies: [{ id: "a1" }] } } };
 
 		const [entry] = sheet._moveGroupMoves([EIDOLON_DRIVE]);
 

@@ -6,9 +6,9 @@ export const THE_SCOUT_POOL = {
 	playbookName: "The Scout",
 	moves: [
 		// Field Scout and Giant Slayer are the two Starting Moves ("pick either...") — see
-		// starting-moves.js, which reads their `starting: true` flag rather than duplicating
-		// this pool's key list. Every move below them is an Additional Move ("...as well as two
-		// others from your Additional Moves").
+		// starting-moves.js, which reads their own pickOneKeys rather than this pool's starting
+		// flag. Every move below them is an Additional Move ("...as well as two others from your
+		// Additional Moves").
 		{
 			key: "the-scout:field-scout",
 			name: "Field Scout",

@@ -573,6 +573,8 @@ describe("PlaybookActorSheet#_moveGroupMoves - Enduring Support's Activate butto
 			system: {
 				stats: {},
 				attributes: {
+					// Enduring Support's own requiresMoves: ["the-summoner:binding"] needs Binding picked too.
+					playbookMoves: ["the-summoner:binding"],
 					boundAllies: [{ id: "a1", name: "Vex", approach: "profane" }],
 					eidolonDrive: { summonedAllyId: "a1", bonusUsed: false }
 				}

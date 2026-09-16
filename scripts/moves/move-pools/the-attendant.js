@@ -71,6 +71,8 @@ export const THE_ATTENDANT_POOL = {
 			key: "the-attendant:smiling-politely",
 			name: "Smiling Politely",
 			traits: [],
+			// "Your Employer" presumes the employment relationship Master & Servant establishes.
+			requiresMoves: ["the-attendant:master-servant"],
 			numericTrackers: [
 				{ key: "hold", label: "Hold", min: 0, max: 10 }
 			],
@@ -85,6 +87,8 @@ export const THE_ATTENDANT_POOL = {
 			key: "the-attendant:man-of-many-manners",
 			name: "Man Of Many Manners",
 			traits: [],
+			// "Your Employer" presumes the employment relationship Master & Servant establishes.
+			requiresMoves: ["the-attendant:master-servant"],
 			description:
 				"<p>You have a deep knowledge of the manners and etiquette required wherever you go, and " +
 				"any attempts to cover for the missteps or failings of your Employer or their guests in " +
@@ -95,6 +99,8 @@ export const THE_ATTENDANT_POOL = {
 			key: "the-attendant:dilettante",
 			name: "Dilettante",
 			traits: [],
+			// "Your Employer" presumes the employment relationship Master & Servant establishes.
+			requiresMoves: ["the-attendant:master-servant"],
 			description:
 				"<p>Your Employer has ever-changing needs, and your skills must change to meet them. During " +
 				"Downtime, you may spend your Scene dedicating yourself to learning a new skill. At the end " +
@@ -107,6 +113,8 @@ export const THE_ATTENDANT_POOL = {
 			key: "the-attendant:the-utmost-care",
 			name: "The Utmost Care",
 			traits: [],
+			// "Your Employer" presumes the employment relationship Master & Servant establishes.
+			requiresMoves: ["the-attendant:master-servant"],
 			grantsRollModifier: [{ moveKeys: ["dispel-uncertainties", "read-the-room"], advantage: "advantage" }],
 			description:
 				"<p>The Carrier and anywhere your Employer and their guests spend the night are completely " +

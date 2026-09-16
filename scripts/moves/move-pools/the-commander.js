@@ -48,6 +48,8 @@ export const THE_COMMANDER_POOL = {
 			key: "the-commander:withdraw",
 			name: "Withdraw",
 			traits: ["talk"],
+			// "Retreat with your crew" presumes the Ace Crew this move's own text names.
+			requiresMoves: ["the-commander:ace-crew"],
 			results: {
 				success: "You manage to justify your actions.",
 				mixed: "Give up 1 token next Downtime as you are reprimanded for your 'cowardice'.",
@@ -63,6 +65,9 @@ export const THE_COMMANDER_POOL = {
 			key: "the-commander:retrofit",
 			name: "Retrofit",
 			traits: [],
+			// Really depends on the Custom Ardent (starting gear, not a move) — ace-crew stands in
+			// as a playbook-membership check.
+			requiresMoves: ["the-commander:ace-crew"],
 			description:
 				"<p>During Downtime, your crew may spend 1 token to swap out one of your Ardent " +
 				"Features for another from the list. Alternatively, you may spend 2 tokens to " +
@@ -84,6 +89,8 @@ export const THE_COMMANDER_POOL = {
 			key: "the-commander:watch-this",
 			name: "Watch This",
 			traits: [],
+			// "Manoeuvre your crew" presumes the Ace Crew this move's own text names.
+			requiresMoves: ["the-commander:ace-crew"],
 			grantsRollModifier: [{ moveKeys: ["weather-the-storm"], advantage: "advantage", costsSpotlight: 3 }],
 			description:
 				"<p>You may spend 3 Spotlight to quickly manoeuvre your crew or an Ardent they " +
@@ -96,6 +103,9 @@ export const THE_COMMANDER_POOL = {
 			key: "the-commander:bail-out",
 			name: "Bail Out",
 			traits: [],
+			// Really depends on the Custom Ardent (starting gear, not a move) — ace-crew stands in
+			// as a playbook-membership check.
+			requiresMoves: ["the-commander:ace-crew"],
 			description:
 				"<p>You may, at any point, declare that your Custom Ardent is about to explode. " +
 				"Replace all your current dangers with one peril (Bailed Out) as everyone escapes " +
@@ -107,6 +117,9 @@ export const THE_COMMANDER_POOL = {
 			key: "the-commander:tactical-entry",
 			name: "Tactical Entry",
 			traits: [],
+			// Really depends on the Custom Ardent (starting gear, not a move) — ace-crew stands in
+			// as a playbook-membership check.
+			requiresMoves: ["the-commander:ace-crew"],
 			description:
 				"<p>When you drive or fly your Custom Ardent through the side of a building, you " +
 				"can be certain it will remain structurally sound for exactly as long as you need " +
