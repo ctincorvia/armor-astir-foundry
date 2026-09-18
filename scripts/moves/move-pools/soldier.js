@@ -163,9 +163,12 @@ export const SOLDIER_POOL = {
 			name: "That's Dialectics",
 			// References a long-term project clock (distinct from the existing GRAVITY clocks —
 			// different length, and decrements on neglect rather than filling toward a value) and a
-			// "plan and prepare" d6 mechanic, neither of which exist anywhere in this module yet. Per
-			// docs/domains/moves.md's "systems that do not exist yet" guidance, transcribed as prose rather than
-			// inventing new tracking machinery.
+			// one-time "every d6 rolled counts as a result of 6" swap on plan & prepare, conditioned on
+			// filling that clock. The Plan & Prepare d6 mechanic itself exists now (special-moves.js's
+			// plan-and-prepare), but the current move/dialog exposes no hook for a one-time result swap,
+			// and the long-term-project-clock system genuinely still doesn't exist anywhere in this
+			// module. Per docs/domains/moves.md's "systems that do not exist yet" guidance, transcribed
+			// as prose rather than inventing new tracking machinery.
 			traits: [],
 			downtimeAbility:
 				"Work your long-term project with the other Faction at least once per Downtime, or your " +

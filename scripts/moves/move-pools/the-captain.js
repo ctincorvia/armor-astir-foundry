@@ -171,11 +171,13 @@ export const THE_CAPTAIN_POOL = {
 			name: "Born Leader",
 			traits: [],
 			// "You lead a Sortie with advantage" — a standing grantsAdvantageOnMove lock on Lead a
-			// Sortie's own dialog. "give the crew confidence when they plan & prepare" and the Cause/Conflict
-			// Turn paragraph both stay prose: neither a "Plan & Prepare" move nor a Conflict Turn
-			// system exists anywhere in this module (see docs/domains/moves.md's "systems that do not exist
-			// yet", and compare That's Dialectics' own comment on its similarly-unbuilt "plan and
-			// prepare" reference).
+			// Sortie's own dialog. "give the crew confidence when they plan & prepare" stays prose: a
+			// "Plan & Prepare" move exists now (special-moves.js's plan-and-prepare), but Born Leader has
+			// no well-defined mechanical grant to hook into it with — unlike its own standing
+			// grantsAdvantageOnMove above. The Cause/Conflict Turn paragraph also stays prose: a
+			// Conflict Turn system genuinely still doesn't exist anywhere in this module (see
+			// docs/domains/moves.md's "systems that do not exist yet", and compare That's Dialectics'
+			// own comment on its similarly-unbuilt "long-term-project clock" reference).
 			grantsAdvantageOnMove: { moveKey: "lead-a-sortie", advantage: "advantage" },
 			description:
 				"<p>You lead a Sortie with advantage and give the crew confidence when they plan " +

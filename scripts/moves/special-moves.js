@@ -115,6 +115,16 @@ export const SPECIAL_MOVES = [
 		// independently against a manually-entered target). See configureVariableDiceRoll
 		// (move-dialogs.js) and rollVariableDicePool (move-roll.js).
 		variableDicePool: true,
+		// Tracks Downtime-earned extra dice (see downtime-scenes.js's "adding a d6 to the upcoming
+		// plan & prepare" text) as a standard 0-3 hold pool like every other flatHold move, reset by
+		// _onRefreshSortie's existing generic Sortie-scoped flatHold loop. suppressActivateButton
+		// mirrors Embrace Chaos's (the-witch.js) reasoning: hold should only go up via a manual
+		// player click representing an actual Downtime Scene reward, not a free-click Activate grant.
+		// Deliberately NOT wired into this move's own roll dialog -- see configureVariableDiceRoll's
+		// comment in move-dialogs.js.
+		flatHold: 1,
+		suppressActivateButton: true,
+		period: "Sortie",
 		downtimeAbility: "Roll extra dice on Plan & Prepare for each die earned during Downtime Scenes.",
 		description:
 			"<p>When you review orders for the next Sortie, go over scouting reports and maps, or otherwise " +

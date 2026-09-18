@@ -539,8 +539,11 @@ export async function configureMoveRoll(
 // match Division Strength's own documented range (see claude.md/authority-actor-sheet.js) — this
 // module deliberately does not look the value up from an Authority actor automatically (no
 // findAuthorityActors/chooseAuthority cross-actor plumbing exists, unlike Lead a Sortie's CREW/
-// Carrier precedent), so the player types it in for now. Extra Dice (Downtime Scene rewards) has no
-// upper bound: nothing in this module tracks a Downtime-earned-dice pool to cap it against.
+// Carrier precedent), so the player types it in for now. Extra Dice (Downtime Scene rewards) is
+// now tracked separately by the hold stepper on plan-and-prepare (see special-moves.js's flatHold
+// comment), but that stepper is deliberately not read into this field — it's a standalone tracker,
+// not a default-filler, so leaving this field a manually-typed value is intentional, not an
+// oversight to fix later.
 export async function configureVariableDiceRoll(move) {
 	const content = await renderTemplate(VARIABLE_DICE_ROLL_DIALOG_TEMPLATE, {});
 

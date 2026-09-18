@@ -860,6 +860,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.moveHold.plan-and-prepare.value": 0,
 			"system.attributes.bonusDowntimeTokens.astir-part:standardised-parts.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
@@ -891,6 +892,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.moveHold.plan-and-prepare.value": 0,
 			"system.attributes.bonusDowntimeTokens.astir-part:standardised-parts.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
@@ -926,6 +928,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.moveHold.plan-and-prepare.value": 0,
 			"system.attributes.bonusDowntimeTokens.astir-part:standardised-parts.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
@@ -979,7 +982,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 		);
 	});
 
-	it("resets the three flat hold pools to 0 even with nothing else to clear", () => {
+	it("resets the four flat hold pools to 0 even with nothing else to clear", () => {
 		const sheet = new PlaybookActorSheet();
 		sheet.actor = { system: { attributes: {} }, update: vi.fn() };
 
@@ -990,6 +993,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.moveHold.plan-and-prepare.value": 0,
 			"system.attributes.bonusDowntimeTokens.astir-part:standardised-parts.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,
@@ -1028,6 +1032,7 @@ describe("PlaybookActorSheet#_onRefreshSortie", () => {
 			"system.attributes.moveHold.the-scout:improvisation.value": 0,
 			"system.attributes.moveHold.soldier:get-out-of-my-way.value": 0,
 			"system.attributes.moveHold.soldier:once-the-wars-over.value": 0,
+			"system.attributes.moveHold.plan-and-prepare.value": 0,
 			"system.attributes.bonusDowntimeTokens.astir-part:standardised-parts.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-attendant:master-servant.value": 1,
 			"system.attributes.bonusDowntimeTokens.the-captain:information-network.value": 1,

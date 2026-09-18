@@ -108,6 +108,12 @@ describe("SPECIAL_MOVES - plan-and-prepare", () => {
 		const pooled = SPECIAL_MOVES.filter((move) => move.variableDicePool);
 		expect(pooled).toEqual([PLAN_AND_PREPARE]);
 	});
+
+	it("declares a flatHold pool for Downtime-earned extra dice, its own Activate button suppressed, scoped to the Sortie", () => {
+		expect(PLAN_AND_PREPARE.flatHold).toBe(1);
+		expect(PLAN_AND_PREPARE.suppressActivateButton).toBe(true);
+		expect(PLAN_AND_PREPARE.period).toBe("Sortie");
+	});
 });
 
 describe("BASIC_MOVES - bite the dust", () => {
