@@ -42,7 +42,7 @@
 	min-width: 1.5em;
 	text-align: center;
 	font-weight: 700;
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 }
 
 /* Shared by Crew's stepper, the NPC sheet's Tier and Rival Hold steppers (see
@@ -70,7 +70,7 @@
 .armor-astir.sheet .rival-hold-step:hover,
 .armor-astir.sheet .entry-list-counter-step:hover {
 	border-color: var(--aa-primary);
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 }
 
 .armor-astir.sheet .description textarea {
@@ -138,7 +138,7 @@
 .armor-astir.sheet .quarters-owner {
 	font-size: 11px;
 	font-weight: normal;
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 }
 
 .armor-astir.sheet .quarters-description {
@@ -247,7 +247,7 @@
 	font-weight: 700;
 	letter-spacing: 0.04em;
 	text-transform: uppercase;
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 }
 
 .armor-astir.sheet .rival-leverage p,
@@ -256,7 +256,7 @@
 	font-size: 12px;
 	font-style: italic;
 	line-height: 1.5;
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 }
 
 .armor-astir.sheet .rival-leverage ul {

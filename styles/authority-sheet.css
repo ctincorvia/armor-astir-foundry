@@ -46,7 +46,7 @@
 
 .armor-astir.sheet .stability-value {
 	font-weight: 700;
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 }
 
 /* Divisions are always exactly three fixed slots (see authority-actor-sheet.js), laid out side by
@@ -123,14 +123,14 @@
 /* Scoped to .window-content, not just .armor-astir.sheet, because Foundry core's own window chrome
    renders the app title as <h4 class="window-title"> inside .window-header (a sibling of
    .window-content, outside it) — an unscoped rule here would also paint that title
-   --aa-primary-dark instead of the white tokens.css's .window-header rule sets, since a rule
+   --aa-primary-strong instead of the white tokens.css's .window-header rule sets, since a rule
    directly targeting an element always wins over an inherited color regardless of specificity. */
 .armor-astir.sheet .window-content h4 {
 	font-size: 11px;
 	font-weight: 700;
 	letter-spacing: 0.05em;
 	text-transform: uppercase;
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 }
 
 /* A quiet resting surface for the catalog's read-only outcome text (see division-kinds.js) — tight

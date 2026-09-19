@@ -13,7 +13,7 @@
    share this one rule rather than repeating accent-color per class. Dialog/picker checkboxes get
    the same treatment in dialogs.css. */
 .armor-astir.sheet input[type="checkbox"] {
-	accent-color: var(--aa-secondary-dark);
+	accent-color: var(--aa-secondary-strong);
 }
 
 /* Text/number inputs, selects and textareas otherwise fall back to the browser's bare default
@@ -29,7 +29,7 @@
 	box-sizing: border-box;
 	border: var(--aa-border);
 	border-radius: var(--aa-radius);
-	background: #fff;
+	background: var(--aa-field-bg);
 	padding: var(--aa-space-1) var(--aa-space-2);
 }
 
@@ -49,7 +49,7 @@
 	font-weight: 700;
 	letter-spacing: 0.08em;
 	text-transform: uppercase;
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 }
 
 .armor-astir.sheet h3:first-child {
@@ -142,7 +142,7 @@
 	line-height: 1;
 	font-weight: 700;
 	font-size: 12px;
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 	white-space: nowrap;
 }
 
@@ -166,7 +166,7 @@
 .armor-astir.sheet .sheet-header .approach-effective-note {
 	font-weight: 700;
 	font-size: 12px;
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 	white-space: nowrap;
 }
 
@@ -442,14 +442,14 @@
 	min-width: 1.5em;
 	text-align: center;
 	font-weight: 700;
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 }
 
 /* The derived half of a trait's value (Arcane Augments, Let Loose — see trait-bonuses.js),
-   e.g. "2+1". Deliberately the base primary rather than .trait-value's own --aa-primary-dark, so
+   e.g. "2+1". Deliberately the base primary rather than .trait-value's own --aa-primary-strong, so
    the bonus reads as visibly distinct from the number the player actually edits with the
    steppers, while staying in the same role family. Amethyst at full strength is ~8.7:1 on the
-   panel background, well clear of the 4.5:1 floor, so no -dark variant is needed here (see
+   panel background, well clear of the 4.5:1 floor, so no -strong variant is needed here (see
    claude.md's contrast note). Nested inside .trait-value rather than a sibling, so it inherits
    the bold weight and the disabled-trait dimming (.trait.disabled .trait-value) for free. */
 .armor-astir.sheet .trait-bonus {
@@ -459,7 +459,7 @@
 /* The summoned ally's own alternate trait value (Summoner's Eidolon Drive), not a
    stacking bonus like .trait-bonus above — it replaces which trait/value the player would
    roll, it does not add to this one — so it's parenthesized instead of prefixed with a "+".
-   Same token, same reasoning: amethyst at full strength is already ~8.7:1, no -dark needed. */
+   Same token, same reasoning: amethyst at full strength is already ~8.7:1, no -strong needed. */
 .armor-astir.sheet .trait-ally-bonus {
 	color: var(--aa-primary);
 }
@@ -523,7 +523,7 @@
 .armor-astir.sheet .equipment-tier-step:hover,
 .armor-astir.sheet .move-tracker-step:hover {
 	border-color: var(--aa-primary);
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 }
 
 /* Floor only — core Foundry's resize-drag reads this via getComputedStyle to clamp how far the

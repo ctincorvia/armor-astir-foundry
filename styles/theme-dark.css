@@ -1,0 +1,213 @@
+/* Dark-theme overrides for surfaces this module does not own — pbta's and core Foundry's own
+   elements, where flipping a --aa-* token in tokens.css cannot reach.
+
+   Everything in tokens.css's dark block is a *value* swap, so the rest of this module's CSS
+   follows the theme for free. This file is the exception list: rules that exist only to win a
+   specificity fight against a stylesheet that has no theme awareness of its own. Keeping them
+   here rather than scattered through the other files makes "what did we have to fight?" a single
+   readable list — and a single place to fix if pbta ever changes these selectors.
+
+   Must stay LAST in module.json's styles array (tokens.css stays first).
+
+   Specificity is load-bearing in every rule below; each one records the number it has to beat.
+   Note that core's own competing rules live in @layer compatibility, and unlayered CSS (all of
+   this module's) beats every layered rule regardless of specificity — so only pbta's unlayered
+   rules actually need out-specifying here. */
+
+/* ---- Window frame and header ------------------------------------------------------------- */
+
+/* tokens.css fills the frame and header with --aa-primary-strong, which is amethyst-dark in light
+   mode. Under the dark theme that token resolves to a *light* moonstone, and a light title bar on
+   every window is the one thing a dark UI should not have — it's by far the largest filled surface
+   this module paints, and the only one big enough for high luminance to actually hurt. Every other
+   primary fill (buttons, chips, tooltips) stays bright, because those are small.
+
+   So the header goes dark and keeps its identity through a moonstone title and bottom rule
+   instead. Beats tokens.css's own (0,2,0) rules on specificity, not source order. */
+body.theme-dark .window-app.armor-astir {
+	border-color: var(--aa-primary);
+	background: var(--aa-surface-raised);
+}
+
+body.theme-dark .window-app.armor-astir .window-header {
+	background: var(--aa-surface-raised);
+	color: var(--aa-primary-strong);
+	border-bottom-color: var(--aa-primary);
+}
+
+body.theme-dark .window-app.armor-astir .window-header a,
+body.theme-dark .window-app.armor-astir .window-header .header-button {
+	color: var(--aa-ink-muted);
+}
+
+/* ---- The page itself --------------------------------------------------------------------- */
+
+/* pbta paints every ApplicationV1 window body white plus its concrete-seamless.webp texture:
+   `.vtt :not(.application,…) .window-content` at (0,3,0). This is the rule responsible for the
+   white slab, and the reason nothing in this module had a background token to flip — it was
+   always inherited, never set. (0,3,1) beats it.
+
+   The colour is also the first time this module sets body text at all: light mode deliberately
+   leaves that inheriting from pbta so the token refactor cannot regress it, which means dark mode
+   has to state it explicitly or the text stays near-black on near-black. */
+body.theme-dark .armor-astir .window-content {
+	background-color: var(--aa-surface);
+	background-image: var(--aa-surface-texture);
+	color: var(--aa-ink);
+}
+
+/* Headings need stating separately from the inherited colour above: core declares
+   `h1..h4 { color: var(--color-text-emphatic | --color-text-primary) }` directly on the elements,
+   and a direct declaration beats an inherited value however specific the ancestor's rule is.
+   Those tokens resolve *light-theme* inside our windows because of the forced theme-light noted
+   at the top of this file, so every heading we don't colour ourselves would be dark-on-dark.
+   Most sheet h3s already set an accent colour; the gap is dialogs (never `.sheet`, so
+   sheet-chrome.css's h3 rule misses them) and the handful of unstyled h4s.
+
+   `body:where(.theme-dark)` rather than `body.theme-dark` deliberately: :where() contributes no
+   specificity, landing this at (0,1,2) so it beats core's bare `h3` (0,0,1) while still losing to
+   every existing `.armor-astir.<root> h3` accent rule (0,2,1)+. This is a floor, not an override. */
+body:where(.theme-dark) .armor-astir :is(h1, h2, h3, h4) {
+	color: var(--aa-ink);
+}
+
+/* Enriched content links carry their own core --content-link-* palette, light-resolved for the
+   same reason. */
+body.theme-dark .armor-astir .content-link {
+	background: var(--aa-primary-tint);
+	border-color: var(--aa-line);
+	color: var(--aa-primary-strong);
+}
+
+/* ---- Form controls ------------------------------------------------------------------------ */
+
+/* pbta's `.vtt .window-app input,button,select,textarea { background: #fff }` is (0,2,1) — higher
+   than this module's own `.armor-astir textarea` (0,1,1) in dialogs.css, which has simply been
+   losing to it all along. Invisible while both were white; in dark mode it would leave every
+   dialog field a white box. (0,3,2) settles it for good.
+
+   color is set alongside background because pbta only ever sets the background, leaving the text
+   to core's forced light theme. */
+body.theme-dark .window-app.armor-astir :is(input, select, textarea) {
+	background: var(--aa-field-bg);
+	color: var(--aa-ink);
+}
+
+body.theme-dark .window-app.armor-astir :is(input, select, textarea)::placeholder {
+	color: var(--aa-ink-muted);
+}
+
+/* Foundry authors the open <select> popup's rows explicitly (see tokens.css's note on
+   --color-select-option-bg), so the closed box and the open list have to be set separately. */
+body.theme-dark .window-app.armor-astir option,
+body.theme-dark .window-app.armor-astir optgroup {
+	background: var(--aa-field-bg);
+	color: var(--aa-ink);
+}
+
+/* pbta hovers every button to #bcc8de, a pale blue that would carry this module's ink colour
+   straight into light-on-light. It only actually shows on buttons that don't set their own
+   background, but "doesn't set its own background" isn't expressible in CSS — so this is pitched
+   by specificity instead: at (0,3,2) it beats pbta's `.vtt .window-app button:hover` (0,3,1)
+   while losing to every one of this module's own button rules, which are all
+   `.armor-astir.<root> .<button>:hover` (0,4,0). Adding another class here — .window-app, or a
+   :not(:disabled) — would push it to (0,4,2) and start overriding styled buttons' hovers
+   instead, which is the opposite of the intent. */
+body.theme-dark .armor-astir button:hover {
+	background-color: var(--aa-primary-tint);
+	color: var(--aa-ink);
+}
+
+/* ---- Rich text editors --------------------------------------------------------------------- */
+
+/* The Cosmetic tab's four ProseMirror editors (Look / Consider / Backstory / Notes) are rendered
+   by core, not by this module. Core leaves .editor-content's own background transparent, so the
+   text area itself already follows .window-content above — what it does NOT do is give the editor
+   any edge, which on a dark page leaves the four boxes indistinguishable from the panel behind
+   them. Giving them the same sunken field treatment every other input on the sheet gets is both
+   the fix and the consistent choice.
+
+   Class names are the v13+ shapes (.prosemirror wrapper, `prose-mirror` custom element, `menu`
+   toolbar) — verified against the installed client's foundry2.css rather than assumed. The
+   toolbar is a bare <menu> element, not a class. */
+body.theme-dark .armor-astir :is(.editor, .prosemirror, prose-mirror) {
+	background: var(--aa-field-bg);
+	color: var(--aa-ink);
+	border: var(--aa-border);
+	border-radius: var(--aa-radius);
+}
+
+body.theme-dark .armor-astir :is(.prosemirror, prose-mirror) menu {
+	background: var(--aa-surface-raised);
+	color: var(--aa-ink);
+	border-bottom: var(--aa-border);
+}
+
+body.theme-dark .armor-astir :is(.prosemirror, prose-mirror) menu button {
+	color: var(--aa-ink);
+}
+
+/* The "edit" pencil overlay on a read-only editor sits directly on the page, not on the toolbar. */
+body.theme-dark .armor-astir .editor .editor-edit {
+	color: var(--aa-ink);
+}
+
+/* ---- Chat ---------------------------------------------------------------------------------- */
+
+/* pbta paints every chat message white + textured via `.vtt #chat .message` at (1,2,0). Beating
+   an ID needs an ID, so #chat has to appear in the selector — but NOT carrying .theme-dark
+   itself. Which element core stamps is the subtlety: Game#configureUI unconditionally themes
+   `#interface`, and only *conditionally* walks the sidebar-tab instances, so `.themed.theme-dark`
+   is reliably an ANCESTOR of #chat rather than being on it. Requiring it on #chat is exactly what
+   made an earlier version of this rule silently never match, leaving white cards carrying the
+   light text set below. The second selector covers the case where #chat is themed directly too,
+   so this holds whichever way core resolves it. Both land at (1,4,0).
+
+   Scoped by :has() to this module's own cards only — every other module's and system's chat
+   messages are none of our business. :has()/:is() take their highest argument's specificity, so
+   folding both card roots into one :is() costs nothing.
+
+   Deliberately not listing .chat-popout: core hardcodes it to theme-light (chat-popout.mjs), so
+   a popped-out log stays light — core's call, not ours. */
+.themed.theme-dark :is(#chat, #chat-notifications) .message:has(:is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat)),
+:is(#chat, #chat-notifications).themed.theme-dark .message:has(:is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat)) {
+	background-color: var(--aa-surface);
+	background-image: var(--aa-surface-texture);
+	color: var(--aa-ink);
+	border-color: var(--aa-line);
+}
+
+/* Core pins the chat log itself to theme-light in its own template
+   (`<ol class="chat-log plain themed theme-light">`), so the semantic --color-text-* tokens
+   resolve light inside every message even when the sidebar around it is dark. The card's own
+   text is stated explicitly for that reason — it cannot inherit its way to the right colour. */
+.themed.theme-dark :is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat) {
+	color: var(--aa-ink);
+}
+
+/* Headings can't ride on the inherited colour above: core declares `h1..h4 { color:
+   var(--color-text-emphatic | --color-text-primary) }` directly on the elements
+   (public/css/foundry2.css), and a direct declaration always beats an inherited value no matter
+   how specific the ancestor's rule is. Inside the theme-light-pinned chat log those tokens
+   resolve dark, which is what left the card title near-black while its body text went light. */
+.themed.theme-dark :is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat) :is(h1, h2, h3, h4) {
+	color: var(--aa-ink);
+}
+
+/* The card title keeps the accent treatment section headers get on the sheet, so a card still
+   reads as this module's rather than as generic chat text. */
+.themed.theme-dark .armor-astir-move-chat .move-name,
+.themed.theme-dark .armor-astir-downtime-scene-chat .downtime-scene-chat-name {
+	color: var(--aa-primary-strong);
+}
+
+/* Enriched content links (@UUID references) carry their own core --content-link-* palette, which
+   resolves light-theme inside the pinned log for the same reason as the headings. */
+.themed.theme-dark :is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat) :is(a, .content-link) {
+	color: var(--aa-primary-strong);
+}
+
+.themed.theme-dark :is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat) .content-link {
+	background: var(--aa-primary-tint);
+	border-color: var(--aa-line);
+}

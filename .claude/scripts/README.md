@@ -26,6 +26,16 @@ alias notes), since that's the interpreter that actually resolves on this machin
   matches zero times, rather than continuing on a silent no-op. Run with `--help` or `-h`, or read
   its own docstring, for full usage.
 
+- **`check_css_tokens.py`** — verify every `var(--aa-*)` referenced anywhere in `styles/` is
+  actually declared in `styles/tokens.css`. Run it after any token work (adding a token, renaming
+  one, splitting a stylesheet). This guards the one CSS mistake nothing else in the repo can
+  catch: a misspelled custom property fails *invalid at computed-value time*, which means it
+  doesn't error, doesn't warn, and isn't even struck through in devtools — it silently computes to
+  the property's initial value, so a typo'd background renders transparent and a typo'd color
+  renders black, both of which look like a layout bug rather than a typo. ESLint only runs on
+  `.js` and `lint-staged`'s glob is `*.{js,cjs,mjs}`, so `styles/` is otherwise entirely
+  unchecked. Run with `--help`, or `--list` for the full declared-token inventory.
+
 ## Convention
 
 When a scripting need recurs (not a true one-off), add a script here rather than writing a fresh

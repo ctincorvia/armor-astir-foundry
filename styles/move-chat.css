@@ -38,11 +38,11 @@
 }
 
 .armor-astir-move-chat .move-tier-success {
-	color: #18520b;
+	color: var(--aa-status-success);
 }
 
 .armor-astir-move-chat .move-tier-mixed {
-	color: #8a6d00;
+	color: var(--aa-status-mixed);
 }
 
 .armor-astir-move-chat .move-tier-failure {
@@ -54,9 +54,9 @@
    spacing is enough to read as "upgraded" without a whole second color needing its own contrast
    check. */
 .armor-astir-move-chat .move-tier-critical {
-	color: #8a6300;
+	color: var(--aa-status-critical);
 	letter-spacing: 0.03em;
-	text-shadow: 0 0 6px rgba(255, 191, 0, 0.35);
+	text-shadow: 0 0 6px var(--aa-status-critical-glow);
 }
 
 .armor-astir-move-chat .move-result-text {
@@ -86,7 +86,7 @@
 
 .armor-astir-move-chat .move-hold-count {
 	font-weight: bold;
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 }
 
 .armor-astir-move-chat .move-hold-prompt {
@@ -131,7 +131,7 @@
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
 	background: var(--aa-primary);
-	color: #fff;
+	color: var(--aa-on-primary);
 	font-weight: 700;
 	cursor: pointer;
 }
@@ -162,9 +162,9 @@
 .armor-astir-move-chat .move-downgrade {
 	margin-top: var(--aa-space-1);
 	padding: var(--aa-space-1) var(--aa-space-2);
-	border: 1px solid var(--aa-secondary-dark);
+	border: 1px solid var(--aa-secondary-strong);
 	border-radius: var(--aa-radius);
-	background: var(--aa-secondary-dark);
+	background: var(--aa-secondary-strong);
 	color: var(--aa-secondary-tint);
 	font-weight: 700;
 	cursor: pointer;
@@ -190,10 +190,10 @@
 .armor-astir-move-chat .move-add-advantage:hover,
 .armor-astir-move-chat .move-add-disadvantage:hover,
 .armor-astir-move-chat .move-roll-bonus:hover {
-	background: var(--aa-primary-dark);
+	background: var(--aa-primary-strong);
 }
 
-/* Same tint/-dark swap as the sheet's own solid disabled buttons (see .move-roll.disabled) —
+/* Same tint/-strong swap as the sheet's own solid disabled buttons (see .move-roll.disabled) —
    opacity alone faded the primary fill and white text to unreadable gray-on-gray. */
 .armor-astir-move-chat .move-reroll:disabled,
 .armor-astir-move-chat .move-automatic-success:disabled,
@@ -203,7 +203,7 @@
 .armor-astir-move-chat .move-roll-bonus:disabled {
 	background: var(--aa-primary-tint);
 	border-color: var(--aa-primary-tint);
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 	opacity: 1;
 	cursor: not-allowed;
 }
@@ -221,12 +221,12 @@
 	border-radius: var(--aa-radius);
 	font-size: 11px;
 	font-weight: bold;
-	color: #fff;
+	color: var(--aa-on-status);
 }
 
 .armor-astir-move-chat .move-condition-advantage,
 .armor-astir-move-chat .move-condition-advantage2 {
-	background: #18520b;
+	background: var(--aa-status-success);
 }
 
 .armor-astir-move-chat .move-condition-disadvantage,
@@ -234,30 +234,30 @@
 	background: var(--aa-danger);
 }
 
-/* -dark, not the base: these chips carry white text, and the secondary gem at full strength is
+/* -strong, not the base: these chips carry on-ink, and the secondary gem at full strength is
    too pale to sit under it (see the role-token note at the top of this file). */
 .armor-astir-move-chat .move-condition-confidence,
 .armor-astir-move-chat .move-condition-desperation {
-	background: var(--aa-secondary-dark);
+	background: var(--aa-secondary-strong);
 }
 
 .armor-astir-move-chat .move-condition-downtime,
 .armor-astir-move-chat .move-condition-prior-help,
 .armor-astir-move-chat .move-condition-hook {
-	background: #6b5b1e;
+	background: var(--aa-status-olive);
 }
 
 /* One rule per equipment tag key, same as the Help or Hinder conditions above — a future tag
    added to EQUIPMENT_TAGS (equipment.js) without its own rule here still renders, just without a
    background color. */
 .armor-astir-move-chat .move-condition-blitz {
-	background: #1e6b5b;
+	background: var(--aa-status-blitz);
 }
 
 /* Narrative (no codified mechanic) weapon tags — see PlaybookActorSheet#_narrativeWeaponTags.
    Deliberately not the bold white-on-solid-color .move-condition treatment above: these are
    descriptive info about the weapon, not "why the total is what it is", so they get a muted
-   tint/-dark outline instead, matching the equipment-tag-label convention used everywhere else
+   tint/-strong outline instead, matching the equipment-tag-label convention used everywhere else
    this shape of data appears (see sheet-tabs.css). */
 .armor-astir-move-chat .move-narrative-tags {
 	display: flex;
@@ -267,12 +267,12 @@
 	margin-top: var(--aa-space-1);
 }
 
-/* A solid -dark fill, not the tint: .dice-formula/.dice-total below hit the same problem first --
+/* A solid -strong fill, not the tint: .dice-formula/.dice-total below hit the same problem first --
    --aa-secondary-tint is nearly white, and Foundry's own chat card background is a pale parchment
    texture (see public/css/style.css's .chat-message), so a tint-only fill reads as no fill at all
    against it, even with a border added (confirmed live in-client). Text is tint-colored rather
    than white specifically to stay visually distinct from .move-condition-confidence/-desperation
-   immediately below (also a solid -dark fill, but with white text) -- these are still descriptive
+   immediately below (also a solid -strong fill, but with on-ink) -- these are still descriptive
    info about the weapon, not "why the total is what it is", so the two chip families shouldn't
    read as identical just because both now need a dark fill to be visible. position: relative
    anchors the hover tooltip below. */
@@ -282,7 +282,7 @@
 	border-radius: var(--aa-radius);
 	font-size: 11px;
 	font-weight: bold;
-	background: var(--aa-secondary-dark);
+	background: var(--aa-secondary-strong);
 	color: var(--aa-secondary-tint);
 }
 
@@ -301,14 +301,14 @@
 	width: max-content;
 	max-width: 200px;
 	padding: var(--aa-space-1) var(--aa-space-2);
-	background: var(--aa-primary-dark);
-	color: #fff;
+	background: var(--aa-primary-strong);
+	color: var(--aa-on-primary);
 	font-size: 11px;
 	font-weight: 500;
 	line-height: 1.3;
 	text-align: center;
 	border-radius: var(--aa-radius);
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+	box-shadow: 0 2px 6px var(--aa-shadow);
 	z-index: 100;
 	pointer-events: none;
 	white-space: normal;
@@ -342,11 +342,11 @@
 }
 
 .armor-astir-move-chat .move-die-changed {
-	border-color: var(--aa-secondary-dark);
+	border-color: var(--aa-secondary-strong);
 }
 
 .armor-astir-move-chat .move-die-success {
-	border-color: var(--aa-secondary-dark);
+	border-color: var(--aa-secondary-strong);
 }
 
 .armor-astir-move-chat .move-die-original {
@@ -356,10 +356,10 @@
 }
 
 /* Number Of The Beast's exploded dice (see moves.js#explodeSixes) — same .move-die look as the
-   normal dice list, just marked out with the secondary-dark border every changed die already gets,
+   normal dice list, just marked out with the secondary-strong border every changed die already gets,
    so a run of exploded 6's reads as visually distinct from the roll's own kept/dropped dice. */
 .armor-astir-move-chat .move-die-exploded {
-	border-color: var(--aa-secondary-dark);
+	border-color: var(--aa-secondary-strong);
 }
 
 /* Foundry's own dice-roll box (see the .armor-astir-move-chat comment above) ships default gray
@@ -376,15 +376,15 @@ li.chat-message:has(.armor-astir-move-chat) .dice-formula {
 	border: var(--aa-border);
 	border-radius: var(--aa-radius);
 	background: var(--aa-secondary-tint);
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 	font-weight: 700;
 }
 
 li.chat-message:has(.armor-astir-move-chat) .dice-total {
-	border: 1px solid var(--aa-secondary-dark);
+	border: 1px solid var(--aa-secondary-strong);
 	border-radius: var(--aa-radius);
 	background: var(--aa-secondary-tint);
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 	padding: 2px 0;
 }
 
@@ -399,7 +399,7 @@ li.chat-message:has(.armor-astir-move-chat) .dice-tooltip .tooltip-part {
 
 li.chat-message:has(.armor-astir-move-chat) .dice-tooltip .part-total {
 	font-weight: bold;
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 }
 
 /* Number Of The Beast's "killed in a spectacular fashion" badge — deliberately unmissable, the
@@ -411,7 +411,7 @@ li.chat-message:has(.armor-astir-move-chat) .dice-tooltip .part-total {
 	padding: var(--aa-space-1) var(--aa-space-2);
 	border-radius: var(--aa-radius);
 	background: var(--aa-danger);
-	color: #fff;
+	color: var(--aa-on-danger);
 	font-weight: 700;
 }
 

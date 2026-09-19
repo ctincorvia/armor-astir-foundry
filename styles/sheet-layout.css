@@ -95,7 +95,7 @@
 }
 
 .armor-astir.sheet .danger-risk {
-	border-left-color: var(--color-border-light-tertiary, #c9c7b8);
+	border-left-color: var(--aa-line);
 }
 
 .armor-astir.sheet .danger-risk .danger-label {
@@ -109,7 +109,7 @@
    active right now), not chrome. Since Eidolon Drive's redundant uses checkbox was removed, this
    is now the only on-sheet indicator of who's summoned, so it has to read clearly at a glance. */
 .armor-astir.sheet .entry-list-item.summoned {
-	border-left: 3px solid var(--aa-secondary-dark);
+	border-left: 3px solid var(--aa-secondary-strong);
 	background: var(--aa-secondary-tint);
 }
 
@@ -230,7 +230,7 @@
 	font-size: 12px;
 	font-style: italic;
 	line-height: 1.5;
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 }
 
 /* The Witch-only Patron section (Social tab, gated on isWitch) — Influence reuses the existing
@@ -253,7 +253,7 @@
 /* Secondary role token, same "this is the player's own tracked state" marking the equipment tag
    label and Gravity Clock pips already use — a held Boon is highlighted the same way. */
 .armor-astir.sheet .patron-boon-item.held .patron-boon-name {
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 }
 
 .armor-astir.sheet .patron-boon-description {
@@ -288,7 +288,7 @@
 .armor-astir.sheet .ritual-slot-spent-tag {
 	margin-left: var(--aa-space-1);
 	font-size: 11px;
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 }
 
 .armor-astir.sheet .ritual-slot-empty-tag {
@@ -466,7 +466,8 @@
 	position: sticky;
 	top: 0;
 	z-index: 1;
-	background: #fff url("/systems/pbta/assets/concrete-seamless.webp");
+	background-color: var(--aa-surface);
+	background-image: var(--aa-surface-texture);
 	justify-content: flex-start;
 	gap: var(--aa-space-3);
 }
@@ -495,17 +496,17 @@
 	font-size: 12px;
 	letter-spacing: 0.03em;
 	text-transform: uppercase;
-	color: var(--color-text-dark-secondary, #666);
+	color: var(--aa-ink-muted);
 	cursor: pointer;
 }
 
 .armor-astir.sheet .sheet-tabs .item:hover {
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 }
 
 .armor-astir.sheet .sheet-tabs .item.active {
 	border-bottom-color: var(--aa-primary);
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 }
 
 /* Core/Approach/Tier sit in one row on the Astir tab's identity section — each select keeps its

@@ -18,7 +18,9 @@
    unstruck-through in devtools yet visibly does nothing. */
 .armor-astir,
 .armor-astir-move-chat,
-li.chat-message:has(.armor-astir-move-chat) {
+.armor-astir-downtime-scene-chat,
+li.chat-message:has(.armor-astir-move-chat),
+li.chat-message:has(.armor-astir-downtime-scene-chat) {
 	/* Palette — the two gems, named for what they are. Nothing styles against these directly. */
 	--aa-moonstone: #7fa8b8;
 	--aa-moonstone-dark: #4a6e7c;
@@ -29,26 +31,85 @@ li.chat-message:has(.armor-astir-move-chat) {
 	--aa-danger: #8b1a1a;
 	--aa-danger-tint: #f7e8e8;
 
+	/* Dark-theme members of the same three families. A gem's light-mode and dark-mode members are
+	   not interchangeable: #603272 is 9.6:1 on white but 1.7:1 on a dark panel, so each family
+	   needs its own pair rather than one shade reused. Declared here, in the palette, so the role
+	   mapping in the dark block below stays a list of aliases — same discipline as light mode. */
+	--aa-moonstone-light: #9fc4d2;
+	--aa-amethyst-light: #b48ac9;
+	--aa-amethyst-lighter: #c9aede;
+	--aa-danger-light: #e57878;
+	--aa-moonstone-wash: #223039;
+	--aa-amethyst-wash: #2b2233;
+	--aa-danger-wash: #2f2022;
+
+	/* Neutrals — the surface/ink layer. These exist so the dark theme has something to flip:
+	   without them every background was either a literal #fff or (far more often) inherited from
+	   pbta, which paints .window-content white and has no theme awareness of its own.
+
+	   Three distinct surfaces, because they diverge in dark mode even though all three are white
+	   here: -surface is the page itself, -raised is a panel sitting on it, -field is a form
+	   control (which reads as *sunken* once the page stops being the lightest thing on screen). */
+	--aa-surface: #fff;
+	--aa-surface-raised: #fff;
+	--aa-field-bg: #fff;
+	--aa-surface-texture: url("/systems/pbta/assets/concrete-seamless.webp");
+	/* --aa-ink is deliberately never applied in light mode — body text is left inheriting from
+	   pbta exactly as it always has, so this refactor can't regress it. It exists so the dark
+	   block has a value to flip, and is applied only by theme-dark.css's dark-scoped rules. */
+	--aa-ink: #191813;
+	--aa-ink-muted: var(--color-text-dark-secondary, #666);
+	--aa-line: var(--color-border-light-tertiary, #c9c7b8);
+	--aa-shadow: rgba(0, 0, 0, 0.35);
+
+	/* Chat-card result tiers and condition chips. Light-mode values are deep enough to read as
+	   text on white; every one of them inverts in dark mode (#18520b is 1.5:1 on a dark panel). */
+	--aa-status-success: #18520b;
+	--aa-status-mixed: #8a6d00;
+	--aa-status-critical: #8a6300;
+	--aa-status-critical-glow: rgba(255, 191, 0, 0.35);
+	--aa-status-olive: #6b5b1e;
+	--aa-status-blitz: #1e6b5b;
+
 	/* Roles — every rule below styles against these, never against a gem name directly, so
 	   swapping which gem plays which role is a two-line change here instead of ~40 scattered
 	   edits. Primary = chrome the player acts on (headers, tabs, buttons); secondary = the
 	   player's own tracked state (pips, value readouts, tag labels).
 
-	   Note the -dark variants aren't just "darker": moonstone at full strength (#7fa8b8) is far
-	   too pale to sit under white text (~2.4:1, under the 4.5:1 floor), so any surface that fills
-	   with a color AND carries white text must use a -dark variant, never the base. */
+	   The -strong variants are the high-contrast member of each family, NOT simply a darker shade
+	   — they were called -dark until the dark theme landed, at which point the name became a lie:
+	   under it they resolve to a *lighter* colour than the base. Whichever direction it points,
+	   -strong is what any surface that fills with a colour must use, never the base (moonstone at
+	   full strength is ~2.4:1 under white, well under the 4.5:1 floor). */
 	--aa-primary: var(--aa-amethyst);
-	--aa-primary-dark: var(--aa-amethyst-dark);
+	--aa-primary-strong: var(--aa-amethyst-dark);
 	--aa-primary-tint: var(--aa-amethyst-tint);
 	--aa-secondary: var(--aa-moonstone);
-	--aa-secondary-dark: var(--aa-moonstone-dark);
+	--aa-secondary-strong: var(--aa-moonstone-dark);
 	--aa-secondary-tint: var(--aa-moonstone-tint);
+
+	/* Ink that sits ON a filled -strong surface — white here, near-black under the dark theme,
+	   where the fills themselves become light. Always pair a `background: var(--aa-*-strong)`
+	   with the matching `color: var(--aa-on-*)`; never with a literal #fff.
+
+	   That pairing is the whole reason one -strong token can serve both "accent text on the page"
+	   and "fill under text" in both themes. 52 of the 85 -strong uses in this codebase are text
+	   rather than fills, and the two invert in opposite directions: text on a dark page needs a
+	   *lighter* accent, while a fill needs a lighter accent with *darker* ink. Decoupling the ink
+	   is what lets a single value satisfy both. */
+	--aa-on-primary: #fff;
+	--aa-on-secondary: #fff;
+	--aa-on-danger: #fff;
+	/* .move-condition chips share one `color` rule across fills that range from --aa-danger to
+	   the status greens/olives, so they need one ink that clears every fill at once rather than
+	   a per-fill pairing. Worst case in dark mode is --aa-danger at 5.77:1. */
+	--aa-on-status: #fff;
 	--aa-space-1: 4px;
 	--aa-space-2: 8px;
 	--aa-space-3: 12px;
 	--aa-space-4: 16px;
 	--aa-radius: 4px;
-	--aa-border: 1px solid var(--color-border-light-tertiary, #c9c7b8);
+	--aa-border: 1px solid var(--aa-line);
 
 	/* Foundry v13+'s core CSS explicitly authors the open <select> popup's rows — not a native
 	   default, so color-scheme can't touch it: `body.game .app option, body.game .app optgroup
@@ -57,6 +118,78 @@ li.chat-message:has(.armor-astir-move-chat) {
 	   keeps the open list the same white as pbta's own closed select box. No-op on v12, where core
 	   never declares this variable and the rule that reads it doesn't exist yet. */
 	--color-select-option-bg: white;
+}
+
+/* ---- Dark theme -------------------------------------------------------------------------- */
+
+/* Foundry stamps the colour scheme as classes in JS (Game#configureUI), never as a
+   prefers-color-scheme media query — it resolves "Browser Default" itself and writes a real
+   class. So match the classes; a media query here would fire even when the player explicitly
+   picked the opposite theme.
+
+   Two settings, two selectors, and the difference between them is the "themed" class:
+     core.uiConfig colorScheme.applications -> bare "theme-dark" on <body>   (sheets + dialogs)
+     core.uiConfig colorScheme.interface    -> "themed theme-dark" on #interface (chat)
+   Both default to "dark" on v14, which is why this module read light-on-dark out of the box.
+   Keeping them apart means a player running dark chrome with light sheets (or the reverse) gets
+   both halves right instead of one following the other.
+
+   Nothing here matches on v12, which has no colour-scheme setting and never stamps these
+   classes — v12 keeps the light block above verbatim.
+
+   Note we cannot inherit core's own dark --color-* variables: ApplicationV1 (what every sheet and
+   dialog in this module is) is force-fed "themed theme-light" by core's own constructor
+   (appv1/api/application-v1.mjs, "Force .theme-light for legacy ApplicationV1 instances"), so
+   core's *light* variable block applies inside our windows even under a dark body. Everything
+   below is therefore an absolute value, not a reference to a core token. */
+body.theme-dark .armor-astir,
+.themed.theme-dark .armor-astir-move-chat,
+.themed.theme-dark .armor-astir-downtime-scene-chat,
+.themed.theme-dark li.chat-message:has(.armor-astir-move-chat),
+.themed.theme-dark li.chat-message:has(.armor-astir-downtime-scene-chat) {
+	/* Neutrals. -field is darker than -surface here, inverting light mode's relationship: an
+	   input reads as sunken once the page stops being the lightest thing on screen. */
+	--aa-surface: #1e2126;
+	--aa-surface-raised: #262a31;
+	--aa-field-bg: #171a1e;
+	/* pbta's concrete texture is a light stone weave — it reads as grey noise over a dark fill. */
+	--aa-surface-texture: none;
+	--aa-ink: #e8eaed;
+	--aa-ink-muted: #b8bcc4;
+	--aa-line: #4b515c;
+	--aa-shadow: rgba(0, 0, 0, 0.6);
+
+	/* The role swap. Amethyst carries this module's identity in light mode but collapses to
+	   1.7:1 against a dark panel, so moonstone takes primary here and amethyst moves to
+	   secondary in its lightened form. Six alias lines, exactly as the light block intends. */
+	--aa-primary: var(--aa-moonstone);
+	--aa-primary-strong: var(--aa-moonstone-light);
+	--aa-primary-tint: var(--aa-moonstone-wash);
+	--aa-secondary: var(--aa-amethyst-light);
+	--aa-secondary-strong: var(--aa-amethyst-lighter);
+	--aa-secondary-tint: var(--aa-amethyst-wash);
+	--aa-danger: var(--aa-danger-light);
+	--aa-danger-tint: var(--aa-danger-wash);
+
+	/* The inversion the -strong tokens depend on: those fills are now light, so their ink goes
+	   near-black. Without this every filled button and chip would be light-on-light. */
+	--aa-on-primary: #10151a;
+	--aa-on-secondary: #14101a;
+	--aa-on-danger: #1a1010;
+	--aa-on-status: #14120f;
+
+	--aa-status-success: #7fd06a;
+	--aa-status-mixed: #e0b83c;
+	--aa-status-critical: #e8c24a;
+	--aa-status-critical-glow: rgba(255, 191, 0, 0.25);
+	--aa-status-olive: #c9b86a;
+	--aa-status-blitz: #5fc9b4;
+
+	/* The light block pins this to white to stop v13+ painting the open <select> list dark
+	   against pbta's white closed box. Under the dark theme that fight is over — the list should
+	   be dark, and color-scheme gets the native scrollbars and spinners to follow too. */
+	--color-select-option-bg: var(--aa-surface-raised);
+	color-scheme: dark;
 }
 
 /* pbta's own global SCSS themes every Foundry window (sheet or Dialog) navy, with nothing scoping
@@ -69,17 +202,17 @@ li.chat-message:has(.armor-astir-move-chat) {
    around .window-header that .window-header's own background can't reach — without this, that inset
    shows pbta's raw navy peeking out above/below the header on v13+. */
 .window-app.armor-astir {
-	border-color: var(--aa-primary-dark);
-	background: var(--aa-primary-dark);
+	border-color: var(--aa-primary-strong);
+	background: var(--aa-primary-strong);
 }
 
 .window-app.armor-astir .window-header {
-	background: var(--aa-primary-dark);
-	color: white;
-	border-bottom-color: var(--aa-primary-dark);
+	background: var(--aa-primary-strong);
+	color: var(--aa-on-primary);
+	border-bottom-color: var(--aa-primary-strong);
 }
 
 .window-app.armor-astir .window-header a,
 .window-app.armor-astir .window-header .header-button {
-	color: white;
+	color: var(--aa-on-primary);
 }

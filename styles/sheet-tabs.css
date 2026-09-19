@@ -146,7 +146,7 @@
 .armor-astir.sheet .arcanist-rituals-adapt.disabled {
 	background: var(--aa-primary-tint);
 	border-color: var(--aa-primary-tint);
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 	cursor: not-allowed;
 }
 
@@ -159,7 +159,7 @@
 .armor-astir.sheet .move-tracker-step.disabled,
 .armor-astir.sheet .weapon-move-roll.disabled {
 	border-color: var(--aa-primary-tint);
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 	cursor: not-allowed;
 }
 
@@ -190,7 +190,7 @@
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
 	background: var(--aa-primary);
-	color: #fff;
+	color: var(--aa-on-primary);
 	font-weight: 700;
 	cursor: pointer;
 	flex: 0 0 auto;
@@ -224,8 +224,8 @@
 .armor-astir.sheet .controls-dismount:not(.disabled):hover,
 .armor-astir.sheet .controls-refresh-scene:hover,
 .armor-astir.sheet .controls-refresh-sortie:hover {
-	background: var(--aa-primary-dark);
-	border-color: var(--aa-primary-dark);
+	background: var(--aa-primary-strong);
+	border-color: var(--aa-primary-strong);
 }
 
 /* Click ("pressed") feedback, distinct from hover — a slight shrink plus the same max-contrast
@@ -241,8 +241,8 @@
 .armor-astir.sheet .controls-dismount:not(.disabled):active,
 .armor-astir.sheet .controls-refresh-scene:active,
 .armor-astir.sheet .controls-refresh-sortie:active {
-	background: var(--aa-primary-dark);
-	border-color: var(--aa-primary-dark);
+	background: var(--aa-primary-strong);
+	border-color: var(--aa-primary-strong);
 	transform: scale(0.96);
 }
 
@@ -252,7 +252,7 @@
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
 	background: transparent;
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 	cursor: pointer;
 	width: auto;
 	flex: 0 0 auto;
@@ -296,7 +296,7 @@
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
 	background: transparent;
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 	line-height: 1;
 	font-size: 14px;
 	font-weight: 700;
@@ -371,7 +371,7 @@
 .armor-astir.sheet .equipment-name,
 .armor-astir.move-roll-dialog .equipment-name {
 	font-weight: bold;
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 }
 
 /* Groups Value/Tier/Scale into one badge cluster, visually distinct from the name and from the
@@ -398,7 +398,7 @@
 	padding: 2px var(--aa-space-1);
 	border-radius: var(--aa-radius);
 	background: var(--aa-secondary-tint);
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 	font-size: 11px;
 	font-weight: 600;
 	white-space: nowrap;
@@ -489,7 +489,7 @@
 .armor-astir.move-roll-dialog .equipment-tag-label {
 	order: 1;
 	font-weight: bold;
-	color: var(--aa-secondary-dark);
+	color: var(--aa-secondary-strong);
 }
 
 /* Alchemical Suite's Potions (Astir tab) share this same "checkbox + label" spent-tracker row
@@ -625,7 +625,7 @@
 	border: 1px solid var(--aa-primary);
 	border-radius: var(--aa-radius);
 	background: transparent;
-	color: var(--aa-primary-dark);
+	color: var(--aa-primary-strong);
 	font-size: 11px;
 	font-weight: 700;
 	line-height: 1.2;
@@ -640,8 +640,8 @@
    or the Witch's Choose 2 Boons requiring Whims), or why a picker option is unpickable (an unmet
    requiresMoves/requiresParts — see playbook-moves.js/astir.js) — this module's only tooltip
    beyond native title attributes, so it gets its own styled look rather than the plain unstyled
-   convention used elsewhere. Primary-dark since this is UI chrome, not player-tracked state, and
-   -dark because it carries white text (see the role-token note above). Deliberately named
+   convention used elsewhere. Primary-strong since this is UI chrome, not player-tracked state, and
+   -strong because it carries on-ink (see the role-token note above). Deliberately named
    data-gate-tooltip rather than data-tooltip: core Foundry's own TooltipManager
    (client/core/tooltip.js) activates its own native tooltip on *any* element with a data-tooltip
    attribute, so reusing that name doubled up with Foundry's own black tooltip. The sheet's own
@@ -674,14 +674,14 @@
 	width: max-content;
 	max-width: 200px;
 	padding: var(--aa-space-1) var(--aa-space-2);
-	background: var(--aa-primary-dark);
-	color: #fff;
+	background: var(--aa-primary-strong);
+	color: var(--aa-on-primary);
 	font-size: 11px;
 	font-weight: 500;
 	line-height: 1.3;
 	text-align: center;
 	border-radius: var(--aa-radius);
-	box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+	box-shadow: 0 2px 6px var(--aa-shadow);
 	z-index: 100;
 	pointer-events: none;
 	white-space: normal;
