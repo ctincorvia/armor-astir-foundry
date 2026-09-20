@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 /**
  * Cascade tests for the dark theme, run against the REAL styles/tokens.css and
  * styles/theme-dark.css.

@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { describe, expect, it, vi } from "vitest";
 
 import { configureMoveCustomization } from "../scripts/moves/move-customization-dialogs.js";

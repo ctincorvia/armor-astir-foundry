@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TIER_MIN } from "../scripts/equipment/equipment.js";
 import {

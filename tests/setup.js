@@ -130,11 +130,13 @@ vi.stubGlobal("loadTemplates", vi.fn().mockResolvedValue([]));
 
 // Standalone ProseMirror editor stubs — see scripts/compat.js's createTextEditor/
 // serializeEditorContent, first used by move-customization-dialogs.js.
+// Built lazily: an eager mockResolvedValue would touch `document` at setup time, forcing every
+// test file onto the happy-dom environment just to load this stub.
 vi.stubGlobal("TextEditor", {
-	create: vi.fn().mockResolvedValue({
+	create: vi.fn().mockImplementation(async () => ({
 		view: { dom: document.createElement("div"), state: { doc: { content: "stub-doc-content" } } },
 		destroy: vi.fn()
-	})
+	}))
 });
 
 vi.stubGlobal("ProseMirror", {

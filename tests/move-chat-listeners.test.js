@@ -1,3 +1,4 @@
+// @vitest-environment happy-dom
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import * as movesModule from "../scripts/moves/moves.js";
 import { BASIC_MOVES, MOVE_CHAT_TEMPLATE, MOVE_RESULT_LABELS } from "../scripts/moves/moves.js";
