@@ -12,6 +12,7 @@ import { EQUIPMENT_TAGS } from "./equipment-tags.js";
 import { EQUIPMENT_CATALOG } from "./equipment-catalog.js";
 import {
 	buildTagReference,
+	conflictingTagKeys,
 	equipmentValue,
 	findCatalogEquipment,
 	findEquipmentTag,
@@ -484,22 +485,23 @@ export async function configureEquipment(
 				};
 				// input, not change, so Save reacts while typing rather than only on blur.
 				html.find("[name='name']").on("input", updateSaveState);
-				// A tag with an `exclusiveGroup` (see EQUIPMENT_TAGS' doc comment) behaves like a radio
-				// button within that group: checking it unchecks every other tag sharing the same group,
-				// looked up off `tags` (already in closure) rather than new template data attributes.
+				// Checking a tag unchecks everything that can't coexist with it, resolved off `tags`
+				// (already in closure) rather than new template data attributes. conflictingTagKeys
+				// covers both exclusivity mechanisms at once — exclusiveGroup's radio-button families
+				// and `excludes`' pairwise conflicts — so this stays one branch as the catalog grows.
+				// WEAPON_RANGE_GROUP members can come back safely: they're never rendered as [name='tag']
+				// checkboxes, so their selector simply matches nothing.
 				html.find("[name='tag']").on("change", (event) => {
-					// The changed checkbox's value is always a real tag key — it was rendered from
-					// `tags` in the first place — so this lookup can never miss.
-					const changed = findEquipmentTag(event.target.value, tags);
-					if (changed.exclusiveGroup && event.target.checked) {
-						for (const other of tags.filter((tag) => tag.exclusiveGroup === changed.exclusiveGroup && tag.key !== changed.key)) {
-							html.find(`[name='tag'][value='${other.key}']`).prop("checked", false);
+					if (event.target.checked) {
+						for (const key of conflictingTagKeys(event.target.value, tags)) {
+							html.find(`[name='tag'][value='${key}']`).prop("checked", false);
 						}
 					}
 					updateTotal();
 					// Recomputes the whole chip row's visibility fresh from the DOM's current checked set,
 					// rather than patching just the one changed chip -- covers both a direct toggle and any
-					// exclusiveGroup sibling this same handler just force-unchecked above.
+					// conflicting tag this same handler just force-unchecked above. That chip row is also
+					// the only visible feedback for a conflict spanning two different value-band accordions.
 					updateTagChips();
 					updateSaveState();
 				});

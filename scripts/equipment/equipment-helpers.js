@@ -10,6 +10,20 @@ export function findEquipmentTag(key, tags = EQUIPMENT_TAGS) {
 	return tags.find((tag) => tag.key === key) ?? null;
 }
 
+// The single answer to "what can't coexist with this tag", unioning both exclusivity mechanisms
+// (see EQUIPMENT_TAGS' own doc comment): exclusiveGroup siblings, the tag's own `excludes`, and —
+// since each conflicting pair is declared only once — every tag whose `excludes` names this one.
+// Resolving the reverse direction here is what lets the catalog stay free of half-declared pairs.
+export function conflictingTagKeys(tagKey, tags = EQUIPMENT_TAGS) {
+	const tag = findEquipmentTag(tagKey, tags);
+	if (!tag) return [];
+	const conflicts = tags.filter((other) => other.key !== tagKey && (
+		(tag.exclusiveGroup && other.exclusiveGroup === tag.exclusiveGroup) ||
+		tag.excludes?.includes(other.key) ||
+		other.excludes?.includes(tagKey)));
+	return conflicts.map((other) => other.key);
+}
+
 // Resolves an equipment entry's stored tag keys to tag definitions, dropping any that no longer
 // exist — a key can outlive its tag whenever the catalog is edited, and a stale entry should
 // quietly disappear rather than break rendering (mirrors resolvePlaybookMoves).

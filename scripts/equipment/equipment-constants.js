@@ -39,6 +39,16 @@ export const DRAIN_GROUP = "drain";
 // cost one regular tag slot like any other tag.
 export const MOUNTED_TWO_HANDED_GROUP = "mounted-two-handed";
 
+// A fourth exclusiveGroup: the five Approach tags (Mundane/Arcane/Divine/Profane/Elemental — see
+// EQUIPMENT_TAGS below, where they're generated from APPROACHES). A weapon overrides your Approach
+// to one thing while you wield it, so two overrides on one object has no coherent reading. Like
+// DRAIN_GROUP and MOUNTED_TWO_HANDED_GROUP (and unlike WEAPON_RANGE_GROUP), this group is optional
+// rather than required — most equipment carries no Approach tag at all — so it renders as ordinary
+// checkboxes with the same JS-enforced radio-button behavior, not a native radio group. Membership
+// here does NOT exempt a tag from MAX_TAGS: each Approach tag carries a real +1 value, making it a
+// benefit pick that costs a regular tag slot, not a free classifier like Melee/Ranged/Sniper.
+export const APPROACH_GROUP = "approach";
+
 // Applies to every equipment entry (weapon or gear). Melee/Ranged/Sniper never count against this
 // cap — they're a classifier, not a regular tag pick — but that's now structural rather than
 // something this cap has to account for: WEAPON_RANGE_GROUP tags are never rendered as checkboxes

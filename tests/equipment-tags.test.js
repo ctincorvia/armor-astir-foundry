@@ -2,7 +2,12 @@ import { describe, expect, it, vi } from "vitest";
 
 import { EFFECT_STATES } from "../scripts/moves/roll-effects.js";
 import { ALL_MOVES } from "../scripts/moves/all-moves.js";
+import { APPROACHES } from "../scripts/core/approaches.js";
+import { EQUIPMENT_CATALOG } from "../scripts/equipment/equipment-catalog.js";
+import { ASTIR_WEAPON_CATALOG } from "../scripts/frames/astir-weapons.js";
+import * as STARTING_GEAR_POOLS from "../scripts/equipment/starting-gear-pools.js";
 import {
+	APPROACH_GROUP,
 	DRAIN_GROUP,
 	EQUIPMENT_TAGS,
 	MOUNTED_TWO_HANDED_GROUP,
@@ -12,6 +17,7 @@ import {
 	WEAPON_SCALES,
 	baseEquipmentTagKey,
 	buildTagReference,
+	conflictingTagKeys,
 	equipmentValue,
 	findEquipmentTag,
 	groupEquipmentTags,
@@ -124,6 +130,138 @@ describe("EQUIPMENT_TAGS", () => {
 			.toEqual(["two-handed", "mounted"]);
 		expect(findEquipmentTag("two-handed").value).toBe(-1);
 		expect(findEquipmentTag("mounted").value).toBe(1);
+	});
+
+	it("gives every Approach tag APPROACH_GROUP as its exclusiveGroup", () => {
+		expect(EQUIPMENT_TAGS.filter((tag) => tag.exclusiveGroup === APPROACH_GROUP).map((tag) => tag.key))
+			.toEqual(APPROACHES.map((approach) => approach.key));
+	});
+});
+
+describe("EQUIPMENT_TAGS exclusivity data", () => {
+	it("only excludes keys that resolve to real tags, and never itself", () => {
+		for (const tag of EQUIPMENT_TAGS) {
+			for (const key of tag.excludes ?? []) {
+				expect(findEquipmentTag(key), `${tag.key} excludes unknown tag "${key}"`).not.toBeNull();
+				expect(key).not.toBe(tag.key);
+			}
+		}
+	});
+
+	// conflictingTagKeys resolves the reverse direction itself, so declaring a pair on both tags is
+	// redundant rather than wrong -- but it's the shape that invites a half-edit later, so it's
+	// banned outright and the catalog comment says so.
+	it("declares each conflicting pair exactly once", () => {
+		for (const tag of EQUIPMENT_TAGS) {
+			for (const key of tag.excludes ?? []) {
+				expect(findEquipmentTag(key).excludes ?? [], `${tag.key} <-> ${key} is declared twice`)
+					.not.toContain(tag.key);
+			}
+		}
+	});
+
+	it("declares exactly the intended pairwise conflicts", () => {
+		const edges = new Set();
+		for (const tag of EQUIPMENT_TAGS) {
+			for (const key of tag.excludes ?? []) edges.add([tag.key, key].sort().join("|"));
+		}
+		expect([...edges].sort()).toEqual([
+			"bane|ruin",
+			"bulky|huge",
+			"concealable|huge",
+			"decisive|versatile",
+			"defensive|versatile",
+			"impact|weak",
+			"infinite|limited",
+			"infinite|one-use",
+			"infinite|refresh",
+			"limited|one-use",
+			"limited|refresh",
+			"one-use|refresh",
+			"one-use|reload",
+			"refresh|reload",
+			"treasure|valuable"
+		]);
+	});
+
+	// Reload deliberately coexists with Limited and Infinite (limited ammo that still needs
+	// cycling; endless ammo on a slow-firing weapon) -- the non-edges that make this ruleset a
+	// graph rather than a clique, and so the reason `excludes` exists alongside exclusiveGroup.
+	it("leaves Reload compatible with Limited and Infinite", () => {
+		expect(conflictingTagKeys("reload")).not.toContain("limited");
+		expect(conflictingTagKeys("reload")).not.toContain("infinite");
+	});
+});
+
+describe("conflictingTagKeys", () => {
+	it("returns nothing for an unknown tag key", () => {
+		expect(conflictingTagKeys("not-a-real-tag")).toEqual([]);
+	});
+
+	it("returns nothing for a tag with neither mechanism", () => {
+		expect(conflictingTagKeys("adapted")).toEqual([]);
+	});
+
+	it("returns exclusiveGroup siblings, excluding the tag itself", () => {
+		expect(conflictingTagKeys("drain-2").sort()).toEqual(["drain-1", "drain-3"]);
+		expect(conflictingTagKeys("profane").sort())
+			.toEqual(APPROACHES.map((approach) => approach.key).filter((key) => key !== "profane").sort());
+	});
+
+	it("returns a tag's own excludes", () => {
+		expect(conflictingTagKeys("huge").sort()).toEqual(["bulky", "concealable"]);
+	});
+
+	it("returns the reverse direction for a tag that is excluded by another", () => {
+		expect(findEquipmentTag("bulky").excludes).toBeUndefined();
+		expect(conflictingTagKeys("bulky")).toEqual(["huge"]);
+	});
+
+	it("unions both directions for a tag that is named on both sides", () => {
+		expect(conflictingTagKeys("refresh").sort()).toEqual(["infinite", "limited", "one-use", "reload"]);
+	});
+
+	it("is symmetric across the whole catalog", () => {
+		for (const tag of EQUIPMENT_TAGS) {
+			for (const key of conflictingTagKeys(tag.key)) {
+				expect(conflictingTagKeys(key), `${tag.key} -> ${key} is not symmetric`).toContain(tag.key);
+			}
+		}
+	});
+
+	it("honours a caller-supplied tag list instead of the real catalog", () => {
+		const tags = [
+			{ key: "a", label: "A", value: 0, description: "", excludes: ["b"] },
+			{ key: "b", label: "B", value: 0, description: "" }
+		];
+		expect(conflictingTagKeys("b", tags)).toEqual(["a"]);
+	});
+});
+
+// The regression guard: catalog entries hardcode tag arrays and never pass through
+// configureEquipment's dialog, so nothing but this test stops a future addition from shipping a
+// combination the editor itself refuses to produce.
+describe("catalog tag combinations", () => {
+	const entriesWithTags = (value, path = "") => {
+		if (Array.isArray(value)) return value.flatMap((item, index) => entriesWithTags(item, `${path}[${index}]`));
+		if (!value || typeof value !== "object") return [];
+		const own = Array.isArray(value.tags) ? [{ name: value.name ?? value.key ?? path, tags: value.tags }] : [];
+		return own.concat(Object.entries(value)
+			.filter(([, child]) => child && typeof child === "object")
+			.flatMap(([childKey, child]) => entriesWithTags(child, `${path}.${childKey}`)));
+	};
+
+	it.each([
+		["EQUIPMENT_CATALOG", EQUIPMENT_CATALOG],
+		["ASTIR_WEAPON_CATALOG", ASTIR_WEAPON_CATALOG],
+		["starting-gear-pools", STARTING_GEAR_POOLS]
+	])("gives no %s entry a pair of conflicting tags", (_label, catalog) => {
+		for (const entry of entriesWithTags(catalog)) {
+			for (const key of entry.tags) {
+				const conflicts = conflictingTagKeys(key).filter((other) => entry.tags.includes(other));
+				expect(conflicts, `"${entry.name}" carries ${key} alongside ${conflicts.join(", ")}`).toEqual([]);
+			}
+		}
 	});
 });
 

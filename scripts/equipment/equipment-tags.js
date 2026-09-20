@@ -1,5 +1,5 @@
 import { APPROACHES } from "../core/approaches.js";
-import { DRAIN_GROUP, MOUNTED_TWO_HANDED_GROUP, WEAPON_RANGE_GROUP } from "./equipment-constants.js";
+import { APPROACH_GROUP, DRAIN_GROUP, MOUNTED_TWO_HANDED_GROUP, WEAPON_RANGE_GROUP } from "./equipment-constants.js";
 
 // The tag catalog: definitions live in code and equipment stores only tag keys, so edited rules
 // text reaches existing equipment — the same split MOVE_POOLS uses for playbook moves (see
@@ -43,6 +43,15 @@ import { DRAIN_GROUP, MOUNTED_TWO_HANDED_GROUP, WEAPON_RANGE_GROUP } from "./equ
 // defensive fallback rather than the primary safeguard. That's still a single hardcoded
 // weapon-only check, not a generic "required groups" system, since it's the only group that needs
 // one.
+//
+// `excludes` is the second exclusivity mechanism, for conflicts that `exclusiveGroup` structurally
+// can't express: a group says "at most one of these N", which only models a set where every member
+// conflicts with every other. Most real conflicts here aren't shaped that way — Reload rules out
+// One-Use and Refresh but coexists fine with Limited and Infinite, which rule out each other. So
+// `excludes` lists individual conflicting keys instead. Each conflicting pair is declared exactly
+// ONCE, on whichever tag reads as the owner; conflictingTagKeys (equipment-helpers.js) resolves
+// both directions and both mechanisms into one answer, so a half-declared pair is impossible.
+// See docs/domains/equipment.md, "Tag exclusivity".
 export const EQUIPMENT_TAGS = [
 	// -3: Drain 3, the most severe Drain tier — see the Drain 1/2/3 trio below (-1 and -2 bands)
 	// for the shared exclusiveGroup/MAX_TAGS explanation. No other tag currently needs this band.
@@ -97,7 +106,8 @@ export const EQUIPMENT_TAGS = [
 		label: "Huge",
 		value: -2,
 		description: "Basically impossible to move around without help. Absolutely not something you are " +
-			"ever going to hide, either."
+			"ever going to hide, either.",
+		excludes: ["concealable", "bulky"]
 	},
 	{
 		key: "junk",
@@ -114,13 +124,15 @@ export const EQUIPMENT_TAGS = [
 		value: -2,
 		description: "Can only be used a single time per Sortie—perhaps it needs time to recharge, or uses " +
 			"rare ammo, or explodes.",
-		spend: { period: "Sortie" }
+		spend: { period: "Sortie" },
+		excludes: ["infinite", "reload", "limited", "refresh"]
 	},
 	{
 		key: "treasure",
 		label: "Treasure",
 		value: -2,
-		description: "Highly valuable—and a gold, glittering target on your back."
+		description: "Highly valuable—and a gold, glittering target on your back.",
+		excludes: ["valuable"]
 	},
 	// -1: almost entirely negative tags.
 	{
@@ -163,7 +175,8 @@ export const EQUIPMENT_TAGS = [
 		label: "Limited",
 		value: -1,
 		description: "You have a particularly limited supply or use of this thing—it always seems to run out " +
-			"at the most perilous moments."
+			"at the most perilous moments.",
+		excludes: ["infinite", "refresh"]
 	},
 	{
 		key: "messy",
@@ -204,7 +217,8 @@ export const EQUIPMENT_TAGS = [
 		label: "Reload",
 		value: -1,
 		description: "After firing, this weapon requires you to manually reload it or perform some other " +
-			"action to ready it for use."
+			"action to ready it for use.",
+		excludes: ["refresh"]
 	},
 	{
 		key: "unreliable",
@@ -218,7 +232,8 @@ export const EQUIPMENT_TAGS = [
 		key: "weak",
 		label: "Weak",
 		value: -1,
-		description: "Lacking in physical impact, and generally useless for piercing armour or cover."
+		description: "Lacking in physical impact, and generally useless for piercing armour or cover.",
+		excludes: ["impact"]
 	},
 	{
 		key: "valuable",
@@ -267,6 +282,7 @@ export const EQUIPMENT_TAGS = [
 		key: approach.key,
 		label: approach.label,
 		value: 1,
+		exclusiveGroup: APPROACH_GROUP,
 		description: `This tag changes your approach to ${approach.label} while you're actively using it.`
 	})),
 	{
@@ -360,7 +376,8 @@ export const EQUIPMENT_TAGS = [
 		description: "Objects that refresh can only be used once per Scene, but automatically replenish or " +
 			"restore themselves even if they are destroyed or wasted (they cannot be taken away from you by " +
 			"a peril).",
-		spend: { period: "Scene" }
+		spend: { period: "Scene" },
+		excludes: ["infinite"]
 	},
 	// gearOnly: not pickable on a Weapon through the equipment editor; the-icon:bodyguards-i
 	// (starting-gear-pools.js) is a grandfathered weapon exception granted directly through data.
@@ -380,14 +397,18 @@ export const EQUIPMENT_TAGS = [
 		value: 2,
 		// Same not-yet-modeled tier-opposition system as Bane; left as prose.
 		description: "You suffer no penalty against opponents up to two tiers above you when attacking " +
-			"with ruin, rather than one tier as with bane."
+			"with ruin, rather than one tier as with bane.",
+		excludes: ["bane"]
 	},
 	{
 		key: "versatile",
 		label: "Versatile",
 		value: 2,
 		description: "This tag combines the effects of decisive and defensive.",
-		reroll: { moves: ["exchange-blows", "strike-decisively"], period: "Scene" }
+		reroll: { moves: ["exchange-blows", "strike-decisively"], period: "Scene" },
+		// Not merely redundant: rerollSpendKey tracks each tag's reroll independently, so stacking
+		// Versatile with either half would grant two rerolls of that move per Scene, not one.
+		excludes: ["decisive", "defensive"]
 	},
 	{
 		key: "vorpal",

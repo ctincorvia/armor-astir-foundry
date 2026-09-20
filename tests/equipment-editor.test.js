@@ -27,6 +27,15 @@ const FIXTURE_EXCLUSIVE_TAGS = [
 	{ key: "fixture-exclusive-b", label: "Fixture Exclusive B", value: 0, description: "c", exclusiveGroup: "fixture-group" }
 ];
 
+// The second exclusivity mechanism (see EQUIPMENT_TAGS' doc comment): a pairwise conflict declared
+// on one side only. fixture-neutral is the non-edge that proves this isn't just another group --
+// it's checkable alongside either half of the pair.
+const FIXTURE_EXCLUDES_TAGS = [
+	{ key: "fixture-owner", label: "Fixture Owner", value: 0, description: "a", excludes: ["fixture-target"] },
+	{ key: "fixture-target", label: "Fixture Target", value: 0, description: "b" },
+	{ key: "fixture-neutral", label: "Fixture Neutral", value: 0, description: "c" }
+];
+
 // Fakes the jQuery `.find(selector)` chain configureEquipment uses: plain fields resolve via
 // `.val()`, the checked-tag checkboxes resolve via `.map(...).get()`, and the Range radio group
 // resolves via `.val()` on its own selector — mirroring fakeRollHtml in tests/moves.test.js and
@@ -577,6 +586,76 @@ describe("configureEquipment", () => {
 		// was actually checked.
 		expect(state.uncheckedKeys).toEqual(["fixture-exclusive-b"]);
 		expect(state.uncheckedKeys).not.toContain("fixture-solo");
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("unchecks an `excludes` partner named by the checked tag", async () => {
+		const promise = configureEquipment(null, FIXTURE_EXCLUDES_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedTags = ["fixture-owner", "fixture-target"];
+		state.handlers.change({ target: { value: "fixture-owner", checked: true } });
+
+		expect(state.uncheckedKeys).toEqual(["fixture-target"]);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	// The half that only works because conflictingTagKeys resolves the reverse direction:
+	// fixture-target carries no `excludes` of its own.
+	it("unchecks an `excludes` partner that names the checked tag", async () => {
+		const promise = configureEquipment(null, FIXTURE_EXCLUDES_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedTags = ["fixture-owner", "fixture-target"];
+		state.handlers.change({ target: { value: "fixture-target", checked: true } });
+
+		expect(state.uncheckedKeys).toEqual(["fixture-owner"]);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("leaves a tag with no declared conflict alone", async () => {
+		const promise = configureEquipment(null, FIXTURE_EXCLUDES_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedTags = ["fixture-neutral", "fixture-owner"];
+		state.handlers.change({ target: { value: "fixture-neutral", checked: true } });
+
+		expect(state.uncheckedKeys).toEqual([]);
+
+		Dialog.mock.calls.at(-1)[0].close();
+		await promise;
+	});
+
+	it("doesn't uncheck an `excludes` partner when the changed tag is unchecked, not checked", async () => {
+		const promise = configureEquipment(null, FIXTURE_EXCLUDES_TAGS);
+		await Promise.resolve();
+		await Promise.resolve();
+
+		const state = fakeEquipmentRenderHtml();
+		Dialog.mock.calls.at(-1)[0].render(state.html);
+
+		state.checkedTags = ["fixture-target"];
+		state.handlers.change({ target: { value: "fixture-owner", checked: false } });
+
+		expect(state.uncheckedKeys).toEqual([]);
 
 		Dialog.mock.calls.at(-1)[0].close();
 		await promise;

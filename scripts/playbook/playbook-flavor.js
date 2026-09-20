@@ -442,8 +442,8 @@ export function flavorForPlaybook(playbookSlug) {
 
 // Only used the first time a character opens the Look/Consider editors, before they've saved any
 // text of their own — PlaybookActorSheet#getData falls back to these only when the actor has no
-// stored system.details.look/consider value yet. A playbook with no PLAYBOOK_FLAVOR entry (every
-// playbook but The Scout, currently) yields an empty starting editor rather than throwing.
+// stored system.details.look/consider value yet. Every playbook has an entry today; one added
+// without one yields an empty starting editor rather than throwing.
 export function defaultLookText(playbookSlug) {
 	const flavor = flavorForPlaybook(playbookSlug);
 	if (!flavor) return "";

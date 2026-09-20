@@ -99,7 +99,7 @@ export const TrackingSheetMixin = {
 		const atHelm = Boolean(this.actor.system.attributes?.atHelm);
 		return this.actor.system.playbook?.slug === "the-captain" && atHelm ? 4 : DANGER_MAX;
 	},
-	// Gravity Clocks live in the Social tab: up to 5 independent progress tracks, each with its own
+	// Gravity Clocks live in the Social tab: up to GRAVITY_CLOCK_MAX independent progress tracks, each with its own
 	// label, a Spotlight-style fill track, and a separate 1-3 value. Unlike Spotlight (one
 	// actor-wide counter), progress is per-clock, so each list entry gets its own expanded steps
 	// array.
