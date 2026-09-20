@@ -21,14 +21,19 @@
 			<select name="system.attributes.approach">
 				{{selectOptions approachOptions selected=approach.base valueAttr="key" labelAttr="label" blank="— Choose —"}}
 			</select>
-			{{#if approach.effectiveLabel}}
-			<span class="approach-effective-note">
-				Current: {{approach.effectiveLabel}}{{#if approach.fromFrame}} (from {{approach.frameName}}){{/if}}{{#if approach.fromMove}} (from {{approach.moveName}}){{/if}}
-			</span>
-			{{/if}}
 		</div>
 		<div class="tier-readout">
 			<label>Tier</label>
-			<span class="tier-value">{{tier.effective}}{{#if tier.fromFrame}} ({{tier.frameName}}){{/if}}</span>
+			<span class="tier-value">{{tier.effective}}</span>
 		</div>
+		{{#if tier.fromFrame}}
+		<div class="header-derived-note">
+			Piloting <strong>{{tier.frameName}}</strong> — Tier {{tier.effective}}{{#if approach.fromFrame}}, Approach {{approach.effectiveLabel}}{{/if}}
+		</div>
+		{{/if}}
+		{{#if approach.fromMove}}
+		<div class="header-derived-note">
+			Approach {{approach.effectiveLabel}} (from <strong>{{approach.moveName}}</strong>)
+		</div>
+		{{/if}}
 	</header>
