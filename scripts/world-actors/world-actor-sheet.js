@@ -1,4 +1,5 @@
 import { addEntry, removeEntry, updateEntryField } from "./entry-list.js";
+import { stripUiFields } from "../core/ui-field-names.js";
 
 // Shared by CarrierActorSheet/AuthorityActorSheet/CauseActorSheet (see docs/domains/world-actors.md, "World
 // actors"): each renders one or more id-keyed lists under system.attributes, all edited through
@@ -29,6 +30,11 @@ export class WorldActorSheet extends ActorSheet {
 
 	_list(key) {
 		return this.actor.system.attributes?.[key] ?? [];
+	}
+
+	// See docs/domains/world-actors.md, "Field names and focus".
+	_getSubmitData(updateData) {
+		return stripUiFields(super._getSubmitData(updateData));
 	}
 
 	activateListeners(html) {

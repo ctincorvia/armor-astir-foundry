@@ -17,6 +17,13 @@
 	margin-left: auto;
 }
 
+/* Without an explicit flex-basis the Name group shrinks to the input's default width and clips long names. */
+.armor-astir.sheet.authority .sheet-header > .form-group,
+.armor-astir.sheet.cause .sheet-header > .form-group {
+	flex: 1 1 240px;
+	min-width: 0;
+}
+
 /* Carrier's Crew and Crew Support Hold steppers share one row — space-between pins Crew to the
    left edge and the Crew Support Hold label+stepper to the right, since there are only ever these
    two children (not a list of many rows), so the grid-column-alignment concern the styling doc's

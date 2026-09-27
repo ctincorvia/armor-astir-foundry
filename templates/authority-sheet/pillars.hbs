@@ -1,7 +1,7 @@
 <ol class="entry-list pillar-list">
 	{{#each pillars}}
 	<li class="entry-list-item pillar-item{{#if felled}} pillar-felled{{/if}}" data-entry-id="{{id}}">
-		<input type="text" class="entry-list-field pillar-name" data-list="pillars" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Pillar name"/>
+		<input type="text" name="aa-ui:pillars:{{id}}:name" class="entry-list-field pillar-name" data-list="pillars" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Pillar name"/>
 		<div class="entry-counter-row">
 			<div class="entry-counter">
 				<label>Grip</label>
@@ -14,7 +14,7 @@
 				Felled
 			</label>
 		</div>
-		<textarea class="entry-list-field pillar-description" data-list="pillars" data-entry-id="{{id}}" data-field="description" placeholder="What does the Authority hold here?">{{description}}</textarea>
+		<textarea name="aa-ui:pillars:{{id}}:description" class="entry-list-field pillar-description" data-list="pillars" data-entry-id="{{id}}" data-field="description" placeholder="What does the Authority hold here?">{{description}}</textarea>
 	</li>
 	{{/each}}
 </ol>

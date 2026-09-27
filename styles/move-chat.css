@@ -465,3 +465,38 @@ li.chat-message:has(.armor-astir-move-chat) .dice-tooltip .part-total {
 	font-size: 12px;
 	font-style: italic;
 }
+
+/* The Conflict Scene "Chat" button's card (see conflict-scene-chat.js/conflict-scene-chat.hbs) —
+   the .conflict-scene-dialog's own chat-card counterpart, same list treatment as
+   .armor-astir-downtime-scene-chat above. */
+.armor-astir-conflict-scene-chat {
+	margin-bottom: var(--aa-space-2);
+}
+
+.armor-astir-conflict-scene-chat .conflict-scene-chat-name {
+	margin: 0 0 var(--aa-space-1);
+}
+
+.armor-astir-conflict-scene-chat .conflict-scene-summary,
+.armor-astir-conflict-scene-chat .conflict-scene-playing,
+.armor-astir-conflict-scene-chat .conflict-scene-resolutions {
+	margin-bottom: var(--aa-space-2);
+}
+
+.armor-astir-conflict-scene-chat :is(.conflict-scene-summary, .conflict-scene-playing) p {
+	margin: 0 0 var(--aa-space-1);
+}
+
+.armor-astir-conflict-scene-chat :is(.conflict-scene-playing, .conflict-scene-resolutions) h4 {
+	margin: 0 0 var(--aa-space-1);
+}
+
+.armor-astir-conflict-scene-chat .conflict-scene-bullet-list {
+	margin: 0;
+	padding: 0 0 0 var(--aa-space-4);
+	list-style: disc outside;
+}
+
+.armor-astir-conflict-scene-chat .conflict-scene-bullet-list li {
+	padding: 2px 0;
+}

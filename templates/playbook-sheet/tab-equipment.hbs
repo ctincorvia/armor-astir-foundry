@@ -55,8 +55,8 @@
 						{{#if isSupport}}
 						<div class="section-header"><h3>Quarters</h3></div>
 						<div class="quarters">
-							<input type="text" class="quarters-name-input" value="{{quarters.name}}" placeholder="Quarters name"/>
-							<textarea class="quarters-description-input" placeholder="Describe your Quarters, where they are on the ship, and what they provide...">{{quarters.description}}</textarea>
+							<input type="text" name="aa-ui:quarters-name-input" class="quarters-name-input" value="{{quarters.name}}" placeholder="Quarters name"/>
+							<textarea name="aa-ui:quarters-description-input" class="quarters-description-input" placeholder="Describe your Quarters, where they are on the ship, and what they provide...">{{quarters.description}}</textarea>
 							<ol class="quarters-benefit-list">
 								{{#each quarters.benefits}}
 								<li class="quarters-benefit-item">
@@ -70,7 +70,7 @@
 							{{#if quarters.showCarrierSelect}}
 							<div class="quarters-carrier-control">
 								<label>Assigned Carrier</label>
-								<select class="quarters-carrier-select">
+								<select name="aa-ui:quarters-carrier-select" class="quarters-carrier-select">
 									{{selectOptions quarters.carrierOptions selected=quarters.carrierId valueAttr="id" labelAttr="name" blank="— Unassigned —"}}
 								</select>
 							</div>

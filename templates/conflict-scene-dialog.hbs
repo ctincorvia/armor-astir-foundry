@@ -1,0 +1,19 @@
+<div class="conflict-scene-dialog-content">
+	<h3 class="conflict-scene-dialog-name">{{name}}</h3>
+	<section class="conflict-scene-summary">
+		{{#each summary}}<p>{{this}}</p>{{/each}}
+	</section>
+	<section class="conflict-scene-playing">
+		<h3>Playing the Scene</h3>
+		{{#each playing}}<p>{{this}}</p>{{/each}}
+		<ul class="conflict-scene-bullet-list">
+			{{#each challenges}}<li>{{this}}</li>{{/each}}
+		</ul>
+	</section>
+	<section class="conflict-scene-resolutions">
+		<h3>Resolutions</h3>
+		<ul class="conflict-scene-bullet-list">
+			{{#each resolutions}}<li>{{this}}</li>{{/each}}
+		</ul>
+	</section>
+</div>

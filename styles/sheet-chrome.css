@@ -406,7 +406,8 @@
    .downtime-ability-item (text-only), since here the button has to land in a fixed column
    regardless of how long a Scene Kind's name runs — see docs/domains/styling.md's
    variable-length-label-plus-fixed-control convention (.danger-item/.move already do the same). */
-.armor-astir.sheet .downtime-scene-item {
+.armor-astir.sheet .downtime-scene-item,
+.armor-astir.sheet .conflict-scene-item {
 	display: grid;
 	grid-template-columns: minmax(0, 1fr) auto;
 	align-items: center;
@@ -415,14 +416,16 @@
 
 /* Same bold treatment as sheet-tabs.css's .move-name — this row's own name label, next to its
    own "?" button, is the same "bold name beside a control" shape as a move row. */
-.armor-astir.sheet .downtime-scene-name {
+.armor-astir.sheet .downtime-scene-name,
+.armor-astir.sheet .conflict-scene-name {
 	font-weight: 700;
 }
 
 /* Wraps the Chat + "?" buttons so the two share the row's single fixed trailing grid column above
    (.downtime-scene-item only has minmax(0, 1fr) auto) — same problem .move-controls already solves
    for a move row's own Chat + "?" buttons, same fix (sheet-tabs.css). */
-.armor-astir.sheet .downtime-scene-controls {
+.armor-astir.sheet .downtime-scene-controls,
+.armor-astir.sheet .conflict-scene-controls {
 	display: flex;
 	flex-direction: row;
 	justify-content: center;

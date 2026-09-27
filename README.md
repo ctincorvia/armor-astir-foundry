@@ -14,6 +14,7 @@ A [Foundry VTT](https://foundryvtt.com/) module implementing character sheets an
 - **Equipment** — a snapshot-on-pick catalog with a tag system (Blitz, Defensive, Drain, Impact, Approach tags, and more) that can be spent from the roll dialog to shift Effect, plus a points budget for homebrew gear.
 - **Clocks & Gravity Clocks** — freeform narrative clocks on every character sheet, plus a distinct Gravity Clock mechanic tied to each playbook's Gravity Trigger that can substitute for a move's normal trait.
 - **Downtime Scene Reference** — the seven Downtime Scene Kinds available as an in-sheet lookup dialog or postable directly to the chat log for the whole table to see.
+- **Conflict Scene Reference** — the Authority and Cause sheets each have a Conflict Scenes tab with the same lookup dialog and chat card for every Conflict Scene: a summary, how to play the scene, its Challenges, and its Resolutions. Reference text only, no rolling.
 - **World actors** — custom Actor sub-types for the Carrier (the party's mobile base, with its own built-in weapon slots), the Authority (the empire, with Stability, Divisions, and Pillars), the Cause (the opposing factions, tracked by Grip), and a lightweight NPC actor, each with its own sheet.
 - **Reflavor** — GMs can upload a JSON file that reskins move, equipment, tag, and Astir text across the whole module for a different genre or setting, without touching any underlying mechanics.
 - **Custom actor creation flow** for these module-defined actor types.

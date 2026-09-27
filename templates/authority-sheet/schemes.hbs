@@ -9,10 +9,10 @@
 		{{#each schemes.list}}
 		<li class="clock-item" data-clock-id="{{id}}">
 			<div class="clock-header">
-				<input type="text" class="clock-label-input" data-clock-id="{{id}}" value="{{label}}" placeholder="Scheme label…"/>
+				<input type="text" name="aa-ui:clock-label-input:{{id}}" class="clock-label-input" data-clock-id="{{id}}" value="{{label}}" placeholder="Scheme label…"/>
 				<div class="clock-steps-control">
 					<label>Steps</label>
-					<input type="number" class="clock-steps-input" data-clock-id="{{id}}" value="{{steps}}" min="{{../schemes.min}}" max="{{../schemes.max}}"/>
+					<input type="number" name="aa-ui:clock-steps-input:{{id}}" class="clock-steps-input" data-clock-id="{{id}}" value="{{steps}}" min="{{../schemes.min}}" max="{{../schemes.max}}"/>
 				</div>
 				<button type="button" class="clock-remove" data-clock-id="{{id}}" aria-label="Remove scheme">✕</button>
 			</div>

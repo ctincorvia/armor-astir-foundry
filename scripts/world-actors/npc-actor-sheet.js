@@ -1,4 +1,5 @@
 import { APPROACHES } from "../core/approaches.js";
+import { stripUiFields } from "../core/ui-field-names.js";
 import { TIER_MIN, TIER_MAX } from "../equipment/equipment.js";
 import { findAstirMove } from "../frames/astir.js";
 import { NpcEquipmentSheetMixin } from "./npc-sheet/equipment-mixin.js";
@@ -29,6 +30,11 @@ export class NpcActorSheet extends ActorSheet {
 			height: "auto",
 			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "rival" }]
 		});
+	}
+
+	// See docs/domains/world-actors.md, "Field names and focus".
+	_getSubmitData(updateData) {
+		return stripUiFields(super._getSubmitData(updateData));
 	}
 
 	getData(options) {

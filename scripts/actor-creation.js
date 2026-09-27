@@ -156,6 +156,7 @@ export const WORLD_ACTOR_KINDS = [
 				blankEntry({ strength: 4, disfavor: 0, losses: 0, kind: "" })
 			];
 			return {
+				details: { description: { value: "" } },
 				attributes: {
 					stability: { value: STABILITY_MAX },
 					divisions,
@@ -173,7 +174,7 @@ export const WORLD_ACTOR_KINDS = [
 		key: "cause",
 		type: "armor-astir.cause",
 		name: "Cause",
-		buildSystem: () => ({ attributes: { factions: [], waywardFactions: [] } })
+		buildSystem: () => ({ details: { description: { value: "" } }, attributes: { factions: [], waywardFactions: [] } })
 	},
 	{
 		key: "npc",

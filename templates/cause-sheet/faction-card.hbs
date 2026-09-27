@@ -1,9 +1,9 @@
 <li class="entry-list-item {{#if exhausted}}faction-exhausted{{/if}}" data-entry-id="{{id}}">
 	<div class="entry-list-row">
-		<input type="text" class="entry-list-field faction-name" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Faction name"/>
+		<input type="text" name="aa-ui:{{listKey}}:{{id}}:name" class="entry-list-field faction-name" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Faction name"/>
 		<button type="button" class="entry-list-remove" data-list="{{listKey}}" data-entry-id="{{id}}" aria-label="Remove faction">✕</button>
 	</div>
-	<select class="entry-list-field faction-kind" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="kind">
+	<select name="aa-ui:{{listKey}}:{{id}}:kind" class="entry-list-field faction-kind" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="kind">
 		{{selectOptions kindOptions selected=kind valueAttr="key" labelAttr="label" blank="— Choose —"}}
 	</select>
 	<div class="entry-counter-row">
@@ -34,5 +34,5 @@
 		<p>{{outcomeText}}</p>
 	</div>
 	{{/if}}
-	<textarea class="entry-list-field faction-description" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="description" placeholder="Brief description…">{{description}}</textarea>
+	<textarea name="aa-ui:{{listKey}}:{{id}}:description" class="entry-list-field faction-description" data-list="{{listKey}}" data-entry-id="{{id}}" data-field="description" placeholder="Brief description…">{{description}}</textarea>
 </li>

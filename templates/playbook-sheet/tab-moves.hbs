@@ -57,14 +57,14 @@
 									{{/if}}
 									{{#if addsTraitToMoveChoosable}}
 									<div class="move-adds-trait-move-control">
-										<select class="adds-trait-move-select" data-move="{{key}}">
+										<select name="aa-ui:adds-trait-move-select:{{@../index}}:{{key}}" class="adds-trait-move-select" data-move="{{key}}">
 											{{selectOptions @root.basicMoveOptions selected=addsTraitToMoveChoice valueAttr="key" labelAttr="name" blank="—"}}
 										</select>
 									</div>
 									{{/if}}
 									{{#if weaponTagChoiceChoosable}}
 									<div class="move-weapon-tag-choice-control">
-										<select class="weapon-tag-choice-select" data-move="{{key}}">
+										<select name="aa-ui:weapon-tag-choice-select:{{@../index}}:{{key}}" class="weapon-tag-choice-select" data-move="{{key}}">
 											{{selectOptions weaponTagChoiceOptions selected=weaponTagChoiceChoice valueAttr="key" labelAttr="label" blank="—"}}
 										</select>
 									</div>

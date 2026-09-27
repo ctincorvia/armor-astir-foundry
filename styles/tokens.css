@@ -19,8 +19,10 @@
 .armor-astir,
 .armor-astir-move-chat,
 .armor-astir-downtime-scene-chat,
+.armor-astir-conflict-scene-chat,
 li.chat-message:has(.armor-astir-move-chat),
-li.chat-message:has(.armor-astir-downtime-scene-chat) {
+li.chat-message:has(.armor-astir-downtime-scene-chat),
+li.chat-message:has(.armor-astir-conflict-scene-chat) {
 	/* Palette — the two gems, named for what they are. Nothing styles against these directly. */
 	--aa-moonstone: #7fa8b8;
 	--aa-moonstone-dark: #4a6e7c;
@@ -145,8 +147,10 @@ li.chat-message:has(.armor-astir-downtime-scene-chat) {
 body.theme-dark .armor-astir,
 .themed.theme-dark .armor-astir-move-chat,
 .themed.theme-dark .armor-astir-downtime-scene-chat,
+.themed.theme-dark .armor-astir-conflict-scene-chat,
 .themed.theme-dark li.chat-message:has(.armor-astir-move-chat),
-.themed.theme-dark li.chat-message:has(.armor-astir-downtime-scene-chat) {
+.themed.theme-dark li.chat-message:has(.armor-astir-downtime-scene-chat),
+.themed.theme-dark li.chat-message:has(.armor-astir-conflict-scene-chat) {
 	/* Neutrals. -field is darker than -surface here, inverting light mode's relationship: an
 	   input reads as sunken once the page stops being the lightest thing on screen. */
 	--aa-surface: #1e2126;

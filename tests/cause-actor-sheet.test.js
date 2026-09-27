@@ -1,5 +1,6 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { CauseActorSheet, CAUSE_SHEET_TEMPLATE, registerCauseActorSheet } from "../scripts/world-actors/cause-actor-sheet.js";
+import { CONFLICT_SCENES } from "../scripts/world-actors/conflict-scenes.js";
 import { FACTION_KINDS } from "../scripts/world-actors/faction-kinds.js";
 
 describe("CauseActorSheet.defaultOptions", () => {
@@ -8,8 +9,30 @@ describe("CauseActorSheet.defaultOptions", () => {
 			classes: ["armor-astir", "sheet", "actor", "world-actor", "cause"],
 			template: CAUSE_SHEET_TEMPLATE,
 			width: 960,
-			scrollY: [".window-content"]
+			scrollY: [".window-content"],
+			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "overview" }]
 		});
+	});
+});
+
+describe("CauseActorSheet - Conflict Scenes", () => {
+	it("exposes the shared catalog to the template as conflictScenes", () => {
+		const sheet = new CauseActorSheet();
+		sheet.actor = { system: {} };
+
+		expect(sheet.getData({}).conflictScenes).toBe(CONFLICT_SCENES);
+	});
+
+	it("binds the Conflict Scene Chat and ? buttons", () => {
+		const sheet = new CauseActorSheet();
+		sheet.actor = { system: {} };
+		const on = vi.fn();
+		const html = { find: vi.fn().mockReturnValue({ on }) };
+
+		sheet.activateListeners(html);
+
+		expect(html.find).toHaveBeenCalledWith(".conflict-scene-info");
+		expect(html.find).toHaveBeenCalledWith(".conflict-scene-chat");
 	});
 });
 
@@ -92,6 +115,17 @@ describe("CauseActorSheet#_factionsData", () => {
 });
 
 describe("CauseActorSheet#getData", () => {
+	it("reads the description off the actor, defaulting to empty", () => {
+		const sheet = new CauseActorSheet();
+		sheet.actor = { system: { details: { description: { value: "A rebellion." } } } };
+
+		expect(sheet.getData({}).description).toBe("A rebellion.");
+
+		sheet.actor = { system: {} };
+
+		expect(sheet.getData({}).description).toBe("");
+	});
+
 	it("reads factions off the actor", () => {
 		const sheet = new CauseActorSheet();
 		const realKind = FACTION_KINDS[0];

@@ -3,8 +3,8 @@
 	<ol class="entry-list division-list">
 		{{#each divisions}}
 		<li class="entry-list-item" data-entry-id="{{id}}">
-			<input type="text" class="entry-list-field division-name" data-list="divisions" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Division name"/>
-			<select class="entry-list-field division-kind" data-list="divisions" data-entry-id="{{id}}" data-field="kind">
+			<input type="text" name="aa-ui:divisions:{{id}}:name" class="entry-list-field division-name" data-list="divisions" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Division name"/>
+			<select name="aa-ui:divisions:{{id}}:kind" class="entry-list-field division-kind" data-list="divisions" data-entry-id="{{id}}" data-field="kind">
 				{{selectOptions kindOptions selected=kind valueAttr="key" labelAttr="label" blank="— Choose —"}}
 			</select>
 			<div class="entry-counter-row">
@@ -30,7 +30,7 @@
 			{{#if vulnerable}}
 			<p class="defenseless-label">VULNERABLE</p>
 			{{/if}}
-			<textarea class="entry-list-field division-description" data-list="divisions" data-entry-id="{{id}}" data-field="description" placeholder="Describe this hostile organization…">{{description}}</textarea>
+			<textarea name="aa-ui:divisions:{{id}}:description" class="entry-list-field division-description" data-list="divisions" data-entry-id="{{id}}" data-field="description" placeholder="Describe this hostile organization…">{{description}}</textarea>
 			{{#if passiveOutcome}}
 			<div class="division-passive-outcome">
 				<h4>Passive Outcome</h4>

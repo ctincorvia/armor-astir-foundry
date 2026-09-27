@@ -12,13 +12,13 @@
 						<div class="astir-identity-fields">
 							<div class="form-group">
 								<label>Core</label>
-								<select class="astir-core-select">
+								<select name="aa-ui:astir-core-select" class="astir-core-select">
 									{{selectOptions astir.cores selected=astir.core valueAttr="key" labelAttr="label" blank="— Choose —"}}
 								</select>
 							</div>
 							<div class="form-group">
 								<label>Approach</label>
-								<select class="astir-approach-select">
+								<select name="aa-ui:astir-approach-select" class="astir-approach-select">
 									{{selectOptions astir.approachOptions selected=astir.approach valueAttr="key" labelAttr="label" blank="— Choose —"}}
 								</select>
 							</div>
@@ -112,7 +112,7 @@
 								{{#if guidedMoveChoosable}}
 								<div class="astir-part-guided-move-control">
 									<label class="astir-part-guided-move-label">Guided move</label>
-									<select class="guided-move-select" data-part="{{key}}">
+									<select name="aa-ui:part:{{@index}}:guided-move-select" class="guided-move-select" data-part="{{key}}">
 										{{selectOptions @root.guidedMoveOptions selected=guidedMoveChoice valueAttr="key" labelAttr="name" blank="—"}}
 									</select>
 								</div>
@@ -120,7 +120,7 @@
 								{{#if channelMoveChoosable}}
 								<div class="astir-part-guided-move-control">
 									<label class="astir-part-guided-move-label">Channel move</label>
-									<select class="channel-move-select" data-part="{{key}}">
+									<select name="aa-ui:part:{{@index}}:channel-move-select" class="channel-move-select" data-part="{{key}}">
 										{{selectOptions @root.guidedMoveOptions selected=channelMoveChoice valueAttr="key" labelAttr="name" blank="—"}}
 									</select>
 								</div>
@@ -156,7 +156,7 @@
 								{{#if guidedMoveChoosable}}
 								<div class="astir-part-guided-move-control">
 									<label class="astir-part-guided-move-label">Guided move</label>
-									<select class="guided-move-select" data-part="{{key}}">
+									<select name="aa-ui:extra-part:{{@index}}:guided-move-select" class="guided-move-select" data-part="{{key}}">
 										{{selectOptions @root.guidedMoveOptions selected=guidedMoveChoice valueAttr="key" labelAttr="name" blank="—"}}
 									</select>
 								</div>
@@ -164,7 +164,7 @@
 								{{#if channelMoveChoosable}}
 								<div class="astir-part-guided-move-control">
 									<label class="astir-part-guided-move-label">Channel move</label>
-									<select class="channel-move-select" data-part="{{key}}">
+									<select name="aa-ui:extra-part:{{@index}}:channel-move-select" class="channel-move-select" data-part="{{key}}">
 										{{selectOptions @root.guidedMoveOptions selected=channelMoveChoice valueAttr="key" labelAttr="name" blank="—"}}
 									</select>
 								</div>

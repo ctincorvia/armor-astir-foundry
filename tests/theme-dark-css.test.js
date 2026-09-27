@@ -80,14 +80,15 @@ const sheet = (classes = "sheet actor") => `
  * while the chat log itself is pinned theme-light by its own template
  * (templates/sidebar/tabs/chat/log.hbs). Getting this structure right is the whole point.
  */
-const chat = () => `
+const chat = (root = "armor-astir-downtime-scene-chat", titleClass = "downtime-scene-chat-name") => `
 <div id="interface" class="themed theme-dark">
 	<section id="chat" class="tab sidebar-tab">
 		<ol class="chat-log plain themed theme-light">
 			<li class="chat-message message flexcol" id="ours">
+				<header class="message-header"><h4 id="sender" class="message-sender">Ash</h4><time id="stamp">1m ago</time></header>
 				<div class="message-content">
-					<div class="armor-astir-downtime-scene-chat">
-						<h3 id="card-title" class="downtime-scene-chat-name">Command Deck</h3>
+					<div class="${root}">
+						<h3 id="card-title" class="${titleClass}">Command Deck</h3>
 						<p id="card-body">body text</p>
 					</div>
 				</div>
@@ -134,6 +135,19 @@ describe("dark theme -- chat cards", () => {
 
 	it("colours the card title, which core declares directly on h3 and would leave dark", () => {
 		render({ html: chat(), dark: true });
+		expect(styleOf("card-title", "color")).toBe(COLOR.moonstoneLight);
+	});
+
+	it("lightens core's header sender and timestamp, which default to a fixed dark grey", () => {
+		render({ html: chat(), dark: true });
+		expect(styleOf("sender", "color")).toBe(COLOR.inkDark);
+		expect(styleOf("stamp", "color")).toBe("#b8bcc4");
+	});
+
+	it("themes the Conflict Scene card the same way as the Downtime Scene card", () => {
+		render({ html: chat("armor-astir-conflict-scene-chat", "conflict-scene-chat-name"), dark: true });
+		expect(styleOf("ours", "backgroundColor")).toBe(COLOR.surfaceDark);
+		expect(styleOf("card-body", "color")).toBe(COLOR.inkDark);
 		expect(styleOf("card-title", "color")).toBe(COLOR.moonstoneLight);
 	});
 });

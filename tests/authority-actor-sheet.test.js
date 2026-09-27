@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { AuthorityActorSheet, AUTHORITY_SHEET_TEMPLATE, registerAuthorityActorSheet } from "../scripts/world-actors/authority-actor-sheet.js";
 import { DIVISION_KINDS } from "../scripts/world-actors/division-kinds.js";
+import { CONFLICT_SCENES } from "../scripts/world-actors/conflict-scenes.js";
 import { CLOCK_STEPS_MAX, CLOCK_STEPS_MIN } from "../scripts/core/clocks.js";
 
 describe("AuthorityActorSheet.defaultOptions", () => {
@@ -9,7 +10,8 @@ describe("AuthorityActorSheet.defaultOptions", () => {
 			classes: ["armor-astir", "sheet", "actor", "world-actor", "authority"],
 			template: AUTHORITY_SHEET_TEMPLATE,
 			width: 1350,
-			scrollY: [".window-content"]
+			scrollY: [".window-content"],
+			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "overview" }]
 		});
 	});
 });
@@ -242,6 +244,17 @@ describe("AuthorityActorSheet#_divisionsData", () => {
 });
 
 describe("AuthorityActorSheet#getData", () => {
+	it("reads the description off the actor, defaulting to empty", () => {
+		const sheet = new AuthorityActorSheet();
+		sheet.actor = { system: { details: { description: { value: "An empire." } } } };
+
+		expect(sheet.getData({}).description).toBe("An empire.");
+
+		sheet.actor = { system: {} };
+
+		expect(sheet.getData({}).description).toBe("");
+	});
+
 	it("builds a 9-step stability track filled up to the current value", () => {
 		const sheet = new AuthorityActorSheet();
 		sheet.actor = { system: { attributes: { stability: { value: 4 } } } };
@@ -353,6 +366,17 @@ describe("AuthorityActorSheet#activateListeners", () => {
 		expect(html.find).toHaveBeenCalledWith(".clock-label-input");
 		expect(html.find).toHaveBeenCalledWith(".clock-steps-input");
 		expect(html.find).toHaveBeenCalledWith(".clock-step");
+		expect(html.find).toHaveBeenCalledWith(".conflict-scene-info");
+		expect(html.find).toHaveBeenCalledWith(".conflict-scene-chat");
+	});
+});
+
+describe("AuthorityActorSheet - Conflict Scenes", () => {
+	it("exposes the shared catalog to the template as conflictScenes", () => {
+		const sheet = new AuthorityActorSheet();
+		sheet.actor = { system: {} };
+
+		expect(sheet.getData({}).conflictScenes).toBe(CONFLICT_SCENES);
 	});
 });
 

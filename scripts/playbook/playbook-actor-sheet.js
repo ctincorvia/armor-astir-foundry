@@ -1,5 +1,6 @@
 import { PLAYBOOKS, swapActorPlaybook } from "../actor-creation.js";
 import { availableApproaches } from "../core/approaches.js";
+import { stripUiFields } from "../core/ui-field-names.js";
 import { gravityTriggerForPlaybook } from "./gravity-triggers.js";
 import { defaultConsiderText, defaultLookText } from "./playbook-flavor.js";
 import { TRAITS } from "../core/traits.js";
@@ -69,6 +70,11 @@ export class PlaybookActorSheet extends ActorSheet {
 	// instead of opening a dialog. Transient UI state, not actor data — lives on the sheet instance
 	// and resets whenever the sheet is fully closed and reopened.
 	_dangerAddOpen = false;
+
+	// See docs/domains/world-actors.md, "Field names and focus".
+	_getSubmitData(updateData) {
+		return stripUiFields(super._getSubmitData(updateData));
+	}
 
 	// A thin coordinator: shared cross-domain locals that feed more than one domain's data method
 	// are computed once here (astir/ardents/equipment/frames/mountedFrame/astirParts/astirMove/

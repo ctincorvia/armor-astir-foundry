@@ -3,7 +3,7 @@
 # Sheet Styling
 
 ## Sheet styling
-This module's CSS is split across several files under `styles/`, all loaded together (see `module.json`'s `styles[]` array) and all styling the same handful of roots: the playbook actor sheet, the three world actor sheets (Carrier/Authority/Cause), every dialog (all carry the `armor-astir` class), and the chat cards (`armor-astir-move-chat` and `armor-astir-downtime-scene-chat`, never nested under `armor-astir`). The files are:
+This module's CSS is split across several files under `styles/`, all loaded together (see `module.json`'s `styles[]` array) and all styling the same handful of roots: the playbook actor sheet, the three world actor sheets (Carrier/Authority/Cause), every dialog (all carry the `armor-astir` class), and the chat cards (`armor-astir-move-chat`, `armor-astir-downtime-scene-chat` and `armor-astir-conflict-scene-chat`, never nested under `armor-astir`). The files are:
 
 - `tokens.css` — the `--aa-*` custom properties themselves, light values and dark. **Must stay first in `module.json`'s `styles[]` array** — every other file references these tokens and has no fallback if it loads first.
 - `sheet-chrome.css` — headers, portrait, name/callsign, header labels/selects, tier readout, status row, the shared bordered-panel treatment, meters, numeric readouts, pip tracks, +/- steppers, the sheet min-width floor.

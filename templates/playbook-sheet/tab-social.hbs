@@ -37,10 +37,10 @@
 							{{#each gravityClocks.list}}
 							<li class="gravity-clock-item" data-clock-id="{{id}}">
 								<div class="gravity-clock-header">
-									<input type="text" class="gravity-clock-label-input" data-clock-id="{{id}}" value="{{label}}" placeholder="Clock label…"/>
+									<input type="text" name="aa-ui:gravity-clock-label-input:{{id}}" class="gravity-clock-label-input" data-clock-id="{{id}}" value="{{label}}" placeholder="Clock label…"/>
 									<button type="button" class="gravity-clock-remove" data-clock-id="{{id}}" aria-label="Remove gravity clock">✕</button>
 								</div>
-								<input type="text" class="gravity-clock-target-input" data-clock-id="{{id}}" value="{{target}}" placeholder="Target (who or what)…"/>
+								<input type="text" name="aa-ui:gravity-clock-target-input:{{id}}" class="gravity-clock-target-input" data-clock-id="{{id}}" value="{{target}}" placeholder="Target (who or what)…"/>
 								<div class="gravity-clock-body">
 									<ol class="gravity-clock-track">
 										{{#each progressSteps}}
@@ -70,10 +70,10 @@
 							{{#each clocks.list}}
 							<li class="clock-item" data-clock-id="{{id}}">
 								<div class="clock-header">
-									<input type="text" class="clock-label-input" data-clock-id="{{id}}" value="{{label}}" placeholder="Clock label…"/>
+									<input type="text" name="aa-ui:clock-label-input:{{id}}" class="clock-label-input" data-clock-id="{{id}}" value="{{label}}" placeholder="Clock label…"/>
 									<div class="clock-steps-control">
 										<label>Steps</label>
-										<input type="number" class="clock-steps-input" data-clock-id="{{id}}" value="{{steps}}" min="{{../clocks.min}}" max="{{../clocks.max}}"/>
+										<input type="number" name="aa-ui:clock-steps-input:{{id}}" class="clock-steps-input" data-clock-id="{{id}}" value="{{steps}}" min="{{../clocks.min}}" max="{{../clocks.max}}"/>
 									</div>
 									<button type="button" class="clock-remove" data-clock-id="{{id}}" aria-label="Remove clock">✕</button>
 								</div>
@@ -98,7 +98,7 @@
 						<ol class="burden-list">
 							{{#each burdens.list}}
 							<li class="burden-item" data-burden-id="{{id}}">
-								<input type="text" class="burden-label-input" data-burden-id="{{id}}" value="{{label}}" placeholder="Describe the burden…"/>
+								<input type="text" name="aa-ui:burden-label-input:{{id}}" class="burden-label-input" data-burden-id="{{id}}" value="{{label}}" placeholder="Describe the burden…"/>
 								<button type="button" class="burden-remove" data-burden-id="{{id}}" aria-label="Remove burden">✕</button>
 							</li>
 							{{/each}}
@@ -116,7 +116,7 @@
 							<li class="entry-list-item" data-entry-id="{{id}}">
 								<div class="entry-list-row">
 									{{#unless ../isParadigm}}
-									<select class="entry-list-field hook-field hook-depth-select" data-entry-id="{{id}}" data-field="depth">
+									<select name="aa-ui:hook:{{id}}:depth" class="entry-list-field hook-field hook-depth-select" data-entry-id="{{id}}" data-field="depth">
 										{{selectOptions ../hooks.depths selected=depth valueAttr="key" labelAttr="label"}}
 									</select>
 									{{/unless}}
@@ -128,7 +128,7 @@
 									{{/if}}
 									<button type="button" class="hook-remove" data-entry-id="{{id}}" aria-label="Remove hook">✕</button>
 								</div>
-								<textarea class="entry-list-field hook-field hook-description" data-entry-id="{{id}}" data-field="description" placeholder="Describe the {{#if ../isParadigm}}tenet{{else}}hook{{/if}}…">{{description}}</textarea>
+								<textarea name="aa-ui:hook:{{id}}:description" class="entry-list-field hook-field hook-description" data-entry-id="{{id}}" data-field="description" placeholder="Describe the {{#if ../isParadigm}}tenet{{else}}hook{{/if}}…">{{description}}</textarea>
 							</li>
 							{{/each}}
 						</ol>
@@ -145,8 +145,8 @@
 							{{#each aceCrew.list}}
 							<li class="entry-list-item" data-entry-id="{{id}}">
 								<div class="entry-list-row">
-									<input type="text" class="entry-list-field ace-crew-field ace-crew-name" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Name"/>
-									<input type="text" class="entry-list-field ace-crew-field ace-crew-adjective" data-entry-id="{{id}}" data-field="adjective" value="{{adjective}}" placeholder="Adjective(s)"/>
+									<input type="text" name="aa-ui:ace-crew:{{id}}:name" class="entry-list-field ace-crew-field ace-crew-name" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Name"/>
+									<input type="text" name="aa-ui:ace-crew:{{id}}:adjective" class="entry-list-field ace-crew-field ace-crew-adjective" data-entry-id="{{id}}" data-field="adjective" value="{{adjective}}" placeholder="Adjective(s)"/>
 									<button type="button" class="ace-crew-remove" data-entry-id="{{id}}" aria-label="Remove crew member">✕</button>
 								</div>
 							</li>
@@ -166,11 +166,11 @@
 							{{#each boundAllies.list}}
 							<li class="entry-list-item{{#if summoned}} summoned{{/if}}" data-entry-id="{{id}}">
 								<div class="entry-list-row">
-									<input type="text" class="entry-list-field bound-ally-field bound-ally-name" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Ally name"/>
-									<select class="entry-list-field bound-ally-field bound-ally-approach" data-entry-id="{{id}}" data-field="approach">
+									<input type="text" name="aa-ui:bound-ally:{{id}}:name" class="entry-list-field bound-ally-field bound-ally-name" data-entry-id="{{id}}" data-field="name" value="{{name}}" placeholder="Ally name"/>
+									<select name="aa-ui:bound-ally:{{id}}:approach" class="entry-list-field bound-ally-field bound-ally-approach" data-entry-id="{{id}}" data-field="approach">
 										{{selectOptions ../boundAllies.approaches selected=approach valueAttr="key" labelAttr="label" blank="— Approach —"}}
 									</select>
-									<select class="entry-list-field bound-ally-field bound-ally-trait" data-entry-id="{{id}}" data-field="trait">
+									<select name="aa-ui:bound-ally:{{id}}:trait" class="entry-list-field bound-ally-field bound-ally-trait" data-entry-id="{{id}}" data-field="trait">
 										{{selectOptions ../boundAllies.traits selected=trait valueAttr="key" labelAttr="label" blank="— Trait —"}}
 									</select>
 									{{#if ../boundAllies.canMarkFree}}

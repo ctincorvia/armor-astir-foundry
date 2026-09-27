@@ -1,4 +1,5 @@
 import { WorldActorSheet } from "./world-actor-sheet.js";
+import { ConflictScenesSheetMixin } from "./conflict-scenes-mixin.js";
 import { FACTION_KINDS, findFactionKind } from "./faction-kinds.js";
 
 export const CAUSE_SHEET_TEMPLATE = "modules/armor-astir/templates/cause-actor-sheet.hbs";
@@ -19,7 +20,8 @@ export class CauseActorSheet extends WorldActorSheet {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			classes: ["armor-astir", "sheet", "actor", "world-actor", "cause"],
 			template: CAUSE_SHEET_TEMPLATE,
-			width: 960
+			width: 960,
+			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "overview" }]
 		});
 	}
 
@@ -47,11 +49,21 @@ export class CauseActorSheet extends WorldActorSheet {
 
 	getData(options) {
 		const data = super.getData(options);
+		data.description = this.actor.system.details?.description?.value ?? "";
 		data.factions = this._factionsData("factions");
 		data.waywardFactions = this._factionsData("waywardFactions");
+		data.conflictScenes = this._conflictScenesData();
 		return data;
 	}
+
+	activateListeners(html) {
+		super.activateListeners(html);
+		html.find(".conflict-scene-info").on("click", this._onConflictSceneInfo.bind(this));
+		html.find(".conflict-scene-chat").on("click", this._onConflictSceneChat.bind(this));
+	}
 }
+
+Object.assign(CauseActorSheet.prototype, ConflictScenesSheetMixin);
 
 export function registerCauseActorSheet() {
 	Hooks.once("init", () => {

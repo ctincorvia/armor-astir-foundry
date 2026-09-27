@@ -72,6 +72,24 @@ without stubbing `actor.update`. [tracking-mixin.js](../../scripts/playbook/play
 imports those same three helpers for the Playbook sheet's Ace Crew and Hooks lists, wiring them by
 hand since `PlaybookActorSheet` doesn't extend `WorldActorSheet`.
 
+### Field names and focus
+
+**Every text/number input, textarea and select on an actor sheet needs a `name`** — this applies
+to the Playbook and NPC sheets too, not only these three. Core AppV1's `FormApplication#_render`
+restores focus after a re-render only via `form[focus.name]`, so an unnamed field silently loses
+focus: edit field A, click field B, A's `change` triggers `actor.update` → re-render → B's
+replacement node is unfocused, and the click looks "ignored".
+
+A field whose write goes through a custom handler (every entry-list field, clock label, Astir
+select, …) takes a name under the reserved `aa-ui:` prefix — e.g. `aa-ui:divisions:{{id}}:name`.
+[ui-field-names.js](../../scripts/core/ui-field-names.js)'s `stripUiFields` removes those keys in
+each sheet's `_getSubmitData` override (`WorldActorSheet`, `PlaybookActorSheet`, `NpcActorSheet`),
+so they never reach `submitOnChange`'s `actor.update` — a real path name there would write
+flattened keys against an id-keyed array. Names must be unique within the form (`form[name]` on a
+duplicate returns a RadioNodeList with no `.focus()`), so qualify by `{{id}}`, or by `{{@index}}`
+where a loop has no id. `tests/ui-field-names.test.js` fails on any unnamed field in an
+actor-sheet template.
+
 ## The Carrier
 
 The players' moving base. One trait (**Crew**, bounded -3..+3 to match the playbook sheet's own
@@ -188,6 +206,8 @@ not a per-character copy: the Carrier sheet's own stepper and a playbook charact
 move card write to the same field. Its bounds are read off the `crew-support` move's own
 `numericTrackers[0]` rather than re-declared as magic numbers.
 
+Authority and Cause each open their Overview tab with a free-text **Description** (`system.details.description.value`, same field as Carrier/NPC). Their header Name field takes `flex: 1 1 240px` in `world-actor-shared.css` so long names fit.
+
 ## The Authority
 
 The empire/oppressor. A **Stability** rating (1..9, seeded at max), exactly **three Divisions**, and
@@ -235,7 +255,27 @@ This is the thinnest of the three. Checkboxes go through `_onEntryFieldChange`, 
 `_onEntryCounterStep`; **the only reason `CauseActorSheet` exists rather than using `WorldActorSheet`
 directly is `_entryDefaults` seeding those extra fields** — plus `_factionsData`, which defaults a
 missing `grip` to 0 (Factions created before Grip existed have no such field) and attaches the
-resolved kind's text.
+resolved kind's text (and, since Conflict Scenes, the tab wiring below).
+
+## Conflict Scenes
+
+The Authority and Cause sheets each have a second tab, **Conflict Scenes**: a read-only reference list
+(scene name plus a Chat and a "?" button), modelled on the playbook's Downtime Scenes
+(`scripts/playbook/downtime-scenes.js`). Prose only — no rolling, no actor state, nothing persisted.
+
+- **One shared catalog**, `scripts/world-actors/conflict-scenes.js` (`CONFLICT_SCENES`): each scene is
+  `{ key, name, summary[], playing[], challenges[], resolutions[] }`. Both sheets show the same list, so
+  adding a scene is a data-only change to that array. The catalog holds the rulebook's six Conflict
+  Scenes.
+- **A mixin, not the base class.** `conflict-scenes-mixin.js` is `Object.assign`ed onto
+  `AuthorityActorSheet` and `CauseActorSheet` only — Carrier has no such tab, so `WorldActorSheet`
+  stays free of it. `conflict-scene-dialog.js` / `conflict-scene-chat.js` mirror the Downtime files.
+- **Tabs.** Neither sheet had tabs before, so each now has `Overview` (everything that was already on
+  the sheet) and `Conflict Scenes`. The Overview markup sits inside a `.world-actor-overview` wrapper
+  div on purpose: without it, its `<section>`s would be direct children of `.tab.active` and pick up
+  sheet-chrome.css's `.tab.active > section` bordered-panel/flex-gap rule, changing how the sheets
+  looked before the tabs existed. The tab partial itself is shared:
+  `templates/world-actor-shared/tab-conflict-scenes.hbs` (preloaded via `WORLD_ACTOR_SHARED_PARTIALS`).
 
 ## The NPC
 

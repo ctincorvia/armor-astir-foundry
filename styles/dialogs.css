@@ -184,6 +184,42 @@
 	opacity: 0.8;
 }
 
+/* The Conflict Scene "?" dialog (see conflict-scene-dialog.js/conflict-scene-dialog.hbs) —
+   summary paragraphs, then Playing the Scene and Resolutions each with a bulleted list. Same list
+   treatment as .downtime-scene-bullet-list above. */
+.armor-astir.conflict-scene-dialog .conflict-scene-dialog-content {
+	padding: 0 var(--aa-space-2) var(--aa-space-2);
+}
+
+.armor-astir.conflict-scene-dialog .conflict-scene-summary,
+.armor-astir.conflict-scene-dialog .conflict-scene-playing,
+.armor-astir.conflict-scene-dialog .conflict-scene-resolutions {
+	margin-bottom: var(--aa-space-2);
+}
+
+.armor-astir.conflict-scene-dialog :is(.conflict-scene-summary, .conflict-scene-playing) p {
+	margin: 0 0 var(--aa-space-1);
+}
+
+.armor-astir.conflict-scene-dialog .conflict-scene-dialog-name {
+	margin: 0 0 var(--aa-space-2);
+}
+
+.armor-astir.conflict-scene-dialog :is(.conflict-scene-playing, .conflict-scene-resolutions) h3 {
+	margin: 0 0 var(--aa-space-1);
+}
+
+.armor-astir.conflict-scene-dialog .conflict-scene-bullet-list {
+	margin: 0;
+	padding: 0 0 0 var(--aa-space-4);
+	list-style: disc outside;
+}
+
+.armor-astir.conflict-scene-dialog .conflict-scene-bullet-list li {
+	padding: 2px 0;
+	font-size: 12px;
+}
+
 .armor-astir.move-roll-dialog .form-group {
 	display: flex;
 	flex-direction: row;

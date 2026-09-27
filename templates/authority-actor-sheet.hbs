@@ -6,15 +6,30 @@
 			<input type="text" name="name" value="{{actor.name}}" placeholder="Name"/>
 		</div>
 	</header>
-	{{> "modules/armor-astir/templates/authority-sheet/stability.hbs"}}
-	{{> "modules/armor-astir/templates/authority-sheet/divisions.hbs"}}
-	<div class="assets-schemes-row">
-		<div class="assets-schemes-column">
-			{{> "modules/armor-astir/templates/authority-sheet/assets.hbs"}}
-			{{> "modules/armor-astir/templates/authority-sheet/notable-actors.hbs"}}
+	<nav class="sheet-tabs tabs" data-group="primary">
+		<a class="item" data-tab="overview">Overview</a>
+		<a class="item" data-tab="conflict">Conflict Scenes</a>
+	</nav>
+	<section class="sheet-body">
+		<div class="tab" data-group="primary" data-tab="overview">
+			<div class="world-actor-overview">
+				<section class="description">
+					<h3>Description</h3>
+					<textarea name="system.details.description.value" placeholder="Describe the Authority…">{{description}}</textarea>
+				</section>
+				{{> "modules/armor-astir/templates/authority-sheet/stability.hbs"}}
+				{{> "modules/armor-astir/templates/authority-sheet/divisions.hbs"}}
+				<div class="assets-schemes-row">
+					<div class="assets-schemes-column">
+						{{> "modules/armor-astir/templates/authority-sheet/assets.hbs"}}
+						{{> "modules/armor-astir/templates/authority-sheet/notable-actors.hbs"}}
+					</div>
+					<div class="assets-schemes-column">
+						{{> "modules/armor-astir/templates/authority-sheet/schemes.hbs"}}
+					</div>
+				</div>
+			</div>
 		</div>
-		<div class="assets-schemes-column">
-			{{> "modules/armor-astir/templates/authority-sheet/schemes.hbs"}}
-		</div>
-	</div>
+		{{> "modules/armor-astir/templates/world-actor-shared/tab-conflict-scenes.hbs"}}
+	</section>
 </form>

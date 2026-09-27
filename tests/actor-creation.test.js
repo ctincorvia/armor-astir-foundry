@@ -405,6 +405,7 @@ describe("createWorldActor", () => {
 				type: "armor-astir.authority",
 				folder: null,
 				system: {
+					details: { description: { value: "" } },
 					attributes: {
 						stability: { value: 9 },
 						divisions: [
@@ -439,7 +440,7 @@ describe("createWorldActor", () => {
 		await createWorldActor(CAUSE_KIND);
 
 		expect(Actor.create).toHaveBeenCalledWith(
-			{ name: "Cause", type: "armor-astir.cause", folder: null, system: { attributes: { factions: [], waywardFactions: [] } }, prototypeToken: { actorLink: true } },
+			{ name: "Cause", type: "armor-astir.cause", folder: null, system: { details: { description: { value: "" } }, attributes: { factions: [], waywardFactions: [] } }, prototypeToken: { actorLink: true } },
 			{ renderSheet: true }
 		);
 	});

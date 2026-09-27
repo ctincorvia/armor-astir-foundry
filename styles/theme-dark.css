@@ -169,8 +169,8 @@ body.theme-dark .armor-astir .editor .editor-edit {
 
    Deliberately not listing .chat-popout: core hardcodes it to theme-light (chat-popout.mjs), so
    a popped-out log stays light — core's call, not ours. */
-.themed.theme-dark :is(#chat, #chat-notifications) .message:has(:is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat)),
-:is(#chat, #chat-notifications).themed.theme-dark .message:has(:is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat)) {
+.themed.theme-dark :is(#chat, #chat-notifications) .message:has(:is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat, .armor-astir-conflict-scene-chat)),
+:is(#chat, #chat-notifications).themed.theme-dark .message:has(:is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat, .armor-astir-conflict-scene-chat)) {
 	background-color: var(--aa-surface);
 	background-image: var(--aa-surface-texture);
 	color: var(--aa-ink);
@@ -181,7 +181,7 @@ body.theme-dark .armor-astir .editor .editor-edit {
    (`<ol class="chat-log plain themed theme-light">`), so the semantic --color-text-* tokens
    resolve light inside every message even when the sidebar around it is dark. The card's own
    text is stated explicitly for that reason — it cannot inherit its way to the right colour. */
-.themed.theme-dark :is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat) {
+.themed.theme-dark :is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat, .armor-astir-conflict-scene-chat) {
 	color: var(--aa-ink);
 }
 
@@ -190,24 +190,42 @@ body.theme-dark .armor-astir .editor .editor-edit {
    (public/css/foundry2.css), and a direct declaration always beats an inherited value no matter
    how specific the ancestor's rule is. Inside the theme-light-pinned chat log those tokens
    resolve dark, which is what left the card title near-black while its body text went light. */
-.themed.theme-dark :is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat) :is(h1, h2, h3, h4) {
+.themed.theme-dark :is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat, .armor-astir-conflict-scene-chat) :is(h1, h2, h3, h4) {
+	color: var(--aa-ink);
+}
+
+/* Core's own header row (sender name, timestamp, delete icon) sits outside our card root and
+   colours itself with `.message-header { color: var(--color-dark-4) }` — a fixed dark grey that
+   is near-invisible on the dark card fill. The sender is an h4 with its own direct colour, so it
+   is stated explicitly rather than inherited. Three plain :has() selectors rather than one
+   :has(:is(...)) — the latter fails to match under happy-dom, so the cascade test can't see it. */
+.themed.theme-dark li.chat-message:has(.armor-astir-move-chat) .message-header,
+.themed.theme-dark li.chat-message:has(.armor-astir-downtime-scene-chat) .message-header,
+.themed.theme-dark li.chat-message:has(.armor-astir-conflict-scene-chat) .message-header {
+	color: var(--aa-ink-muted);
+}
+
+.themed.theme-dark li.chat-message:has(.armor-astir-move-chat) .message-header .message-sender,
+.themed.theme-dark li.chat-message:has(.armor-astir-downtime-scene-chat) .message-header .message-sender,
+.themed.theme-dark li.chat-message:has(.armor-astir-conflict-scene-chat) .message-header .message-sender {
 	color: var(--aa-ink);
 }
 
 /* The card title keeps the accent treatment section headers get on the sheet, so a card still
    reads as this module's rather than as generic chat text. */
 .themed.theme-dark .armor-astir-move-chat .move-name,
-.themed.theme-dark .armor-astir-downtime-scene-chat .downtime-scene-chat-name {
+.themed.theme-dark .armor-astir-downtime-scene-chat .downtime-scene-chat-name,
+.themed.theme-dark .armor-astir-conflict-scene-chat .conflict-scene-chat-name {
 	color: var(--aa-primary-strong);
 }
 
 /* Enriched content links (@UUID references) carry their own core --content-link-* palette, which
    resolves light-theme inside the pinned log for the same reason as the headings. */
-.themed.theme-dark :is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat) :is(a, .content-link) {
+.themed.theme-dark :is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat, .armor-astir-conflict-scene-chat) :is(a, .content-link) {
 	color: var(--aa-primary-strong);
 }
 
-.themed.theme-dark :is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat) .content-link {
+.themed.theme-dark :is(.armor-astir-move-chat, .armor-astir-downtime-scene-chat, .armor-astir-conflict-scene-chat) .content-link {
 	background: var(--aa-primary-tint);
 	border-color: var(--aa-line);
 }

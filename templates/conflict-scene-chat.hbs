@@ -1,0 +1,19 @@
+<div class="armor-astir-conflict-scene-chat">
+	<h3 class="conflict-scene-chat-name">{{name}}</h3>
+	<section class="conflict-scene-summary">
+		{{#each summary}}<p>{{this}}</p>{{/each}}
+	</section>
+	<section class="conflict-scene-playing">
+		<h4>Playing the Scene</h4>
+		{{#each playing}}<p>{{this}}</p>{{/each}}
+		<ul class="conflict-scene-bullet-list">
+			{{#each challenges}}<li>{{this}}</li>{{/each}}
+		</ul>
+	</section>
+	<section class="conflict-scene-resolutions">
+		<h4>Resolutions</h4>
+		<ul class="conflict-scene-bullet-list">
+			{{#each resolutions}}<li>{{this}}</li>{{/each}}
+		</ul>
+	</section>
+</div>

@@ -1,4 +1,5 @@
 import { WorldActorSheet } from "./world-actor-sheet.js";
+import { ConflictScenesSheetMixin } from "./conflict-scenes-mixin.js";
 import { DIVISION_KINDS, findDivisionKind } from "./division-kinds.js";
 import {
 	CLOCK_STEPS_DEFAULT,
@@ -40,7 +41,8 @@ export class AuthorityActorSheet extends WorldActorSheet {
 		return foundry.utils.mergeObject(super.defaultOptions, {
 			classes: ["armor-astir", "sheet", "actor", "world-actor", "authority"],
 			template: AUTHORITY_SHEET_TEMPLATE,
-			width: 1350
+			width: 1350,
+			tabs: [{ navSelector: ".sheet-tabs", contentSelector: ".sheet-body", initial: "overview" }]
 		});
 	}
 
@@ -95,10 +97,12 @@ export class AuthorityActorSheet extends WorldActorSheet {
 			value: stabilityValue,
 			steps: Array.from({ length: STABILITY_MAX }, (_, i) => ({ step: i + 1, filled: i + 1 <= stabilityValue }))
 		};
+		data.description = this.actor.system.details?.description?.value ?? "";
 		data.divisions = this._divisionsData();
 		data.assets = this._list("assets");
 		data.notableActors = this._list("notableActors");
 		data.schemes = this._schemesData();
+		data.conflictScenes = this._conflictScenesData();
 		return data;
 	}
 
@@ -110,6 +114,8 @@ export class AuthorityActorSheet extends WorldActorSheet {
 		html.find(".clock-label-input").on("change", this._onSchemeLabelChange.bind(this));
 		html.find(".clock-steps-input").on("change", this._onSchemeStepsChange.bind(this));
 		html.find(".clock-step").on("click", this._onSchemeStep.bind(this));
+		html.find(".conflict-scene-info").on("click", this._onConflictSceneInfo.bind(this));
+		html.find(".conflict-scene-chat").on("click", this._onConflictSceneChat.bind(this));
 	}
 
 	// Unlike Spotlight/Gravity Clock progress (which bottom out at 0), Stability's floor is 1 —
@@ -154,6 +160,8 @@ export class AuthorityActorSheet extends WorldActorSheet {
 		this.actor.update({ "system.attributes.schemes": setClockProgress(this._schemes(), clockId, step) });
 	}
 }
+
+Object.assign(AuthorityActorSheet.prototype, ConflictScenesSheetMixin);
 
 export function registerAuthorityActorSheet() {
 	Hooks.once("init", () => {

@@ -28,7 +28,7 @@
 						<div class="power-control downtime-ally-control">
 							<label class="power-label">Downtime Ally</label>
 							{{#if downtimeAlly.exists}}
-							<input type="text" class="downtime-ally-name-input" value="{{downtimeAlly.name}}" placeholder="Ally name"/>
+							<input type="text" name="aa-ui:downtime-ally-name-input" class="downtime-ally-name-input" value="{{downtimeAlly.name}}" placeholder="Ally name"/>
 							<button type="button" class="downtime-ally-invest icon-add-button labeled-add-button{{#unless downtimeAlly.canInvest}} disabled{{/unless}}" {{#unless downtimeAlly.canInvest}}disabled{{/unless}} title="Invest 1 Power" aria-label="Invest 1 Power">+1 Power</button>
 							<span class="power-value">Power Invested: {{downtimeAlly.powerInvested}}</span>
 							<button type="button" class="downtime-ally-release icon-add-button labeled-add-button" aria-label="Release Downtime Ally">Release</button>
